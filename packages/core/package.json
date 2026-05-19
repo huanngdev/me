@@ -9,12 +9,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./functions": "./src/functions/index.ts",
-    "./ui": "./src/ui/index.ts",
+    "./ui": "./src/shadcn-ui/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./types": "./src/types/index.ts",
-    "./styles/globals.css": "./src/ui/styles/globals.css",
-    "./lib/utils": "./src/ui/lib/utils.ts",
-    "./components/*": "./src/ui/components/*.tsx"
+    "./styles/globals.css": "./src/shadcn-ui/styles/globals.css",
+    "./lib/utils": "./src/shadcn-ui/lib/utils.ts",
+    "./components/*": "./src/shadcn-ui/components/*.tsx"
   },
   "scripts": {
     "lint": "eslint",
