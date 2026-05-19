@@ -4,6 +4,10 @@
 
 A personal developer portfolio website for Ngo Gia — Fullstack Developer with a focus on Next.js ecosystem, blockchain (Sui), and product engineering. The site serves as a living resume, writing space, and project showcase. Tone is quiet confidence: the work speaks, not the decoration.
 
+> **Structural reference:** this portfolio is modeled on https://chanhdai.com/. The strict rules for sections, interactions, layout density, and intentional deviations are in [`docs/REFERENCE.md`](./docs/REFERENCE.md) — read it before touching the page structure or building new sections.
+>
+> **Profile data:** the source of truth for everything personal (name, bio, projects, experience, awards) is `content/profile/*.md`. Read that before drafting copy.
+
 ---
 
 ## Visual identity
