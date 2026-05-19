@@ -65,7 +65,7 @@ The Experience section should NOT include "looking for work" as an entry — tha
 
 When the placeholders above are filled in, follow these rules:
 
-1. Start each bullet with a strong verb: *Built, Shipped, Designed, Migrated, Reduced, Owned.*
+1. Start each bullet with a strong verb: _Built, Shipped, Designed, Migrated, Reduced, Owned._
 2. Name the concrete artifact (a page, a feature, a service, a migration).
 3. Name the tech stack inline (one or two key technologies, not the whole list).
 4. End with the outcome where possible (a metric, a user-visible change, a survival-past-you signal). For early-career, "shipped to production and still used" is a legitimate outcome — say so.

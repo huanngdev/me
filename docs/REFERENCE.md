@@ -83,7 +83,7 @@ For an early-career portfolio (0-1 year of professional experience), restraint m
 - **Tech stack icons:** ≤ 30 total. Each one must be something the user would survive being asked about in an interview.
 - **Awards / Certs / Bookmarks:** show 5 by default, rest behind "Show more".
 
-If a section has *less* than the cap, fine. Less is fine. **Padding past the cap is a code review failure.**
+If a section has _less_ than the cap, fine. Less is fine. **Padding past the cap is a code review failure.**
 
 ---
 

@@ -35,6 +35,6 @@ The portfolio needs to read well to **all four** audiences simultaneously:
 
 - English is the default locale (broadest reach). Vietnamese is first-class for local recruiters.
 - Tone: quiet confidence. Concrete metrics and shipped work over adjectives.
-- Hero must communicate *both* fullstack and Web3 fluency in one glance — without screaming Web3.
+- Hero must communicate _both_ fullstack and Web3 fluency in one glance — without screaming Web3.
 - Projects section should mix product/fullstack work and hackathon/Web3 work so neither audience feels the site isn't for them.
 - A "hire me" CTA (email, contact, or scheduling link) should be visible without being aggressive — one place in the hero/footer is enough.

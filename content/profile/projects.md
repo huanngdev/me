@@ -11,7 +11,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 1. WalForm — *featured / hero project*
+## 1. WalForm — _featured / hero project_
 
 - **One-liner:** On-chain form builder on Sui — forms with decentralized storage on Walrus.
 - **Hackathon:** Walrus Session 2 (Form Tooling track)
@@ -51,7 +51,7 @@ Pitches well because it's a one-line analogy ("YouTube on-chain") that any non-t
 
 ## 3. Relic of Lie — 🥈 Top 2
 
-- **One-liner:** A decentralized take on the *Love Letter* card game — bluffing and deduction, on-chain.
+- **One-liner:** A decentralized take on the _Love Letter_ card game — bluffing and deduction, on-chain.
 - **Hackathon:** First Mover, 3 February 2026 — **Top 2**
 - **Stack:** _(to add — Sui? Move contracts? Web client? Smart-contract-driven game logic?)_
 - **Status:** _(playable URL?)_

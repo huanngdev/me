@@ -27,7 +27,7 @@ Three hackathons participated in (reverse-chronological). For 0-1 yr engineers, 
 
 - **Event:** First Mover
 - **Date:** 3 February 2026
-- **Project:** **Relic of Lie** — decentralized take on *Love Letter*, on-chain.
+- **Project:** **Relic of Lie** — decentralized take on _Love Letter_, on-chain.
 - **Result:** **🥈 Top 2** — first hackathon, first podium.
 - **Evidence link:** _(add)_
 

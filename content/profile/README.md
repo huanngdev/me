@@ -9,7 +9,7 @@ Single source of truth for everything personal about Chris (Ngô Gia Huân) that
 
 ## Files
 
-- [__meta.md](./_meta.md) — portfolio strategy: career stage, positioning, audience.
+- [\_\_meta.md](./_meta.md) — portfolio strategy: career stage, positioning, audience.
 - [identity.md](./identity.md) — name, location, roles, languages, birth year. Powers the hero.
 - [contact.md](./contact.md) — email, social handles, domain plan, tagline drafts.
 - [about.md](./about.md) — narrative anchor + draft bios (EN & VI).
