@@ -4,11 +4,11 @@ import { Header } from "@repo/core/components/header";
 import { ThemeProvider } from "@repo/core/components/theme-provider";
 import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-const fontMono = Geist_Mono({
+const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 });
