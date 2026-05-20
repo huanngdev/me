@@ -5,6 +5,8 @@ import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
+import { Header } from "@/components/header";
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const fontMono = Geist_Mono({
@@ -29,7 +31,10 @@ export default function RootLayout({
       className={cn("h-full antialiased", inter.variable, fontMono.variable, "font-sans")}
     >
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+        </ThemeProvider>
       </body>
     </html>
   );
