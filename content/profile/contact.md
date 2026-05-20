@@ -23,7 +23,7 @@ Public-facing channels. These all surface in the hero (as icon buttons) and in t
 - **X / Twitter** — [@huanngdev](https://x.com/huanngdev)
 - **Telegram** — @huanngdev
 - **Discord** — huanngdev
-- **Facebook** — [huan.gia.69](https://www.facebook.com/huan.gia.69/)
+- **Facebook** — [huanngdev](https://www.facebook.com/huanngdev/)
 
 Both Telegram and Discord are listed because both Web3 (Telegram-heavy) and dev/OSS communities (Discord-heavy) are in the audience set. Handles are consistent across every platform — easy for visitors to find you anywhere.
 

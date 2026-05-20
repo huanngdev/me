@@ -46,7 +46,7 @@ export const IDENTITY = {
 
 // ---------- Contact & social ----------
 
-export type SocialPlatform = "email" | "github" | "linkedin" | "x" | "telegram" | "discord";
+export type SocialPlatform = "github" | "linkedin" | "x" | "telegram" | "discord" | "facebook";
 
 export interface SocialLink {
   platform: SocialPlatform;
@@ -63,12 +63,6 @@ export const REPO_URL = "https://github.com/huanngdev/me";
 
 export const SOCIAL_LINKS = [
   {
-    platform: "email",
-    label: "Email",
-    handle: PUBLIC_EMAIL,
-    url: `mailto:${PUBLIC_EMAIL}`,
-  },
-  {
     platform: "github",
     label: "GitHub",
     handle: "@huanngdev",
@@ -82,7 +76,7 @@ export const SOCIAL_LINKS = [
   },
   {
     platform: "x",
-    label: "X",
+    label: "x.com",
     handle: "@huanngdev",
     url: "https://x.com/huanngdev",
   },
@@ -97,6 +91,12 @@ export const SOCIAL_LINKS = [
     label: "Discord",
     handle: "huanngdev",
     url: "https://discord.com/users/huanngdev",
+  },
+  {
+    platform: "facebook",
+    label: "Facebook",
+    handle: "huanngdev",
+    url: "https://www.facebook.com/huanngdev/",
   },
 ] as const satisfies ReadonlyArray<SocialLink>;
 

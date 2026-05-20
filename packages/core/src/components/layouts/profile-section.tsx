@@ -44,7 +44,7 @@ export function ProfileSection() {
             <p className="border-border/60 text-muted-foreground border-y px-4 py-2 text-sm">
               {IDENTITY.roles[0]}
             </p>
-            <p className="text-muted-foreground px-4 py-2 text-sm sm:text-base">
+            <p className="text-muted-foreground px-4 py-2 text-sm italic sm:text-sm">
               {IDENTITY.description}
             </p>
           </div>
