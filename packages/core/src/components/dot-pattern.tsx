@@ -14,7 +14,7 @@ export function DotPattern({ className, gap = 16, radius = 1, ...props }: DotPat
     <svg
       aria-hidden="true"
       className={cn(
-        "text-muted-foreground/50 pointer-events-none absolute inset-0 z-10 h-full w-full",
+        "text-muted-foreground/30 pointer-events-none absolute inset-0 -z-10 h-full w-full",
         className,
       )}
       xmlns="http://www.w3.org/2000/svg"

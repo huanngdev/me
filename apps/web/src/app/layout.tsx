@@ -1,7 +1,7 @@
 import "@repo/core/styles/globals.css";
 
-import { Header } from "@repo/core/components/header";
-import { ThemeProvider } from "@repo/core/components/theme-provider";
+import { Header } from "@repo/core/components/layouts/header";
+import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
 import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
