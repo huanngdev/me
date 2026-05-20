@@ -119,10 +119,26 @@ Every page exports `generateMetadata` returning a locale-aware `Metadata` object
 - Use the `dark:` variant on the same element, never duplicate components. The repo standardizes on the `class` strategy — the theme provider toggles a class on `<html>`.
 - Test every change in both modes before committing. The visual identity treats dark mode as first-class.
 
-### 4.4 Responsiveness
+### 4.4 Responsiveness — mobile is non-negotiable
 
-- Mobile-first. Default styles target the smallest screen, breakpoint utilities (`md:`, `lg:`) layer on top.
-- The content column is `max-w-[700px]` mirroring the reading width in `docs/DESIGN.md`. Don't fight it without a reason.
+**Every UI component ships with a mobile version. No exceptions.** A PR that adds or modifies UI without proving it works at mobile width is not done. Recruiters open this site on their phones at least as often as on desktop; a broken mobile layout reads as "didn't care" and you don't get a second first impression.
+
+Mobile is the default, not a breakpoint. Write base styles for the smallest viewport (≈360px wide), then layer `sm:` / `md:` / `lg:` utilities to scale up. Never write desktop-first and reverse-engineer mobile — that path produces brittle layouts that fail on the next phone you try.
+
+Hard requirements on every UI change:
+
+1. **Verify in browser at 360px wide.** Chrome DevTools device toolbar → iPhone SE or narrower. If anything overflows, wraps badly, or becomes unreadable, fix it before opening the PR.
+2. **Tap targets ≥ 44×44px.** Buttons, links, icon buttons, switches. `size-11` minimum for interactive icons. Don't shrink to "fit the design" — interactivity wins.
+3. **No horizontal page scroll.** Any element that pushes the body wider than `100vw` is a bug. Watch out for fixed widths, long unbreakable strings, and overflow on `pre` / `code` blocks (use `overflow-x-auto` on them).
+4. **Body text ≥ 16px** (`text-base`). Smaller is reserved for metadata, timestamps, captions — never primary content. `text-xs` requires justification.
+5. **Navigation has a mobile pattern.** If the nav row doesn't fit at 360px it gets a sheet/drawer (hamburger), a horizontally scrollable row, or a collapsed-to-essentials state. Never let nav items wrap onto multiple lines.
+6. **Every hover interaction has a touch alternative.** `hover:` reveals must also be reachable via `focus:` or tap. Tooltips, hover dropdowns, hidden-until-hover icons — all need a touch-friendly fallback (long-press, explicit button, or always-visible).
+7. **Spacing scales down on mobile.** The default site rhythm is `space-y-16` / `space-y-24` on desktop; mobile usually wants `space-y-10` / `space-y-12`. Don't ship desktop spacing as-is.
+8. **Container padding starts at 16px.** `px-4` (`sm:px-6 lg:px-8`) is the default for top-level containers. Edges touching the viewport read as cramped.
+
+The content column is `max-w-[700px]` per `docs/DESIGN.md` — that's the reading width, not the container width. Top-level shells (header, footer, page wrapper) use `container mx-auto` for breakpoint-aware width; the content within can sit narrower.
+
+When you genuinely need to branch _behavior_ (not just styling) on viewport size, use `useIsMobile()` from `@repo/core/hooks` (768px boundary, backed by `useSyncExternalStore`). Default to CSS-only responsiveness; reach for the hook only when JS state actually depends on the form factor.
 
 ---
 
@@ -257,8 +273,9 @@ Every feature is organized as two layers: a presentational layer (pure component
 1. `bun run format` (Prettier across the workspace, or the per-package script).
 2. `bun run lint` — zero errors. Warnings are reviewed, not ignored.
 3. `bun run check-types` — clean.
+4. **For any UI change** — verified in browser at 360px width per §4.4. If you only checked at desktop width, the task is not done.
 
-If any of those fail, the task is not done. Do not hand a change back to review, do not open a PR, do not mark a todo as completed until the three commands above pass. This applies equally to one-line copy edits and to large refactors — the cost of running them is tiny, the cost of a broken `main` is not.
+If any of those fail, the task is not done. Do not hand a change back to review, do not open a PR, do not mark a todo as completed until they all pass. This applies equally to one-line copy edits and to large refactors — the cost of running them is tiny, the cost of a broken `main` is not.
 
 When working in a single app, scope the commands to that app (`bun --filter web run lint`) — but never skip them.
 
