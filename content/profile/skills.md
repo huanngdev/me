@@ -5,7 +5,7 @@ updated: 2026-05-19
 
 # Tech stack
 
-Source of truth for the icon grid and recruiter SEO keywords. Only includes things Chris can actually be tested on in an interview — no tutorial-only entries.
+Source of truth for the icon grid and recruiter SEO keywords. Only includes things Ngo Gia Huan can actually be tested on in an interview — no tutorial-only entries.
 
 ## Languages
 

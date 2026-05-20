@@ -9,10 +9,9 @@ The hero/header data. Single source of truth for name, location, roles, language
 
 ## Name
 
-- **Full name (VN):** Ngô Gia Huấn
-- **Romanized:** Ngo Gia Huan
-- **English / preferred:** Chris
-- **Hero display:** **Chris (Ngô Gia Huấn)**. "Chris" lowers the barrier for non-Vietnamese recruiters who otherwise might not know how to address you in a reply; the Vietnamese name in parentheses keeps the local connection.
+- **Full name:** Ngô Gia Huấn
+- **Romanized (display name):** Ngo Gia Huan
+- **Hero display:** **Ngo Gia Huan**. Romanized form for international readability; no anglicized nickname.
 
 ## Location
 

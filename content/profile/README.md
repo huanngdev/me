@@ -5,7 +5,7 @@ updated: 2026-05-19
 
 # Profile data
 
-Single source of truth for everything personal about Chris (Ngô Gia Huân) that appears on the portfolio site. Each file maps to one part of the page — keeping them split lets the content schema evolve independently per section.
+Single source of truth for everything personal about Ngo Gia Huan that appears on the portfolio site. Each file maps to one part of the page — keeping them split lets the content schema evolve independently per section.
 
 ## Files
 

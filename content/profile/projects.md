@@ -5,7 +5,7 @@ updated: 2026-05-19
 
 # Projects
 
-Ordered for the public page: **hackathon work first, then everything else.** Hackathon projects are the strongest proof-of-shipping signal for an early-career portfolio — they prove Chris can ship under pressure, on unfamiliar stacks, against deadlines.
+Ordered for the public page: **hackathon work first, then everything else.** Hackathon projects are the strongest proof-of-shipping signal for an early-career portfolio — they prove Ngo Gia Huan can ship under pressure, on unfamiliar stacks, against deadlines.
 
 > **CLAUDE.md correction:** the SealPass and AfterVault projects referenced in CLAUDE.md were placeholder names. The real hackathon projects are below.
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { Button } from "./button";
+import { Button } from "@repo/core/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./dropdown-menu";
+} from "@repo/core/components/dropdown-menu";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 

@@ -9,7 +9,7 @@ The narrative anchor for the site. Source of truth for the About section, the SE
 
 ## Anchor
 
-**The one thing visitors should walk away knowing:** _Chris ships — fast, and to a finish._
+**The one thing visitors should walk away knowing:** _Ngo Gia Huan ships — fast, and to a finish._
 
 Hackathons, side projects, deployed work — the proof is in things that exist, not credentials. The portfolio should feel like a shelf of finished work, not a list of intents.
 
