@@ -1,11 +1,10 @@
 import "@repo/core/styles/globals.css";
 
+import { Header } from "@repo/core/components/header";
 import { ThemeProvider } from "@repo/core/components/theme-provider";
 import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
-
-import { Header } from "@/components/header";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -15,8 +14,8 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chris — Fullstack TypeScript developer",
-  description: "Portfolio of Chris (Ngô Gia Huấn), fullstack engineer based in Ho Chi Minh City.",
+  title: "Ngo Gia Huan — Fullstack TypeScript developer",
+  description: "Portfolio of Ngo Gia Huan, fullstack engineer based in Ho Chi Minh City.",
 };
 
 export default function RootLayout({

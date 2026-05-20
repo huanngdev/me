@@ -9,12 +9,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./functions": "./src/functions/index.ts",
-    "./ui": "./src/shadcn-ui/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./types": "./src/types/index.ts",
-    "./styles/globals.css": "./src/shadcn-ui/styles/globals.css",
-    "./lib/utils": "./src/shadcn-ui/lib/utils.ts",
-    "./components/*": "./src/shadcn-ui/components/*.tsx"
+    "./styles/globals.css": "./src/styles/globals.css",
+    "./lib/utils": "./src/lib/utils.ts",
+    "./components/*": "./src/components/*.tsx"
   },
   "scripts": {
     "lint": "eslint",
@@ -28,6 +27,8 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.2.1",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.39.0",
+    "gsap": "^3.15.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.16.0",
     "next-themes": "^0.4.6",
