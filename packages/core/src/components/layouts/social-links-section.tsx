@@ -32,7 +32,7 @@ function PlatformIcon({ platform, className }: { platform: SocialPlatform; class
       viewBox="0 0 24 24"
       fill="currentColor"
       style={style}
-      className={cn("[color:var(--brand)] dark:[color:var(--brand-dark)]", className)}
+      className={cn("text-(--brand) dark:text-(--brand-dark)", className)}
       aria-hidden="true"
     >
       <path d={b.path} />

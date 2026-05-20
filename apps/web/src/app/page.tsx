@@ -1,3 +1,4 @@
+import { CodingSection } from "@repo/core/components/layouts/coding/coding-section";
 import { CoverSection } from "@repo/core/components/layouts/cover-section";
 import { OverviewSection } from "@repo/core/components/layouts/overview/overview-section";
 import { ProfileSection } from "@repo/core/components/layouts/profile-section";
@@ -14,6 +15,8 @@ export default function Home() {
       <OverviewSection />
       <Separator />
       <SocialLinksSection />
+      <StripedSeparator height="h-12" />
+      <CodingSection />
       <StripedSeparator height="h-12" />
     </>
   );

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
 import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { TooltipProvider } from "@repo/core/components/tooltip";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -31,8 +32,10 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
+          <TooltipProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

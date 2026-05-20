@@ -1,4 +1,4 @@
-import { ClockIcon, LinkIcon, MapPinIcon } from "lucide-react";
+import { ClockIcon, MapPinIcon } from "lucide-react";
 
 import { EXPERIENCE, IDENTITY, PUBLIC_EMAIL, PUBLIC_PHONE, SOCIAL_LINKS } from "../../../constants";
 import { EmailItem } from "./email-item";
