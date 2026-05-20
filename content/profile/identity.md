@@ -17,7 +17,7 @@ The hero/header data. Single source of truth for name, location, roles, language
 
 - **City:** Ho Chi Minh City, Vietnam
 - **Work mode:** Open to remote, on-site, and hybrid
-- **Timezone:** Asia/Ho_Chi_Minh (UTC+7)
+- **Timezone:** Asia/Ho_Chi_Minh (UTC+7, same as Hanoi — Vietnam has a single nationwide timezone and does not observe DST)
 
 ## Roles
 

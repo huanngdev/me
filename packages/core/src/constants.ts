@@ -18,6 +18,7 @@ export interface Identity {
   languages: ReadonlyArray<{ name: string; level: "native" | "fluent" | "conversational" }>;
   roles: ReadonlyArray<string>;
   tagline: string;
+  description: string;
   availability: string;
 }
 
@@ -38,6 +39,8 @@ export const IDENTITY = {
   roles: ["Fullstack Engineer", "Frontend Engineer", "Backend Engineer", "Blockchain Engineer"],
   tagline:
     "Fullstack engineer in Ho Chi Minh City. I build Next.js products in TypeScript — and occasionally wander into Sui blockchain.",
+  description:
+    "Self-taught fullstack developer shipping Next.js products in TypeScript, with a soft spot for hard UI work and the occasional hackathon.",
   availability: "Open to full-time and freelance work — available now.",
 } as const satisfies Identity;
 
@@ -53,6 +56,8 @@ export interface SocialLink {
 }
 
 export const PUBLIC_EMAIL = "huanngdev@gmail.com";
+
+export const PUBLIC_PHONE = "+84911685725";
 
 export const REPO_URL = "https://github.com/huanngdev/me";
 

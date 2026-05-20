@@ -12,6 +12,10 @@ Public-facing channels. These all surface in the hero (as icon buttons) and in t
 - **Public contact:** huanngdev@gmail.com
 - Keep `ngogiahuan23122003@gmail.com` private (account/billing only).
 
+## Phone
+
+- **Public contact:** +84 911 685 725 (stored as `+84911685725`)
+
 ## Profiles
 
 - **GitHub** — [@huanngdev](https://github.com/huanngdev)
@@ -19,6 +23,7 @@ Public-facing channels. These all surface in the hero (as icon buttons) and in t
 - **X / Twitter** — [@huanngdev](https://x.com/huanngdev)
 - **Telegram** — @huanngdev
 - **Discord** — huanngdev
+- **Facebook** — [huan.gia.69](https://www.facebook.com/huan.gia.69/)
 
 Both Telegram and Discord are listed because both Web3 (Telegram-heavy) and dev/OSS communities (Discord-heavy) are in the audience set. Handles are consistent across every platform — easy for visitors to find you anywhere.
 

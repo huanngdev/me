@@ -35,9 +35,9 @@ export function CoverSection() {
         ref={ref}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative mx-auto flex h-72 max-w-6xl items-center justify-center overflow-hidden border-x px-4 sm:h-96 sm:px-6 lg:px-8"
+        className="relative mx-auto flex h-72 max-w-4xl items-center justify-center overflow-hidden border-x px-4 sm:h-80 sm:px-6 lg:px-8"
       >
-        <DotPattern className="text-border/60" />
+        <DotPattern />
         <motion.div
           style={{ x, y }}
           className="pointer-events-none relative flex items-center justify-center"
@@ -46,13 +46,13 @@ export function CoverSection() {
           <img
             src="/images/logo-black.svg"
             alt="Ngo Gia Huan"
-            className="block h-16 w-auto sm:h-20 dark:hidden"
+            className="block h-8 w-auto sm:h-12 dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/logo-white.svg"
             alt="Ngo Gia Huan"
-            className="hidden h-16 w-auto sm:h-20 dark:block"
+            className="hidden h-8 w-auto sm:h-12 dark:block"
           />
         </motion.div>
       </div>

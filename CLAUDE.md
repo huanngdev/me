@@ -1,5 +1,9 @@
 # CLAUDE.md — Personal Portfolio
 
+## Required skill
+
+**Always invoke the `karpathy-guidelines` skill (from `multica-ai/andrej-karpathy-skills`) at the start of every task in this repo, before writing, reviewing, or refactoring any code.** This is non-negotiable — load it via the Skill tool on the first turn of every session and re-invoke whenever a new coding task begins. Apply its behavioral guidelines (surgical changes, surface assumptions, define verifiable success criteria, avoid overcomplication) to all work that follows.
+
 ## Project overview
 
 A personal developer portfolio website for Ngo Gia — Fullstack Developer with a focus on Next.js ecosystem, blockchain (Sui), and product engineering. The site serves as a living resume, writing space, and project showcase. Tone is quiet confidence: the work speaks, not the decoration.

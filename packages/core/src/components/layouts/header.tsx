@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { siGithub } from "simple-icons";
 
-import { IDENTITY, REPO_URL } from "../../constants";
+import { REPO_URL } from "../../constants";
 import { Button } from "../button";
 import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
@@ -18,7 +18,7 @@ export function Header() {
     <header className="bg-background sticky top-0 z-40 w-full border-b backdrop-blur">
       <div className="relative h-14">
         <StripedPattern className="-z-10" />
-        <div className="bg-background relative mx-auto flex h-full max-w-6xl items-center justify-end border-x px-4 sm:px-6 lg:px-8">
+        <div className="bg-background relative mx-auto flex h-full max-w-4xl items-center justify-end border-x px-4 sm:px-6 lg:px-8">
           {/* <Link href="/" className="font-mono font-normal tracking-tight">
             {IDENTITY.displayName}
           </Link> */}
