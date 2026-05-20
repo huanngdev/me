@@ -34,16 +34,12 @@ Both are warm, low-cringe personality signals that translate well to internation
 
 ---
 
-## Draft bio (English)
+## Draft bio
 
 > Self-taught fullstack developer from Ho Chi Minh City. I build web products in TypeScript — Next.js on the frontend, Node.js on the backend — with a soft spot for hard UI work: animations, interactions, the details most people skip. I won my first Sui hackathons in the last year, which was the kind of validation that turns a hobby into a direction. Outside code: games, music, anime.
 
-That's the long version. Short version for hero/SEO:
+Short version for hero/SEO:
 
 > Fullstack TypeScript developer. Loves hard UI. Sui hackathon winner. Ho Chi Minh City.
 
-## Draft bio (Vietnamese)
-
-> Lập trình viên fullstack tự học, sống và làm việc tại TP. Hồ Chí Minh. Mình xây dựng sản phẩm web bằng TypeScript — Next.js cho frontend, Node.js cho backend — và đặc biệt thích những phần UI khó: animation, tương tác, những chi tiết người khác hay bỏ qua. Năm vừa rồi mình thắng vài hackathon Sui đầu tiên, và đó là bước ngoặt biến đam mê thành định hướng nghề nghiệp. Ngoài code: game, nhạc, anime.
-
-Refine both drafts after the projects/experience sections are filled in — the bio should namedrop the strongest project once it's clearly the strongest.
+Refine after the projects/experience sections are filled in — the bio should namedrop the strongest project once it's clearly the strongest.

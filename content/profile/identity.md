@@ -12,7 +12,7 @@ The hero/header data. Single source of truth for name, location, roles, language
 - **Full name (VN):** Ngô Gia Huấn
 - **Romanized:** Ngo Gia Huan
 - **English / preferred:** Chris
-- **Hero display:** Lead with **Chris (Ngô Gia Huấn)** in EN locale; **Ngô Gia Huấn** in VI locale. "Chris" lowers the barrier for non-Vietnamese recruiters who otherwise might not know how to address you in a reply.
+- **Hero display:** **Chris (Ngô Gia Huấn)**. "Chris" lowers the barrier for non-Vietnamese recruiters who otherwise might not know how to address you in a reply; the Vietnamese name in parentheses keeps the local connection.
 
 ## Location
 
@@ -46,4 +46,4 @@ Open to all engagement types — full-time roles, freelance, contract — and **
 - **Vietnamese** — native
 - **English** — fluent
 
-Both will appear on the site; UI locale toggle (EN/VI) is separate from this declaration.
+Both are listed in the bio (site is English-only — there's no locale toggle).

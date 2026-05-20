@@ -13,7 +13,7 @@ updated: 2026-05-19
 - **Major:** Software Engineering
 - **Degree:** Bachelor's _(confirm exact title — Engineer / Bachelor of Software Engineering / B.Eng / B.Sc)_
 
-FPTU is one of Vietnam's most recognized private universities for software engineering. Display the name **"FPT University"** in English and **"Đại học FPT"** in Vietnamese for SEO.
+FPTU is one of Vietnam's most recognized private universities for software engineering. Display the name as **"FPT University"** on the site.
 
 ### To add later
 

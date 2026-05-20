@@ -28,12 +28,12 @@ The portfolio needs to read well to **all four** audiences simultaneously:
 
 1. **Startup teams (global, remote-first)** — hiring on range and shipping speed. Hackathon work is the main signal.
 2. **Web3 / blockchain teams** — Sui, DeFi, crypto-native. Niche but high-signal match.
-3. **Vietnamese tech companies** — local market, in-person or hybrid. VI locale matters.
+3. **Vietnamese tech companies** — local market, in-person or hybrid. (Site is English-only; VI fluency is mentioned in the bio.)
 4. **Freelance / contract clients** — project-by-project work; portfolio doubles as a sales page.
 
 ### Implications
 
-- English is the default locale (broadest reach). Vietnamese is first-class for local recruiters.
+- Site is English-only. Vietnamese fluency is declared in the bio for local recruiters.
 - Tone: quiet confidence. Concrete metrics and shipped work over adjectives.
 - Hero must communicate _both_ fullstack and Web3 fluency in one glance — without screaming Web3.
 - Projects section should mix product/fullstack work and hackathon/Web3 work so neither audience feels the site isn't for them.

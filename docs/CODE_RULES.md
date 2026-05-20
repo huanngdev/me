@@ -82,21 +82,21 @@ If a component only renders props and JSX, it does not need `"use client"` — e
 - Use `fetch` with explicit `cache` and `next.revalidate` options — never rely on defaults. The GitHub heatmap is `revalidate: 86400`; static content is `force-cache`; never use `no-store` unless the data is truly per-request.
 - No client-side data fetching for content that exists at build time. The blog, projects, experience, and bookmarks must be statically generated.
 
-### 3.3 Routing & i18n
+### 3.3 Routing
 
-- All routes live under `app/[locale]/...`. The middleware in `middleware.ts` handles locale detection and the `/` → `/en` (or `/vi`) redirect.
-- Use `Link` from `@/i18n/navigation` (or whatever wrapper `next-intl` exposes), never `next/link` directly — the wrapper preserves the active locale.
-- Server Components read translations via `getTranslations`. Client Components use `useTranslations`. Never pass a translated string through props if you can pass the key and translate at the leaf.
+- Routes live flat under `app/...` — no locale segment. The site is English-only (see `CLAUDE.md ## Language`).
+- Use `Link` from `next/link` directly.
+- Hardcode user-visible strings at the call site. No translation layer.
 
 ### 3.4 Images
 
 - `next/image` always. Explicit `width` and `height` always.
 - For above-the-fold images (avatar, hero OG image), set `priority`. For the rest, lazy load is the default — don't override it.
-- Decorative images get `alt=""`; meaningful images get descriptive alt text in the active locale.
+- Decorative images get `alt=""`; meaningful images get descriptive alt text.
 
 ### 3.5 Metadata
 
-Every page exports `generateMetadata` returning a locale-aware `Metadata` object with `title`, `description`, `openGraph`, `twitter`, and `alternates.languages` set for both locales. No exceptions, even for sub-routes.
+Every page exports `generateMetadata` (or a static `metadata`) returning a `Metadata` object with `title`, `description`, `openGraph`, and `twitter` set. No exceptions, even for sub-routes.
 
 ---
 
@@ -196,11 +196,11 @@ Every feature is organized as two layers: a presentational layer (pure component
 
 ---
 
-## 8. State, content & i18n
+## 8. State & content
 
 ### 8.1 State
 
-- URL state for anything shareable or back-button-relevant (active blog tag, locale, theme override).
+- URL state for anything shareable or back-button-relevant (active blog tag, theme override).
 - React state for ephemeral UI local to one component (open/closed, hover, in-progress form input).
 - **Zustand** for state shared across components or features (command palette open state, theme preference cache, in-flight filters that several sections read). One store per concern — do not create a monolithic "app store". Each store is colocated with the feature that owns it and exports a typed hook.
 - No other global state library. Redux, MobX, Jotai, Recoil, etc. are out — Zustand is the one choice for this project.
@@ -208,14 +208,8 @@ Every feature is organized as two layers: a presentational layer (pure component
 ### 8.2 Content
 
 - MDX frontmatter is validated by a Zod schema in the Velite/Contentlayer config. Adding a frontmatter field means updating the schema in the same change.
-- Both locale siblings of a content file must share the same frontmatter shape (title, date, tags) so list views render consistently. The schema enforces this.
 - Code blocks in MDX use `rehype-pretty-code` (or equivalent) with a theme that respects light/dark mode.
-
-### 8.3 i18n
-
-- Every user-visible string is in the locale JSON files. There are no hardcoded strings in components.
-- Translation keys are namespaced by section: `hero.tagline`, `nav.blog`, `experience.present`. Flat keys live in flat files; the namespace is part of the key, not the directory structure.
-- When adding a key, add it to **both** `en.json` and `vi.json` in the same commit. CI fails if the two files have different key sets.
+- User-visible strings live inline at the call site (the site is English-only — see `CLAUDE.md ## Language`).
 
 ---
 
@@ -230,7 +224,7 @@ Every feature is organized as two layers: a presentational layer (pure component
 
 ## 10. Performance
 
-- Lighthouse ≥ 95 on every category, on desktop, on every locale. Run it in CI on each PR via `@lhci/cli`.
+- Lighthouse ≥ 95 on every category, on desktop. Run it in CI on each PR via `@lhci/cli`.
 - No client-side data fetching on initial load except the GitHub heatmap and the live clock.
 - Bundle size is a budget, not an afterthought. Run `next build` and inspect the route summary before merging anything that adds a dependency. A new client-side dependency over ~20kB gzipped needs a justification.
 - Self-host fonts. No `<link rel="stylesheet" href="https://fonts.googleapis.com/...">` ever — `next/font` only.
@@ -249,10 +243,10 @@ Every feature is organized as two layers: a presentational layer (pure component
 ## 12. Testing
 
 - The portfolio is small enough that exhaustive unit tests would be busywork. Test the things that:
-  - Have non-trivial logic (date formatting, locale fallback, MDX schema validation).
+  - Have non-trivial logic (date formatting, MDX schema validation).
   - Have failed before.
-  - Are tedious to verify by hand (e.g., that every blog post in `content/` has matching frontmatter in both locales).
-- Use Vitest for unit tests and Playwright for the handful of integration tests (command palette, theme toggle, language switcher).
+  - Are tedious to verify by hand (e.g., that every blog post in `content/` has well-formed frontmatter).
+- Use Vitest for unit tests and Playwright for the handful of integration tests (command palette, theme toggle).
 - No snapshot tests on rendered HTML. They rot. Test behavior, not markup.
 
 ---
@@ -262,7 +256,7 @@ Every feature is organized as two layers: a presentational layer (pure component
 - Branch names: `feature/...`, `fix/...`, `chore/...`, `content/...`.
 - Commit messages: short imperative subject (≤72 chars), then a paragraph explaining **why** if it isn't obvious. The diff explains **what**.
 - One concern per PR. A PR that "adds the blog and also refactors the nav" gets split. A PR that "adds the blog, including necessary type updates and a new dependency for MDX" is fine.
-- Every PR description includes: what changed, why, screenshots (for UI) in both light and dark mode and both locales, and a checklist of the rules above that were verified.
+- Every PR description includes: what changed, why, screenshots (for UI) in both light and dark mode, and a checklist of the rules above that were verified.
 
 ---
 

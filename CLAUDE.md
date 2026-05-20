@@ -93,59 +93,19 @@ Social proof from colleagues, open-source maintainers, or hackathon judges. Disp
 
 ## Command palette
 
-A `⌘K` command palette accessible from anywhere on the site. Opens a modal with a search input. Supports: navigating to any section or page, toggling dark/light mode, switching language between Vietnamese and English, opening social links, copying contact info. Built with `cmdk`. This is the most distinctive UX feature of the site.
+A `⌘K` command palette accessible from anywhere on the site. Opens a modal with a search input. Supports: navigating to any section or page, toggling dark/light mode, opening social links, copying contact info. Built with `cmdk`. This is the most distinctive UX feature of the site.
 
 ---
 
-## Internationalization (i18n)
+## Language
 
-The site supports two languages: **Vietnamese (vi)** and **English (en)**. English is the default — it reaches a broader audience and is expected by international recruiters. Vietnamese is the secondary locale, for local context and personal connection.
+The site is **English-only**. All UI strings, bios, project descriptions, blog posts, and metadata are written in English. There is no locale routing, no `next-intl`, no `[locale]` URL prefix, no language switcher.
 
-### Implementation approach
-
-Built with `next-intl`. Locale is stored in the URL path prefix: `/en/...` and `/vi/...`. The root path `/` redirects to the detected locale based on the browser's `Accept-Language` header, falling back to English. All routes are available in both locales — there are no English-only or Vietnamese-only pages.
-
-### What gets translated
-
-**All UI strings** — navigation labels, section headings, button text, metadata labels (period, duration, employment type), placeholder text, command palette commands, error messages, and the "show more / show less" controls.
-
-**Bio and about section** — written separately in each language. The Vietnamese version can be slightly warmer and more personal in tone. The English version is crisper and more formal.
-
-**Project descriptions** — short descriptions on project cards are translated. The detailed project content (if any) is also available in both languages.
-
-**Blog posts** — a post does not need to exist in both languages. If a Vietnamese post has no English translation, the English locale falls back to showing the Vietnamese original with a notice banner: "This post is only available in Vietnamese." The reverse applies for English-only posts. The blog list filters to posts available in the active locale by default, with an option to show all.
-
-**Experience and education** — role titles stay in English (they are proper names). Company names and school names are not translated. Bullet point descriptions under each role are translated.
-
-**Awards and certifications** — award names stay in their original language. The issuing body name stays as-is. Descriptive context around them is translated.
-
-**Timestamps and dates** — formatted according to locale conventions. Vietnamese uses `DD/MM/YYYY`, English uses `MMM DD, YYYY` (e.g. "May 19, 2026"). Relative time ("2 years ago" / "2 năm trước") uses the locale-aware format.
-
-**SEO metadata** — each locale has its own `<title>`, `<meta description>`, and Open Graph tags. `hreflang` alternates are set on every page pointing to the equivalent page in the other locale. The sitemap includes both locale variants.
-
-**RSS feed** — two separate feeds: `/en/rss.xml` and `/vi/rss.xml`, each containing only posts in that language.
-
-### What does NOT get translated
-
-- Tech stack icon labels — technology names are universal (TypeScript, Docker, etc.)
-- Project and company URLs
-- Code blocks inside blog posts
-- Dates in code or technical content
-- The avatar and visual assets
-
-### Language switcher UI
-
-A small toggle in the navigation bar, to the left of the theme toggle. Displays the current locale as a short label: `EN` or `VI`. Clicking it switches to the other locale and navigates to the equivalent page in the new locale, preserving the current path. No dropdown — with only two languages, a direct toggle is faster and cleaner.
-
-The switcher is also available as a command in the `⌘K` palette: "Switch to Vietnamese" / "Switch to English".
-
-### Language switcher animation
-
-Switching locale triggers a brief fade-out and fade-in of the page content (150ms each, opacity only — no layout shift). The URL updates instantly. The transition signals that content has changed without being disruptive.
+If a Vietnamese version is added later, it will be designed in then — until that point, treat any "EN/VI" or "i18n" reference in older notes as obsolete.
 
 ### Content authoring
 
-Translation strings for UI live in JSON locale files — one file per language, flat key-value structure with namespaces by section (e.g. `nav.blog`, `hero.tagline`, `experience.present`). Blog and project content live as separate MDX files per locale, co-located by slug. The content schema enforces that both locale variants share the same frontmatter fields (title, date, tags) so the list view can render consistently regardless of active language.
+Blog and project content live as MDX files with consistent frontmatter (title, date, tags). UI strings are hardcoded at their call sites; no translation layer.
 
 ---
 
@@ -196,7 +156,7 @@ The icon morphs between sun and moon. The page background transitions smoothly v
 
 ## SEO and metadata
 
-Every page has a unique `<title>`, `<meta description>`, and Open Graph block in both locales. Blog posts generate dynamic OG images using `@vercel/og` — the post title rendered in the site's font on a dark or light branded card. The homepage OG image is a static branded asset. `hreflang` alternate links are set on every page pointing to the equivalent URL in the other locale. `/sitemap.xml` includes both `/en/...` and `/vi/...` variants for all pages. `/robots.txt` is generated at build time. `/en/rss.xml` and `/vi/rss.xml` expose blog posts per locale. `/llms.txt` exposes a plain-text summary of the site for AI agents.
+Every page has a unique `<title>`, `<meta description>`, and Open Graph block. Blog posts generate dynamic OG images using `@vercel/og` — the post title rendered in the site's font on a dark or light branded card. The homepage OG image is a static branded asset. `/sitemap.xml`, `/robots.txt`, and `/rss.xml` are generated at build time. `/llms.txt` exposes a plain-text summary of the site for AI agents.
 
 ---
 
@@ -204,7 +164,7 @@ Every page has a unique `<title>`, `<meta description>`, and Open Graph block in
 
 Blog posts and bookmarks are authored as MDX files in the repository. No CMS. Velite (or Contentlayer) handles the MDX pipeline — frontmatter parsing, schema validation, and build-time type generation. The result is a fully typed content layer with zero runtime overhead.
 
-Content is split by locale: each blog post has a `[slug].en.mdx` and optionally a `[slug].vi.mdx` sibling. The pipeline resolves the correct file for the active locale and falls back gracefully when a translation is missing. UI translation strings are plain JSON files, one per locale, organized by section namespace.
+Blog and project content live as MDX files with shared frontmatter (title, date, tags). UI strings are inline at the call site — no translation layer.
 
 ---
 

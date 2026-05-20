@@ -5,14 +5,14 @@ updated: 2026-05-19
 
 # Profile data
 
-Single source of truth for everything personal about Chris (Ngô Gia Huân) that appears on the portfolio site. Each file maps to one part of the page — keeping them split lets the i18n pipeline and content schema evolve independently per section.
+Single source of truth for everything personal about Chris (Ngô Gia Huân) that appears on the portfolio site. Each file maps to one part of the page — keeping them split lets the content schema evolve independently per section.
 
 ## Files
 
 - [\_\_meta.md](./_meta.md) — portfolio strategy: career stage, positioning, audience.
 - [identity.md](./identity.md) — name, location, roles, languages, birth year. Powers the hero.
 - [contact.md](./contact.md) — email, social handles, domain plan, tagline drafts.
-- [about.md](./about.md) — narrative anchor + draft bios (EN & VI).
+- [about.md](./about.md) — narrative anchor + draft bio.
 - [skills.md](./skills.md) — tech stack for the icon grid.
 - [education.md](./education.md) — FPT University.
 - [experience.md](./experience.md) — Formo, FPT Software internship.
@@ -34,10 +34,10 @@ The data captured below is the first pass. Refine with these gaps closed:
 When building the portfolio site:
 
 - The Hero pulls from `identity.md` + `contact.md` + the recommended tagline in `contact.md`.
-- The About section pulls from `about.md` — the EN/VI drafts are the starting copy.
+- The About section pulls from `about.md` — the draft bio is the starting copy.
 - The Tech stack icon grid mirrors the grouping in `skills.md`.
 - The Experience timeline pulls from `experience.md` in reverse-chronological order.
 - The Projects grid pulls from `projects.md` in the order defined there (hackathon-first).
 - The Awards section pulls from `awards.md`.
 
-These files are intentionally NOT MDX yet — they're prose-and-data drafts. When the content pipeline (Velite/Contentlayer per CLAUDE.md) is wired, convert each into the schema the pipeline expects, with EN/VI siblings as needed.
+These files are intentionally NOT MDX yet — they're prose-and-data drafts. When the content pipeline (Velite/Contentlayer per CLAUDE.md) is wired, convert each into the schema the pipeline expects.

@@ -2,7 +2,7 @@
 
 **This portfolio is modeled on https://chanhdai.com/.** Treat that site as the structural and behavioral reference for every section, interaction, and information density decision. When this document and another doc disagree, the order of authority is:
 
-1. **`CLAUDE.md`** (project root) — the source of truth for identity, palette, copy, and i18n.
+1. **`CLAUDE.md`** (project root) — the source of truth for identity, palette, and copy.
 2. **This file (`docs/REFERENCE.md`)** — the chanhdai-modeled structural rules.
 3. **`docs/DESIGN.md`** — visual specifics.
 4. **`docs/CODE_RULES.md`** — engineering style.
@@ -40,10 +40,9 @@ The command palette (⌘K) sits outside section order. It must reach every secti
 These are non-negotiable. Each is what makes the site feel like chanhdai's, not a template.
 
 - **Avatar with state variants.** At minimum two states (lights-on / lights-off) per CLAUDE.md. Hover/focus crossfades; respects `prefers-reduced-motion`.
-- **Command palette (⌘K / Ctrl+K).** Navigates to every section anchor, toggles theme, toggles locale, exposes social links. Built on `cmdk`.
+- **Command palette (⌘K / Ctrl+K).** Navigates to every section anchor, toggles theme, exposes social links. Built on `cmdk`.
 - **Section anchors with smooth scroll.** Every section has an `id`; clicking a nav item or palette result smooth-scrolls to it.
 - **Theme switcher.** Sun / Moon / System tri-state. Persists across reloads. Already wired via `next-themes` + the `d` hotkey.
-- **Locale switcher.** EN ↔ VI toggle. Lives in the top bar to the left of the theme switcher.
 - **Expandable lists.** Experience (older entries), Awards, Certifications, Bookmarks all collapse to N items with a "Show more / Show less" toggle. Default N: 4 for Experience, 5 for Awards/Certs/Bookmarks.
 - **Live local time** in the hero (Asia/Ho_Chi_Minh, UTC+7). Updates every minute.
 - **GitHub heatmap with tooltips.** Hover a cell to show contribution count + date.
@@ -55,7 +54,7 @@ These are non-negotiable. Each is what makes the site feel like chanhdai's, not 
 These deviations are intentional. Do NOT "fix" them to match chanhdai more closely.
 
 - **Accent color.** Chanhdai uses warm yellow/gold. This site uses **muted purple** per CLAUDE.md. Keep purple. Use it on the same surfaces chanhdai uses gold: active states, hover underlines, hero gradient text, tag pills.
-- **i18n.** Chanhdai is effectively English-only. This site is **first-class EN + VI** via next-intl. Every UI string, bio variant, project description, and post is locale-aware. Never hardcode English in JSX.
+- **Language.** Both this site and chanhdai are English-only. No `next-intl`, no locale routing, no language switcher. Hardcode English at the call site. If multilingual support is added later it will be designed in then.
 - **Tone.** Chanhdai mixes playful and professional (`hello`, `💛☕️`, flag emoji). This site is **quiet confidence** per CLAUDE.md — terser, less emoji, fewer cute lines. One small personality touch in the footer is fine; do not pepper the page with them.
 - **Package-manager switcher.** Chanhdai has pnpm/yarn/npm/bun toggles on its components/docs pages. This site uses **bun only** for the developer-facing content; if a code snippet shows install commands, show bun by default. Other managers go in tooltips, not toggles.
 

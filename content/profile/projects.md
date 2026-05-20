@@ -65,8 +65,8 @@ The "first hackathon, first podium" line is the card subtitle — it's the fresh
 
 ## 4. This portfolio site
 
-- **One-liner:** Personal portfolio built with Next.js 16, Tailwind v4, shadcn/ui, in a Turborepo monorepo with a shared `@repo/core` design-system package. EN/VI i18n with next-intl.
-- **Stack:** Next.js (App Router, RSC, server actions), Tailwind v4, shadcn/ui, Radix, Framer Motion, next-intl, Velite/Contentlayer for MDX content, Vercel hosting.
+- **One-liner:** Personal portfolio built with Next.js 16, Tailwind v4, shadcn/ui, in a Turborepo monorepo with a shared `@repo/core` design-system package.
+- **Stack:** Next.js (App Router, RSC, server actions), Tailwind v4, shadcn/ui, Radix, Framer Motion, Velite/Contentlayer for MDX content, Vercel hosting.
 - **Status:** In progress.
 - **Links:** This site itself + GitHub repo (add the repo URL once public).
 

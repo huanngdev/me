@@ -10,7 +10,7 @@ The goal of this document is to keep the team — and Claude — focused on the 
 
 ### `shadcn`
 
-This is the highest-leverage skill for the project. Every interactive UI element on the site flows through shadcn primitives: the command palette (`cmdk`), navigation, theme toggle, language switcher, dialogs, tooltips on the GitHub heatmap, and the optional component showcase section.
+This is the highest-leverage skill for the project. Every interactive UI element on the site flows through shadcn primitives: the command palette (`cmdk`), navigation, theme toggle, dialogs, tooltips on the GitHub heatmap, and the component showcase section.
 
 Use it when:
 
@@ -33,7 +33,7 @@ Particularly valuable for:
 
 ### `review`
 
-The end-of-PR pass. Catches what `simplify` and ESLint miss: missing translations, hreflang gaps, OG image misconfigurations, accessibility regressions, and consistency with the visual identity rules in `docs/DESIGN.md`.
+The end-of-PR pass. Catches what `simplify` and ESLint miss: OG image misconfigurations, accessibility regressions, and consistency with the visual identity rules in `docs/DESIGN.md`.
 
 ### `security-review`
 
@@ -99,15 +99,15 @@ Specify search breadth honestly — `quick` for a single lookup, `very thorough`
 
 Use before any task that touches more than two files or introduces a new architectural seam. Good fits for this project:
 
-- Wiring up `next-intl` and the locale-aware routing for the first time.
-- Designing the MDX content pipeline (locale fallback, frontmatter schema, type generation).
+- Designing the MDX content pipeline (frontmatter schema, type generation).
 - Integrating Framer Motion shared-layout transitions between the blog list and the post page.
+- Designing a non-trivial section (command palette, GitHub heatmap, component showcase).
 
 Skip for trivial edits — a plan agent for a one-line copy change is overhead.
 
 ### `general-purpose`
 
-Reserve for open-ended research that spans multiple tools (web + code + docs) and doesn't fit `Explore`. Example: "find the current best practice for `next-intl` + App Router static generation in Next.js 16" — that needs WebSearch plus code reading.
+Reserve for open-ended research that spans multiple tools (web + code + docs) and doesn't fit `Explore`. Example: "find the current best practice for MDX + Velite in Next.js 16" — that needs WebSearch plus code reading.
 
 ### `claude-code-guide`
 
@@ -126,7 +126,7 @@ A typical change in this project should flow like this:
 1. **Understand** — `Explore` to locate the relevant files. Read `docs/DESIGN.md` for visual decisions and `docs/CODE_RULES.md` for engineering rules.
 2. **Plan** (for non-trivial changes) — `Plan` agent to lay out the approach.
 3. **Build** — make the edits. Reach for `shadcn` when adding or tuning UI primitives.
-4. **Verify** — `bun run check-types && bun run lint` at the workspace root. Run `next dev` and exercise the feature in the browser in both locales and both color modes.
+4. **Verify** — `bun run check-types && bun run lint` at the workspace root. Run `next dev` and exercise the feature in the browser in both light and dark mode, including at 360px width.
 5. **Polish** — `simplify` on the changed files.
 6. **Ship** — `review` on the PR diff, plus `security-review` if the change touches MDX, API routes, or any boundary that handles external input.
 
