@@ -1,0 +1,24 @@
+# Ngo Gia Huan
+
+> Fullstack engineer in Ho Chi Minh City. Building Next.js products in TypeScript, with occasional detours into Sui blockchain.
+
+- Name: Ngo Gia Huan (Ngô Gia Huấn)
+- Role: Fullstack Engineer (Frontend / Backend / Web3)
+- Location: Ho Chi Minh City, Vietnam (UTC+7)
+- Site: https://huanngdev.site
+- Email: huanngdev@gmail.com
+- GitHub: https://github.com/huanngdev
+- LinkedIn: https://www.linkedin.com/in/huanngdev/
+- X: https://x.com/huanngdev
+
+## Stack
+
+- Languages: TypeScript, JavaScript, Move
+- Frontend: Next.js (App Router, RSC, Server Actions), React, Tailwind CSS, shadcn/ui
+- Backend: Node.js, REST/GraphQL APIs
+- Blockchain: Sui, Move, Seal, Walrus
+- Tooling: Turborepo, Bun, Vercel
+
+## Availability
+
+Open to full-time, freelance, and contract work — available immediately. Remote, on-site, or hybrid.
