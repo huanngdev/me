@@ -5,6 +5,7 @@ import { REPO_URL } from "../../constants";
 import { Button } from "../button";
 import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
+import { DownloadMenu } from "./download-menu";
 import { ExternalLink } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,40 +23,25 @@ export function Header() {
           {/* <Link href="/" className="font-mono font-normal tracking-tight">
             {IDENTITY.displayName}
           </Link> */}
-          <div className="flex h-full items-center gap-1 sm:gap-2">
-            <nav
-              aria-label="Primary"
-              className="hidden items-center text-sm font-medium sm:flex sm:pr-2 lg:pr-4"
-            >
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="hover:text-foreground text-muted-foreground rounded-md px-2 py-1 transition-colors"
+          <div className="flex h-full items-center gap-2 border-l sm:pl-6 lg:pl-8">
+            <Button asChild variant="outline" aria-label="View source on GitHub">
+              <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
+                <svg
+                  role="img"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="currentColor"
+                  className="size-4"
                 >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="flex h-full items-center gap-2 border-l sm:pl-6 lg:pl-8">
-              <Button asChild variant="outline" aria-label="View source on GitHub">
-                <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
-                  <svg
-                    role="img"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="currentColor"
-                    className="size-4"
-                  >
-                    <title>{siGithub.title}</title>
-                    <path d={siGithub.path} />
-                  </svg>
-                  Repo
-                  <ExternalLink className="ml-1 size-4" />
-                </a>
-              </Button>
-              <ThemeToggle />
-            </div>
+                  <title>{siGithub.title}</title>
+                  <path d={siGithub.path} />
+                </svg>
+                Repo
+                <ExternalLink className="ml-1 size-4" />
+              </a>
+            </Button>
+            <DownloadMenu />
+            <ThemeToggle />
           </div>
         </div>
       </div>
