@@ -190,7 +190,7 @@ export const EXPERIENCE = [
     employmentType: "full-time",
     start: "2025-09",
     end: "2026-05",
-    location: "Remote",
+    location: "Ho Chi Minh City, Vietnam · On-site",
     about: "Web3 analytics / on-chain data product.",
   },
   {
@@ -259,6 +259,77 @@ export const PROJECTS = [
     links: { source: REPO_URL },
   },
 ] as const satisfies ReadonlyArray<ProjectEntry>;
+
+// ---------- Certifications ----------
+
+export type CertificationPlatform = "coursera" | "udemy" | "edx" | "aws" | "google";
+
+export interface CertificationEntry {
+  name: string;
+  issuer: string;
+  platform?: CertificationPlatform;
+  date: string;
+  credentialUrl?: string;
+}
+
+export const CERTIFICATIONS = [
+  {
+    name: "User Experience Research and Design",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2024-05",
+    credentialUrl: "https://coursera.org/share/2ad1c7065db757e6f538eff8bbb6de2e",
+  },
+  {
+    name: "Project Management Principles and Practices",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2024-05",
+    credentialUrl: "https://coursera.org/share/36c1782cc9cc3475e9272d827ab08773",
+  },
+  {
+    name: "Academic English: Writing",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2024-01",
+    credentialUrl: "https://coursera.org/share/ea0df8ebf21a5d3a869570ed5199e0b5",
+  },
+  {
+    name: "CertNexus Certified Ethical Emerging Technologist",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2023-09",
+    credentialUrl: "https://coursera.org/share/3c9c96daf64b42d71893639e0c7beca9",
+  },
+  {
+    name: "Software Development Lifecycle",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2023-05",
+    credentialUrl: "https://coursera.org/share/b0fcd4de7e010370363613e4dd7f62ef",
+  },
+  {
+    name: "Web Design for Everybody: Basics of Web Development & Coding",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2023-01",
+    credentialUrl: "https://coursera.org/share/79d19ae5c0597234dcf25fe299b017cf",
+  },
+  {
+    name: "Computer Communications",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2022-09",
+    credentialUrl: "https://coursera.org/share/510f58ad882fa5b852f78ba885c85f72",
+  },
+  {
+    name: "Academic Skills for University Success",
+    issuer: "Coursera",
+    platform: "coursera",
+    date: "2022-06",
+    credentialUrl: "https://coursera.org/share/85381a65740b3b3dad28e05a35e94eb5",
+  },
+] as const satisfies ReadonlyArray<CertificationEntry>;
 
 // ---------- Awards & hackathons ----------
 

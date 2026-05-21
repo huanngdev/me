@@ -7,13 +7,13 @@ import { CopyButton } from "../copy-button";
 
 export function ProfileSection() {
   return (
-    <section>
+    <section id="profile">
       <div className="mx-auto flex max-w-4xl border-x">
         <div className="border-border relative size-28 shrink-0 overflow-hidden border-r sm:size-44">
           <StripedPattern className="bg-muted-foreground/5 -z-10 rounded-full" />
           <Avatar className="relative size-full bg-transparent">
             <AvatarImage
-              src="/images/avatar-no-bg.svg"
+              src="/images/avatar-nft-monkey.svg"
               alt={IDENTITY.displayName}
               className="scale-100 object-cover object-bottom"
             />

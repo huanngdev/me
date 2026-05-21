@@ -16,7 +16,7 @@ export function CodingSection() {
   const stats = getCachedGitHubStats(GITHUB_USERNAME);
 
   return (
-    <section>
+    <section id="coding">
       <div className="mx-auto max-w-4xl border-x">
         <h2 className="sr-only">Coding</h2>
 

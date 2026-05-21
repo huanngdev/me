@@ -20,9 +20,9 @@ export function EmailItem({ email }: EmailItemProps) {
         <IntroItemLink href={`mailto:${email}`}>{email}</IntroItemLink>
       </IntroItemContent>
 
-      <div className="-translate-x-3 translate-y-0.5 opacity-0 transition-opacity ease-out group-hover:opacity-100">
+      <div className="-translate-x-3 opacity-0 transition-opacity ease-out group-hover:opacity-100">
         <CopyButton
-          className="text-muted-foreground rounded-md border-none [&_svg:not([class*='size-'])]:size-4"
+          className="text-muted-foreground size-5 rounded-md border-none [&_svg:not([class*='size-'])]:size-3.5"
           variant="ghost"
           text={email}
         />
