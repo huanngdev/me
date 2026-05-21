@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { siGithub } from "simple-icons";
 
 import { REPO_URL } from "../../constants";
@@ -7,12 +6,6 @@ import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
 import { DownloadMenu } from "./download-menu";
 import { ExternalLink } from "lucide-react";
-
-const NAV_ITEMS = [
-  { href: "/#projects", label: "Projects" },
-  { href: "/#components", label: "Components" },
-  { href: "/#blog", label: "Blog" },
-] as const;
 
 export function Header() {
   return (
@@ -23,7 +16,7 @@ export function Header() {
           {/* <Link href="/" className="font-mono font-normal tracking-tight">
             {IDENTITY.displayName}
           </Link> */}
-          <div className="flex h-full items-center gap-2 border-l sm:pl-6 lg:pl-8">
+          <div className="flex h-full items-center gap-2 sm:border-l sm:pl-6 lg:pl-8">
             <Button asChild variant="outline" aria-label="View source on GitHub">
               <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
                 <svg

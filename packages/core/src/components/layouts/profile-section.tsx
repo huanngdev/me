@@ -29,7 +29,7 @@ export function ProfileSection() {
 
         <div className="flex flex-1 flex-col">
           <div className="border-border">
-            <div className="flex items-center justify-center gap-2 px-4 py-2 sm:justify-start">
+            <div className="flex items-center justify-start gap-2 px-4 py-2">
               <h1 className="-translate-y-px text-2xl font-semibold tracking-tight sm:text-3xl">
                 {IDENTITY.displayName}
               </h1>
@@ -41,7 +41,7 @@ export function ProfileSection() {
               <CopyButton text={IDENTITY.displayName} className="ml-2" />
             </div>
 
-            <p className="text-muted-foreground border-y px-4 py-2 text-center text-sm sm:text-left">
+            <p className="text-muted-foreground border-y px-4 py-2 text-left text-sm">
               {IDENTITY.roles[0]}
             </p>
             <p className="text-muted-foreground hidden px-4 py-2 text-sm italic sm:block sm:text-sm">
