@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 export function Header() {
   return (
-    <header className="bg-background sticky top-0 z-40 w-full border-b backdrop-blur">
+    <header className="bg-background sticky top-1 z-40 w-full border-y backdrop-blur">
       <div className="relative h-14">
         <StripedPattern className="-z-10" />
         <div className="bg-background relative mx-auto flex h-full max-w-4xl items-center justify-end border-x px-4 sm:px-6 lg:px-8">

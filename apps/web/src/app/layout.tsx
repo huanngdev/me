@@ -1,6 +1,7 @@
 import "@repo/core/styles/globals.css";
 
 import { Header } from "@repo/core/components/layouts/header";
+import { ScrollProgress } from "@repo/core/components/layouts/scroll-progress";
 import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
 import { cn } from "@repo/core/lib/utils";
 import type { Metadata } from "next";
@@ -124,6 +125,7 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <TooltipProvider>
+            <ScrollProgress />
             <Header />
             <main className="flex-1">{children}</main>
           </TooltipProvider>
