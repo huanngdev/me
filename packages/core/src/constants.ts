@@ -208,13 +208,27 @@ export const EXPERIENCE = [
 
 export type ProjectStatus = "live" | "in-progress" | "demo" | "archived";
 
+export interface ProjectGalleryItem {
+  src: string;
+  alt: string;
+}
+
+export interface ProjectDetails {
+  overview: string;
+  features: ReadonlyArray<string>;
+}
+
 export interface ProjectEntry {
+  slug: string;
   name: string;
   description: string;
+  details?: ProjectDetails;
   stack: ReadonlyArray<string>;
   status: ProjectStatus;
   hackathon?: string;
   result?: string;
+  videoSrc?: string;
+  gallery?: ReadonlyArray<ProjectGalleryItem>;
   links: {
     live?: string;
     source?: string;
@@ -224,14 +238,58 @@ export interface ProjectEntry {
 
 export const PROJECTS = [
   {
+    slug: "walform",
     name: "WalForm",
     description: "On-chain form builder on Sui — forms with decentralized storage on Walrus.",
+    details: {
+      overview:
+        "WalForm is a decentralized form builder that lives end-to-end on Sui + Walrus + Seal. Every form schema is a Sui object, every submission is a Seal-encrypted Walrus blob, every site can be deployed to its own Walrus Sites with a SuiNS name. Creators get a polished drag-and-drop builder; respondents get one-click submit with sponsored gas; no platform — including us — can read submissions or take a form down.",
+      features: [
+        "End-to-end Seal encryption — submissions encrypted in the browser before they touch Walrus. Private forms also encrypt the schema itself.",
+        "One-click per-form Walrus Site deploy — no platform fee. Same outcome as paid services (e.g. Walgo); we take zero. Creator's wallet pays Walrus storage + Sui gas directly.",
+        "SuiNS-friendly URLs. Default <base36>.wal.app/, link a name → your-brand.wal.app/. No formId in the URL.",
+        "Four access modes: Public, allowlist Private, token-gated by Coin<T> balance, paid-per-submit in SUI.",
+        "On-chain reviewers. Owner adds co-reviewer addresses; they decrypt the same submissions via a Seal whitelist policy. Perfect for judging panels and co-managed surveys.",
+        "Sponsored gas with a graceful fallback via Enoki + a thin Edge Function; if it's down, the connected wallet pays — same code path, no error screen.",
+        "Custom theme without code — 18 input field types, 8 web fonts, 11 accent palettes, 5 radii, card/page layout, Walrus-uploaded cover image.",
+        "AI-assisted generation (BYOK OpenRouter) — describe the form, hydrate 18 field types onto the canvas client-side.",
+        "Multi-wallet sign-in — Slush, Sui Wallet, any dApp-Kit wallet, or burner Google via Enoki zkLogin.",
+        "Multi-buyer template marketplace with on-chain voting. Free clones cost nothing; paid clones route 10% royalty to the platform treasury. Upvote / downvote tracked on-chain (walform::voting).",
+        "Results dashboard — aggregate charts per choice / rating / scale, by-question panel, decrypt-on-demand row table, CSV export, per-submitter private receipt.",
+        "Walrus-backed file uploads — FILE_UPLOAD fields write bytes to Walrus via the user's wallet; the URL is sealed inside the encrypted submission body.",
+        "Network-aware — testnet + mainnet swap from the wallet dropdown; all per-network ids resolved at runtime.",
+      ],
+    },
     stack: ["Sui", "Walrus", "Move", "TypeScript", "Next.js"],
     status: "live",
     hackathon: "Walrus Session 2 — Form Tooling",
-    links: {},
+    videoSrc: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh1Fy4g439K6VeXNROMlJU8zbQ3wHtqh7C2Irni",
+    gallery: [
+      {
+        src: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh1LIREIvQOB07nQkh9Ytpb68XvuVRKFgSWocH5",
+        alt: "WalForm screenshot 1",
+      },
+      {
+        src: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh1lym0pxoTtifjREvgzy6hcerI2H0P5BWqmb73",
+        alt: "WalForm screenshot 2",
+      },
+      {
+        src: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh1TIdNHQ1FhRPB08Y3wOMleu7DtqLkAaNHQX9f",
+        alt: "WalForm screenshot 3",
+      },
+      {
+        src: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh1rGAbx7HHQtDV7Bw4UYlApbq6WJMoxSTP1mvO",
+        alt: "WalForm screenshot 4",
+      },
+      {
+        src: "https://5pv3zdt2hq.ufs.sh/f/snbdU3qJAUh12ccBCxaUqCP01mhfR8GptKIyuznj5SbXAYlB",
+        alt: "WalForm screenshot 5",
+      },
+    ],
+    links: { source: "https://github.com/UyLeQuoc/sui-walform" },
   },
   {
+    slug: "sui-stream",
     name: "Sui Stream",
     description:
       "YouTube, on-chain — video streaming powered by Walrus storage and Sui smart contracts.",
@@ -241,16 +299,7 @@ export const PROJECTS = [
     links: {},
   },
   {
-    name: "Relic of Lie",
-    description:
-      "Decentralized take on the Love Letter card game — bluffing and deduction, on-chain.",
-    stack: ["Sui", "Move"],
-    status: "demo",
-    hackathon: "First Mover",
-    result: "Top 2",
-    links: {},
-  },
-  {
+    slug: "personal-portfolio",
     name: "Personal portfolio",
     description:
       "Personal portfolio built with Next.js 16, Tailwind v4, shadcn/ui in a Turborepo monorepo.",

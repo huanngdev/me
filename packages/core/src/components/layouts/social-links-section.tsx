@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { siDiscord, siFacebook, siGithub, siTelegram, siX } from "simple-icons";
 
 import { SOCIAL_LINKS, type SocialPlatform } from "../../constants";
@@ -63,7 +63,7 @@ export function SocialLinksSection() {
                   <span className="font-medium">{link.label}</span>
                   <span className="text-muted-foreground"> {link.handle}</span>
                 </span>
-                <ExternalLink className="text-muted-foreground size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                <ArrowUpRight className="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </a>
             </li>
           ))}

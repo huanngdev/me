@@ -127,7 +127,7 @@ export default function RootLayout({
           <TooltipProvider>
             <ScrollProgress />
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="mt-1 flex-1">{children}</main>
           </TooltipProvider>
         </ThemeProvider>
       </body>

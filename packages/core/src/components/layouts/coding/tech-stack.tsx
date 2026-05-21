@@ -55,7 +55,7 @@ const SKILL_ICONS: Record<string, { path: string; color: string; darkColor?: str
   pnpm: { path: siPnpm.path, color: "#F69220" },
 };
 
-function SkillIcon({ name, className }: { name: string; className?: string }) {
+export function SkillIcon({ name, className }: { name: string; className?: string }) {
   const b = SKILL_ICONS[name];
   if (!b) return null;
   const style = {
@@ -76,8 +76,7 @@ function SkillIcon({ name, className }: { name: string; className?: string }) {
   );
 }
 
-export function TechStack() {
-  const items = Array.from(new Set(SKILLS.flatMap((g) => g.items)));
+export function TechBadgeList({ items }: { items: ReadonlyArray<string> }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((name) => (
@@ -88,4 +87,9 @@ export function TechStack() {
       ))}
     </div>
   );
+}
+
+export function TechStack() {
+  const items = Array.from(new Set(SKILLS.flatMap((g) => g.items)));
+  return <TechBadgeList items={items} />;
 }

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { BadgeCheckIcon, ExternalLinkIcon } from "lucide-react";
+import { ArrowUpRight, BadgeCheckIcon } from "lucide-react";
 import { siCoursera, siEdx, siUdemy } from "simple-icons";
 
 import {
@@ -87,8 +87,8 @@ export function CertificationsSection() {
                         {cert.name}
                       </h3>
                       {cert.credentialUrl && (
-                        <ExternalLinkIcon
-                          className="text-muted-foreground mt-1 size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        <ArrowUpRight
+                          className="text-muted-foreground mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                           aria-hidden="true"
                         />
                       )}

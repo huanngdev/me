@@ -7,6 +7,7 @@ import { ExperienceSection } from "@repo/core/components/layouts/experience-sect
 import { Footer } from "@repo/core/components/layouts/footer";
 import { OverviewSection } from "@repo/core/components/layouts/overview/overview-section";
 import { ProfileSection } from "@repo/core/components/layouts/profile-section";
+import { ProjectsSection } from "@repo/core/components/layouts/projects-section";
 import { SocialLinksSection } from "@repo/core/components/layouts/social-links-section";
 import { StripedSeparator } from "@repo/core/components/layouts/striped-separator";
 import { TocNav } from "@repo/core/components/layouts/toc-nav";
@@ -24,6 +25,8 @@ export default function Home() {
       <SocialLinksSection />
       <StripedSeparator height="h-12" />
       <CodingSection />
+      <StripedSeparator height="h-12" />
+      <ProjectsSection />
       <StripedSeparator height="h-12" />
       <ExperienceSection />
       <StripedSeparator height="h-12" />
