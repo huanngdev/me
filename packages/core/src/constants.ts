@@ -409,3 +409,39 @@ export const AWARDS = [
     result: "Top 2",
   },
 ] as const satisfies ReadonlyArray<AwardEntry>;
+
+// ---------- Bookmarks ----------
+
+export interface BookmarkEntry {
+  title: string;
+  source: string;
+  url: string;
+  date: string;
+}
+
+export const BOOKMARKS = [
+  {
+    title: "Lucide Animated",
+    source: "lucide-animated.com",
+    url: "https://lucide-animated.com/",
+    date: "2026-05-22",
+  },
+  {
+    title: "Get Design",
+    source: "getdesign.md",
+    url: "https://getdesign.md/",
+    date: "2026-05-22",
+  },
+  {
+    title: "Logo Lattice",
+    source: "logolattice.com",
+    url: "https://logolattice.com/",
+    date: "2026-05-22",
+  },
+  {
+    title: "Transitions",
+    source: "transitions.dev",
+    url: "https://transitions.dev/",
+    date: "2026-05-22",
+  },
+] as const satisfies ReadonlyArray<BookmarkEntry>;

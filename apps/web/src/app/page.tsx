@@ -1,4 +1,5 @@
 import { AwardsSection } from "@repo/core/components/layouts/awards-section";
+import { BookmarksSection } from "@repo/core/components/layouts/bookmarks-section";
 import { CertificationsSection } from "@repo/core/components/layouts/certifications-section";
 import { CodingSection } from "@repo/core/components/layouts/coding/coding-section";
 import { CoverSection } from "@repo/core/components/layouts/cover-section";
@@ -35,6 +36,8 @@ export default function Home() {
       <CertificationsSection />
       <StripedSeparator height="h-12" />
       <AwardsSection />
+      <StripedSeparator height="h-12" />
+      <BookmarksSection />
       <StripedSeparator height="h-12" />
       <Footer />
     </>
