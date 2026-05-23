@@ -457,3 +457,56 @@ export const BOOKMARKS = [
     date: "2026-05-22",
   },
 ] as const satisfies ReadonlyArray<BookmarkEntry>;
+
+// ---------- Changelog ----------
+
+export interface ChangelogEntry {
+  date: string; // YYYY-MM-DD
+  changes: ReadonlyArray<string>;
+}
+
+// Curated from git history — big milestones only. Newest first.
+export const CHANGELOG = [
+  {
+    date: "2026-05-23",
+    changes: [
+      "Added this changelog page — a timeline of big milestones, linked from the header.",
+      "Added a ⌘K command palette with section navigation, project search, social links, and quick actions.",
+      "Shipped a page-view counter backed by Drizzle and Redis dedup, with a cumulative views chart.",
+      "Animated dotted world map on the cover, marking Ho Chi Minh City.",
+      "Typing animation cycling through roles in the profile section.",
+      "Root-level error boundary so failures land softly instead of a blank screen.",
+    ],
+  },
+  {
+    date: "2026-05-22",
+    changes: ["Added a bookmarks section — a public reading log of tools and resources."],
+  },
+  {
+    date: "2026-05-21",
+    changes: [
+      "Dedicated project detail pages with image galleries, zoom, and richer descriptions.",
+      "Profile download menu — export the resume as PDF, Markdown, or JSON.",
+      "Experience, education, certifications, and awards sections, plus a table-of-contents minimap.",
+      "Full SEO pass — metadata, OG image, sitemap, robots.txt, and llms.txt.",
+      "Top scroll progress bar and a sound engine wired to the @soundcn registry.",
+    ],
+  },
+  {
+    date: "2026-05-20",
+    changes: [
+      "Hero cover, profile, overview, and social-links sections built out.",
+      "Coding section with a GitHub contribution heatmap and activity stats.",
+      "New sticky header with theme toggle and profile constants.",
+      "Dropped i18n entirely — the site is now English-only.",
+    ],
+  },
+  {
+    date: "2026-05-19",
+    changes: [
+      "Turborepo + Next.js scaffold with a shared `@repo/core` package.",
+      "Husky, lint-staged, commitlint, and GitHub Actions CI.",
+      "Canonical profile data lives in `content/profile/*.md`.",
+    ],
+  },
+] as const satisfies ReadonlyArray<ChangelogEntry>;

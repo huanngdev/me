@@ -22,6 +22,7 @@ import {
   Sun,
   User,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -234,6 +235,7 @@ function PaletteTrigger({ onClick }: { onClick: () => void }) {
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const listRef = useRef<HTMLDivElement>(null);
   const [hasMoreBelow, setHasMoreBelow] = useState(false);
@@ -352,6 +354,15 @@ export function CommandPalette() {
                 <FolderGit2 />
                 <ItemTitle>Open source repository</ItemTitle>
                 <ExternalIndicator />
+              </CommandItem>
+              <CommandItem
+                value="action open changelog history releases"
+                keywords={["changelog", "history", "releases", "updates", "what's new"]}
+                onSelect={() => runCommand(() => router.push("/changelog"))}
+              >
+                <ScrollText />
+                <ItemTitle>Open changelog</ItemTitle>
+                <CommandShortcut>/changelog</CommandShortcut>
               </CommandItem>
             </CommandGroup>
 
