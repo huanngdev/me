@@ -5,7 +5,16 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "VIEW_HASH_SALT",
+        "GITHUB_TOKEN",
+        "VERCEL",
+        "NEXT_PUBLIC_*"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
