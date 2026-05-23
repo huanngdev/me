@@ -69,7 +69,13 @@ export function CoverSection() {
               const badgeY = my - badgeH / 2;
 
               return (
-                <g style={{ pointerEvents: "none" }}>
+                <g
+                  style={{
+                    pointerEvents: "none",
+                    filter:
+                      "drop-shadow(0 10px 15px rgba(0,0,0,0.1)) drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+                  }}
+                >
                   <rect
                     x={badgeX}
                     y={badgeY}
@@ -77,6 +83,8 @@ export function CoverSection() {
                     height={badgeH}
                     rx={badgeH / 2}
                     fill="var(--secondary)"
+                    stroke="var(--border)"
+                    strokeWidth={0.3}
                   />
                   <text
                     x={badgeX + padX}
@@ -86,6 +94,7 @@ export function CoverSection() {
                     fontFamily="var(--font-mono), ui-monospace, monospace"
                     fontWeight={500}
                     letterSpacing={fontSize * 0.02}
+                    style={{ userSelect: "none", whiteSpace: "pre" }}
                   >
                     {label}
                   </text>
@@ -98,17 +107,18 @@ export function CoverSection() {
           style={{ x, y }}
           className="pointer-events-none relative flex items-center justify-center"
         >
+          <div aria-hidden className="absolute" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/logo-black.svg"
             alt="Ngo Gia Huan"
-            className="block h-8 w-auto sm:h-12 dark:hidden"
+            className="relative block h-8 w-auto sm:h-12 dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/logo-white.svg"
             alt="Ngo Gia Huan"
-            className="hidden h-8 w-auto sm:h-12 dark:block"
+            className="relative hidden h-8 w-auto sm:h-12 dark:block"
           />
         </motion.div>
       </div>

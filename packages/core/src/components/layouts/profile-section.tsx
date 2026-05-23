@@ -4,6 +4,19 @@ import { IDENTITY } from "../../constants";
 import { Avatar, AvatarFallback, AvatarImage } from "../avatar";
 import { StripedPattern } from "../striped-pattern";
 import { CopyButton } from "../copy-button";
+import { TypingAnimation } from "../typing-animation";
+
+const ROLE_WORDS = [
+  "Fullstack Engineer",
+  "Frontend Engineer",
+  "Backend Engineer",
+  "Blockchain Engineer",
+  "Build fast",
+  "Ship fast",
+  "Bug free",
+  "Pixel perfect",
+  "Type safe",
+];
 
 export function ProfileSection() {
   return (
@@ -41,9 +54,9 @@ export function ProfileSection() {
               <CopyButton text={IDENTITY.displayName} className="ml-2" />
             </div>
 
-            <p className="text-muted-foreground border-y px-4 py-2 text-left text-sm">
-              {IDENTITY.roles[0]}
-            </p>
+            <div className="text-muted-foreground border-y px-4 py-2 text-left text-sm">
+              <TypingAnimation words={ROLE_WORDS} loop className="leading-none tracking-normal" />
+            </div>
             <p className="text-muted-foreground hidden px-4 py-2 text-sm italic sm:block sm:text-sm">
               {IDENTITY.description}
             </p>
