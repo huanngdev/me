@@ -124,7 +124,19 @@ export const SKILLS = [
   {
     category: "backend",
     label: "Backend & data",
-    items: ["Node.js", "PostgreSQL", "Drizzle", "MongoDB", "Redis"],
+    items: [
+      "Node.js",
+      "Hono",
+      "PostgreSQL",
+      "Drizzle",
+      "Prisma",
+      "MongoDB",
+      "Redis",
+      "ClickHouse",
+      "Supabase",
+      "Firebase",
+      "MinIO",
+    ],
   },
   {
     category: "infra",

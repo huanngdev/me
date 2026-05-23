@@ -21,7 +21,7 @@ interface StripedSeparatorProps extends ComponentProps<"div"> {
 export function StripedSeparator({
   className,
   height = "h-8",
-  stripeClassName = "text-border/60",
+  stripeClassName = "",
   direction = "left",
   ...props
 }: StripedSeparatorProps) {
