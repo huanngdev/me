@@ -4,6 +4,7 @@ import { REPO_URL } from "../../constants";
 import { Button } from "../button";
 import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
+import { CommandPalette } from "./command-palette";
 import { DownloadMenu } from "./download-menu";
 import { ExternalLink } from "lucide-react";
 
@@ -17,6 +18,7 @@ export function Header() {
             {IDENTITY.displayName}
           </Link> */}
           <div className="flex h-full items-center gap-2 sm:border-l sm:pl-6 lg:pl-8">
+            <CommandPalette />
             <Button asChild variant="outline" aria-label="View source on GitHub">
               <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
                 <svg
