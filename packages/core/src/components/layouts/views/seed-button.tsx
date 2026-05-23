@@ -1,32 +1,29 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { SproutIcon } from "lucide-react";
+import { RotateCcwIcon, SproutIcon } from "lucide-react";
 
 import { cn } from "../../../lib/utils";
 
-export function SeedButton({ action }: { action: () => Promise<{ inserted: number }> }) {
-  const [pending, start] = useTransition();
-  const router = useRouter();
-
+export function SeedButton({
+  seeded,
+  onSeed,
+  onReset,
+}: {
+  seeded: boolean;
+  onSeed: () => void;
+  onReset: () => void;
+}) {
+  const Icon = seeded ? RotateCcwIcon : SproutIcon;
   return (
     <button
       type="button"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          await action();
-          router.refresh();
-        })
-      }
+      onClick={seeded ? onReset : onSeed}
       className={cn(
         "border-border text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs transition-colors",
-        pending && "opacity-50",
       )}
     >
-      <SproutIcon className="size-3.5" />
-      {pending ? "Seeding…" : "Seed"}
+      <Icon className="size-3.5" />
+      {seeded ? "Reset" : "Seed"}
     </button>
   );
 }
