@@ -7,7 +7,7 @@ import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
 import { CommandPalette } from "./command-palette";
 import { DownloadMenu } from "./download-menu";
-import { ExternalLink, ScrollText } from "lucide-react";
+import { ExternalLink, History } from "lucide-react";
 
 export function Header() {
   return (
@@ -20,12 +20,7 @@ export function Header() {
           </Link> */}
           <div className="flex h-full items-center gap-2 sm:border-l sm:pl-6 lg:pl-8">
             <CommandPalette />
-            <Button asChild variant="outline" aria-label="View changelog">
-              <Link href="/changelog">
-                <ScrollText className="size-4" />
-                <span className="hidden sm:inline">Changelog</span>
-              </Link>
-            </Button>
+
             <Button asChild variant="outline" aria-label="View source on GitHub">
               <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
                 <svg
@@ -43,6 +38,11 @@ export function Header() {
               </a>
             </Button>
             <DownloadMenu />
+            <Button asChild variant="outline" size="icon" aria-label="View changelog">
+              <Link href="/changelog">
+                <History className="size-4" />
+              </Link>
+            </Button>
             <ThemeToggle />
           </div>
         </div>
