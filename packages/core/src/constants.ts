@@ -456,6 +456,18 @@ export const BOOKMARKS = [
     url: "https://transitions.dev/",
     date: "2026-05-22",
   },
+  {
+    title: "BG Faster",
+    source: "bg.faster.asia",
+    url: "https://bg.faster.asia/",
+    date: "2026-05-24",
+  },
+  {
+    title: "Chanh Dai",
+    source: "chanhdai.com",
+    url: "https://chanhdai.com/",
+    date: "2026-05-24",
+  },
 ] as const satisfies ReadonlyArray<BookmarkEntry>;
 
 // ---------- Changelog ----------

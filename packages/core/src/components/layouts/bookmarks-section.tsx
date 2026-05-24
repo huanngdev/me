@@ -1,6 +1,7 @@
 import { ArrowUpRight, BookmarkIcon } from "lucide-react";
 
 import { BOOKMARKS, type BookmarkEntry } from "../../constants";
+import { cn } from "../../lib/utils";
 
 function formatBookmarkDate(value: string): string {
   const [y, m, d] = value.split("-").map(Number);
@@ -34,6 +35,7 @@ function FaviconBadge({ source, title }: { source: string; title: string }) {
 
 export function BookmarksSection() {
   const items: ReadonlyArray<BookmarkEntry> = BOOKMARKS;
+  const lastRowStart = items.length - (items.length % 2 || 2);
 
   return (
     <section id="bookmarks">
@@ -47,34 +49,35 @@ export function BookmarksSection() {
             No bookmarks yet.
           </p>
         ) : (
-          <ul className="divide-y">
-            {items.map((bookmark) => (
-              <li key={bookmark.url}>
+          <ul className="grid grid-cols-2">
+            {items.map((bookmark, i) => (
+              <li
+                key={bookmark.url}
+                className={cn(i < lastRowStart && "border-b", i % 2 !== 1 && "border-r")}
+              >
                 <a
                   href={bookmark.url}
                   target="_blank"
                   rel="noreferrer noopener"
                   aria-label={`Visit ${bookmark.title}`}
-                  className="group hover:bg-muted/40 block px-4 py-4 transition-colors sm:px-6 sm:py-5 lg:px-8"
+                  className="group hover:bg-muted/40 flex h-full items-start gap-3 p-4 transition-colors"
                 >
-                  <div className="flex items-start gap-3">
-                    <FaviconBadge source={bookmark.source} title={bookmark.title} />
+                  <FaviconBadge source={bookmark.source} title={bookmark.title} />
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <h3 className="flex-1 text-sm font-semibold tracking-tight sm:text-base">
-                          {bookmark.title}
-                        </h3>
-                        <ArrowUpRight
-                          className="text-muted-foreground mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <p className="text-muted-foreground mt-0.5 text-sm">{bookmark.source}</p>
-                      <p className="text-muted-foreground mt-1 font-mono text-xs">
-                        {formatBookmarkDate(bookmark.date)}
-                      </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-2">
+                      <h3 className="flex-1 text-sm font-semibold tracking-tight sm:text-base">
+                        {bookmark.title}
+                      </h3>
+                      <ArrowUpRight
+                        className="text-muted-foreground mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        aria-hidden="true"
+                      />
                     </div>
+                    <p className="text-muted-foreground mt-0.5 text-sm">{bookmark.source}</p>
+                    <p className="text-muted-foreground mt-1 font-mono text-xs">
+                      {formatBookmarkDate(bookmark.date)}
+                    </p>
                   </div>
                 </a>
               </li>

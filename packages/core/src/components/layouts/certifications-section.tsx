@@ -7,6 +7,7 @@ import {
   type CertificationEntry,
   type CertificationPlatform,
 } from "../../constants";
+import { cn } from "../../lib/utils";
 
 type PlatformBrand = { path: string; color: string };
 
@@ -62,6 +63,7 @@ function PlatformBadge({ platform }: { platform?: CertificationPlatform }) {
 
 export function CertificationsSection() {
   const items: ReadonlyArray<CertificationEntry> = CERTIFICATIONS;
+  const lastRowStart = items.length - (items.length % 2 || 2);
 
   return (
     <section id="certifications">
@@ -75,15 +77,15 @@ export function CertificationsSection() {
             No certifications listed yet.
           </p>
         ) : (
-          <ul className="divide-y">
-            {items.map((cert) => {
+          <ul className="grid grid-cols-2">
+            {items.map((cert, i) => {
               const body = (
                 <div className="flex items-start gap-3">
                   <PlatformBadge platform={cert.platform} />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
-                      <h3 className="flex-1 text-sm font-semibold tracking-tight sm:text-base">
+                      <h3 className="line-clamp-1 flex-1 text-sm font-semibold tracking-tight sm:text-base">
                         {cert.name}
                       </h3>
                       {cert.credentialUrl && (
@@ -93,7 +95,9 @@ export function CertificationsSection() {
                         />
                       )}
                     </div>
-                    <p className="text-muted-foreground mt-0.5 text-sm">{cert.issuer}</p>
+                    <p className="text-muted-foreground mt-0.5 line-clamp-1 text-sm">
+                      {cert.issuer}
+                    </p>
                     <p className="text-muted-foreground mt-1 font-mono text-xs">
                       {formatCertDate(cert.date)}
                     </p>
@@ -102,19 +106,22 @@ export function CertificationsSection() {
               );
 
               return (
-                <li key={`${cert.name}-${cert.date}`}>
+                <li
+                  key={`${cert.name}-${cert.date}`}
+                  className={cn(i < lastRowStart && "border-b", i % 2 !== 1 && "border-r")}
+                >
                   {cert.credentialUrl ? (
                     <a
                       href={cert.credentialUrl}
                       target="_blank"
                       rel="noreferrer noopener"
                       aria-label={`View ${cert.name} credential`}
-                      className="group hover:bg-muted/40 block px-4 py-4 transition-colors sm:px-6 sm:py-5 lg:px-8"
+                      className="group hover:bg-muted/40 flex h-full items-start gap-3 p-4 transition-colors"
                     >
                       {body}
                     </a>
                   ) : (
-                    <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">{body}</div>
+                    <div className="flex h-full items-start gap-3 p-4">{body}</div>
                   )}
                 </li>
               );
