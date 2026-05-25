@@ -182,3 +182,15 @@
     background: transparent;
   }
 }
+
+.code-block-shiki .shiki,
+.code-block-shiki .shiki span {
+  color: var(--shiki-light);
+  background-color: transparent;
+}
+
+.dark .code-block-shiki .shiki,
+.dark .code-block-shiki .shiki span {
+  color: var(--shiki-dark);
+  background-color: transparent;
+}

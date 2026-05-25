@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Tags } from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "../../lib/utils";
@@ -9,7 +9,14 @@ const COMPONENT_LIST: {
   name: string;
   description: string;
   icon: typeof ArrowUpRight;
-}[] = [];
+}[] = [
+  {
+    slug: "shadcn-tags-input",
+    name: "Tags Input",
+    description: "A composable tags input built on shadcn primitives.",
+    icon: Tags,
+  },
+];
 
 export function ComponentsSection() {
   if (COMPONENT_LIST.length === 0) {
