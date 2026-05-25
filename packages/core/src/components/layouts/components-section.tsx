@@ -1,17 +1,15 @@
-import { ArrowUpRight, FileText } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "../../lib/utils";
 import { Separator } from "@/components/separator";
 
-const COMPONENT_LIST = [
-  {
-    slug: "notion-like-editor",
-    name: "Notion-like Editor",
-    description: "Block-based rich text editor",
-    icon: FileText,
-  },
-];
+const COMPONENT_LIST: {
+  slug: string;
+  name: string;
+  description: string;
+  icon: typeof ArrowUpRight;
+}[] = [];
 
 export function ComponentsSection() {
   if (COMPONENT_LIST.length === 0) {
