@@ -3,6 +3,23 @@
  * Mirrors `content/profile/*.md` — keep them in sync.
  */
 
+import type { ComponentType } from "react";
+import { Component, History, Home } from "lucide-react";
+
+// ---------- Navigation ----------
+
+export interface NavItem {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { label: "Home", href: "/", icon: Home },
+  { label: "Components", href: "/components", icon: Component },
+  { label: "Changelog", href: "/changelog", icon: History },
+];
+
 // ---------- Identity ----------
 
 export interface Identity {
@@ -466,6 +483,12 @@ export const BOOKMARKS = [
     title: "Chanh Dai",
     source: "chanhdai.com",
     url: "https://chanhdai.com/",
+    date: "2026-05-24",
+  },
+  {
+    title: "Sleek Demo",
+    source: "sleekdemo.com",
+    url: "https://www.sleekdemo.com/",
     date: "2026-05-24",
   },
 ] as const satisfies ReadonlyArray<BookmarkEntry>;

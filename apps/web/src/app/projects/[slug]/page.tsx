@@ -1,16 +1,14 @@
-import { ArrowLeft, CodeXml, Film, Globe } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import { CodeXml, Film, Globe } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ComponentType, SVGProps } from "react";
 
-import { Button } from "@repo/core/components/button";
-import { Footer } from "@repo/core/components/layouts/footer";
 import { PROJECTS, type ProjectEntry, type ProjectStatus } from "@repo/core/constants";
 import { cn } from "@repo/core/lib/utils";
 
-import { ProjectGallery } from "./gallery";
+import { BackButton } from "@repo/core/components/layouts/back-button";
 import { TechBadgeList } from "@repo/core/components/layouts/coding/tech-stack";
+import { ProjectGallery } from "./gallery";
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   live: "Live",
@@ -60,14 +58,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <article className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-4xl flex-col border-x">
+      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <div className="border-b px-4 py-3 sm:px-6 lg:px-8">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/#projects">
-              <ArrowLeft className="size-4" />
-              Back
-            </Link>
-          </Button>
+          <BackButton />
         </div>
 
         <header className="border-b px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -149,7 +142,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <div className="flex-1" />
       </article>
-      <Footer />
     </>
   );
 }

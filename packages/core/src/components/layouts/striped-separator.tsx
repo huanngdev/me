@@ -29,7 +29,7 @@ export function StripedSeparator({
     <div className={cn("w-full", height, className)} {...props}>
       <div className="border-border relative mx-auto h-full border border-y">
         <StripedPattern direction={direction} className={stripeClassName} />
-        <div className="mx-auto h-full max-w-4xl border-x"></div>
+        <div className="mx-auto h-full w-full max-w-4xl border-x"></div>
       </div>
     </div>
   );

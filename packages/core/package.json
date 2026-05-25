@@ -19,7 +19,8 @@
     "./constants": "./src/constants.ts",
     "./db": "./src/db/index.ts",
     "./db/schema": "./src/db/schema.ts",
-    "./components/*": "./src/components/*.tsx"
+    "./components/*": "./src/components/*.tsx",
+    "./components/notion-like-editor": "./src/components/notion-like-editor/index.tsx"
   },
   "scripts": {
     "lint": "eslint",

@@ -1,22 +1,7 @@
-import { ArrowLeft, GitCommitVertical } from "lucide-react";
-import type { Metadata } from "next";
-import Link from "next/link";
+import { GitCommitVertical } from "lucide-react";
 
-import { Button } from "@repo/core/components/button";
-import { Footer } from "@repo/core/components/layouts/footer";
+import { PageHeader } from "@repo/core/components/layouts/page-header";
 import { CHANGELOG } from "@repo/core/constants";
-import { Separator } from "@repo/core/components/separator";
-
-export const metadata: Metadata = {
-  title: "Changelog",
-  description: "Big shipping milestones for this portfolio — newest first.",
-  alternates: { canonical: "/changelog" },
-  openGraph: {
-    title: "Changelog",
-    description: "Big shipping milestones for this portfolio — newest first.",
-    type: "article",
-  },
-};
 
 function formatDate(value: string): string {
   const [y, m, d] = value.split("-").map(Number);
@@ -32,21 +17,8 @@ function formatDate(value: string): string {
 export default function ChangelogPage() {
   return (
     <>
-      <article className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-4xl flex-col border-x">
-        <div className="border-b px-4 py-3 sm:px-6 lg:px-8">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/">
-              <ArrowLeft className="size-4" />
-              Back
-            </Link>
-          </Button>
-        </div>
-
-        <header className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Changelog</h1>
-        </header>
-        <Separator />
-
+      <PageHeader title="Changelog" />
+      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <ol className="divide-y">
           {CHANGELOG.map((entry) => (
             <li key={entry.date} className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -71,7 +43,6 @@ export default function ChangelogPage() {
           ))}
         </ol>
       </article>
-      <Footer />
     </>
   );
 }

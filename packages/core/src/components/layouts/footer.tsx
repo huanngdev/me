@@ -5,10 +5,10 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t">
-      <div className="relative">
+    <footer className="w-full border-t">
+      <div className="relative h-14">
         <StripedPattern className="-z-10" />
-        <div className="bg-background mx-auto flex max-w-4xl flex-col gap-2 border-x px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-6 lg:px-8">
+        <div className="bg-background relative mx-auto flex h-full w-full max-w-4xl items-center justify-between gap-2 border-x px-4 sm:px-6 lg:px-8">
           <p className="text-muted-foreground text-xs">
             © {year} {IDENTITY.displayName}. Built with Next.js.
           </p>

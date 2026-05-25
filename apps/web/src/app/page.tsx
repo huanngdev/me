@@ -43,7 +43,6 @@ export default function Home() {
       <AwardsSection />
       <StripedSeparator height="h-12" />
       <BookmarksSection />
-      <StripedSeparator height="h-12" />
       <Footer />
     </>
   );

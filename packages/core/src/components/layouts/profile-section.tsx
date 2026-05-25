@@ -21,7 +21,7 @@ const ROLE_WORDS = [
 export function ProfileSection() {
   return (
     <section id="profile">
-      <div className="mx-auto flex max-w-4xl border-x">
+      <div className="mx-auto flex w-full max-w-4xl border-x">
         <div className="border-border relative size-28 shrink-0 overflow-hidden border-r sm:size-44">
           <StripedPattern className="bg-muted-foreground/5 -z-10 rounded-full" />
           <Avatar className="relative size-full bg-transparent">

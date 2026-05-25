@@ -44,7 +44,7 @@ export function SocialLinksSection() {
   const lastRowStart = SOCIAL_LINKS.length - (SOCIAL_LINKS.length % 3 || 3);
   return (
     <section id="links">
-      <div className="mx-auto max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-4xl border-x">
         <h2 className="sr-only">Links</h2>
         <ul className="grid grid-cols-3">
           {SOCIAL_LINKS.map((link, i) => (

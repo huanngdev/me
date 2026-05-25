@@ -24,7 +24,7 @@ function formatRange(start: string, end: string | null): string {
 export function EducationSection() {
   return (
     <section id="education">
-      <div className="mx-auto max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-4xl border-x">
         <h2 className="border-b px-4 py-4 text-xl font-semibold tracking-tight sm:px-6 sm:py-5 sm:text-2xl lg:px-8">
           Education
         </h2>

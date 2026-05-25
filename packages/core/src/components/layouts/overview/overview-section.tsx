@@ -14,7 +14,7 @@ const languagesAriaLabel = IDENTITY.languages.map((l) => `${l.name} (${l.level})
 export function OverviewSection() {
   return (
     <section id="overview">
-      <div className="mx-auto max-w-4xl border-x px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-4xl border-x px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <h2 className="sr-only">Overview</h2>
 
         <div className="grid gap-x-4 gap-y-2 sm:grid-flow-col sm:grid-cols-2 sm:grid-rows-3">

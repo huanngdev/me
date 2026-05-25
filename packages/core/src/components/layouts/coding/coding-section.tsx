@@ -17,7 +17,7 @@ export function CodingSection() {
 
   return (
     <section id="coding">
-      <div className="mx-auto max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-4xl border-x">
         <h2 className="sr-only">Coding</h2>
 
         <div className="px-4 py-6 sm:px-2 sm:py-4">
@@ -44,7 +44,7 @@ export function CodingSection() {
         </div>
       </div>
       <Separator />
-      <div className="mx-auto max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-4xl border-x">
         <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
           <TechStack />
         </div>

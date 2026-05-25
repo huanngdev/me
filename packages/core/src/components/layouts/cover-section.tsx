@@ -50,7 +50,7 @@ export function CoverSection() {
         ref={ref}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative mx-auto flex h-72 max-w-4xl items-center justify-center overflow-hidden border-x px-4 sm:h-80 sm:px-6 lg:px-8"
+        className="relative mx-auto flex h-72 w-full max-w-4xl items-center justify-center overflow-hidden border-x px-4 sm:h-80 sm:px-6 lg:px-8"
       >
         <DotPattern className="absolute inset-0 h-full w-full opacity-50" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

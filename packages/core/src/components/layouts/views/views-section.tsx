@@ -13,7 +13,7 @@ export function ViewsSection({
 
   return (
     <section id="views">
-      <div className="mx-auto max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-4xl border-x">
         <Suspense fallback={<ViewsChartFallback />}>
           <ViewsChart data={data} />
         </Suspense>
