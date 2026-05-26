@@ -423,7 +423,7 @@ export const AWARDS = [
     event: "Walrus Session 2 — Form Tooling",
     date: "2026",
     project: "WalForm",
-    result: "Participated",
+    result: "Top 1",
   },
   {
     event: "CommandOSS HackerHouse",
