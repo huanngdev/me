@@ -136,127 +136,213 @@ export function buildProfileMarkdown(): string {
   return lines.join("\n");
 }
 
-export function buildProfileCvHtml(): string {
+function buildCvBody(): string {
   const e = escapeHtml;
   const parts: string[] = [];
 
-  parts.push(`<header>`);
-  parts.push(`<h1>${e(IDENTITY.displayName)}</h1>`);
-  parts.push(`<p class="tagline">${e(IDENTITY.tagline)}</p>`);
-  const contact = [
-    e(PUBLIC_EMAIL),
-    e(PUBLIC_PHONE),
-    `${e(IDENTITY.location.city)}, ${e(IDENTITY.location.country)}`,
-    ...SOCIAL_LINKS.map((s) => `${e(s.label)}: ${e(s.url)}`),
-  ].join(" · ");
-  parts.push(`<p class="contact">${contact}</p>`);
+  parts.push(`<header class="cv-header">`);
+  parts.push(`  <div class="header-top">`);
+  parts.push(`    <h1>${e(IDENTITY.displayName)}</h1>`);
+  parts.push(`    <p class="availability">${e(IDENTITY.availability)}</p>`);
+  parts.push(`  </div>`);
+  const contactItems = [
+    `<a href="mailto:${e(PUBLIC_EMAIL)}">${e(PUBLIC_EMAIL)}</a>`,
+    `<span>${e(PUBLIC_PHONE)}</span>`,
+    `<span>${e(IDENTITY.location.city)}, ${e(IDENTITY.location.country)}</span>`,
+    ...SOCIAL_LINKS.filter((s) => s.platform === "github" || s.platform === "linkedin").map(
+      (s) => `<a href="${e(s.url)}">${e(s.label)}</a>`,
+    ),
+  ];
+  parts.push(`  <p class="contact-row">${contactItems.join('<span class="dot">·</span>')}</p>`);
   parts.push(`</header>`);
 
-  parts.push(`<section><h2>About</h2><p>${e(IDENTITY.description)}</p></section>`);
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Summary</h2>`);
+  parts.push(`  <p>${e(IDENTITY.description)}</p>`);
+  parts.push(`</section>`);
 
-  parts.push(`<section><h2>Skills</h2><ul>`);
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Skills</h2>`);
+  parts.push(`  <ul class="skill-list">`);
   for (const g of SKILLS) {
-    parts.push(`<li><strong>${e(g.label)}:</strong> ${e(g.items.join(", "))}</li>`);
+    parts.push(
+      `    <li><strong class="skill-cat">${e(g.label)}</strong> ${e(g.items.join(" · "))}</li>`,
+    );
   }
-  parts.push(`</ul></section>`);
+  parts.push(`  </ul>`);
+  parts.push(`</section>`);
 
-  parts.push(`<section><h2>Experience</h2>`);
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Experience</h2>`);
   for (const x of EXPERIENCE) {
-    parts.push(`<div class="entry">`);
+    parts.push(`  <div class="entry">`);
     parts.push(
-      `<div class="entry-head"><span><strong>${e(x.role)}</strong> — ${e(x.company)}</span><span class="meta">${e(formatPeriod(x.start, x.end))} · ${e(x.location)}</span></div>`,
+      `    <div class="entry-row"><strong>${e(x.company)}</strong><span class="role">${e(x.role)}</span><span class="period">${e(formatPeriod(x.start, x.end))}</span></div>`,
     );
-    if (x.about) parts.push(`<p>${e(x.about)}</p>`);
-    parts.push(`</div>`);
+    parts.push(`    <div class="entry-sub">${e(x.employmentType)} · ${e(x.location)}</div>`);
+    if (x.about) {
+      parts.push(`    <p class="entry-desc">${e(x.about)}</p>`);
+    }
+    parts.push(`  </div>`);
   }
   parts.push(`</section>`);
 
-  parts.push(`<section><h2>Education</h2>`);
-  for (const x of EDUCATION) {
-    parts.push(`<div class="entry">`);
-    parts.push(
-      `<div class="entry-head"><strong>${e(x.institution)}</strong><span class="meta">${e(formatPeriod(x.start, x.end))} · ${e(x.location)}</span></div>`,
-    );
-    parts.push(`<p>${e(x.degree)} in ${e(x.major)}</p>`);
-    parts.push(`</div>`);
-  }
-  parts.push(`</section>`);
-
-  parts.push(`<section><h2>Projects</h2>`);
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Projects</h2>`);
   for (const p of PROJECT_LIST) {
-    parts.push(`<div class="entry">`);
-    const meta = p.hackathon
-      ? `<span class="meta"> — ${e(p.hackathon)}${p.result ? ` (${e(p.result)})` : ""}</span>`
+    parts.push(`  <div class="entry">`);
+    const tag = p.hackathon
+      ? ` <span class="badge">${e(p.hackathon)}${p.result ? ` — ${e(p.result)}` : ""}</span>`
       : "";
-    parts.push(`<div><strong>${e(p.name)}</strong>${meta}</div>`);
-    parts.push(`<p>${e(p.description)}</p>`);
-    parts.push(`<p class="meta">Stack: ${e(p.stack.join(", "))}</p>`);
-    parts.push(`</div>`);
+    parts.push(`    <div class="entry-row"><strong>${e(p.name)}</strong>${tag}</div>`);
+    parts.push(`    <p class="entry-desc">${e(p.description)}</p>`);
+    parts.push(`    <div class="entry-sub stack">${e(p.stack.join(" · "))}</div>`);
+    parts.push(`  </div>`);
+  }
+  parts.push(`</section>`);
+
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Education</h2>`);
+  for (const x of EDUCATION) {
+    parts.push(`  <div class="entry">`);
+    parts.push(
+      `    <div class="entry-row"><strong>${e(x.institution)}</strong><span class="period">${e(formatPeriod(x.start, x.end))}</span></div>`,
+    );
+    parts.push(
+      `    <div class="entry-sub">${e(x.degree)} in ${e(x.major)} · ${e(x.location)}</div>`,
+    );
+    parts.push(`  </div>`);
   }
   parts.push(`</section>`);
 
   if (AWARDS.length) {
-    parts.push(`<section><h2>Awards</h2><ul>`);
+    parts.push(`<section class="section">`);
+    parts.push(`  <h2>Awards & Hackathons</h2>`);
+    parts.push(`  <ul class="compact-list">`);
     for (const a of AWARDS) {
       parts.push(
-        `<li><strong>${e(a.event)}</strong> (${e(a.date)}) — ${e(a.project)}, ${e(a.result)}</li>`,
+        `    <li><strong>${e(a.result)}</strong> — ${e(a.project)} at ${e(a.event)} (${e(a.date)})</li>`,
       );
     }
-    parts.push(`</ul></section>`);
+    parts.push(`  </ul>`);
+    parts.push(`</section>`);
   }
+
+  parts.push(`<section class="section">`);
+  parts.push(`  <h2>Languages</h2>`);
+  parts.push(`  <p>`);
+  parts.push(
+    IDENTITY.languages
+      .map((l) => `${e(l.name)} — ${e(l.level)}`)
+      .join('<span class="dot">·</span>'),
+  );
+  parts.push(`  </p>`);
+  parts.push(`</section>`);
 
   if (CERTIFICATIONS.length) {
-    parts.push(`<section><h2>Certifications</h2><ul>`);
+    parts.push(`<section class="section">`);
+    parts.push(`  <h2>Certifications</h2>`);
+    parts.push(`  <ul class="cert-list">`);
     for (const c of CERTIFICATIONS) {
-      parts.push(`<li>${e(c.name)} — ${e(c.issuer)} (${e(c.date)})</li>`);
+      parts.push(
+        `    <li><span class="cert-date">${e(formatDate(c.date))}</span> ${e(c.name)}</li>`,
+      );
     }
-    parts.push(`</ul></section>`);
+    parts.push(`  </ul>`);
+    parts.push(`</section>`);
   }
 
-  const css = `
-    @page { size: A4; margin: 16mm 14mm; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #fff; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      color: #111;
-      font-size: 10.5pt;
-      line-height: 1.5;
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 28px 32px;
-    }
-    h1 { font-size: 22pt; margin: 0 0 4px; font-weight: 600; letter-spacing: -0.02em; }
-    h2 {
-      font-size: 10.5pt;
-      margin: 18px 0 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 3px;
-      font-weight: 600;
-    }
-    p { margin: 4px 0; }
-    .tagline { color: #444; margin: 0 0 6px; }
-    .contact { color: #555; font-size: 9.5pt; margin: 0; }
-    section { margin-top: 10px; page-break-inside: avoid; }
-    ul { margin: 4px 0; padding-left: 18px; }
-    li { margin: 2px 0; }
-    .entry { margin: 6px 0 10px; page-break-inside: avoid; }
-    .entry-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-    .meta { color: #666; font-size: 9.5pt; font-weight: 400; }
-    @media print { body { padding: 0; } }
-  `;
+  parts.push(`<footer class="cv-footer">`);
+  parts.push(
+    `<p>${e(IDENTITY.displayName)} · ${e(PUBLIC_EMAIL)} · ${e(IDENTITY.location.city)}</p>`,
+  );
+  parts.push(`</footer>`);
 
+  return parts.join("\n");
+}
+
+const CV_CSS = `
+@page { size: A4; margin: 12mm 14mm 14mm; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: #fff; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1a1a1a;
+  font-size: 9.5pt;
+  line-height: 1.55;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 4px;
+}
+
+a { color: #1a1a1a; text-decoration: none; }
+
+/* ---- Header ---- */
+.cv-header { padding: 16px 0 12px; border-bottom: 2px solid #13111a; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 6px; }
+h1 { font-size: 22pt; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.availability { font-size: 8pt; color: #7c3aed; font-weight: 500; white-space: nowrap; }
+.contact-row { font-size: 8.5pt; color: #555; display: flex; flex-wrap: wrap; gap: 2px 0; }
+.contact-row a { color: #7c3aed; }
+.dot { margin: 0 6px; color: #ccc; }
+
+/* ---- Sections ---- */
+.section { margin-top: 14px; page-break-inside: avoid; }
+h2 {
+  font-size: 9pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+  color: #7c3aed; margin-bottom: 7px; padding-bottom: 2px; border-bottom: 0.5px solid #e5e0ec;
+}
+p { margin: 2px 0; }
+
+/* ---- Skills list ---- */
+.skill-list { list-style: none; padding: 0; }
+.skill-list li { font-size: 8.5pt; line-height: 1.65; }
+.skill-cat { font-size: 9pt; color: #1a1a1a; }
+
+/* ---- Entry ---- */
+.entry { margin: 0 0 9px; }
+.entry-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 10pt; }
+.entry-row strong { font-size: 10pt; }
+.role { color: #555; font-size: 9pt; }
+.period { margin-left: auto; font-size: 8.5pt; color: #888; white-space: nowrap; }
+.entry-sub { font-size: 8.5pt; color: #666; margin-bottom: 1px; }
+.entry-desc { font-size: 9pt; color: #333; line-height: 1.5; }
+.stack { font-size: 8pt; color: #7c3aed; font-weight: 500; }
+
+/* ---- Badge ---- */
+.badge { display: inline; font-size: 7.5pt; font-weight: 600; color: #7c3aed; white-space: nowrap; }
+
+/* ---- Compact lists ---- */
+.compact-list { list-style: none; padding: 0; }
+.compact-list li { font-size: 9pt; line-height: 1.6; }
+.compact-list li::before { content: "— "; color: #ccc; }
+
+/* ---- Certs ---- */
+.cert-list { list-style: none; padding: 0; }
+.cert-list li { font-size: 8pt; line-height: 1.6; }
+.cert-date { color: #888; margin-right: 4px; }
+
+/* ---- Footer ---- */
+.cv-footer { margin-top: 16px; padding-top: 6px; border-top: 0.5px solid #e5e0ec; text-align: center; }
+.cv-footer p { font-size: 7.5pt; color: #aaa; }
+
+@media print { body { padding: 0; } @page { margin: 12mm 14mm 14mm; } }
+`;
+
+export function buildProfileCvHtml(): string {
+  const e = escapeHtml;
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>${e(IDENTITY.displayName)} — CV</title>
-<style>${css}</style>
+<style>${CV_CSS}</style>
 </head>
 <body>
-${parts.join("\n")}
+${buildCvBody()}
 <script>window.addEventListener("load", () => setTimeout(() => window.print(), 150));</script>
 </body>
 </html>`;
@@ -274,8 +360,7 @@ export function downloadBlob(filename: string, content: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
-export function openCvPrintWindow(): void {
-  const html = buildProfileCvHtml();
+function openCvInWindow(html: string): void {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
@@ -284,4 +369,24 @@ export function openCvPrintWindow(): void {
     return;
   }
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+export function openCvPrintWindow(): void {
+  openCvInWindow(buildProfileCvHtml());
+}
+
+export function openCvHtmlWindow(): void {
+  const e = escapeHtml;
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${e(IDENTITY.displayName)} — CV</title>
+<style>${CV_CSS}</style>
+</head>
+<body>
+${buildCvBody()}
+</body>
+</html>`;
+  openCvInWindow(html);
 }

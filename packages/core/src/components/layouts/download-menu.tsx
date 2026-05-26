@@ -6,6 +6,7 @@ import {
   buildProfileJson,
   buildProfileMarkdown,
   downloadBlob,
+  openCvHtmlWindow,
   openCvPrintWindow,
 } from "../../lib/profile-export";
 import { Button } from "../button";
@@ -29,6 +30,10 @@ export function DownloadMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem onSelect={() => openCvHtmlWindow()}>
+          HTML (View)
+          <span className="text-muted-foreground ml-auto font-mono text-xs">.html</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => openCvPrintWindow()}>
           PDF (CV)
           <span className="text-muted-foreground ml-auto font-mono text-xs">.pdf</span>
