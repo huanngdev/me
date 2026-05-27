@@ -4,6 +4,7 @@ import { desc } from "drizzle-orm";
 import Link from "next/link";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
 import { TriggerAiPostButton } from "@repo/core/components/layouts/trigger-ai-post";
+import { StaggerList, StaggerListItem } from "@repo/core/components/reveal";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +37,9 @@ export default async function BlogPage() {
             No posts yet.
           </p>
         ) : (
-          <ul className="divide-y">
+          <StaggerList className="divide-y">
             {posts.map((post) => (
-              <li key={post.slug} className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+              <StaggerListItem key={post.slug} className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                 <Link
                   href={`/blog/${post.slug}`}
                   className="text-base font-semibold hover:underline"
@@ -71,9 +72,9 @@ export default async function BlogPage() {
                     </span>
                   )}
                 </div>
-              </li>
+              </StaggerListItem>
             ))}
-          </ul>
+          </StaggerList>
         )}
       </article>
     </>

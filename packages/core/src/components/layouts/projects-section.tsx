@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { PROJECTS, type ProjectEntry, type ProjectStatus } from "../../constants";
 import { cn } from "../../lib/utils";
+import { StaggerList, StaggerListItem } from "../reveal";
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   live: "Live",
@@ -26,12 +27,12 @@ export function ProjectsSection() {
           Projects
         </h2>
 
-        <ul className="divide-y">
+        <StaggerList className="divide-y">
           {(PROJECTS as readonly ProjectEntry[]).map((project) => (
-            <li key={project.slug}>
+            <StaggerListItem key={project.slug}>
               <Link
                 href={`/projects/${project.slug}`}
-                className="group hover:bg-muted/40 flex items-start gap-4 px-4 py-5 transition-colors sm:px-6 sm:py-6 lg:px-8"
+                className="group hover:bg-muted/40 relative flex items-start gap-4 px-4 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-l-2 hover:border-l-violet-500/60 sm:px-6 sm:py-6 lg:px-8"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -63,9 +64,9 @@ export function ProjectsSection() {
 
                 <ArrowUpRight className="text-muted-foreground mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
-            </li>
+            </StaggerListItem>
           ))}
-        </ul>
+        </StaggerList>
       </div>
     </section>
   );

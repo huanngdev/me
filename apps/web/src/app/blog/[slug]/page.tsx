@@ -3,6 +3,7 @@ import { blogPosts } from "@repo/core/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
+import { Reveal, Stagger, StaggerItem } from "@repo/core/components/reveal";
 import { Renderer, marked } from "marked";
 import type { Metadata } from "next";
 
@@ -69,29 +70,37 @@ export default async function BlogPostPage({ params }: Props) {
       <PageHeader title={post.title} />
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <div className="px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
-          <div className="mb-3 flex items-center gap-3">
-            <time
-              dateTime={post.publishedAt.toISOString()}
-              className="text-muted-foreground font-mono text-xs"
-            >
-              {post.publishedAt.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </time>
-          </div>
-          {post.tags.length > 0 && (
-            <div className="mb-10 flex flex-wrap gap-1.5">
-              {post.tags.map((t) => (
-                <span key={t} className="bg-muted rounded px-2 py-0.5 font-mono text-[11px]">
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
+          <Stagger>
+            <StaggerItem>
+              <div className="mb-3 flex items-center gap-3">
+                <time
+                  dateTime={post.publishedAt.toISOString()}
+                  className="text-muted-foreground font-mono text-xs"
+                >
+                  {post.publishedAt.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+              </div>
+            </StaggerItem>
+            {post.tags.length > 0 && (
+              <StaggerItem>
+                <div className="mb-10 flex flex-wrap gap-1.5">
+                  {post.tags.map((t) => (
+                    <span key={t} className="bg-muted rounded px-2 py-0.5 font-mono text-[11px]">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </StaggerItem>
+            )}
+          </Stagger>
 
-          <div className="doc-content" dangerouslySetInnerHTML={{ __html: html }} />
+          <Reveal>
+            <div className="doc-content" dangerouslySetInnerHTML={{ __html: html }} />
+          </Reveal>
         </div>
       </article>
     </>

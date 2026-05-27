@@ -13,6 +13,7 @@ import { SocialLinksSection } from "@repo/core/components/layouts/social-links-s
 import { StripedSeparator } from "@repo/core/components/layouts/striped-separator";
 import { TocNav } from "@repo/core/components/layouts/toc-nav";
 import { ViewsSection } from "@repo/core/components/layouts/views/views-section";
+import { Reveal } from "@repo/core/components/reveal";
 import { Separator } from "@repo/core/components/separator";
 
 import { recordView } from "../lib/actions/record-view";
@@ -22,27 +23,49 @@ export default function Home() {
     <>
       <TocNav />
       <CoverSection />
-      <ProfileSection />
+      <Reveal>
+        <ProfileSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <OverviewSection />
+      <Reveal>
+        <OverviewSection />
+      </Reveal>
       <Separator />
-      <SocialLinksSection />
+      <Reveal>
+        <SocialLinksSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <CodingSection />
+      <Reveal>
+        <CodingSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <ViewsSection recordAction={recordView} />
+      <Reveal>
+        <ViewsSection recordAction={recordView} />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <ProjectsSection />
+      <Reveal>
+        <ProjectsSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <ExperienceSection />
+      <Reveal>
+        <ExperienceSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <EducationSection />
+      <Reveal>
+        <EducationSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <CertificationsSection />
+      <Reveal>
+        <CertificationsSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <AwardsSection />
+      <Reveal>
+        <AwardsSection />
+      </Reveal>
       <StripedSeparator height="h-12" />
-      <BookmarksSection />
+      <Reveal>
+        <BookmarksSection />
+      </Reveal>
       <Footer />
     </>
   );

@@ -1,6 +1,7 @@
 import { BriefcaseIcon } from "lucide-react";
 
 import { EXPERIENCE } from "../../constants";
+import { StaggerList, StaggerListItem } from "../reveal";
 
 const COMPANY_LOGOS: Record<string, string> = {
   Formo: "/images/formo-logo.svg",
@@ -49,11 +50,14 @@ export function ExperienceSection() {
           Experience
         </h2>
 
-        <ul className="divide-y">
+        <StaggerList className="before:bg-border relative divide-y before:absolute before:top-0 before:bottom-0 before:left-9 before:w-px before:origin-top before:motion-safe:animate-[timeline-grow_700ms_ease-out_both] sm:before:left-11 lg:before:left-13">
           {EXPERIENCE.map((job) => (
-            <li key={`${job.company}-${job.start}`} className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+            <StaggerListItem
+              key={`${job.company}-${job.start}`}
+              className="relative px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
+            >
               <div className="flex items-start gap-3">
-                <div className="bg-background text-muted-foreground flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                <div className="bg-background text-muted-foreground ring-background relative z-10 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md ring-4">
                   {COMPANY_LOGOS[job.company] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -91,9 +95,9 @@ export function ExperienceSection() {
                   )}
                 </div>
               </div>
-            </li>
+            </StaggerListItem>
           ))}
-        </ul>
+        </StaggerList>
       </div>
     </section>
   );
