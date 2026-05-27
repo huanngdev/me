@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Component, History, Home } from "lucide-react";
+import { Component, History, Home, NotebookText } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -16,6 +16,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
+  { label: "Blog", href: "/blog", icon: NotebookText },
   { label: "Components", href: "/components", icon: Component },
   { label: "Changelog", href: "/changelog", icon: History },
 ];

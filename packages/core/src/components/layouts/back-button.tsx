@@ -9,7 +9,7 @@ export function BackButton() {
   const router = useRouter();
 
   return (
-    <Button variant="outline" size="sm" onClick={() => router.back()}>
+    <Button variant="outline" onClick={() => router.back()}>
       <ArrowLeft className="size-4" />
       Back
     </Button>
