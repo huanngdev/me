@@ -7,6 +7,7 @@ import {
   PROJECTS,
   PUBLIC_EMAIL,
   PUBLIC_PHONE,
+  PUBLIC_PORTFOLIO_URL,
   SKILLS,
   SOCIAL_LINKS,
   type ProjectEntry,
@@ -149,6 +150,7 @@ function buildCvBody(): string {
     `<a href="mailto:${e(PUBLIC_EMAIL)}">${e(PUBLIC_EMAIL)}</a>`,
     `<span>${e(PUBLIC_PHONE)}</span>`,
     `<span>${e(IDENTITY.location.city)}, ${e(IDENTITY.location.country)}</span>`,
+    `<a href="${e(PUBLIC_PORTFOLIO_URL)}">Portfolio</a>`,
     ...SOCIAL_LINKS.filter((s) => s.platform === "github" || s.platform === "linkedin").map(
       (s) => `<a href="${e(s.url)}">${e(s.label)}</a>`,
     ),
