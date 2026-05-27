@@ -13,6 +13,10 @@
         "VIEW_HASH_SALT",
         "GITHUB_TOKEN",
         "VERCEL",
+        "DEEPSEEK_API_KEY",
+        "DEEPSEEK_BASE_URL",
+        "DEEPSEEK_MODEL",
+        "CRON_SECRET",
         "NEXT_PUBLIC_*"
       ]
     },

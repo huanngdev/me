@@ -31,5 +31,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "marked": "^18.0.4",
+    "openai": "^6.39.0"
+  }
 }
