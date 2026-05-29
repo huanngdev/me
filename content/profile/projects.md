@@ -74,6 +74,17 @@ Including the portfolio as a project is legitimate when it's craft-forward — r
 
 ---
 
+## 5. MapCN components
+
+- **One-liner:** MapLibre-powered React map components integrated into the portfolio, centered on Ho Chi Minh City.
+- **Stack:** MapCN, MapLibre, React, TypeScript, Tailwind CSS.
+- **Status:** Live.
+- **Links:** https://www.mapcn.dev/
+
+This belongs in the project list as a small UI-craft integration: it demonstrates third-party registry adoption, map rendering, theme-aware tiles, and location presentation without adding heavy product copy.
+
+---
+
 ## Personal projects (other)
 
 _(none captured yet — ask in a follow-up. Targets: any non-hackathon side projects, OSS contributions, repo experiments worth surfacing.)_
