@@ -45,9 +45,7 @@ export function CodingSection() {
       </div>
       <Separator />
       <div className="mx-auto w-full max-w-4xl border-x">
-        <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
-          <TechStack />
-        </div>
+        <TechStack />
       </div>
     </section>
   );

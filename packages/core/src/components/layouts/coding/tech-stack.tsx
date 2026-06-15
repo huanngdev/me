@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import {
   siBun,
   siClickhouse,
@@ -32,58 +31,52 @@ import {
 
 import { SKILLS } from "../../../constants";
 import { Badge } from "../../badge";
-import { cn } from "../../../lib/utils";
 
 // Skills with no brand icon in simple-icons (Move, Walrus, Seal, Zustand, AWS)
 // render as plain badges without a glyph.
-const SKILL_ICONS: Record<string, { path: string; color: string; darkColor?: string }> = {
-  TypeScript: { path: siTypescript.path, color: "#3178C6" },
-  JavaScript: { path: siJavascript.path, color: "#F7DF1E", darkColor: "#F7DF1E" },
-  "Next.js": { path: siNextdotjs.path, color: "#000000", darkColor: "#ffffff" },
-  React: { path: siReact.path, color: "#61DAFB" },
-  "Tailwind CSS": { path: siTailwindcss.path, color: "#06B6D4" },
-  "shadcn/ui": { path: siShadcnui.path, color: "#000000", darkColor: "#ffffff" },
-  "Framer Motion": { path: siFramer.path, color: "#0055FF" },
-  "Node.js": { path: siNodedotjs.path, color: "#5FA04E" },
-  Hono: { path: siHono.path, color: "#E36002" },
-  PostgreSQL: { path: siPostgresql.path, color: "#4169E1" },
-  Drizzle: { path: siDrizzle.path, color: "#C5F74F", darkColor: "#C5F74F" },
-  Prisma: { path: siPrisma.path, color: "#2D3748", darkColor: "#ffffff" },
-  MongoDB: { path: siMongodb.path, color: "#47A248" },
-  Redis: { path: siRedis.path, color: "#FF4438" },
-  ClickHouse: { path: siClickhouse.path, color: "#FFCC01", darkColor: "#FFCC01" },
-  Supabase: { path: siSupabase.path, color: "#3FCF8E" },
-  Firebase: { path: siFirebase.path, color: "#DD2C00" },
-  MinIO: { path: siMinio.path, color: "#C72E49" },
-  Docker: { path: siDocker.path, color: "#2496ED" },
-  Vercel: { path: siVercel.path, color: "#000000", darkColor: "#ffffff" },
-  Railway: { path: siRailway.path, color: "#0B0D0E", darkColor: "#ffffff" },
-  "GitHub Actions": { path: siGithubactions.path, color: "#2088FF" },
-  Sui: { path: siSui.path, color: "#4DA2FF" },
-  Git: { path: siGit.path, color: "#F05032" },
-  Figma: { path: siFigma.path, color: "#F24E1E" },
-  Turborepo: { path: siTurborepo.path, color: "#EF4444" },
-  Bun: { path: siBun.path, color: "#000000", darkColor: "#FBF0DF" },
-  pnpm: { path: siPnpm.path, color: "#F69220" },
+const SKILL_ICONS: Record<string, string> = {
+  TypeScript: siTypescript.path,
+  JavaScript: siJavascript.path,
+  "Next.js": siNextdotjs.path,
+  React: siReact.path,
+  "Tailwind CSS": siTailwindcss.path,
+  "shadcn/ui": siShadcnui.path,
+  "Framer Motion": siFramer.path,
+  "Node.js": siNodedotjs.path,
+  Hono: siHono.path,
+  PostgreSQL: siPostgresql.path,
+  Drizzle: siDrizzle.path,
+  Prisma: siPrisma.path,
+  MongoDB: siMongodb.path,
+  Redis: siRedis.path,
+  ClickHouse: siClickhouse.path,
+  Supabase: siSupabase.path,
+  Firebase: siFirebase.path,
+  MinIO: siMinio.path,
+  Docker: siDocker.path,
+  Vercel: siVercel.path,
+  Railway: siRailway.path,
+  "GitHub Actions": siGithubactions.path,
+  Sui: siSui.path,
+  Git: siGit.path,
+  Figma: siFigma.path,
+  Turborepo: siTurborepo.path,
+  Bun: siBun.path,
+  pnpm: siPnpm.path,
 };
 
 export function SkillIcon({ name, className }: { name: string; className?: string }) {
-  const b = SKILL_ICONS[name];
-  if (!b) return null;
-  const style = {
-    "--brand": b.color,
-    "--brand-dark": b.darkColor ?? b.color,
-  } as CSSProperties;
+  const path = SKILL_ICONS[name];
+  if (!path) return null;
   return (
     <svg
       role="img"
       viewBox="0 0 24 24"
       fill="currentColor"
-      style={style}
-      className={cn("text-(--brand) dark:text-(--brand-dark)", className)}
+      className={className}
       aria-hidden="true"
     >
-      <path d={b.path} />
+      <path d={path} />
     </svg>
   );
 }
@@ -102,6 +95,29 @@ export function TechBadgeList({ items }: { items: ReadonlyArray<string> }) {
 }
 
 export function TechStack() {
-  const items = Array.from(new Set(SKILLS.flatMap((g) => g.items)));
-  return <TechBadgeList items={items} />;
+  return (
+    <>
+      <h2 className="border-b px-4 py-4 text-xl font-semibold tracking-tight sm:px-6 sm:py-5 sm:text-2xl lg:px-8">
+        Tech Stack
+      </h2>
+      <div className="divide-y">
+        {SKILLS.map((group, i) => (
+          <div
+            key={group.category}
+            className="grid grid-cols-1 gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-[180px_1fr] sm:px-6 sm:py-0 lg:px-8"
+          >
+            <div className="flex items-baseline gap-2 sm:border-r sm:py-5 sm:pr-6">
+              <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="text-sm font-medium">{group.label}</span>
+            </div>
+            <div className="sm:py-5">
+              <TechBadgeList items={group.items} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
