@@ -24,7 +24,6 @@
   "registries": {
     "@ncdai": "https://chanhdai.com/r/{name}.json",
     "@soundcn": "https://soundcn.xyz/r/{name}.json",
-    "@magicui": "https://magicui.design/r/{name}",
-    "@mapcn": "https://mapcn.dev/r/{name}.json"
+    "@magicui": "https://magicui.design/r/{name}"
   }
 }

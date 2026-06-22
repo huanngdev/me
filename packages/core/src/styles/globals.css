@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "maplibre-gl/dist/maplibre-gl.css";
 
 @source "../**/*.{ts,tsx}";
 @source "../../../../apps/web/src/**/*.{ts,tsx}";
@@ -144,12 +143,6 @@
   }
   html {
     @apply font-sans;
-  }
-  .maplibregl-popup-content {
-    @apply rounded-none! bg-transparent! p-0! shadow-none!;
-  }
-  .maplibregl-popup-tip {
-    @apply hidden!;
   }
 }
 

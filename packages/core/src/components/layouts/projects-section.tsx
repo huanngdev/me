@@ -32,7 +32,7 @@ export function ProjectsSection() {
             <StaggerListItem key={project.slug}>
               <Link
                 href={`/projects/${project.slug}`}
-                className="group hover:bg-muted/40 relative flex items-start gap-4 px-4 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-l-2 hover:border-l-violet-500/60 sm:px-6 sm:py-6 lg:px-8"
+                className="group hover:bg-muted/40 flex items-start gap-4 px-4 py-5 transition-colors sm:px-6 sm:py-6 lg:px-8"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

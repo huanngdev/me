@@ -6,7 +6,6 @@ import { CoverSection } from "@repo/core/components/layouts/cover-section";
 import { EducationSection } from "@repo/core/components/layouts/education-section";
 import { ExperienceSection } from "@repo/core/components/layouts/experience-section";
 import { Footer } from "@repo/core/components/layouts/footer";
-import { MapcnSection } from "@repo/core/components/layouts/mapcn-section";
 import { OverviewSection } from "@repo/core/components/layouts/overview/overview-section";
 import { ProfileSection } from "@repo/core/components/layouts/profile-section";
 import { ProjectsSection } from "@repo/core/components/layouts/projects-section";
@@ -66,10 +65,6 @@ export default function Home() {
       <StripedSeparator height="h-12" />
       <Reveal>
         <BookmarksSection />
-      </Reveal>
-      <StripedSeparator height="h-12" />
-      <Reveal>
-        <MapcnSection />
       </Reveal>
       <Footer />
     </>

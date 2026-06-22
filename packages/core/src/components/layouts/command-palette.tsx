@@ -16,7 +16,6 @@ import {
   LayoutGrid,
   Link2,
   Mail,
-  MapPin,
   Moon,
   ScrollText,
   Search,
@@ -136,13 +135,6 @@ const SECTIONS: SectionItem[] = [
     hash: "#bookmarks",
     icon: BookmarkIcon,
     keywords: ["reading", "links", "resources"],
-  },
-  {
-    id: "mapcn",
-    title: "MapCN",
-    hash: "#mapcn",
-    icon: MapPin,
-    keywords: ["map", "location", "ho chi minh city", "maplibre"],
   },
 ];
 

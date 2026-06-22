@@ -339,24 +339,6 @@ export const PROJECTS = [
     status: "in-progress",
     links: { source: REPO_URL },
   },
-  {
-    slug: "mapcn-components",
-    name: "MapCN components",
-    description:
-      "MapLibre-powered React map components for the portfolio, centered on Ho Chi Minh City.",
-    details: {
-      overview:
-        "A small integration of MapCN's shadcn-style map component into the portfolio, using MapLibre tiles, theme-aware styling, controls, and a marker for Ho Chi Minh City.",
-      features: [
-        "Theme-aware MapLibre map using MapCN's default CARTO basemaps.",
-        "Ho Chi Minh City marker with an accessible popup and compact coordinates.",
-        "Homepage section placed below bookmarks to keep the core portfolio flow intact.",
-      ],
-    },
-    stack: ["MapCN", "MapLibre", "React", "TypeScript", "Tailwind CSS"],
-    status: "live",
-    links: { live: "https://www.mapcn.dev/" },
-  },
 ] as const satisfies ReadonlyArray<ProjectEntry>;
 
 // ---------- Certifications ----------
