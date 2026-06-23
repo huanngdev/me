@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Component, History, Home, NotebookText } from "lucide-react";
+import { Component, History, Home, NotebookText, Trophy } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -20,6 +20,9 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Components", href: "/components", icon: Component },
   { label: "Changelog", href: "/changelog", icon: History },
 ];
+
+// Secondary pages, grouped under an "etc" dropdown in the header.
+export const ETC_ITEMS: NavItem[] = [{ label: "World Cup", href: "/world-cup", icon: Trophy }];
 
 // ---------- Identity ----------
 
