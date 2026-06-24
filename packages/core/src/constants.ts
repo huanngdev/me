@@ -514,6 +514,30 @@ export interface ChangelogEntry {
 // Curated from git history — big milestones only. Newest first.
 export const CHANGELOG = [
   {
+    date: "2026-06-24",
+    changes: [
+      "Every page — including the new World Cup page — is now reachable from the ⌘K command palette.",
+      "Retired the experimental AI blog and its weekly cron writer.",
+      "The site now builds without any secrets — database and Redis clients connect lazily.",
+    ],
+  },
+  {
+    date: "2026-06-23",
+    changes: [
+      "Added a World Cup 2026 page with live scores and match detail, reached from a new “etc” menu in the header.",
+    ],
+  },
+  {
+    date: "2026-06-15",
+    changes: ["Restructured the tech stack into titled category rows for faster scanning."],
+  },
+  {
+    date: "2026-05-25",
+    changes: [
+      "Added a Components page — a live showcase of UI built for the site: tags input, code block, and terminal block.",
+    ],
+  },
+  {
     date: "2026-05-23",
     changes: [
       "Added this changelog page — a timeline of big milestones, linked from the header.",

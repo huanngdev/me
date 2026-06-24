@@ -30,7 +30,9 @@ import {
   AWARDS,
   BOOKMARKS,
   CERTIFICATIONS,
+  ETC_ITEMS,
   IDENTITY,
+  NAV_ITEMS,
   PROJECTS,
   PUBLIC_EMAIL,
   REPO_URL,
@@ -137,6 +139,25 @@ const SECTIONS: SectionItem[] = [
     keywords: ["reading", "links", "resources"],
   },
 ];
+
+const PAGES = [...NAV_ITEMS, ...ETC_ITEMS];
+
+/** Extra search terms per page, keyed by href, so the palette surfaces them. */
+const PAGE_KEYWORDS: Record<string, string[]> = {
+  "/": ["home", "start", "top"],
+  "/components": ["ui", "demos", "showcase", "playground"],
+  "/changelog": ["history", "releases", "updates", "what's new"],
+  "/world-cup": [
+    "world cup",
+    "football",
+    "soccer",
+    "fifa",
+    "2026",
+    "matches",
+    "scores",
+    "fixtures",
+  ],
+};
 
 function scrollToHash(hash: string) {
   const id = hash.replace(/^#/, "");
@@ -296,7 +317,7 @@ export function CommandPalette() {
     <>
       <PaletteTrigger onClick={() => setOpen(true)} />
       <CommandDialog open={open} onOpenChange={setOpen} className="sm:max-w-2xl">
-        <CommandInput placeholder="Search sections, projects, links…" />
+        <CommandInput placeholder="Search pages, sections, projects…" />
         <div className="relative">
           <CommandList
             ref={listRef}
@@ -315,6 +336,23 @@ export function CommandPalette() {
                   <s.icon />
                   <ItemTitle>{s.title}</ItemTitle>
                   <CommandShortcut>{s.hash}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+
+            <CommandSeparator />
+
+            <CommandGroup heading="Pages">
+              {PAGES.map((p) => (
+                <CommandItem
+                  key={p.href}
+                  value={`page ${p.label}`}
+                  keywords={PAGE_KEYWORDS[p.href] ?? []}
+                  onSelect={() => runCommand(() => router.push(p.href))}
+                >
+                  <p.icon />
+                  <ItemTitle>{p.label}</ItemTitle>
+                  <CommandShortcut>{p.href}</CommandShortcut>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -354,15 +392,6 @@ export function CommandPalette() {
                 <FolderGit2 />
                 <ItemTitle>Open source repository</ItemTitle>
                 <ExternalIndicator />
-              </CommandItem>
-              <CommandItem
-                value="action open changelog history releases"
-                keywords={["changelog", "history", "releases", "updates", "what's new"]}
-                onSelect={() => runCommand(() => router.push("/changelog"))}
-              >
-                <ScrollText />
-                <ItemTitle>Open changelog</ItemTitle>
-                <CommandShortcut>/changelog</CommandShortcut>
               </CommandItem>
             </CommandGroup>
 
