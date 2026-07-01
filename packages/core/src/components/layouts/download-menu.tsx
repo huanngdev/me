@@ -2,13 +2,7 @@
 
 import { ChevronsUpDown, Download } from "lucide-react";
 
-import {
-  buildProfileJson,
-  buildProfileMarkdown,
-  downloadBlob,
-  openCvHtmlWindow,
-  openCvPrintWindow,
-} from "../../lib/profile-export";
+import { buildProfileJson, buildProfileMarkdown, downloadBlob } from "../../lib/profile-export";
 import { Button } from "../button";
 import {
   DropdownMenu,
@@ -18,6 +12,7 @@ import {
 } from "../dropdown-menu";
 
 const FILENAME = "ngo-gia-huan";
+const CV_PDF_PATH = "/huanngdev_cv.pdf";
 
 export function DownloadMenu() {
   return (
@@ -30,13 +25,11 @@ export function DownloadMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
-        <DropdownMenuItem onSelect={() => openCvHtmlWindow()}>
-          HTML (View)
-          <span className="text-muted-foreground ml-auto font-mono text-xs">.html</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => openCvPrintWindow()}>
-          PDF (CV)
-          <span className="text-muted-foreground ml-auto font-mono text-xs">.pdf</span>
+        <DropdownMenuItem asChild>
+          <a href={CV_PDF_PATH} download={`${FILENAME}-cv.pdf`}>
+            PDF (CV)
+            <span className="text-muted-foreground ml-auto font-mono text-xs">.pdf</span>
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
