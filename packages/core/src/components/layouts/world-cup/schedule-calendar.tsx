@@ -18,6 +18,9 @@ const MATCH_MIN = 105;
 const HOUR_PX = 56;
 // Left time-gutter width (px), holding the hour labels.
 const GUTTER = 44;
+// Minimum width per day column (px). Narrower than seven of these and the week scrolls
+// horizontally instead of squeezing the match cards down to nothing.
+const MIN_DAY_PX = 100;
 
 const STAGE_LABEL: Record<WcStage, string> = {
   group: "Group stage",
@@ -412,142 +415,145 @@ function WeekGrid({
   for (let h = startMin; h <= endMin; h += 60) hours.push(h);
   const toTop = (min: number) => ((min - startMin) / 60) * HOUR_PX;
 
-  // No scroll container: the flex children carry min-w-0 so the grid shrinks to fit at any
-  // width (flexbox's default min-width:auto would otherwise spill a few px), and the seven
-  // columns size with minmax(0,1fr). Dropping overflow-x:auto also stops it forcing
-  // overflow-y:auto, which previously turned the bottom hour label into a phantom scrollbar.
+  // The week keeps a minimum width per day (MIN_DAY_PX) so match cards stay legible. When
+  // the viewport is too narrow for all seven days it scrolls horizontally instead of
+  // squeezing the cards down to nothing. overflow-y is *clipped* (not auto) so the bottom
+  // hour gridline can't trip a phantom vertical scrollbar — the quirk where leaving one
+  // overflow axis auto forces the other to auto too.
   return (
-    <div className="min-w-0">
-      {/* Day headers */}
-      <div className="flex border-b">
-        <div className="shrink-0" style={{ width: GUTTER }} />
-        <div className="grid min-w-0 flex-1 grid-cols-7">
-          {week.days.map((day) => {
-            const isToday = day.dayNum === view.today;
-            return (
-              <div
-                key={day.dayNum}
-                className={cn(
-                  "border-border/40 border-l px-1 py-1.5 text-center",
-                  isToday && "bg-emerald-500/15",
-                )}
-              >
-                <div
-                  className={cn(
-                    "text-[10px] tracking-wide uppercase",
-                    isToday
-                      ? "font-medium text-emerald-700 dark:text-emerald-400"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {WEEKDAYS[day.weekday]}
-                </div>
-                <div className="mt-0.5 flex justify-center">
-                  <span
-                    className={cn(
-                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-mono text-xs tabular-nums",
-                      isToday && "bg-emerald-600 font-semibold text-white",
-                    )}
-                  >
-                    {day.civil.d}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Time grid body */}
-      <div className="flex">
-        <div className="relative shrink-0" style={{ width: GUTTER, height: bodyHeight }}>
-          {hours.map((h) => (
-            <div
-              key={h}
-              className={cn(
-                "text-muted-foreground absolute right-1.5 font-mono text-[10px] tabular-nums",
-                // Sit just above each hour line (the label's bottom rests on the line),
-                // so the last label never pokes below the grid. The first label hangs
-                // below its top line instead, so it isn't clipped above the grid.
-                h === startMin ? "translate-y-0" : "-translate-y-full",
-              )}
-              style={{ top: toTop(h) }}
-            >
-              {fmtHour(view.dayCut + h)}
-            </div>
-          ))}
-        </div>
-
-        <div className="relative min-w-0 flex-1" style={{ height: bodyHeight }}>
-          {/* Hour gridlines across all days; the midnight roll-over is emphasized. */}
-          {hours.map((h) => {
-            const midnight = (view.dayCut + h) % 1440 === 0;
-            return (
-              <div
-                key={h}
-                className={cn(
-                  "absolute right-0 left-0 border-t",
-                  midnight ? "border-foreground/25 border-dashed" : "border-border/40",
-                )}
-                style={{ top: toTop(h) }}
-              />
-            );
-          })}
-
-          {/* Day columns + match slots */}
-          <div className="absolute inset-0 grid grid-cols-7">
+    <div className="overflow-x-auto overflow-y-clip">
+      <div className="pb-0.5" style={{ minWidth: GUTTER + 7 * MIN_DAY_PX }}>
+        {/* Day headers */}
+        <div className="flex border-b">
+          <div className="shrink-0" style={{ width: GUTTER }} />
+          <div className="grid min-w-0 flex-1 grid-cols-7">
             {week.days.map((day) => {
               const isToday = day.dayNum === view.today;
-              const showNow =
-                day.dayNum === view.nowDay &&
-                view.nowShift !== null &&
-                view.nowShift >= startMin &&
-                view.nowShift <= endMin;
               return (
                 <div
                   key={day.dayNum}
                   className={cn(
-                    "border-border/40 relative border-l",
-                    isToday && "bg-emerald-500/10",
+                    "border-border/40 border-l px-1 py-1.5 text-center",
+                    isToday && "bg-emerald-500/15",
                   )}
                 >
-                  {showNow && (
-                    <div
-                      className="absolute right-0 left-0 z-10 border-t border-red-500/70"
-                      style={{ top: toTop(view.nowShift!) }}
+                  <div
+                    className={cn(
+                      "text-[10px] tracking-wide uppercase",
+                      isToday
+                        ? "font-medium text-emerald-700 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {WEEKDAYS[day.weekday]}
+                  </div>
+                  <div className="mt-0.5 flex justify-center">
+                    <span
+                      className={cn(
+                        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-mono text-xs tabular-nums",
+                        isToday && "bg-emerald-600 font-semibold text-white",
+                      )}
                     >
-                      <span className="absolute -top-[3px] -left-[3px] h-1.5 w-1.5 rounded-full bg-red-500" />
-                    </div>
-                  )}
-                  {day.slots.map((slot) => {
-                    // When a slot's real calendar date differs from its column's date,
-                    // prefix the time with the slot's own weekday so it's unambiguous —
-                    // e.g. the lone evening opener sitting under a morning-dated column.
-                    const dayOffset = view.labelByEnd
-                      ? slot.clock >= view.dayCut
-                        ? -1
-                        : 0
-                      : slot.clock < view.dayCut
-                        ? 1
-                        : 0;
-                    const timeLabel =
-                      (dayOffset !== 0 ? `${WEEKDAYS[(day.weekday + dayOffset + 7) % 7]} ` : "") +
-                      fmtClock(slot.clock);
-                    return (
-                      <SlotCard
-                        key={slot.min}
-                        slot={slot}
-                        timeLabel={timeLabel}
-                        top={toTop(slot.min)}
-                        single={slot.matches.length === 1}
-                        selectedId={selectedId}
-                        onSelect={onSelect}
-                      />
-                    );
-                  })}
+                      {day.civil.d}
+                    </span>
+                  </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Time grid body */}
+        <div className="flex">
+          <div className="relative shrink-0" style={{ width: GUTTER, height: bodyHeight }}>
+            {hours.map((h) => (
+              <div
+                key={h}
+                className={cn(
+                  "text-muted-foreground absolute right-1.5 font-mono text-[10px] tabular-nums",
+                  // Sit just above each hour line (the label's bottom rests on the line),
+                  // so the last label never pokes below the grid. The first label hangs
+                  // below its top line instead, so it isn't clipped above the grid.
+                  h === startMin ? "translate-y-0" : "-translate-y-full",
+                )}
+                style={{ top: toTop(h) }}
+              >
+                {fmtHour(view.dayCut + h)}
+              </div>
+            ))}
+          </div>
+
+          <div className="relative min-w-0 flex-1" style={{ height: bodyHeight }}>
+            {/* Hour gridlines across all days; the midnight roll-over is emphasized. */}
+            {hours.map((h) => {
+              const midnight = (view.dayCut + h) % 1440 === 0;
+              return (
+                <div
+                  key={h}
+                  className={cn(
+                    "absolute right-0 left-0 border-t",
+                    midnight ? "border-foreground/25 border-dashed" : "border-border/40",
+                  )}
+                  style={{ top: toTop(h) }}
+                />
+              );
+            })}
+
+            {/* Day columns + match slots */}
+            <div className="absolute inset-0 grid grid-cols-7">
+              {week.days.map((day) => {
+                const isToday = day.dayNum === view.today;
+                const showNow =
+                  day.dayNum === view.nowDay &&
+                  view.nowShift !== null &&
+                  view.nowShift >= startMin &&
+                  view.nowShift <= endMin;
+                return (
+                  <div
+                    key={day.dayNum}
+                    className={cn(
+                      "border-border/40 relative border-l",
+                      isToday && "bg-emerald-500/10",
+                    )}
+                  >
+                    {showNow && (
+                      <div
+                        className="absolute right-0 left-0 z-10 border-t border-red-500/70"
+                        style={{ top: toTop(view.nowShift!) }}
+                      >
+                        <span className="absolute -top-[3px] -left-[3px] h-1.5 w-1.5 rounded-full bg-red-500" />
+                      </div>
+                    )}
+                    {day.slots.map((slot) => {
+                      // When a slot's real calendar date differs from its column's date,
+                      // prefix the time with the slot's own weekday so it's unambiguous —
+                      // e.g. the lone evening opener sitting under a morning-dated column.
+                      const dayOffset = view.labelByEnd
+                        ? slot.clock >= view.dayCut
+                          ? -1
+                          : 0
+                        : slot.clock < view.dayCut
+                          ? 1
+                          : 0;
+                      const timeLabel =
+                        (dayOffset !== 0 ? `${WEEKDAYS[(day.weekday + dayOffset + 7) % 7]} ` : "") +
+                        fmtClock(slot.clock);
+                      return (
+                        <SlotCard
+                          key={slot.min}
+                          slot={slot}
+                          timeLabel={timeLabel}
+                          top={toTop(slot.min)}
+                          single={slot.matches.length === 1}
+                          selectedId={selectedId}
+                          onSelect={onSelect}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

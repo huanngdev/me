@@ -67,7 +67,7 @@ function GroupCard({ group, standings }: WcGroupTable) {
 export function GroupStandings({ groups }: { groups: WcGroupTable[] }) {
   return (
     <section id="groups">
-      <div className="mx-auto w-full max-w-4xl border-x">
+      <div className="mx-auto w-full max-w-[1600px] border-x">
         <div className="flex items-baseline justify-between border-b px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
           <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">Groups</h2>
           <span className="text-muted-foreground text-xs">Top 2 advance</span>
@@ -78,7 +78,7 @@ export function GroupStandings({ groups }: { groups: WcGroupTable[] }) {
             Group tables are not available right now.
           </p>
         ) : (
-          <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2">
+          <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2 xl:grid-cols-3">
             {groups.map((g) => (
               <GroupCard key={g.group} {...g} />
             ))}
