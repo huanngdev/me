@@ -13,6 +13,7 @@ const SECTIONS: TOCItemType[] = [
   { title: "Certifications", url: "#certifications", depth: 2 },
   { title: "Awards", url: "#awards", depth: 2 },
   { title: "Bookmarks", url: "#bookmarks", depth: 2 },
+  { title: "Site Info", url: "#site-info", depth: 2 },
 ];
 
 export function TocNav() {

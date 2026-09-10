@@ -12,6 +12,7 @@ import {
   FolderGit2,
   GitBranch,
   GraduationCap,
+  Info,
   LayoutGrid,
   Link2,
   Mail,
@@ -129,6 +130,13 @@ const SECTIONS: SectionItem[] = [
     hash: "#bookmarks",
     icon: BookmarkIcon,
     keywords: ["reading", "links", "resources"],
+  },
+  {
+    id: "site-info",
+    title: "Site Info",
+    hash: "#site-info",
+    icon: Info,
+    keywords: ["build", "deployment", "source", "license", "inspiration"],
   },
 ];
 

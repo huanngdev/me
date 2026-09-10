@@ -10,10 +10,18 @@ import { OverviewSection } from "@repo/core/components/layouts/overview/overview
 import { ProfileSection } from "@repo/core/components/layouts/profile-section";
 import { ProjectsSection } from "@repo/core/components/layouts/projects-section";
 import { SocialLinksSection } from "@repo/core/components/layouts/social-links-section";
+import { SiteInfoSection } from "@repo/core/components/layouts/site-info-section";
 import { StripedSeparator } from "@repo/core/components/layouts/striped-separator";
 import { TocNav } from "@repo/core/components/layouts/toc-nav";
 import { Reveal } from "@repo/core/components/reveal";
 import { Separator } from "@repo/core/components/separator";
+import webPackage from "../../package.json";
+
+const SITE_STACK = [
+  `next@${webPackage.dependencies.next}`,
+  `react@${webPackage.dependencies.react}`,
+  `tailwindcss@${webPackage.devDependencies.tailwindcss.replace(/^\^/, "")}`,
+] as const;
 
 export default function Home() {
   return (
@@ -58,6 +66,10 @@ export default function Home() {
       <StripedSeparator height="h-12" />
       <Reveal>
         <BookmarksSection />
+      </Reveal>
+      <StripedSeparator height="h-12" />
+      <Reveal>
+        <SiteInfoSection buildSha={process.env.VERCEL_GIT_COMMIT_SHA} stack={SITE_STACK} />
       </Reveal>
       <Footer />
     </>
