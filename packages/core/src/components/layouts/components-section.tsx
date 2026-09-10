@@ -1,4 +1,4 @@
-import { ArrowUpRight, Box, Clapperboard, Map, Tags } from "lucide-react";
+import { ArrowUpRight, Box, Clapperboard, Map, TableProperties, Tags } from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "../../lib/utils";
@@ -33,6 +33,12 @@ const COMPONENT_LIST: {
     name: "Video Player",
     description: "A headless media player with shadcn controls.",
     icon: Clapperboard,
+  },
+  {
+    slug: "zod-data-table",
+    name: "Zod Data Table",
+    description: "A typed TanStack table generated from a Zod object schema.",
+    icon: TableProperties,
   },
 ];
 

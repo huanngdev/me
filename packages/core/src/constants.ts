@@ -754,6 +754,13 @@ export interface ChangelogEntry {
 // Curated from git history — big milestones only. Newest first.
 export const CHANGELOG = [
   {
+    date: "2026-09-10",
+    changes: [
+      "Published Zod Data Table — generate typed TanStack Table columns from a Zod object schema and row data, with metadata labels and custom cell renderers.",
+      "Added complete documentation, empty-state handling, responsive table scrolling, tests, and a one-command shadcn registry install.",
+    ],
+  },
+  {
     date: "2026-09-04",
     changes: [
       "Published GitHub Contributions 3D — an interactive Three.js contribution calendar with six color themes, live username lookup, fixed lighting, a proportional base, and date metadata.",
