@@ -8,6 +8,7 @@ interface PageHeaderProps {
   title: ReactNode;
   description?: string;
   actions?: ReactNode;
+  backHref?: string;
   /** Max-width utility for the content column. Defaults to `max-w-4xl`; the World Cup
    *  page widens it so the header lines up with the wider schedule. */
   maxWidthClassName?: string;
@@ -17,6 +18,7 @@ export function PageHeader({
   title,
   description,
   actions,
+  backHref,
   maxWidthClassName = "max-w-4xl",
 }: PageHeaderProps) {
   return (
@@ -28,7 +30,7 @@ export function PageHeader({
             maxWidthClassName,
           )}
         >
-          <BackButton />
+          <BackButton href={backHref} />
           {actions}
         </div>
       </div>

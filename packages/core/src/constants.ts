@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Component, History, Home, Trophy } from "lucide-react";
+import { Blocks, Component, History, Home, Trophy } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -17,6 +17,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Components", href: "/components", icon: Component },
+  { label: "Blocks", href: "/blocks", icon: Blocks },
 ];
 
 // Secondary pages, grouped under an "etc" dropdown in the header.

@@ -136,6 +136,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  body:has([data-fullscreen-block]) > [data-slot="scroll-progress"],
+  body:has([data-fullscreen-block]) > header {
+    display: none;
+  }
+  body:has([data-fullscreen-block]) > main {
+    margin-top: 0 !important;
+  }
   body {
     @apply bg-background text-foreground;
   }

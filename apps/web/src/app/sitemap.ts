@@ -23,6 +23,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${SITE_URL}/blocks`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/blocks/error-page`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
+    {
       url: `${SITE_URL}/components/github-contributions-3d`,
       lastModified: new Date(),
       changeFrequency: "monthly",

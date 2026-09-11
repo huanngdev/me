@@ -7,7 +7,7 @@ import {
   humanizeColumnKey,
   ZodDataTable,
   type ZodDataTableColumns,
-} from "./ZodDataTable";
+} from "./zod-data-table";
 
 const userSchema = z.object({
   firstName: z.string(),

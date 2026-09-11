@@ -6,7 +6,7 @@ import { Badge } from "@repo/core/components/badge";
 import {
   ZodDataTable,
   type ZodDataTableColumns,
-} from "@repo/core/components/zod-data-table/ZodDataTable";
+} from "@repo/core/components/zod-data-table/zod-data-table";
 
 const userSchema = z.object({
   name: z.string().meta({ title: "Full name" }),
