@@ -4,6 +4,7 @@ import { Header } from "@repo/core/components/layouts/header";
 import { ScrollProgress } from "@repo/core/components/layouts/scroll-progress";
 import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
 import { cn } from "@repo/core/lib/utils";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Caveat, Inter, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@repo/core/components/tooltip";
@@ -142,6 +143,7 @@ export default function RootLayout({
             <main className="mt-1 flex flex-1 flex-col">{children}</main>
           </TooltipProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
