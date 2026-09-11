@@ -146,6 +146,7 @@ const PAGES = [...NAV_ITEMS, ...ETC_ITEMS];
 const PAGE_KEYWORDS: Record<string, string[]> = {
   "/": ["home", "start", "top"],
   "/components": ["ui", "demos", "showcase", "playground"],
+  "/blocks": ["ui", "pages", "showcase", "layouts"],
   "/changelog": ["history", "releases", "updates", "what's new"],
   "/world-cup": [
     "world cup",

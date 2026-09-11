@@ -26,7 +26,7 @@ const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
   : process.cwd();
 const VIDEO_PLAYER_SOURCE = readFileSync(
-  path.join(REPO_ROOT, "packages/core/src/components/video-player/VideoPlayer.tsx"),
+  path.join(REPO_ROOT, "packages/core/src/components/video-player/video-player.tsx"),
   "utf8",
 ).replace('import { cn } from "../../lib/utils";', 'import { cn } from "@/lib/utils";');
 const VIDEO_PLAYER_HOOK_SOURCE = readFileSync(
@@ -72,7 +72,7 @@ const STYLE_IMPORTS = `@import "@vidstack/react/player/styles/base.css";
 
 const USAGE_CODE = `"use client";
 
-import { VideoPlayer } from "@/components/ui/video-player/VideoPlayer";
+import { VideoPlayer } from "@/components/ui/video-player/video-player";
 
 export function Example() {
   return (
@@ -110,7 +110,7 @@ export function Example() {
 const SOURCE_SWITCHER_CODE = `"use client";
 
 import { useState } from "react";
-import { VideoPlayer, type VideoPlayerProps } from "@/components/ui/video-player/VideoPlayer";
+import { VideoPlayer, type VideoPlayerProps } from "@/components/ui/video-player/video-player";
 
 const sources = [
   {
@@ -399,7 +399,7 @@ export default function VideoPlayerPage() {
             <Step
               index={5}
               title="Copy the player"
-              description="Save as components/ui/video-player/VideoPlayer.tsx."
+              description="Save as components/ui/video-player/video-player.tsx."
             >
               <CodeBlock code={VIDEO_PLAYER_SOURCE} language="tsx" />
             </Step>

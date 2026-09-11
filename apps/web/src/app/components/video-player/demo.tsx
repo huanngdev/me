@@ -6,7 +6,7 @@ import {
   VideoPlayer,
   type VideoPlayerProps,
   type VideoPlayerTrack,
-} from "@repo/core/components/video-player/VideoPlayer";
+} from "@repo/core/components/video-player/video-player";
 import { Button } from "@repo/core/components/button";
 
 const CHAPTERS = `WEBVTT

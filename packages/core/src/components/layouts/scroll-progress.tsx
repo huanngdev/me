@@ -11,7 +11,7 @@ export function ScrollProgress() {
   });
 
   return (
-    <div className="bg-background fixed top-0 right-0 left-0 z-50 h-1">
+    <div data-slot="scroll-progress" className="bg-background fixed top-0 right-0 left-0 z-50 h-1">
       <motion.div aria-hidden className="size-full origin-left bg-blue-500" style={{ scaleX }} />
     </div>
   );

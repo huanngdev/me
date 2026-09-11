@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Component, History, Home, Trophy } from "lucide-react";
+import { Blocks, Component, History, Home, Trophy } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -17,6 +17,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Components", href: "/components", icon: Component },
+  { label: "Blocks", href: "/blocks", icon: Blocks },
 ];
 
 // Secondary pages, grouped under an "etc" dropdown in the header.
@@ -753,6 +754,15 @@ export interface ChangelogEntry {
 
 // Curated from git history — big milestones only. Newest first.
 export const CHANGELOG = [
+  {
+    date: "2026-09-11",
+    changes: [
+      "Added a Blocks page — full-page UI blocks rendered inside a Safari frame with a Preview/Code toggle and a resizable file-tree code explorer.",
+      "Published the Error Page block: a centered 500 state with a clear message and recovery actions.",
+      "Published the CRM Data Table block — sorting, filtering, global search, column controls, row selection, a stonk column, DiceBear avatars, and pagination over 80 rows.",
+      "Block state syncs to the URL search params and the Safari address bar.",
+    ],
+  },
   {
     date: "2026-09-10",
     changes: [

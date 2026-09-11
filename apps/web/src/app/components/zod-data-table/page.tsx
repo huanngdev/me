@@ -51,7 +51,7 @@ const INSTALL_COMMAND = "bunx --bun shadcn@latest add https://huanngdev.site/r/z
 const BASIC_USAGE_CODE = `"use client";
 
 import { z } from "zod";
-import { ZodDataTable } from "@/components/zod-data-table/ZodDataTable";
+import { ZodDataTable } from "@/components/zod-data-table/zod-data-table";
 
 const userSchema = z.object({
   name: z.string().meta({ title: "Full name" }),
@@ -80,7 +80,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ZodDataTable,
   type ZodDataTableColumns,
-} from "@/components/zod-data-table/ZodDataTable";
+} from "@/components/zod-data-table/zod-data-table";
 
 const userSchema = z.object({
   name: z.string(),
