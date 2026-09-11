@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { codeToHtml, type BundledLanguage } from "shiki";
 
 import { PUBLIC_PORTFOLIO_URL } from "../../constants";
-import { Badge } from "../badge";
 import { type FixedBackButtonProps } from "../fixed-back-button";
 import { Safari } from "../safari";
 import { StripedPattern } from "../striped-pattern";
