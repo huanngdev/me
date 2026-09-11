@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { CopyButton } from "../copy-button";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../resizable";
 import { Tree, TreeItem, TreeItemLabel } from "../reui/tree";
 
 export type BlockExplorerFile = {
@@ -65,8 +66,13 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
   const active = items[selectedId ?? firstFileId ?? ""]?.file;
 
   return (
-    <div className="flex h-full min-h-0">
-      <aside className="bg-background flex w-52 shrink-0 flex-col overflow-hidden border-r sm:w-60 lg:w-64">
+    <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
+      <ResizablePanel
+        defaultSize={312}
+        minSize={200}
+        maxSize={480}
+        className="bg-background flex min-h-0 flex-col overflow-hidden"
+      >
         <div className="text-muted-foreground flex h-9 items-center border-b px-3 text-xs font-medium tracking-wide uppercase">
           {rootName}
         </div>
@@ -75,18 +81,20 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
             {tree.getItems().map((item) => (
               <TreeItem key={item.getId()} item={item}>
                 <TreeItemLabel>
-                  <span className="flex items-center gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
                     {getFileIcon(item.getItemData().type, item.isExpanded())}
-                    {item.getItemName()}
+                    <span className="truncate">{item.getItemName()}</span>
                   </span>
                 </TreeItemLabel>
               </TreeItem>
             ))}
           </Tree>
         </div>
-      </aside>
+      </ResizablePanel>
 
-      <section className="bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
+      <ResizableHandle withHandle />
+
+      <ResizablePanel className="bg-background flex min-h-0 min-w-0 flex-col overflow-hidden">
         <header className="flex h-9 items-center justify-between gap-2 border-b px-3">
           <span className="text-muted-foreground truncate font-mono text-xs">
             {active?.path ?? "Select a file"}
@@ -103,8 +111,8 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
             No file selected
           </div>
         )}
-      </section>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
 

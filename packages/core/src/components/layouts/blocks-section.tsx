@@ -14,6 +14,15 @@ type BlockItem = {
 
 const BLOCK_LIST: readonly BlockItem[] = [
   {
+    slug: "crm-data-table",
+    name: "CRM Data Table",
+    snapshot: {
+      lightSrc: "/images/blocks/crm-data-table-light.png",
+      darkSrc: "/images/blocks/crm-data-table-dark.png",
+      alt: "CRM customers table with sorting, filtering, and column controls",
+    },
+  },
+  {
     slug: "error-page",
     name: "Error Page",
     snapshot: {

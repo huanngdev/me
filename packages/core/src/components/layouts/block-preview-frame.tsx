@@ -3,10 +3,10 @@ import { codeToHtml, type BundledLanguage } from "shiki";
 
 import { PUBLIC_PORTFOLIO_URL } from "../../constants";
 import { type FixedBackButtonProps } from "../fixed-back-button";
-import { Safari } from "../safari";
 import { StripedPattern } from "../striped-pattern";
 import type { BlockExplorerFile } from "./block-file-explorer";
 import { BlockPreviewTabs } from "./block-preview-tabs";
+import { BlockUrlProvider, SafariPreview } from "./block-url";
 
 const DEFAULT_PREVIEW_URL = PUBLIC_PORTFOLIO_URL.replace(/^https?:\/\//, "");
 
@@ -63,24 +63,26 @@ export async function BlockPreviewFrame({
 
   const preview = (
     <div className="flex flex-col items-center gap-3">
-      <Safari url={url} className="w-[min(92vw,130vh)] drop-shadow-xl">
+      <SafariPreview baseUrl={url} className="w-[min(92vw,130vh)] drop-shadow-xl">
         <div data-block-viewport className="bg-background size-full overflow-auto">
           {children}
         </div>
-      </Safari>
+      </SafariPreview>
     </div>
   );
 
   return (
     <div data-fullscreen-block className="relative isolate h-dvh min-h-0 w-full overflow-hidden">
       <StripedPattern className="-z-10" />
-      <BlockPreviewTabs
-        preview={preview}
-        files={explorerFiles}
-        rootName={name}
-        url={url}
-        backButton={backButton}
-      />
+      <BlockUrlProvider>
+        <BlockPreviewTabs
+          preview={preview}
+          files={explorerFiles}
+          rootName={name}
+          url={url}
+          backButton={backButton}
+        />
+      </BlockUrlProvider>
     </div>
   );
 }

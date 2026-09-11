@@ -160,11 +160,19 @@ export function Safari({
             />
           </g>
 
-          <g className="mix-blend-luminosity">
-            <text x="580" y="30" fill="#A3A3A3" fontSize="12" fontFamily="Arial, sans-serif">
+          <foreignObject x="580" y="17" width="336" height="16" className="mix-blend-luminosity">
+            <div
+              className="truncate"
+              style={{
+                color: "#A3A3A3",
+                fontFamily: "Arial, sans-serif",
+                fontSize: "12px",
+                lineHeight: "16px",
+              }}
+            >
               {url}
-            </text>
-          </g>
+            </div>
+          </foreignObject>
 
           {mode === "default" ? (
             <>

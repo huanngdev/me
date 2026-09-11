@@ -11,6 +11,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,md,mdx}\""
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@repo/core": "workspace:*",
     "framer-motion": "^13.0.0",
     "gsap": "^3.15.0",
