@@ -167,7 +167,10 @@ export interface Identity {
     country: string;
     timezone: string;
   };
-  languages: ReadonlyArray<{ name: string; level: "native" | "fluent" | "conversational" }>;
+  languages: ReadonlyArray<{
+    name: string;
+    level: "native" | "fluent" | "intermediate" | "conversational";
+  }>;
   roles: ReadonlyArray<string>;
   tagline: string;
   description: string;
@@ -186,7 +189,7 @@ export const IDENTITY = {
   },
   languages: [
     { name: "Vietnamese", level: "native" },
-    { name: "English", level: "fluent" },
+    { name: "English", level: "intermediate" },
   ],
   roles: ["Fullstack Engineer", "Frontend Engineer", "Backend Engineer", "Blockchain Engineer"],
   tagline:
@@ -398,12 +401,17 @@ export const EXPERIENCE = [
   },
   {
     company: "FPT Software",
-    role: "Software Engineer Intern",
+    role: "Frontend Developer Intern",
     employmentType: "internship",
     start: "2024-09",
     end: "2025-05",
     location: "Ho Chi Minh City, Vietnam",
     about: "Web team — Next.js / React stack.",
+    highlights: [
+      "Implemented the frontend for FAMS, a student management application delivered by a 10-person project team.",
+      "Created the shared UI foundation and reusable templates with Next.js and React.",
+      "Implemented client state with Redux Toolkit and integrated APIs with the backend team.",
+    ],
     techStack: ["Next.js", "React", "Redux Toolkit", "Git", "GitHub Actions"],
   },
 ] as const satisfies ReadonlyArray<ExperienceEntry>;
@@ -490,7 +498,10 @@ export const PROJECTS = [
         alt: "WalForm screenshot 5",
       },
     ],
-    links: { source: "https://github.com/UyLeQuoc/sui-walform" },
+    links: {
+      live: "https://walform.wal.app",
+      source: "https://github.com/UyLeQuoc/sui-walform",
+    },
   },
   {
     slug: "ielts-practices-online",

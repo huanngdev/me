@@ -1,6 +1,6 @@
 "use client";
 
-import type { Column, ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowDown,
@@ -11,6 +11,9 @@ import {
   ChevronsRight,
   ChevronsUpDown,
   EyeOff,
+  MoreHorizontal,
+  Pin,
+  PinOff,
   TrendingDown,
   TrendingUp,
   X,
@@ -22,15 +25,21 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import type { CRM_FEATURES, CrmCoreTable } from "./crm-data-table-features";
-import type { CrmCustomer, CrmOnlinePresence } from "./types";
-
-type CrmColumn = Column<typeof CRM_FEATURES, CrmCustomer, unknown>;
+import type { CRM_FEATURES, CrmColumn, CrmCoreTable } from "./crm-data-table-features";
+import { ColumnFilter, CRM_FILTER_VARIANTS } from "./crm-data-table-filter";
+import {
+  currencyFormatter,
+  dateFormatter,
+  dicebearAvatar,
+  ONLINE_TONE,
+} from "./crm-data-table-format";
+import type { CrmCustomer } from "./types";
 
 export const CRM_COLUMN_LABELS: Record<string, string> = {
   account: "Account",
@@ -51,26 +60,29 @@ export const CRM_COLUMN_LABELS: Record<string, string> = {
   responseRate: "Response Rate",
 };
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-const ONLINE_TONE: Record<CrmOnlinePresence, string> = {
-  Active: "bg-emerald-500",
-  Idle: "bg-amber-500",
-  Offline: "bg-muted-foreground",
-};
-
 export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCustomer, unknown>> {
   return [
+    {
+      id: "expander",
+      enableSorting: false,
+      enableHiding: false,
+      enableColumnFilter: false,
+      header: () => null,
+      cell: ({ row }) =>
+        row.getCanExpand() ? (
+          <button
+            type="button"
+            onClick={row.getToggleExpandedHandler()}
+            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            aria-expanded={row.getIsExpanded()}
+            className="text-muted-foreground hover:text-foreground flex h-full w-full items-center justify-center transition-colors"
+          >
+            <ChevronRight
+              className={cn("size-4 transition-transform", row.getIsExpanded() && "rotate-90")}
+            />
+          </button>
+        ) : null,
+    },
     {
       id: "select",
       enableSorting: false,
@@ -105,6 +117,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
       id: "index",
       enableSorting: false,
       enableHiding: false,
+      enablePinning: false,
       enableColumnFilter: false,
       header: () => <div className="flex h-full items-center justify-center font-medium">#</div>,
       cell: ({ row }) => (
@@ -117,6 +130,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "account",
+      filterFn: "includesString",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Account" />
       ),
@@ -139,6 +153,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "location",
+      filterFn: "arrHas",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Location" />
       ),
@@ -146,6 +161,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "website",
+      filterFn: "includesString",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Website" />
       ),
@@ -162,6 +178,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "lead",
+      filterFn: "arrHas",
       header: ({ column, table }) => <CrmColumnHeader column={column} table={table} title="Lead" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
@@ -181,12 +198,13 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "team",
+      filterFn: "arrHas",
       header: ({ column, table }) => <CrmColumnHeader column={column} table={table} title="Team" />,
-      filterFn: "equalsString",
       cell: ({ row }) => <span className="text-muted-foreground">{row.original.team}</span>,
     },
     {
       accessorKey: "amount",
+      filterFn: "inNumberRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Amount" />
       ),
@@ -199,6 +217,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     {
       id: "stock",
       accessorFn: (row) => row.stock.change,
+      filterFn: "inNumberRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Stonk" />
       ),
@@ -222,6 +241,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "startDate",
+      filterFn: "inDateRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Start Date" />
       ),
@@ -233,6 +253,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "communication",
+      filterFn: "arrHas",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Communication" />
       ),
@@ -240,6 +261,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "onlinePresence",
+      filterFn: "arrHas",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Online Presence" />
       ),
@@ -255,6 +277,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "founded",
+      filterFn: "inNumberRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Founded" />
       ),
@@ -262,6 +285,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "founders",
+      filterFn: "includesString",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Founders" />
       ),
@@ -269,6 +293,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "employees",
+      filterFn: "inNumberRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Employees" />
       ),
@@ -276,6 +301,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "email",
+      filterFn: "includesString",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Email" />
       ),
@@ -287,6 +313,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "lastInteraction",
+      filterFn: "inDateRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Last Interaction" />
       ),
@@ -298,6 +325,7 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
     },
     {
       accessorKey: "responseRate",
+      filterFn: "inNumberRange",
       header: ({ column, table }) => (
         <CrmColumnHeader column={column} table={table} title="Response Rate" />
       ),
@@ -315,6 +343,38 @@ export function createCrmColumns(): Array<ColumnDef<typeof CRM_FEATURES, CrmCust
         </div>
       ),
     },
+    {
+      id: "actions",
+      enableSorting: false,
+      enableHiding: false,
+      enablePinning: false,
+      enableColumnFilter: false,
+      header: () => <span className="sr-only">Actions</span>,
+      cell: ({ row }) => {
+        const pinned = row.getIsPinned();
+        return (
+          <div className="flex h-full items-center justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Actions for ${row.original.account}`}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-7 items-center justify-center rounded-md transition-colors"
+                >
+                  <MoreHorizontal className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => row.pin(pinned === "top" ? false : "top")}>
+                  {pinned === "top" ? <PinOff /> : <Pin />}
+                  {pinned === "top" ? "Unpin row" : "Pin row to top"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    },
   ];
 }
 
@@ -329,11 +389,17 @@ export function CrmColumnHeader({
 }) {
   "use no memo";
 
-  if (!column.getCanSort() && !column.getCanHide()) {
+  if (
+    !column.getCanSort() &&
+    !column.getCanHide() &&
+    !column.getCanPin() &&
+    !column.getCanFilter()
+  ) {
     return <div className="flex h-full items-center px-2 font-medium">{title}</div>;
   }
 
   const sorted = column.getIsSorted();
+  const pinned = column.getIsPinned();
 
   return (
     <DropdownMenu>
@@ -342,7 +408,10 @@ export function CrmColumnHeader({
           type="button"
           className="hover:bg-muted focus-visible:ring-ring/50 flex h-full w-full items-center justify-between gap-1 px-2 text-left font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
         >
-          <span className="truncate">{title}</span>
+          <span className="flex min-w-0 items-center gap-1">
+            {pinned && <Pin className="text-primary size-3 shrink-0" aria-hidden="true" />}
+            <span className="truncate">{title}</span>
+          </span>
           {sorted === "asc" ? (
             <ArrowUp className="size-3.5 shrink-0" />
           ) : sorted === "desc" ? (
@@ -352,7 +421,7 @@ export function CrmColumnHeader({
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
+      <DropdownMenuContent align="start" className="w-56">
         {column.getCanSort() && (
           <>
             <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
@@ -367,6 +436,25 @@ export function CrmColumnHeader({
               <X />
               No sorting
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {column.getCanFilter() && CRM_FILTER_VARIANTS[column.id] && (
+          <>
+            <DropdownMenuLabel>Filter</DropdownMenuLabel>
+            <ColumnFilter column={column} variant={CRM_FILTER_VARIANTS[column.id]} />
+            {column.getFilterValue() !== undefined && (
+              <DropdownMenuItem onClick={() => column.setFilterValue(undefined)}>
+                <X />
+                Clear filter
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {column.getCanPin() && (
+          <>
+            <ColumnPinningItems column={column} />
             <DropdownMenuSeparator />
           </>
         )}
@@ -412,6 +500,29 @@ export function CrmColumnHeader({
   );
 }
 
+function ColumnPinningItems({ column }: { column: CrmColumn }) {
+  const pinned = column.getIsPinned();
+
+  return (
+    <>
+      <DropdownMenuItem disabled={pinned === "start"} onClick={() => column.pin("start")}>
+        <Pin />
+        Pin to left
+      </DropdownMenuItem>
+      <DropdownMenuItem disabled={pinned === "end"} onClick={() => column.pin("end")}>
+        <Pin />
+        Pin to right
+      </DropdownMenuItem>
+      {pinned && (
+        <DropdownMenuItem onClick={() => column.pin(false)}>
+          <PinOff />
+          Unpin
+        </DropdownMenuItem>
+      )}
+    </>
+  );
+}
+
 function moveColumn(
   table: CrmCoreTable,
   columnId: string,
@@ -436,8 +547,4 @@ function moveColumn(
   next.splice(from, 1);
   next.splice(to, 0, columnId);
   table.setColumnOrder(next);
-}
-
-function dicebearAvatar(seed: string): string {
-  return `https://api.dicebear.com/10.x/blobs/svg?seed=${encodeURIComponent(seed)}&size=24`;
 }

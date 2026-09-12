@@ -46,23 +46,22 @@ Formo is a Web3 analytics and attribution platform for on-chain products.
 
 ## FPT Software — Intern
 
-- **Role:** Software Engineer Intern
+- **Role:** Frontend Developer Intern
 - **Employment type:** Internship
 - **Period:** September 2024 – May 2025
 - **Duration:** 9 months
-- **Location:** _(confirm)_
+- **Location:** Ho Chi Minh City, Vietnam
 - **Tech stack:** Next.js, React, Redux Toolkit, Git, GitHub Actions
 
 ### About the team / project
 
-Web team — Next.js / React stack. _(Confirm which BU/practice and whether it was a specific client project or internal product.)_
+Web team — Next.js / React stack. FAMS was a student management application delivered by a 10-person project team.
 
-### Bullets to flesh out
+### Highlights
 
-- _Specific project you contributed to_
-- _Tech stack_
-- _Concrete contribution that survived past your last day_
-- _Internship → return offer signal, if any_
+- Implemented the frontend for FAMS within a 10-person project team.
+- Created the shared UI foundation and reusable templates with Next.js and React.
+- Implemented client state with Redux Toolkit and integrated APIs with the backend team.
 
 ---
 

@@ -43,6 +43,8 @@ type CrmDataTableToolbarProps = {
   onSearchChange: (value: string) => void;
   teamFilter: string;
   onTeamFilterChange: (value: string) => void;
+  selectedCount: number;
+  onClearSelection: () => void;
   hasFilters: boolean;
   onClearFilters: () => void;
 };
@@ -56,6 +58,8 @@ export function CrmDataTableToolbar({
   onSearchChange,
   teamFilter,
   onTeamFilterChange,
+  selectedCount,
+  onClearSelection,
   hasFilters,
   onClearFilters,
 }: CrmDataTableToolbarProps) {
@@ -68,7 +72,18 @@ export function CrmDataTableToolbar({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-      <div>
+      <div className="flex items-center gap-1">
+        {selectedCount > 0 && (
+          <>
+            <span className="text-muted-foreground px-1 text-xs tabular-nums">
+              {selectedCount} selected
+            </span>
+            <Button variant="ghost" size="sm" onClick={onClearSelection}>
+              <X />
+              Clear
+            </Button>
+          </>
+        )}
         {hasFilters && (
           <Button variant="ghost" onClick={onClearFilters}>
             <X />

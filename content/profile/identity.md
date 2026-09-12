@@ -44,6 +44,6 @@ Currently freelancing and open to full-time roles or additional freelance work. 
 ## Spoken languages
 
 - **Vietnamese** — native
-- **English** — fluent
+- **English** — intermediate working proficiency
 
 Both are listed in the bio (site is English-only — there's no locale toggle).

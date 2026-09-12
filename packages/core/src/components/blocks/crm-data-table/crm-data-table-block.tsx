@@ -32,6 +32,8 @@ export function CrmDataTableBlock({ data, className }: CrmDataTableBlockProps) {
         onSearchChange={controller.setSearchInput}
         teamFilter={controller.teamFilter}
         onTeamFilterChange={controller.setTeamFilter}
+        selectedCount={controller.selectedCount}
+        onClearSelection={controller.clearSelection}
         hasFilters={controller.hasFilters}
         onClearFilters={controller.clearFilters}
       />

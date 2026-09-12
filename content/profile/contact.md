@@ -29,8 +29,7 @@ Both Telegram and Discord are listed because both Web3 (Telegram-heavy) and dev/
 
 ## Domain
 
-- **Now:** Vercel subdomain (placeholder, e.g. `ngogia.vercel.app`)
-- **Later:** custom domain once positioning is set. Recommend `.dev` (`.com` is more universal, `.dev` reads more developer-native). Buy through Namecheap or Cloudflare Registrar.
+- **Public portfolio:** https://www.huanngdev.site
 
 ## Tagline (recommended)
 

@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   useTable,
   type ColumnFiltersState,
+  type ColumnPinningState,
   type ColumnVisibilityState,
+  type ExpandedState,
   type PaginationState,
+  type RowPinningState,
   type SortingState,
 } from "@tanstack/react-table";
 
@@ -17,6 +20,44 @@ import type { CrmCustomer, CrmDensity } from "./types";
 
 const CRM_COLUMNS = createCrmColumns();
 
+const DEFAULT_PAGE_SIZE = 20;
+
+const DEFAULT_COLUMN_PINNING: ColumnPinningState = {
+  start: ["expander", "select"],
+  end: [],
+};
+
+function parseIdList(value: string | null): string[] {
+  return value ? value.split(",").filter(Boolean) : [];
+}
+
+function isSameIdList(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+function parsePinning(params: URLSearchParams): ColumnPinningState {
+  const hasStart = params.has("pinLeft");
+  const hasEnd = params.has("pinRight");
+
+  if (!hasStart && !hasEnd) {
+    return { start: [...DEFAULT_COLUMN_PINNING.start], end: [...DEFAULT_COLUMN_PINNING.end] };
+  }
+
+  return {
+    start: hasStart ? parseIdList(params.get("pinLeft")) : [...DEFAULT_COLUMN_PINNING.start],
+    end: hasEnd ? parseIdList(params.get("pinRight")) : [...DEFAULT_COLUMN_PINNING.end],
+  };
+}
+
+function writePinning(params: URLSearchParams, pinning: ColumnPinningState): void {
+  if (!isSameIdList(pinning.start, DEFAULT_COLUMN_PINNING.start)) {
+    params.set("pinLeft", pinning.start.join(","));
+  }
+  if (!isSameIdList(pinning.end, DEFAULT_COLUMN_PINNING.end)) {
+    params.set("pinRight", pinning.end.join(","));
+  }
+}
+
 export type CrmTableController = {
   table: CrmTable;
   density: CrmDensity;
@@ -25,6 +66,8 @@ export type CrmTableController = {
   setSearchInput: (value: string) => void;
   teamFilter: string;
   setTeamFilter: (value: string) => void;
+  selectedCount: number;
+  clearSelection: () => void;
   hasFilters: boolean;
   clearFilters: () => void;
 };
@@ -38,7 +81,13 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>(DEFAULT_COLUMN_PINNING);
+  const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
+  const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
   const [density, setDensity] = useState<CrmDensity>("comfortable");
   const [ready, setReady] = useState(false);
 
@@ -47,11 +96,15 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     columns: CRM_COLUMNS,
     data,
     getRowId: (row) => row.id,
+    getRowCanExpand: () => true,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       columnOrder,
+      columnPinning,
+      rowPinning,
+      expanded,
       globalFilter: search,
       pagination,
     },
@@ -59,6 +112,9 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onColumnPinningChange: setColumnPinning,
+    onRowPinningChange: setRowPinning,
+    onExpandedChange: setExpanded,
     onGlobalFilterChange: setSearch,
     onPaginationChange: setPagination,
     globalFilterFn: globalFilterAllColumns,
@@ -80,8 +136,8 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
       }
     }
 
-    const team = params.get("team");
-    if (team) setColumnFilters([{ id: "team", value: team }]);
+    const team = parseIdList(params.get("team"));
+    if (team.length > 0) setColumnFilters([{ id: "team", value: team }]);
 
     const hide = params.get("hide");
     if (hide) {
@@ -98,9 +154,11 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     const columns = params.get("cols");
     if (columns) setColumnOrder(columns.split(",").filter(Boolean));
 
+    setColumnPinning(parsePinning(params));
+
     const pageSizeParam = Number(params.get("pageSize"));
     const pageParam = Number(params.get("page"));
-    const nextPagination: PaginationState = { pageIndex: 0, pageSize: 20 };
+    const nextPagination: PaginationState = { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE };
     if (Number.isFinite(pageSizeParam) && pageSizeParam > 0) {
       nextPagination.pageSize = pageSizeParam;
     }
@@ -131,8 +189,9 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     const firstSort = sorting[0];
     if (firstSort) params.set("sort", `${firstSort.id}.${firstSort.desc ? "desc" : "asc"}`);
 
-    const team = columnFilters.find((filter) => filter.id === "team")?.value;
-    if (team) params.set("team", String(team));
+    const team = columnFilters.find((filter) => filter.id === "team")?.value as
+      string[] | undefined;
+    if (team && team.length > 0) params.set("team", team.join(","));
 
     const hidden = Object.entries(columnVisibility)
       .filter(([, visible]) => visible === false)
@@ -140,8 +199,11 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     if (hidden.length > 0) params.set("hide", hidden.join(","));
 
     if (columnOrder.length > 0) params.set("cols", columnOrder.join(","));
+    writePinning(params, columnPinning);
     if (pagination.pageIndex > 0) params.set("page", String(pagination.pageIndex + 1));
-    if (pagination.pageSize !== 20) params.set("pageSize", String(pagination.pageSize));
+    if (pagination.pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(pagination.pageSize));
+    }
     if (density === "compact") params.set("density", "compact");
 
     const query = params.toString();
@@ -159,24 +221,30 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     columnFilters,
     columnVisibility,
     columnOrder,
+    columnPinning,
     pagination,
     density,
     setPreviewSearch,
   ]);
 
   const setTeamFilter = useCallback((value: string) => {
-    setColumnFilters(value ? [{ id: "team", value }] : []);
+    setColumnFilters(value ? [{ id: "team", value: [value] }] : []);
   }, []);
 
   const clearFilters = useCallback(() => {
     setSearchInput("");
     setSearch("");
-    setColumnFilters([]);
-    setSorting([]);
-  }, []);
+    table.resetColumnFilters();
+    table.resetSorting();
+  }, [table]);
+
+  const clearSelection = useCallback(() => {
+    table.resetRowSelection();
+  }, [table]);
 
   const teamFilter =
-    (columnFilters.find((filter) => filter.id === "team")?.value as string | undefined) ?? "";
+    (columnFilters.find((filter) => filter.id === "team")?.value as string[] | undefined)?.[0] ??
+    "";
 
   return {
     table,
@@ -186,6 +254,8 @@ export function useCrmTable(data: CrmCustomer[]): CrmTableController {
     setSearchInput,
     teamFilter,
     setTeamFilter,
+    selectedCount: table.getFilteredSelectedRowModel().rows.length,
+    clearSelection,
     hasFilters: columnFilters.length > 0 || search.length > 0 || sorting.length > 0,
     clearFilters,
   };

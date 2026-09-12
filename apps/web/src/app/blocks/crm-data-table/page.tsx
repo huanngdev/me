@@ -40,6 +40,18 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/crm-data-table-columns.tsx`),
   },
   {
+    path: "components/blocks/crm-data-table/crm-data-table-filter.tsx",
+    code: readSource(`${BLOCK_DIR}/crm-data-table-filter.tsx`),
+  },
+  {
+    path: "components/blocks/crm-data-table/crm-data-table-row-detail.tsx",
+    code: readSource(`${BLOCK_DIR}/crm-data-table-row-detail.tsx`),
+  },
+  {
+    path: "components/blocks/crm-data-table/crm-data-table-format.ts",
+    code: readSource(`${BLOCK_DIR}/crm-data-table-format.ts`),
+  },
+  {
     path: "components/blocks/crm-data-table/crm-data-table-features.ts",
     code: readSource(`${BLOCK_DIR}/crm-data-table-features.ts`),
   },
@@ -62,7 +74,7 @@ const BLOCK_FILES = [
 ];
 
 const description =
-  "A CRM customers table with sorting, filtering, selection, and column controls.";
+  "A CRM customers table with faceted filters, sorting, selection, expandable rows, row pinning, and column controls.";
 
 export const metadata: Metadata = {
   title: "CRM Data Table Block",

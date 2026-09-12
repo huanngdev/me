@@ -11,7 +11,7 @@ updated: 2026-05-19
 - **Status:** Graduated
 - **Location:** Vietnam (confirm campus — HCMC, Hanoi, Da Nang, or Can Tho)
 - **Major:** Software Engineering
-- **Degree:** Bachelor's _(confirm exact title — Engineer / Bachelor of Software Engineering / B.Eng / B.Sc)_
+- **Degree:** Bachelor of Software Engineering
 
 FPTU is one of Vietnam's most recognized private universities for software engineering. Display the name as **"FPT University"** on the site.
 

@@ -20,7 +20,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 - **Period:** Four weeks
 - **Status:** **Live on Sui mainnet, deployed and reachable.**
 - **Links:**
-  - Live: _(URL to add)_
+  - Live: https://walform.wal.app
   - GitHub: https://github.com/UyLeQuoc/sui-walform
   - Hackathon submission: _(URL to add)_
 
