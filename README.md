@@ -1,8 +1,8 @@
-# [huanngdev.site](https://huanngdev.site)
+# [huanngdev.site](https://www.huanngdev.site)
 
 My personal developer portfolio — a living resume, writing space, and project showcase.
 
-→ Check out the live site: [huanngdev.site](https://huanngdev.site)
+→ Check out the live site: [huanngdev.site](https://www.huanngdev.site)
 
 ## Overview
 

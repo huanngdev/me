@@ -211,7 +211,7 @@ export const PUBLIC_EMAIL = "huanngdev@gmail.com";
 
 export const PUBLIC_PHONE = "+84911685725";
 
-export const PUBLIC_PORTFOLIO_URL = "https://huanngdev.site";
+export const PUBLIC_PORTFOLIO_URL = "https://www.huanngdev.site";
 
 export const REPO_URL = "https://github.com/huanngdev/me";
 

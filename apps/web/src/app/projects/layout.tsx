@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { Footer } from "@repo/core/components/layouts/footer";
+import { IDENTITY } from "@repo/core/constants";
 
 export const metadata: Metadata = {
-  title: "Projects",
+  title: {
+    default: "Projects",
+    template: `%s — Project by ${IDENTITY.fullName}`,
+  },
   description: "Personal and open-source projects.",
 };
 

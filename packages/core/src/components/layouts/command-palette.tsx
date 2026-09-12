@@ -111,18 +111,18 @@ const SECTIONS: SectionItem[] = [
     keywords: ["work", "apps", "portfolio", "showcase"],
   },
   {
-    id: "certifications",
-    title: "Certifications",
-    hash: "#certifications",
-    icon: ScrollText,
-    keywords: ["certs", "courses", "coursera"],
-  },
-  {
     id: "awards",
     title: "Awards",
     hash: "#awards",
     icon: Award,
     keywords: ["hackathons", "prizes", "wins"],
+  },
+  {
+    id: "certifications",
+    title: "Certifications",
+    hash: "#certifications",
+    icon: ScrollText,
+    keywords: ["certs", "courses", "coursera"],
   },
   {
     id: "bookmarks",

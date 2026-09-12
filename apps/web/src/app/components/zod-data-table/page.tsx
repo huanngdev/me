@@ -46,7 +46,8 @@ export const metadata: Metadata = {
   },
 };
 
-const INSTALL_COMMAND = "bunx --bun shadcn@latest add https://huanngdev.site/r/zod-data-table.json";
+const INSTALL_COMMAND =
+  "bunx --bun shadcn@latest add https://www.huanngdev.site/r/zod-data-table.json";
 
 const BASIC_USAGE_CODE = `"use client";
 

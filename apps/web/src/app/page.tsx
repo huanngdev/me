@@ -15,6 +15,7 @@ import { StripedSeparator } from "@repo/core/components/layouts/striped-separato
 import { TocNav } from "@repo/core/components/layouts/toc-nav";
 import { Reveal } from "@repo/core/components/reveal";
 import { Separator } from "@repo/core/components/separator";
+import { IDENTITY, PUBLIC_EMAIL, PUBLIC_PORTFOLIO_URL, SOCIAL_LINKS } from "@repo/core/constants";
 import webPackage from "../../package.json";
 
 const SITE_STACK = [
@@ -23,9 +24,76 @@ const SITE_STACK = [
   `tailwindcss@${webPackage.devDependencies.tailwindcss.replace(/^\^/, "")}`,
 ] as const;
 
+const personId = `${PUBLIC_PORTFOLIO_URL}/#person`;
+const websiteId = `${PUBLIC_PORTFOLIO_URL}/#website`;
+const profilePageId = `${PUBLIC_PORTFOLIO_URL}/#profile-page`;
+
+const profileJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": websiteId,
+      url: `${PUBLIC_PORTFOLIO_URL}/`,
+      name: IDENTITY.fullName,
+      alternateName: ["Ngo Gia Huan", "huanngdev", "www.huanngdev.site"],
+      inLanguage: "en",
+      publisher: { "@id": personId },
+    },
+    {
+      "@type": "ProfilePage",
+      "@id": profilePageId,
+      url: `${PUBLIC_PORTFOLIO_URL}/`,
+      name: `${IDENTITY.fullName} (Ngo Gia Huan) — Fullstack Developer`,
+      description: IDENTITY.description,
+      inLanguage: "en",
+      isPartOf: { "@id": websiteId },
+      mainEntity: { "@id": personId },
+      about: { "@id": personId },
+    },
+    {
+      "@type": "Person",
+      "@id": personId,
+      name: IDENTITY.fullName,
+      alternateName: ["Ngo Gia Huan", "huanngdev"],
+      identifier: "huanngdev",
+      url: `${PUBLIC_PORTFOLIO_URL}/`,
+      image: {
+        "@type": "ImageObject",
+        url: `${PUBLIC_PORTFOLIO_URL}/images/ai-gen-avatar-light.webp`,
+        contentUrl: `${PUBLIC_PORTFOLIO_URL}/images/ai-gen-avatar-light.webp`,
+        caption: IDENTITY.fullName,
+      },
+      description: IDENTITY.description,
+      jobTitle: "Freelance Fullstack Developer",
+      email: `mailto:${PUBLIC_EMAIL}`,
+      homeLocation: {
+        "@type": "Place",
+        name: `${IDENTITY.location.city}, ${IDENTITY.location.country}`,
+      },
+      alumniOf: {
+        "@type": "CollegeOrUniversity",
+        name: "FPT University",
+      },
+      knowsLanguage: IDENTITY.languages.map((language) => language.name),
+      knowsAbout: ["TypeScript", "Next.js", "React", "Node.js", "Sui", "Move", "Web3"],
+      sameAs: SOCIAL_LINKS.filter((link) =>
+        ["github", "linkedin", "x", "facebook"].includes(link.platform),
+      ).map((link) => link.url),
+      mainEntityOfPage: { "@id": profilePageId },
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(profileJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <TocNav />
       <CoverSection />
       <Reveal>
@@ -57,11 +125,11 @@ export default function Home() {
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>
-        <CertificationsSection />
+        <AwardsSection />
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>
-        <AwardsSection />
+        <CertificationsSection />
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>

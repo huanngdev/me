@@ -10,8 +10,8 @@ const SECTIONS: TOCItemType[] = [
   { title: "Experience", url: "#experience", depth: 2 },
   { title: "Education", url: "#education", depth: 2 },
   { title: "Projects", url: "#projects", depth: 2 },
-  { title: "Certifications", url: "#certifications", depth: 2 },
   { title: "Awards", url: "#awards", depth: 2 },
+  { title: "Certifications", url: "#certifications", depth: 2 },
   { title: "Bookmarks", url: "#bookmarks", depth: 2 },
   { title: "Site Info", url: "#site-info", depth: 2 },
 ];

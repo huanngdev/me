@@ -5,7 +5,7 @@
 - Name: Ngô Gia Huấn (romanized: Ngo Gia Huan)
 - Role: Freelance Fullstack Developer (Frontend / Backend / Web3)
 - Location: Ho Chi Minh City, Vietnam (UTC+7)
-- Site: https://huanngdev.site
+- Site: https://www.huanngdev.site
 - Email: huanngdev@gmail.com
 - GitHub: https://github.com/huanngdev
 - LinkedIn: https://www.linkedin.com/in/huanngdev/

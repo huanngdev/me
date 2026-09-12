@@ -3,6 +3,7 @@ import "@repo/core/styles/globals.css";
 import { Header } from "@repo/core/components/layouts/header";
 import { ScrollProgress } from "@repo/core/components/layouts/scroll-progress";
 import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
+import { IDENTITY, PUBLIC_PORTFOLIO_URL } from "@repo/core/constants";
 import { cn } from "@repo/core/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
@@ -21,20 +22,20 @@ const fontHandwriting = Caveat({
   variable: "--font-handwriting",
 });
 
-const SITE_URL = "https://huanngdev.site";
-const SITE_NAME = "Ngô Gia Huấn";
+const SITE_NAME = IDENTITY.fullName;
 const SITE_DESCRIPTION =
-  "Hi there. I'm a self-taught fullstack developer building web apps with Next.js and TypeScript. I enjoy working on UI details and joining hackathons from time to time.";
+  "Ngô Gia Huấn (Ngo Gia Huan) is a fullstack TypeScript developer in Ho Chi Minh City building Next.js products, developer tools, and Sui applications.";
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(PUBLIC_PORTFOLIO_URL),
   title: {
-    default: `${SITE_NAME} — Fullstack TypeScript developer`,
+    default: `${SITE_NAME} (Ngo Gia Huan) — Fullstack Developer`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
-  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  authors: [{ name: SITE_NAME, url: PUBLIC_PORTFOLIO_URL }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
   keywords: [
@@ -60,15 +61,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: SITE_URL,
+    url: PUBLIC_PORTFOLIO_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Fullstack TypeScript developer`,
+    title: `${SITE_NAME} (Ngo Gia Huan) — Fullstack Developer`,
     description: SITE_DESCRIPTION,
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Fullstack TypeScript developer`,
+    title: `${SITE_NAME} (Ngo Gia Huan) — Fullstack Developer`,
     description: SITE_DESCRIPTION,
     creator: "@huanngdev",
     site: "@huanngdev",
@@ -89,29 +90,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-};
-
-const personJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: "Ngô Gia Huấn",
-  alternateName: "Ngo Gia Huan",
-  url: SITE_URL,
-  image: `${SITE_URL}/opengraph-image.png`,
-  jobTitle: "Freelance Fullstack Developer",
-  email: "mailto:huanngdev@gmail.com",
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Ho Chi Minh City",
-    addressCountry: "VN",
-  },
-  sameAs: [
-    "https://github.com/huanngdev",
-    "https://www.linkedin.com/in/huanngdev/",
-    "https://x.com/huanngdev",
-    "https://www.facebook.com/huanngdev/",
-  ],
-  knowsAbout: ["TypeScript", "Next.js", "React", "Node.js", "Sui blockchain", "Web3"],
+  verification: googleSiteVerification ? { google: googleSiteVerification } : undefined,
 };
 
 export default function RootLayout({
@@ -132,10 +111,6 @@ export default function RootLayout({
       )}
     >
       <body className="flex min-h-full flex-col">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
-        />
         <ThemeProvider>
           <TooltipProvider>
             <ScrollProgress />

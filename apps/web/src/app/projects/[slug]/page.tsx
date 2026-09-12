@@ -2,7 +2,13 @@ import { CodeXml, Film, Globe, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { PROJECTS, type ProjectEntry, type ProjectStatus } from "@repo/core/constants";
+import {
+  IDENTITY,
+  PROJECTS,
+  PUBLIC_PORTFOLIO_URL,
+  type ProjectEntry,
+  type ProjectStatus,
+} from "@repo/core/constants";
 import { cn } from "@repo/core/lib/utils";
 
 import { BackButton } from "@repo/core/components/layouts/back-button";
@@ -38,13 +44,17 @@ export async function generateMetadata({
   const { slug } = await params;
   const project = (PROJECTS as readonly ProjectEntry[]).find((p) => p.slug === slug);
   if (!project) return {};
+  const projectUrl = `/projects/${project.slug}`;
+
   return {
     title: project.name,
     description: project.description,
+    alternates: { canonical: projectUrl },
     openGraph: {
-      title: project.name,
+      title: `${project.name} — Project by ${IDENTITY.fullName}`,
       description: project.description,
       type: "article",
+      url: projectUrl,
     },
   };
 }
@@ -55,10 +65,29 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!project) notFound();
 
   const gallery = project.gallery ?? [];
+  const projectUrl = `${PUBLIC_PORTFOLIO_URL}/projects/${project.slug}`;
+  const projectJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "@id": `${projectUrl}#project`,
+    name: project.name,
+    description: project.description,
+    url: projectUrl,
+    creator: { "@id": `${PUBLIC_PORTFOLIO_URL}/#person` },
+    isPartOf: { "@id": `${PUBLIC_PORTFOLIO_URL}/#website` },
+    keywords: project.stack,
+    sameAs: [project.links.live, project.links.source].filter((url): url is string => Boolean(url)),
+  };
 
   return (
     <>
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(projectJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
         <div className="border-b px-4 py-3 sm:px-6 lg:px-8">
           <BackButton />
         </div>

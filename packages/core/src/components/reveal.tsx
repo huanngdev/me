@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 
 import { cn } from "../lib/utils";
@@ -16,7 +17,7 @@ export function Reveal({ delay = 0, className, children, ...props }: RevealProps
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "0px 0px -12% 0px" }}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
       {...props}
     >
@@ -50,7 +51,7 @@ export function StaggerItem({ className, children, ...props }: HTMLMotionProps<"
     <motion.div
       variants={{
         hidden: { opacity: 0, y: 8 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+        show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
       }}
       className={cn("motion-reduce:transform-none", className)}
       {...props}
@@ -62,11 +63,13 @@ export function StaggerItem({ className, children, ...props }: HTMLMotionProps<"
 
 export function StaggerList({ className, children, ...props }: HTMLMotionProps<"ul">) {
   const reduceMotion = useReducedMotion();
+  const [revealed, setRevealed] = useState(false);
 
   return (
     <motion.ul
-      initial={reduceMotion ? false : "hidden"}
+      initial={reduceMotion || revealed ? false : "hidden"}
       whileInView={reduceMotion ? undefined : "show"}
+      onViewportEnter={() => setRevealed(true)}
       viewport={{ once: true, margin: "0px 0px -10% 0px" }}
       variants={{
         hidden: {},
@@ -85,7 +88,7 @@ export function StaggerListItem({ className, children, ...props }: HTMLMotionPro
     <motion.li
       variants={{
         hidden: { opacity: 0, x: -10 },
-        show: { opacity: 1, x: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+        show: { opacity: 1, x: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
       }}
       className={cn("motion-reduce:transform-none", className)}
       {...props}
