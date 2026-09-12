@@ -13,6 +13,7 @@ const STATIC_ROUTES = [
   { path: "/components/github-contributions-3d", priority: 0.6 },
   { path: "/components/scroll-minimap", priority: 0.6 },
   { path: "/components/shadcn-tags-input", priority: 0.6 },
+  { path: "/components/tile-treemap", priority: 0.6 },
   { path: "/components/video-player", priority: 0.6 },
   { path: "/components/zod-data-table", priority: 0.6 },
 ] as const;
