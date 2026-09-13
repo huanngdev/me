@@ -148,16 +148,6 @@ const PAGE_KEYWORDS: Record<string, string[]> = {
   "/components": ["ui", "demos", "showcase", "playground"],
   "/blocks": ["ui", "pages", "showcase", "layouts"],
   "/changelog": ["history", "releases", "updates", "what's new"],
-  "/world-cup": [
-    "world cup",
-    "football",
-    "soccer",
-    "fifa",
-    "2026",
-    "matches",
-    "scores",
-    "fixtures",
-  ],
 };
 
 function scrollToHash(hash: string) {

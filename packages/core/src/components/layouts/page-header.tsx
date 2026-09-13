@@ -9,8 +9,6 @@ interface PageHeaderProps {
   description?: string;
   actions?: ReactNode;
   backHref?: string;
-  /** Max-width utility for the content column. Defaults to `max-w-4xl`; the World Cup
-   *  page widens it so the header lines up with the wider schedule. */
   maxWidthClassName?: string;
 }
 

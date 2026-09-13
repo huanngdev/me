@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Blocks, Component, History, Home, Trophy } from "lucide-react";
+import { Blocks, Component, History, Home } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -21,10 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 // Secondary pages, grouped under an "etc" dropdown in the header.
-export const ETC_ITEMS: NavItem[] = [
-  { label: "Changelog", href: "/changelog", icon: History },
-  { label: "World Cup", href: "/world-cup", icon: Trophy },
-];
+export const ETC_ITEMS: NavItem[] = [{ label: "Changelog", href: "/changelog", icon: History }];
 
 // ---------- Local greetings ----------
 
@@ -808,15 +805,8 @@ export const CHANGELOG = [
   {
     date: "2026-06-24",
     changes: [
-      "Every page — including the new World Cup page — is now reachable from the ⌘K command palette.",
       "Retired the experimental AI blog and its weekly cron writer.",
       "The site now builds without any secrets — database and Redis clients connect lazily.",
-    ],
-  },
-  {
-    date: "2026-06-23",
-    changes: [
-      "Added a World Cup 2026 page with live scores and match detail, reached from a new “etc” menu in the header.",
     ],
   },
   {

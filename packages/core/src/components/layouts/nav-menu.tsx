@@ -18,7 +18,6 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../sheet";
 
 const ETC_DESCRIPTIONS: Record<string, string> = {
   "/changelog": "A concise history of the portfolio's latest features and improvements.",
-  "/world-cup": "Live scores, group tables, and the full FIFA World Cup 2026 schedule.",
 };
 
 export function NavMenu() {

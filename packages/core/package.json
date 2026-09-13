@@ -10,7 +10,6 @@
     ".": "./src/index.ts",
     "./functions": "./src/functions/index.ts",
     "./hooks": "./src/hooks/index.ts",
-    "./types": "./src/types/index.ts",
     "./styles/globals.css": "./src/styles/globals.css",
     "./lib/utils": "./src/lib/utils.ts",
     "./constants": "./src/constants.ts",

@@ -7,7 +7,6 @@ const STATIC_ROUTES = [
   { path: "/changelog", priority: 0.5 },
   { path: "/components", priority: 0.7 },
   { path: "/blocks", priority: 0.6 },
-  { path: "/world-cup", priority: 0.5 },
   { path: "/blocks/crm-data-table", priority: 0.5 },
   { path: "/blocks/error-page", priority: 0.5 },
   { path: "/components/github-contributions-3d", priority: 0.6 },
