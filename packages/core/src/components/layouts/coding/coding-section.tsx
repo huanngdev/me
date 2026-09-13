@@ -10,17 +10,20 @@ import { Separator } from "../../separator";
 import { cn } from "../../../lib/utils";
 
 const GITHUB_USERNAME = "huanngdev";
+// Fetch company account contributions and merge them into the same graph.
+const GITHUB_COMPANY_USERNAME = "huandevformo";
+const GITHUB_ACCOUNTS = [GITHUB_USERNAME, GITHUB_COMPANY_USERNAME];
 const GITHUB_PROFILE_URL = "https://github.com/huanngdev";
 
 export function CodingSection() {
   console.info(
     `[github] Coding section requested; data loaders run on the server and cache results for 24 hours ${JSON.stringify(
       {
-        username: GITHUB_USERNAME,
+        usernames: GITHUB_ACCOUNTS,
       },
     )}`,
   );
-  const contributions = getCachedContributions(GITHUB_USERNAME);
+  const contributions = getCachedContributions(GITHUB_ACCOUNTS);
   const stats = getCachedGitHubStats(GITHUB_USERNAME);
 
   return (
@@ -32,6 +35,7 @@ export function CodingSection() {
           <Suspense fallback={<GitHubContributionsFallback />}>
             <GitHubContributions
               contributions={contributions}
+              usernames={GITHUB_ACCOUNTS}
               githubProfileUrl={GITHUB_PROFILE_URL}
               className={cn(
                 // Nullframe contribution theme
