@@ -33,10 +33,12 @@ function groupByWeek(data: Activity[]): Week[] {
 
 export function GitHubContributions({
   contributions,
+  usernames,
   githubProfileUrl,
   className,
 }: {
   contributions: Promise<Activity[]>;
+  usernames: string[];
   githubProfileUrl: string;
   className?: string;
 }) {
@@ -119,7 +121,7 @@ export function GitHubContributions({
           target="_blank"
           rel="noopener"
         >
-          Contributions · huanngdev
+          Contributions · {usernames.join(" + ")}
         </a>
         <span>{totalContributions.toLocaleString("en-US")} / yr</span>
       </div>
