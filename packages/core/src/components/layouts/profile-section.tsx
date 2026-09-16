@@ -2,10 +2,9 @@ import { Pin } from "lucide-react";
 import { siTypescript } from "simple-icons";
 
 import { IDENTITY } from "../../constants";
-import { Avatar, AvatarFallback, AvatarImage } from "../avatar";
 import { Badge } from "../badge";
 import { CopyButton } from "../copy-button";
-import { StripedPattern } from "../striped-pattern";
+import { ThemeAvatar } from "../theme-avatar";
 
 const PINNED_ROLES = ["Frontend", "Backend", "Fullstack"] as const;
 
@@ -14,27 +13,7 @@ export function ProfileSection() {
     <section id="profile">
       <div className="mx-auto flex w-full max-w-4xl border-x">
         <div className="border-border relative size-28 shrink-0 overflow-hidden border-r sm:size-44">
-          <StripedPattern className="bg-muted-foreground/5 -z-10 rounded-full" />
-          <Avatar className="relative size-full bg-transparent">
-            <AvatarImage
-              src="/images/ai-gen-avatar-light.webp"
-              alt={IDENTITY.displayName}
-              className="absolute inset-0 z-10 scale-100 object-cover object-bottom opacity-100 transition-opacity duration-700 ease-out motion-reduce:transition-none dark:opacity-0"
-            />
-            <AvatarImage
-              src="/images/ai-gen-avatar-dark.webp"
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 z-10 scale-100 object-cover object-bottom opacity-0 transition-opacity duration-700 ease-out motion-reduce:transition-none dark:opacity-100"
-            />
-            <AvatarFallback className="absolute inset-0 bg-zinc-100 text-base font-medium">
-              {IDENTITY.displayName
-                .split(" ")
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+          <ThemeAvatar />
         </div>
 
         <div className="flex flex-1 flex-col">

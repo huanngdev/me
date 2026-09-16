@@ -356,7 +356,6 @@ export function CommandPalette() {
                 keywords={["theme", "dark", "light", "mode", "appearance"]}
                 onSelect={() =>
                   runCommand(() => {
-                    if (document.documentElement.dataset.magicuiThemeVt === "active") return;
                     setTheme(isDark ? "light" : "dark");
                   })
                 }

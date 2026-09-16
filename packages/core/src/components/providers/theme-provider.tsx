@@ -46,10 +46,6 @@ function ThemeHotkey() {
         return;
       }
 
-      if (document.documentElement.dataset.magicuiThemeVt === "active") {
-        return;
-      }
-
       setTheme(resolvedTheme === "dark" ? "light" : "dark");
     }
 
