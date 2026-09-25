@@ -7,8 +7,7 @@ import { useEffect, useState } from "react";
 
 import { clickSoftSound } from "../lib/click-soft";
 import { playSound } from "../lib/sound-engine";
-import { cn } from "../lib/utils";
-import { buttonVariants } from "./button";
+import { Button } from "./button";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -31,16 +30,14 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon"
       onClick={toggleTheme}
       aria-label={mounted ? `Switch to ${nextTheme} theme` : "Toggle theme"}
       aria-pressed={iconTheme === "dark"}
       title={mounted ? `Switch to ${nextTheme} theme` : "Toggle theme"}
-      className={cn(
-        buttonVariants({ variant: "outline", size: "icon" }),
-        "border-border! dark:border-input!",
-      )}
     >
       <AnimatePresence initial={false} mode="wait">
         <motion.span
@@ -56,6 +53,6 @@ export function ThemeToggle() {
         </motion.span>
       </AnimatePresence>
       <span className="sr-only">Toggle theme</span>
-    </button>
+    </Button>
   );
 }
