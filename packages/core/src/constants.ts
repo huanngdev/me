@@ -689,67 +689,177 @@ export const AWARDS = [
 
 // ---------- Bookmarks ----------
 
-export interface BookmarkEntry {
+export const BOOKMARK_TAGS = [
+  { label: "UI", value: "ui" },
+  { label: "AI", value: "ai" },
+  { label: "Articles", value: "articles" },
+  { label: "Tools", value: "tools" },
+] as const;
+
+export type BookmarkTag = (typeof BOOKMARK_TAGS)[number]["value"];
+
+export type BookmarkEntry = {
   title: string;
   source: string;
   url: string;
   date: string;
-}
+  tags: ReadonlyArray<BookmarkTag>;
+};
 
 export const BOOKMARKS = [
+  {
+    title: "SVG Logos",
+    source: "svglogos.dev",
+    url: "https://svglogos.dev/",
+    date: "2026-09-16",
+    tags: ["ui", "tools"],
+  },
+  {
+    title: "Free AI Tools, Credits & Free Tiers",
+    source: "aifree.dev",
+    url: "https://aifree.dev/",
+    date: "2026-09-13",
+    tags: ["ai", "tools"],
+  },
+  {
+    title: "Amicro",
+    source: "amicro.vercel.app",
+    url: "https://amicro.vercel.app/mono-charts",
+    date: "2026-09-12",
+    tags: ["ui"],
+  },
+  {
+    title: "Excalidraw",
+    source: "excalidraw.com",
+    url: "https://excalidraw.com/",
+    date: "2026-09-11",
+    tags: ["tools"],
+  },
+  {
+    title: "Shadcn Aspect Ratio Components",
+    source: "shadcnspace.com",
+    url: "https://shadcnspace.com/components/aspect-ratio",
+    date: "2026-09-11",
+    tags: ["ui"],
+  },
+  {
+    title: "DiceBear",
+    source: "dicebear.com",
+    url: "https://www.dicebear.com/",
+    date: "2026-09-11",
+    tags: ["ui", "tools"],
+  },
+  {
+    title: "Evil Charts",
+    source: "evilcharts.com",
+    url: "https://evilcharts.com/",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "Shadcn Blocks",
+    source: "blocks.so",
+    url: "https://blocks.so/",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "Efferd Header Blocks",
+    source: "efferd.com",
+    url: "https://efferd.com/blocks/header",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "Skiper UI",
+    source: "skiper-ui.com",
+    url: "https://skiper-ui.com/",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "SmoothUI",
+    source: "smoothui.dev",
+    url: "https://smoothui.dev/",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "shadcn.io",
+    source: "shadcn.io",
+    url: "https://www.shadcn.io/",
+    date: "2026-09-10",
+    tags: ["ui", "ai"],
+  },
+  {
+    title: "Making Software",
+    source: "makingsoftware.com",
+    url: "https://www.makingsoftware.com/",
+    date: "2026-09-10",
+    tags: ["articles"],
+  },
+  {
+    title: "Lucide Animated",
+    source: "lucide-animated.com",
+    url: "https://lucide-animated.com/",
+    date: "2026-09-10",
+    tags: ["ui"],
+  },
+  {
+    title: "Get Design",
+    source: "getdesign.md",
+    url: "https://getdesign.md/",
+    date: "2026-09-10",
+    tags: ["ai", "ui"],
+  },
   {
     title: "Sean Goedecke",
     source: "seangoedecke.com",
     url: "https://www.seangoedecke.com/",
     date: "2026-09-07",
+    tags: ["articles"],
+  },
+  {
+    title: "Hacker News",
+    source: "news.ycombinator.com",
+    url: "https://news.ycombinator.com/news",
+    date: "2026-08-27",
+    tags: ["articles"],
   },
   {
     title: "MapCN",
     source: "mapcn.dev",
     url: "https://www.mapcn.dev/",
     date: "2026-05-29",
-  },
-  {
-    title: "Lucide Animated",
-    source: "lucide-animated.com",
-    url: "https://lucide-animated.com/",
-    date: "2026-05-22",
-  },
-  {
-    title: "Get Design",
-    source: "getdesign.md",
-    url: "https://getdesign.md/",
-    date: "2026-05-22",
-  },
-  {
-    title: "Logo Lattice",
-    source: "logolattice.com",
-    url: "https://logolattice.com/",
-    date: "2026-05-22",
-  },
-  {
-    title: "Transitions",
-    source: "transitions.dev",
-    url: "https://transitions.dev/",
-    date: "2026-05-22",
-  },
-  {
-    title: "BG Faster",
-    source: "bg.faster.asia",
-    url: "https://bg.faster.asia/",
-    date: "2026-05-24",
+    tags: ["ui", "tools"],
   },
   {
     title: "Chanh Dai",
     source: "chanhdai.com",
     url: "https://chanhdai.com/",
     date: "2026-05-24",
+    tags: ["ui"],
   },
   {
     title: "Sleek Demo",
     source: "sleekdemo.com",
     url: "https://www.sleekdemo.com/",
     date: "2026-05-24",
+    tags: ["ui", "tools"],
+  },
+  {
+    title: "Logo Lattice",
+    source: "logolattice.com",
+    url: "https://logolattice.com/",
+    date: "2026-05-22",
+    tags: ["ui", "tools"],
+  },
+  {
+    title: "Transitions",
+    source: "transitions.dev",
+    url: "https://transitions.dev/",
+    date: "2026-05-22",
+    tags: ["ui"],
   },
 ] as const satisfies ReadonlyArray<BookmarkEntry>;
 
