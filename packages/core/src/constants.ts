@@ -708,6 +708,13 @@ export type BookmarkEntry = {
 
 export const BOOKMARKS = [
   {
+    title: "Prompt Kit",
+    source: "prompt-kit.com",
+    url: "https://www.prompt-kit.com/",
+    date: "2026-09-25",
+    tags: ["ui", "ai"],
+  },
+  {
     title: "SVG Logos",
     source: "svglogos.dev",
     url: "https://svglogos.dev/",
