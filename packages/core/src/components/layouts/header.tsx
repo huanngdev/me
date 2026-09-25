@@ -2,6 +2,8 @@ import { siGithub } from "simple-icons";
 
 import { REPO_URL } from "../../constants";
 import { Button } from "../button";
+import { ButtonGroup } from "../button-group";
+import { PaletteToggle } from "../palette-toggle";
 import { StripedPattern } from "../striped-pattern";
 import { ThemeToggle } from "../theme-toggle";
 import { CommandPalette } from "./command-palette";
@@ -32,7 +34,10 @@ export function Header() {
                 </svg>
               </a>
             </Button>
-            <ThemeToggle />
+            <ButtonGroup>
+              <PaletteToggle />
+              <ThemeToggle />
+            </ButtonGroup>
           </div>
         </div>
       </div>

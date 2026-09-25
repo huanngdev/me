@@ -3,13 +3,26 @@
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import * as React from "react";
 
+import { syncThemePaletteFromDom } from "../../lib/theme-palette";
+import { getThemePaletteScript } from "../../lib/theme-palette-config";
+
 function ThemeProvider({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem {...props}>
+      <script dangerouslySetInnerHTML={{ __html: getThemePaletteScript() }} />
       <ThemeHotkey />
+      <ThemePaletteSync />
       {children}
     </NextThemesProvider>
   );
+}
+
+function ThemePaletteSync() {
+  React.useEffect(() => {
+    syncThemePaletteFromDom();
+  }, []);
+
+  return null;
 }
 
 function isTypingTarget(target: EventTarget | null) {

@@ -12,6 +12,7 @@
     "./hooks": "./src/hooks/index.ts",
     "./styles/globals.css": "./src/styles/globals.css",
     "./lib/utils": "./src/lib/utils.ts",
+    "./lib/*": "./src/lib/*.ts",
     "./constants": "./src/constants.ts",
     "./components/*": "./src/components/*.tsx"
   },
