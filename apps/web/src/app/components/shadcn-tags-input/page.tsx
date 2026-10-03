@@ -16,8 +16,12 @@ import {
 import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import registry from "../../../../public/r/shadcn-tags-input.json";
 import { BasicDemo, ConstrainedDemo, ZodDemo } from "./demo";
+
+const LLM_TEXT = readLlmsDocument("components", "shadcn-tags-input");
 
 const REPO_URL =
   "https://github.com/huanngdev/me/blob/main/packages/core/src/components/shadcn-tags-input/tags-input.tsx";
@@ -326,7 +330,7 @@ export default function TagsInputComponentPage() {
       />
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <Section id="demo">
-          <ComponentDemo code={BASIC_USAGE_CODE} previewClassName="max-w-sm">
+          <ComponentDemo llm={LLM_TEXT} code={BASIC_USAGE_CODE} previewClassName="max-w-sm">
             <BasicDemo />
           </ComponentDemo>
         </Section>
@@ -401,7 +405,7 @@ export default function TagsInputComponentPage() {
           title="With constraints"
           description="Limit tag count, length, and surface validation errors inline."
         >
-          <ComponentDemo code={CONSTRAINED_USAGE_CODE} previewClassName="max-w-sm">
+          <ComponentDemo llm={LLM_TEXT} code={CONSTRAINED_USAGE_CODE} previewClassName="max-w-sm">
             <ConstrainedDemo />
           </ComponentDemo>
         </Section>
@@ -413,7 +417,7 @@ export default function TagsInputComponentPage() {
           description="Validate the final array with a Zod schema on submit."
         >
           <div className="space-y-4">
-            <ComponentDemo code={ZOD_USAGE_CODE} previewClassName="max-w-sm">
+            <ComponentDemo llm={LLM_TEXT} code={ZOD_USAGE_CODE} previewClassName="max-w-sm">
               <ZodDemo />
             </ComponentDemo>
             <p className="text-muted-foreground text-sm leading-relaxed">

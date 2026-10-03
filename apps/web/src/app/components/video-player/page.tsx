@@ -20,7 +20,11 @@ import {
 import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import { BasicVideoPlayerDemo, SourceSwitcherDemo } from "./demo";
+
+const LLM_TEXT = readLlmsDocument("components", "video-player");
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -356,7 +360,7 @@ export default function VideoPlayerPage() {
 
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <Section id="demo">
-          <ComponentDemo code={USAGE_CODE} previewClassName="max-w-3xl">
+          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-3xl">
             <BasicVideoPlayerDemo />
           </ComponentDemo>
         </Section>
@@ -422,7 +426,7 @@ export default function VideoPlayerPage() {
           description="The provider is selected from the source URL or explicit MIME type."
         >
           <div className="space-y-6">
-            <ComponentDemo code={SOURCE_SWITCHER_CODE} previewClassName="max-w-3xl">
+            <ComponentDemo llm={LLM_TEXT} code={SOURCE_SWITCHER_CODE} previewClassName="max-w-3xl">
               <SourceSwitcherDemo />
             </ComponentDemo>
             <CodeBlock code={SOURCE_EXAMPLES} language="ts" />

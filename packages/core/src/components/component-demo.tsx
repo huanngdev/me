@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Code2, Eye } from "lucide-react";
+import { Code2, Eye, FileText } from "lucide-react";
 
 import { cn } from "../lib/utils";
 import { CodeBlock } from "./code-block";
@@ -11,6 +11,7 @@ type ComponentDemoProps = {
   language?: string;
   className?: string;
   previewClassName?: string;
+  llm?: string;
 };
 
 export function ComponentDemo({
@@ -19,6 +20,7 @@ export function ComponentDemo({
   language = "tsx",
   className,
   previewClassName,
+  llm,
 }: ComponentDemoProps) {
   return (
     <Tabs defaultValue="preview" className={className}>
@@ -31,6 +33,12 @@ export function ComponentDemo({
           <Code2 />
           Code
         </TabsTrigger>
+        {llm ? (
+          <TabsTrigger value="llm">
+            <FileText />
+            llm.txt
+          </TabsTrigger>
+        ) : null}
       </TabsList>
       <TabsContent value="preview" className="mt-2">
         <div className="flex min-h-72 items-center justify-center rounded-lg border p-6 sm:p-10">
@@ -40,6 +48,11 @@ export function ComponentDemo({
       <TabsContent value="code" className="mt-2">
         <CodeBlock code={code} language={language} />
       </TabsContent>
+      {llm ? (
+        <TabsContent value="llm" className="mt-2">
+          <CodeBlock code={llm} language="txt" />
+        </TabsContent>
+      ) : null}
     </Tabs>
   );
 }

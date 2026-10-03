@@ -15,7 +15,11 @@ import {
 import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import { BasicZodDataTableDemo, CustomZodDataTableDemo, EmptyZodDataTableDemo } from "./demo";
+
+const LLM_TEXT = readLlmsDocument("components", "zod-data-table");
 
 const TOC: TOCItemType[] = [
   { title: "Demo", url: "#demo", depth: 2 },
@@ -226,7 +230,7 @@ export default function ZodDataTablePage() {
 
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <Section id="demo">
-          <ComponentDemo code={BASIC_USAGE_CODE} previewClassName="max-w-3xl">
+          <ComponentDemo llm={LLM_TEXT} code={BASIC_USAGE_CODE} previewClassName="max-w-3xl">
             <BasicZodDataTableDemo />
           </ComponentDemo>
         </Section>
@@ -265,7 +269,7 @@ export default function ZodDataTablePage() {
           title="Custom columns"
           description="Override only the fields that need different content or visibility."
         >
-          <ComponentDemo code={CUSTOM_COLUMNS_CODE} previewClassName="max-w-3xl">
+          <ComponentDemo llm={LLM_TEXT} code={CUSTOM_COLUMNS_CODE} previewClassName="max-w-3xl">
             <CustomZodDataTableDemo />
           </ComponentDemo>
         </Section>
@@ -292,7 +296,7 @@ export default function ZodDataTablePage() {
           title="Empty state"
           description="Keep the generated headers visible while explaining that no rows matched."
         >
-          <ComponentDemo code={EMPTY_STATE_CODE} previewClassName="max-w-3xl">
+          <ComponentDemo llm={LLM_TEXT} code={EMPTY_STATE_CODE} previewClassName="max-w-3xl">
             <EmptyZodDataTableDemo />
           </ComponentDemo>
         </Section>

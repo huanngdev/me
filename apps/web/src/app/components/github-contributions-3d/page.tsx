@@ -21,7 +21,11 @@ import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 import { getCachedContributions } from "@repo/core/functions";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import { GitHubContributions3DDemo } from "./demo";
+
+const LLM_TEXT = readLlmsDocument("components", "github-contributions-3d");
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -173,7 +177,7 @@ export default async function GitHubContributions3DPage() {
 
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <Section id="demo">
-          <ComponentDemo code={USAGE_CODE} previewClassName="max-w-4xl">
+          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-4xl">
             <GitHubContributions3DDemo initialData={initialData} />
           </ComponentDemo>
         </Section>

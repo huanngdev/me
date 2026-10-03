@@ -1,0 +1,10 @@
+# Blocks
+
+> Source for the portfolio page blocks. Each link is one block. File contents are copied byte-for-byte from the repository.
+
+- [CRM Data Table](https://www.huanngdev.site/llms/blocks/crm-data-table.txt): A CRM customers table with faceted filters, sorting, selection, expandable rows, row pinning, and column controls.
+- [Error Page](https://www.huanngdev.site/llms/blocks/error-page.txt): A minimal fullscreen error page with clear recovery actions.
+
+## Optional
+
+- [All blocks](https://www.huanngdev.site/llms/blocks-full.txt): Every block source file in one document.

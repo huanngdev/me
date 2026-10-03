@@ -18,7 +18,11 @@ import {
 import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import { ConversationMinimapDemo } from "./demo";
+
+const LLM_TEXT = readLlmsDocument("components", "scroll-minimap");
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -197,7 +201,7 @@ export default function ScrollMinimapPage() {
 
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
         <Section id="demo">
-          <ComponentDemo code={USAGE_CODE} previewClassName="max-w-2xl">
+          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-2xl">
             <ConversationMinimapDemo />
           </ComponentDemo>
         </Section>

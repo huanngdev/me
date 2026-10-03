@@ -5,6 +5,8 @@ import { CrmDataTableBlock } from "@repo/core/components/blocks/crm-data-table/c
 import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-frame";
 import type { Metadata } from "next";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 import { generateCrmCustomers } from "./data";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
@@ -100,6 +102,7 @@ export default function CrmDataTableBlockPage() {
       name="crm-data-table"
       url="huanngdev.site/blocks/crm-data-table"
       files={BLOCK_FILES}
+      llmText={readLlmsDocument("blocks", "crm-data-table")}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <CrmDataTableBlock data={data} />
