@@ -1,3 +1,4 @@
-import type { AnyPluginConfig } from "platejs";
+import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
 
-export const EDITOR_PLUGINS: AnyPluginConfig[] = [];
+// Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
+export const EDITOR_PLUGINS: AnyPluginConfig[] = [NodeIdPlugin];

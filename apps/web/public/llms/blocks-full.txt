@@ -2393,10 +2393,15 @@ export default function ErrorPageBlockPage() {
 ## Read order
 
 1. packages/core/src/components/blocks/notion-like-editor/editor-value.ts
-2. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-3. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-4. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-5. apps/web/src/app/blocks/notion-like-editor/page.tsx
+2. packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
+3. packages/core/src/components/blocks/notion-like-editor/editor-document.ts
+4. packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts
+5. packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
+6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
+7. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
+8. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+9. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+10. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2412,11 +2417,542 @@ export const EMPTY_EDITOR_VALUE = [
 ] satisfies EditorValue;
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
+```ts
+export type EditorElementRule = {
+  type: string;
+  attrs: readonly string[];
+};
+
+export type EditorMarkRule = {
+  type: string;
+};
+
+export const EDITOR_ELEMENT_RULES = [
+  { type: "p", attrs: ["id"] },
+] as const satisfies readonly EditorElementRule[];
+
+export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [];
+
+const elementAttrs = new Map<string, ReadonlySet<string>>(
+  EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
+);
+
+const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
+
+export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
+  return elementAttrs.get(type);
+}
+
+export function isAllowedMark(mark: string): boolean {
+  return allowedMarks.has(mark);
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-document.ts
+```ts
+import { z } from "zod";
+
+import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
+
+export const EDITOR_SCHEMA_VERSION = 1;
+
+export const EDITOR_DOCUMENT_LIMITS = {
+  maxDepth: 32,
+  maxNodes: 20_000,
+  maxBytes: 2_000_000,
+} as const;
+
+export const editorDocumentSchema = z.object({
+  schemaVersion: z.literal(EDITOR_SCHEMA_VERSION),
+  documentId: z.string().min(1),
+  revision: z.number().int().nonnegative(),
+  content: z.custom<EditorValue>((value): value is EditorValue => Array.isArray(value)),
+});
+
+export type EditorDocument = z.infer<typeof editorDocumentSchema>;
+
+export function formatBlockLabel(path: readonly number[]): string {
+  return `Block ${path.map((index) => String(index + 1)).join(".")}`;
+}
+
+export function createEditorDocument(
+  documentId: string,
+  content: EditorValue = EMPTY_EDITOR_VALUE,
+): EditorDocument {
+  return {
+    schemaVersion: EDITOR_SCHEMA_VERSION,
+    documentId,
+    revision: 0,
+    content,
+  };
+}
+
+export function serializeEditorDocument(document: EditorDocument): string {
+  return JSON.stringify({
+    schemaVersion: document.schemaVersion,
+    documentId: document.documentId,
+    revision: document.revision,
+    content: document.content,
+  });
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts
+```ts
+import { formatBlockLabel } from "./editor-document";
+import type { EditorValue } from "./editor-value";
+
+type EditorBlock = EditorValue[number];
+type EditorChild = EditorBlock["children"][number];
+
+export type Repair = {
+  path: number[];
+  message: string;
+};
+
+function isBlock(node: EditorChild): node is EditorBlock {
+  return "children" in node && Array.isArray(node.children);
+}
+
+function elementId(node: EditorBlock): string | undefined {
+  if (typeof node.id !== "string" || node.id.length === 0) {
+    return undefined;
+  }
+
+  return node.id;
+}
+
+function allocateId(createId: () => string, seen: Set<string>): string {
+  const base = createId();
+  let unique = base;
+  let suffix = 1;
+
+  while (unique.length === 0 || seen.has(unique)) {
+    unique = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  seen.add(unique);
+  return unique;
+}
+
+function resolveId(
+  currentId: string | undefined,
+  path: number[],
+  seen: Set<string>,
+  createId: () => string,
+): { id: string; repair: Repair | undefined } {
+  if (currentId !== undefined && !seen.has(currentId)) {
+    seen.add(currentId);
+    return { id: currentId, repair: undefined };
+  }
+
+  return {
+    id: allocateId(createId, seen),
+    repair: {
+      path,
+      message:
+        currentId === undefined
+          ? `${formatBlockLabel(path)} has no id. A new id was assigned.`
+          : `${formatBlockLabel(path)} reused an id. A new id was assigned so each block stays unique.`,
+    },
+  };
+}
+
+function normalizeElement(
+  node: EditorBlock,
+  path: number[],
+  seen: Set<string>,
+  createId: () => string,
+  repairs: Repair[],
+): EditorBlock {
+  const resolved = resolveId(elementId(node), path, seen, createId);
+  if (resolved.repair) {
+    repairs.push(resolved.repair);
+  }
+
+  let childrenChanged = false;
+  const children = node.children.map((child, index) => {
+    if (!isBlock(child)) {
+      return child;
+    }
+
+    const next = normalizeElement(child, [...path, index], seen, createId, repairs);
+    if (next !== child) {
+      childrenChanged = true;
+    }
+
+    return next;
+  });
+
+  if (!resolved.repair && !childrenChanged) {
+    return node;
+  }
+
+  return {
+    ...node,
+    id: resolved.id,
+    children,
+  };
+}
+
+export function normalizeBlockIds(
+  content: EditorValue,
+  createId: () => string,
+): { content: EditorValue; repairs: Repair[] } {
+  const seen = new Set<string>();
+  const repairs: Repair[] = [];
+  let changed = false;
+  const next = content.map((node, index) => {
+    const normalized = normalizeElement(node, [index], seen, createId, repairs);
+    if (normalized !== node) {
+      changed = true;
+    }
+
+    return normalized;
+  });
+
+  return {
+    content: changed ? next : content,
+    repairs,
+  };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
+```ts
+import { EDITOR_SCHEMA_VERSION } from "./editor-document";
+
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+export function migrateEditorDocument(raw: unknown, documentId: string): unknown {
+  if (isUnknownArray(raw)) {
+    return {
+      schemaVersion: EDITOR_SCHEMA_VERSION,
+      documentId,
+      revision: 0,
+      content: raw,
+    };
+  }
+
+  return raw;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
+```ts
+import { nanoid } from "platejs";
+
+import {
+  EDITOR_DOCUMENT_LIMITS,
+  EDITOR_SCHEMA_VERSION,
+  editorDocumentSchema,
+  formatBlockLabel,
+  type EditorDocument,
+} from "./editor-document";
+import { normalizeBlockIds, type Repair } from "./editor-document-ids";
+import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+
+export type Issue = {
+  path: number[];
+  message: string;
+};
+
+export type ParseResult =
+  | { status: "ok"; document: EditorDocument; repairs: Repair[] }
+  | { status: "invalid"; issues: Issue[]; raw: unknown }
+  | { status: "unsupported"; issues: Issue[]; raw: unknown }
+  | { status: "future-version"; schemaVersion: number; raw: unknown };
+
+type WalkState = {
+  nodes: number;
+  invalid: Issue | undefined;
+  unsupported: Issue[];
+};
+
+const textEncoder = new TextEncoder();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function invalidResult(raw: unknown, path: number[], message: string): ParseResult {
+  return {
+    status: "invalid",
+    issues: [{ path, message }],
+    raw,
+  };
+}
+
+function reject(state: WalkState, path: number[], message: string): void {
+  state.invalid = { path, message };
+}
+
+function jsonByteLength(raw: unknown): number | undefined {
+  try {
+    const json = JSON.stringify(raw);
+    if (typeof json !== "string") {
+      return 0;
+    }
+
+    return textEncoder.encode(json).length;
+  } catch {
+    return undefined;
+  }
+}
+
+function createPlateId(): string {
+  return nanoid(10);
+}
+
+function countNode(state: WalkState, path: number[]): boolean {
+  state.nodes += 1;
+  if (state.nodes > EDITOR_DOCUMENT_LIMITS.maxNodes) {
+    reject(
+      state,
+      path,
+      `This document has more than ${EDITOR_DOCUMENT_LIMITS.maxNodes} blocks. Restore from a backup or remove content.`,
+    );
+    return false;
+  }
+
+  return true;
+}
+
+function walkText(value: Record<string, unknown>, path: number[], state: WalkState): void {
+  if (!countNode(state, path)) {
+    return;
+  }
+
+  if (typeof value.text !== "string") {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} has text that is not a string. Restore from a backup or retype that block.`,
+    );
+    return;
+  }
+
+  for (const key of Object.keys(value)) {
+    if (key === "text" || isAllowedMark(key)) {
+      continue;
+    }
+
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+    });
+  }
+}
+
+function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
+  if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} is nested deeper than ${EDITOR_DOCUMENT_LIMITS.maxDepth} levels. Restore from a backup or remove the extra nesting.`,
+    );
+    return;
+  }
+
+  if (!countNode(state, path)) {
+    return;
+  }
+
+  if (!isUnknownArray(value.children)) {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} has no children. Restore from a backup or remove the block.`,
+    );
+    return;
+  }
+
+  const type = value.type;
+  if (typeof type !== "string" || type.length === 0) {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} has no block type. Restore from a backup or remove the block.`,
+    );
+    return;
+  }
+
+  const allowed = allowedElementAttrs(type);
+  if (allowed === undefined) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} uses an unsupported block type "${type}". Restore from a backup or remove the block.`,
+    });
+  }
+
+  for (const key of Object.keys(value)) {
+    if (key === "type" || key === "children" || key === "id") {
+      continue;
+    }
+
+    const attr = value[key];
+    if (
+      (key === "url" || key === "src") &&
+      typeof attr === "string" &&
+      (attr.startsWith("blob:") || attr.startsWith("data:"))
+    ) {
+      const scheme = attr.startsWith("blob:") ? "blob:" : "data:";
+      reject(
+        state,
+        path,
+        `${formatBlockLabel(path)} has a ${key} that starts with ${scheme}. Restore from a backup or replace that file.`,
+      );
+      return;
+    }
+
+    if (allowed !== undefined && allowed.has(key)) {
+      continue;
+    }
+
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported attribute "${key}". Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  for (let index = 0; index < value.children.length; index += 1) {
+    walkDescendant(value.children[index], [...path, index], state);
+    if (state.invalid) {
+      return;
+    }
+  }
+}
+
+function walkDescendant(value: unknown, path: number[], state: WalkState): void {
+  if (!isRecord(value)) {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} is not a block. Restore from a backup or remove the block.`,
+    );
+    return;
+  }
+
+  if ("children" in value || "type" in value) {
+    walkElement(value, path, state);
+    return;
+  }
+
+  if ("text" in value) {
+    walkText(value, path, state);
+    return;
+  }
+
+  reject(
+    state,
+    path,
+    `${formatBlockLabel(path)} is not a block. Restore from a backup or remove the block.`,
+  );
+}
+
+function walkTopLevel(value: unknown, path: number[], state: WalkState): void {
+  if (!isRecord(value) || !("children" in value || "type" in value)) {
+    reject(
+      state,
+      path,
+      `${formatBlockLabel(path)} is not a block. Restore from a backup or remove the block.`,
+    );
+    return;
+  }
+
+  walkElement(value, path, state);
+}
+
+export function parseEditorDocument(raw: unknown): ParseResult {
+  if (
+    isRecord(raw) &&
+    typeof raw.schemaVersion === "number" &&
+    Number.isFinite(raw.schemaVersion) &&
+    raw.schemaVersion > EDITOR_SCHEMA_VERSION
+  ) {
+    return {
+      status: "future-version",
+      schemaVersion: raw.schemaVersion,
+      raw,
+    };
+  }
+
+  const bytes = jsonByteLength(raw);
+  if (bytes === undefined) {
+    return invalidResult(raw, [], "This document cannot be saved as JSON. Restore from a backup.");
+  }
+
+  if (bytes > EDITOR_DOCUMENT_LIMITS.maxBytes) {
+    return invalidResult(
+      raw,
+      [],
+      `This document is larger than ${EDITOR_DOCUMENT_LIMITS.maxBytes} bytes. Restore from a backup or remove content.`,
+    );
+  }
+
+  const envelope = editorDocumentSchema.safeParse(raw);
+  if (!envelope.success) {
+    return invalidResult(
+      raw,
+      [],
+      "This document is missing a schema version, document id, revision, or content. Restore from a backup.",
+    );
+  }
+
+  const state: WalkState = {
+    nodes: 0,
+    invalid: undefined,
+    unsupported: [],
+  };
+
+  for (let index = 0; index < envelope.data.content.length; index += 1) {
+    walkTopLevel(envelope.data.content[index], [index], state);
+    if (state.invalid) {
+      return {
+        status: "invalid",
+        issues: [state.invalid],
+        raw,
+      };
+    }
+  }
+
+  if (state.unsupported.length > 0) {
+    return {
+      status: "unsupported",
+      issues: state.unsupported,
+      raw,
+    };
+  }
+
+  const normalized = normalizeBlockIds(envelope.data.content, createPlateId);
+
+  return {
+    status: "ok",
+    document: {
+      schemaVersion: envelope.data.schemaVersion,
+      documentId: envelope.data.documentId,
+      revision: envelope.data.revision,
+      content: normalized.content,
+    },
+    repairs: normalized.repairs,
+  };
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ```ts
-import type { AnyPluginConfig } from "platejs";
+import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
 
-export const EDITOR_PLUGINS: AnyPluginConfig[] = [];
+// Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
+export const EDITOR_PLUGINS: AnyPluginConfig[] = [NodeIdPlugin];
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
@@ -2530,6 +3066,26 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/editor-value.ts",
     code: readSource(`${BLOCK_DIR}/editor-value.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-schema.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-schema.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-ids.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-ids.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-migrate.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-migrate.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-validate.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-validate.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",

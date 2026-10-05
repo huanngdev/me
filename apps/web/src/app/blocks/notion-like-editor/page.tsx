@@ -24,6 +24,26 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-value.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-document-schema.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-schema.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-ids.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-ids.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-migrate.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-migrate.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-validate.ts",
+    code: readSource(`${BLOCK_DIR}/editor-document-validate.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },

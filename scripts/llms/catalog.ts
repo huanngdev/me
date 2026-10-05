@@ -112,6 +112,11 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     docsPath: "/blocks/notion-like-editor",
     files: [
       "packages/core/src/components/blocks/notion-like-editor/editor-value.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-document.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts",
       "packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts",
       "packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts",
       "packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx",
