@@ -29,7 +29,7 @@ export function EditorSurface({
       }}
     >
       <PlateContent
-        placeholder={placeholder}
+        placeholder={readOnly ? undefined : placeholder}
         className={className}
         renderPlaceholder={(placeholderProps) => (
           <span
