@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createSlateEditor } from "platejs";
+import { createSlateEditor, NodeIdPlugin } from "platejs";
 
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
 
 const AI_OR_COLLABORATION_KEY = /(?:^ai$|aichat|copilot|yjs|collab)/i;
@@ -88,7 +88,7 @@ describe("notion-like editor value", () => {
     ] satisfies EditorValue;
 
     const editor = createSlateEditor({
-      plugins: EDITOR_PLUGINS,
+      plugins: createEditorPlugins(),
       value: startingValue,
     });
 
@@ -106,11 +106,34 @@ describe("notion-like editor value", () => {
 
   test("plugin list has no AI or collaboration plugins", () => {
     const editor = createSlateEditor({
-      plugins: EDITOR_PLUGINS,
+      plugins: createEditorPlugins(),
       value: EMPTY_EDITOR_VALUE,
     });
-    const keys = [...pluginKeys(EDITOR_PLUGINS), ...resolvedPluginKeys(editor.meta.pluginList)];
+    const keys = [
+      ...pluginKeys(createEditorPlugins()),
+      ...resolvedPluginKeys(editor.meta.pluginList),
+    ];
 
     expect(keys.filter((key) => AI_OR_COLLABORATION_KEY.test(key))).toEqual([]);
+  });
+
+  test("creating two editors from createEditorPlugins leaves both with node ids on insert", () => {
+    const insertedId = (): string => {
+      const editor = createSlateEditor({
+        plugins: createEditorPlugins(),
+        value: [{ type: "p", children: [{ text: "A" }] }],
+      });
+      editor.tf.insertNodes({ type: "p", children: [{ text: "Inserted" }] }, { at: [1] });
+      const block = editor.children[1];
+      if (!isRecord(block) || typeof block.id !== "string" || block.id.length === 0) {
+        throw new Error("Inserted block is missing an id.");
+      }
+
+      return block.id;
+    };
+
+    expect(insertedId().length).toBeGreaterThan(0);
+    expect(insertedId().length).toBeGreaterThan(0);
+    expect(createEditorPlugins()).toContain(NodeIdPlugin);
   });
 });

@@ -44,6 +44,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-document-validate.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-paste.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },

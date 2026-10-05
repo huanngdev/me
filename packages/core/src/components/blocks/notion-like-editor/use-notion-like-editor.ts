@@ -1,6 +1,6 @@
 import { usePlateEditor } from "platejs/react";
 
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
 
 type NotionLikeEditorOptions = {
@@ -19,7 +19,7 @@ export function useNotionLikeEditor({
   const editor = usePlateEditor(
     {
       id: documentId,
-      plugins: EDITOR_PLUGINS,
+      plugins: createEditorPlugins(),
       value: initialValue,
     },
     [documentId],

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createSlateEditor, type SlateEditor, type TRange } from "platejs";
 
 import { HISTORY_COMMANDS, runEditorCommand, type EditorCommand } from "./editor-commands";
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import { captureSelection, releaseSelection } from "./editor-selection";
 
 const insertX: EditorCommand = {
@@ -16,7 +16,7 @@ const insertX: EditorCommand = {
 
 function createEditor(text: string): SlateEditor {
   return createSlateEditor({
-    plugins: EDITOR_PLUGINS,
+    plugins: createEditorPlugins(),
     value: [{ type: "p", children: [{ text }] }],
   });
 }

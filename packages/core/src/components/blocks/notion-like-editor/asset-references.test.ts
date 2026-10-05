@@ -3,13 +3,12 @@ import { createSlateEditor, type SlateEditor } from "platejs";
 
 import { applyUploadToBlock, cleanupUnreferencedAssets, collectAssetIds } from "./asset-references";
 import type { AssetRecord, AssetStore } from "./editor-assets";
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import type { EditorValue } from "./editor-value";
 
 function createEditor(value: EditorValue): SlateEditor {
   return createSlateEditor({
-    // Plate splices a passed NodeId plugin out of this array. Copy it so other tests keep EDITOR_PLUGINS.
-    plugins: [...EDITOR_PLUGINS],
+    plugins: createEditorPlugins(),
     value,
   });
 }

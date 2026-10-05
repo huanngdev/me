@@ -2398,29 +2398,30 @@ export default function ErrorPageBlockPage() {
 4. packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts
 5. packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
 6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
-7. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-8. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-9. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-10. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-11. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-12. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-13. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-14. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-15. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-16. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-17. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-18. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-19. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-20. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-21. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-22. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-24. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-25. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-26. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-27. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-28. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-29. apps/web/src/app/blocks/notion-like-editor/page.tsx
+7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
+8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
+9. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+10. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+11. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+12. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+13. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+14. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+15. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+16. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+17. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+18. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+19. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+20. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+21. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+22. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+24. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+25. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+26. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+27. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+28. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+29. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+30. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2966,12 +2967,354 @@ export function parseEditorDocument(raw: unknown): ParseResult {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
+```ts
+import {
+  createSlatePlugin,
+  isHtmlBlockElement,
+  type Descendant,
+  type TElement,
+  type TText,
+} from "platejs";
+
+import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import type { EditorValue } from "./editor-value";
+
+export type PasteSanitizeOptions = {
+  isInline?: (node: Record<string, unknown>) => boolean;
+  seenIds?: Set<string>;
+};
+
+type IsInline = (node: Record<string, unknown>) => boolean;
+
+type PasteChild =
+  | { kind: "text"; node: TText }
+  | { kind: "inline"; node: TElement }
+  | { kind: "block"; node: TElement };
+
+// Plate sorts plugins high-priority first, then tries HTML deserializers in reverse.
+// 1000 runs after the default priority of 100, so a later heading or list plugin matches first.
+const PASTE_FALLBACK_PRIORITY = 1000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isTextNode(node: Record<string, unknown>): boolean {
+  return typeof node.text === "string" && !Array.isArray(node.children);
+}
+
+function isElementNode(node: Record<string, unknown>): node is TElement {
+  return typeof node.type === "string" && Array.isArray(node.children);
+}
+
+function sanitizeText(node: Record<string, unknown>): TText {
+  const text = typeof node.text === "string" ? node.text : "";
+  const next: TText = { text };
+
+  for (const key of Object.keys(node)) {
+    if (key === "text" || !isAllowedMark(key)) {
+      continue;
+    }
+
+    next[key] = node[key];
+  }
+
+  return next;
+}
+
+function classifyPasteChild(child: unknown, isInline: IsInline): PasteChild | undefined {
+  if (typeof child === "string") {
+    return { kind: "text", node: { text: child } };
+  }
+
+  if (!isRecord(child)) {
+    return undefined;
+  }
+
+  if (isTextNode(child)) {
+    return { kind: "text", node: sanitizeText(child) };
+  }
+
+  if (!isElementNode(child)) {
+    return undefined;
+  }
+
+  if (isInline(child)) {
+    return { kind: "inline", node: child };
+  }
+
+  return { kind: "block", node: child };
+}
+
+function takeId(node: Record<string, unknown>, seen: Set<string>): string | undefined {
+  if (typeof node.id !== "string" || node.id.length === 0 || seen.has(node.id)) {
+    return undefined;
+  }
+
+  seen.add(node.id);
+  return node.id;
+}
+
+function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void {
+  const allowed = allowedElementAttrs(props.type);
+  if (allowed === undefined) {
+    return;
+  }
+
+  for (const key of allowed) {
+    if (key === "id" || !(key in node)) {
+      continue;
+    }
+
+    props[key] = node[key];
+  }
+}
+
+function elementNode(type: string, children: Descendant[], id: string | undefined): TElement {
+  const props: TElement = { type, children };
+  if (id !== undefined) {
+    props.id = id;
+  }
+
+  return props;
+}
+
+function hasContent(nodes: readonly Descendant[]): boolean {
+  for (const node of nodes) {
+    if ("children" in node) {
+      return true;
+    }
+
+    if (typeof node.text === "string" && node.text.length > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function paragraph(children: Descendant[], id?: string): TElement {
+  return elementNode("p", children.length > 0 ? children : [{ text: "" }], id);
+}
+
+function collectIds(value: unknown, seen: Set<string>): void {
+  if (!isRecord(value)) {
+    return;
+  }
+
+  if (typeof value.id === "string" && value.id.length > 0) {
+    seen.add(value.id);
+  }
+
+  if (!Array.isArray(value.children)) {
+    return;
+  }
+
+  for (const child of value.children) {
+    collectIds(child, seen);
+  }
+}
+
+function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+  const allowed = allowedElementAttrs(node.type) !== undefined;
+  const paragraphs: TElement[] = [];
+  let inlines: Descendant[] = [];
+  let usedOwnId = false;
+
+  const flush = (): void => {
+    if (inlines.length === 0) {
+      return;
+    }
+
+    if (allowed) {
+      const id = usedOwnId ? undefined : takeId(node, seen);
+      usedOwnId = true;
+      const props = elementNode(node.type, inlines, id);
+      copyAllowedAttrs(node, props);
+      paragraphs.push(props);
+    } else {
+      paragraphs.push(paragraph(inlines));
+    }
+
+    inlines = [];
+  };
+
+  for (const child of node.children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    paragraphs.push(...expandBlock(classified.node, isInline, seen));
+  }
+
+  flush();
+
+  if (paragraphs.length > 0) {
+    return paragraphs;
+  }
+
+  if (allowed) {
+    const props = elementNode(node.type, [{ text: "" }], takeId(node, seen));
+    copyAllowedAttrs(node, props);
+    return [props];
+  }
+
+  return [paragraph([])];
+}
+
+function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Descendant[] {
+  if (allowedElementAttrs(node.type) === undefined) {
+    return unwrapInline(node.children, isInline, seen);
+  }
+
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined || classified.kind === "block") {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      children.push(classified.node);
+      continue;
+    }
+
+    children.push(...inlineNodes(classified.node, isInline, seen));
+  }
+
+  const props = elementNode(
+    node.type,
+    children.length > 0 ? children : [{ text: "" }],
+    takeId(node, seen),
+  );
+  copyAllowedAttrs(node, props);
+  return [props];
+}
+
+function unwrapInline(children: unknown[], isInline: IsInline, seen: Set<string>): Descendant[] {
+  const nodes: Descendant[] = [];
+  for (const child of children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined || classified.kind === "block") {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      nodes.push(classified.node);
+      continue;
+    }
+
+    nodes.push(...inlineNodes(classified.node, isInline, seen));
+  }
+
+  return nodes;
+}
+
+export function sanitizePastedFragment(
+  fragment: readonly unknown[],
+  options?: PasteSanitizeOptions,
+): EditorValue {
+  const seen = options?.seenIds ?? new Set<string>();
+  const isInline = options?.isInline ?? (() => false);
+  const paragraphs: EditorValue = [];
+  let inlines: Descendant[] = [];
+
+  const flush = (): void => {
+    if (!hasContent(inlines)) {
+      inlines = [];
+      return;
+    }
+
+    paragraphs.push(paragraph(inlines));
+    inlines = [];
+  };
+
+  for (const node of fragment) {
+    const classified = classifyPasteChild(node, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    paragraphs.push(...expandBlock(classified.node, isInline, seen));
+  }
+
+  flush();
+
+  return paragraphs;
+}
+
+function collectEditorIds(value: readonly unknown[]): Set<string> {
+  const seen = new Set<string>();
+  for (const node of value) {
+    collectIds(node, seen);
+  }
+
+  return seen;
+}
+
+export const PasteFallbackPlugin = createSlatePlugin({
+  key: "pasteFallback",
+  priority: PASTE_FALLBACK_PRIORITY,
+  parsers: {
+    html: {
+      deserializer: {
+        isElement: true,
+        rules: [{ validNodeName: "*" }],
+        parse: () => ({ type: "p" }),
+        query: ({ element }) => isHtmlBlockElement(element),
+      },
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
+  transforms: {
+    insertFragment(fragment, options) {
+      insertFragment(
+        sanitizePastedFragment(fragment, {
+          isInline: (node) => isElementNode(node) && editor.api.isInline(node),
+          seenIds: collectEditorIds(editor.children),
+        }),
+        options,
+      );
+    },
+  },
+}));
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ```ts
 import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
 
+import { PasteFallbackPlugin } from "./editor-paste";
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
-export const EDITOR_PLUGINS: AnyPluginConfig[] = [NodeIdPlugin];
+// Plate splices NodeIdPlugin out of the plugins array it receives.
+export function createEditorPlugins(): AnyPluginConfig[] {
+  return [NodeIdPlugin, PasteFallbackPlugin];
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
@@ -3830,7 +4173,7 @@ function isKind(value: unknown): value is AssetRecord["kind"] {
 ```ts
 import { usePlateEditor } from "platejs/react";
 
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
 
 type NotionLikeEditorOptions = {
@@ -3849,7 +4192,7 @@ export function useNotionLikeEditor({
   const editor = usePlateEditor(
     {
       id: documentId,
-      plugins: EDITOR_PLUGINS,
+      plugins: createEditorPlugins(),
       value: initialValue,
     },
     [documentId],
@@ -5159,6 +5502,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/editor-document-validate.ts",
     code: readSource(`${BLOCK_DIR}/editor-document-validate.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-paste.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",

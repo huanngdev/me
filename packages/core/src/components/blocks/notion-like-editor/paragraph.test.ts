@@ -1,13 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { createSlateEditor, type SlateEditor, type TRange } from "platejs";
 
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
 
 function createEditor(value: EditorValue = EMPTY_EDITOR_VALUE): SlateEditor {
   return createSlateEditor({
-    // Plate splices a passed NodeId plugin out of this array. Copy it so other tests keep EDITOR_PLUGINS.
-    plugins: [...EDITOR_PLUGINS],
+    plugins: createEditorPlugins(),
     value,
   });
 }

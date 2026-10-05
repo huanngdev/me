@@ -9,7 +9,7 @@ import {
 import { normalizeBlockIds } from "./editor-document-ids";
 import { migrateEditorDocument } from "./editor-document-migrate";
 import { parseEditorDocument } from "./editor-document-validate";
-import { EDITOR_PLUGINS } from "./editor-plugins";
+import { createEditorPlugins } from "./editor-plugins";
 import type { EditorValue } from "./editor-value";
 import { V0_DOCUMENT } from "./fixtures/v0-document";
 import { V1_DOCUMENT } from "./fixtures/v1-document";
@@ -509,7 +509,7 @@ describe("editor document", () => {
 
   test("moving a block keeps its id and inserting a block gets a new id", () => {
     const editor = createSlateEditor({
-      plugins: EDITOR_PLUGINS,
+      plugins: createEditorPlugins(),
       value: [
         { type: "p", id: "keep-a", children: [{ text: "one" }] },
         { type: "p", id: "keep-b", children: [{ text: "two" }] },
