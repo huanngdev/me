@@ -162,7 +162,7 @@ export function updateLlmsTxt(current: string): string {
     "Source for the component showcase and page blocks. Each linked file copies the repository source byte-for-byte.",
     "",
     `- [Components](${SITE}/llms/components.txt): Six showcase components.`,
-    `- [Blocks](${SITE}/llms/blocks.txt): Two full-page blocks.`,
+    `- [Blocks](${SITE}/llms/blocks.txt): Three full-page blocks.`,
     "",
   ].join("\n");
   const heading = "## Code\n";

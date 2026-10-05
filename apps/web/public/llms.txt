@@ -27,4 +27,4 @@ Currently freelancing and open to full-time opportunities or additional freelanc
 Source for the component showcase and page blocks. Each linked file copies the repository source byte-for-byte.
 
 - [Components](https://www.huanngdev.site/llms/components.txt): Six showcase components.
-- [Blocks](https://www.huanngdev.site/llms/blocks.txt): Two full-page blocks.
+- [Blocks](https://www.huanngdev.site/llms/blocks.txt): Three full-page blocks.

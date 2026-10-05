@@ -31,6 +31,15 @@ const BLOCK_LIST: readonly BlockItem[] = [
       alt: "Centered 500 error page with a message and recovery actions",
     },
   },
+  {
+    slug: "notion-like-editor",
+    name: "Notion-like Editor",
+    snapshot: {
+      lightSrc: "/images/blocks/notion-like-editor-light.png",
+      darkSrc: "/images/blocks/notion-like-editor-dark.png",
+      alt: "Notion-style document editor with a single empty paragraph",
+    },
+  },
 ];
 
 export const BLOCK_COUNT = BLOCK_LIST.length;

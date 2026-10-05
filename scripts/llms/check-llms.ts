@@ -110,7 +110,7 @@ function collectFailures(): string[] {
   const blockCount: number = LLMS_CATALOG.filter(
     (entry: LlmsCatalogEntry): boolean => entry.kind === "block",
   ).length;
-  if (LLMS_CATALOG.length !== 8 || componentCount !== 6 || blockCount !== 2) {
+  if (LLMS_CATALOG.length !== 9 || componentCount !== 6 || blockCount !== 3) {
     failures.push("catalog count");
   }
 

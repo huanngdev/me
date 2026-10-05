@@ -4,6 +4,7 @@
 
 - [CRM Data Table](https://www.huanngdev.site/llms/blocks/crm-data-table.txt): A CRM customers table with faceted filters, sorting, selection, expandable rows, row pinning, and column controls.
 - [Error Page](https://www.huanngdev.site/llms/blocks/error-page.txt): A minimal fullscreen error page with clear recovery actions.
+- [Notion-like Editor](https://www.huanngdev.site/llms/blocks/notion-like-editor.txt): A Notion-style block editor built on Plate with shadcn primitives.
 
 ## Optional
 

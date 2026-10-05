@@ -104,4 +104,18 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "apps/web/src/app/blocks/error-page/page.tsx",
     ],
   },
+  {
+    kind: "block",
+    slug: "notion-like-editor",
+    name: "Notion-like Editor",
+    description: "A Notion-style block editor built on Plate with shadcn primitives.",
+    docsPath: "/blocks/notion-like-editor",
+    files: [
+      "packages/core/src/components/blocks/notion-like-editor/editor-value.ts",
+      "packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts",
+      "packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts",
+      "packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx",
+      "apps/web/src/app/blocks/notion-like-editor/page.tsx",
+    ],
+  },
 ];
