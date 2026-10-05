@@ -48,6 +48,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-selection.ts",
+    code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-commands.ts",
+    code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",
     code: readSource(`${BLOCK_DIR}/use-notion-like-editor.ts`),
   },

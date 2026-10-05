@@ -2399,9 +2399,11 @@ export default function ErrorPageBlockPage() {
 5. packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
 6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
 7. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-8. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-9. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-10. apps/web/src/app/blocks/notion-like-editor/page.tsx
+8. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+9. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+10. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+11. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+12. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2955,6 +2957,93 @@ import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
 export const EDITOR_PLUGINS: AnyPluginConfig[] = [NodeIdPlugin];
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+```ts
+import type { RangeRef, SlateEditor, TRange } from "platejs";
+
+export function captureSelection(editor: SlateEditor): RangeRef | null {
+  if (!editor.selection) {
+    return null;
+  }
+
+  return editor.api.rangeRef(editor.selection);
+}
+
+export function releaseSelection(ref: RangeRef): TRange | null {
+  return ref.unref();
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+```ts
+import type { SlateEditor, TRange } from "platejs";
+
+export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
+
+export type EditorCommand<Payload = void> = {
+  id: string;
+  label: string;
+  group: EditorCommandGroup;
+  isEnabled?: (editor: SlateEditor) => boolean;
+  getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
+  run: (editor: SlateEditor, payload: Payload) => void;
+};
+
+export type RunEditorCommandOptions = {
+  selection?: TRange;
+  readOnly?: boolean;
+};
+
+function hasHistory(editor: SlateEditor, stack: "undos" | "redos"): boolean {
+  return editor.history[stack].length > 0;
+}
+
+export const HISTORY_COMMANDS: readonly EditorCommand[] = [
+  {
+    id: "history.undo",
+    label: "Undo",
+    group: "action",
+    isEnabled: (editor) => hasHistory(editor, "undos"),
+    run: (editor) => {
+      editor.tf.undo();
+    },
+  },
+  {
+    id: "history.redo",
+    label: "Redo",
+    group: "action",
+    isEnabled: (editor) => hasHistory(editor, "redos"),
+    run: (editor) => {
+      editor.tf.redo();
+    },
+  },
+];
+
+export function runEditorCommand<Payload>(
+  editor: SlateEditor,
+  command: EditorCommand<Payload>,
+  payload: Payload,
+  options?: RunEditorCommandOptions,
+): boolean {
+  if (options?.readOnly === true || command.isEnabled?.(editor) === false) {
+    return false;
+  }
+
+  editor.tf.withNewBatch(() => {
+    if (options?.selection) {
+      editor.tf.select(options.selection);
+    }
+
+    command.run(editor, payload);
+  });
+  // The batch splits from earlier typing, then later keystrokes would merge
+  // into it. Leave the split flag so the next saved operation starts its own entry.
+  editor.tf.setSplittingOnce(true);
+
+  return true;
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
 ```ts
 import { usePlateEditor } from "platejs/react";
@@ -3090,6 +3179,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-selection.ts",
+    code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-commands.ts",
+    code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",
