@@ -2420,8 +2420,9 @@ export default function ErrorPageBlockPage() {
 26. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
 27. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
 28. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-29. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-30. apps/web/src/app/blocks/notion-like-editor/page.tsx
+29. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+30. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+31. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -5020,6 +5021,8 @@ export function useEditorDocument({
 import type { ComponentProps } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
+import { cn } from "@/lib/utils";
+
 import type { EditorValue } from "./editor-value";
 
 type EditorSurfaceProps = {
@@ -5047,7 +5050,8 @@ export function EditorSurface({
     >
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
-        className={className}
+        // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+        className={cn(className, "space-y-4")}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}
@@ -5415,12 +5419,66 @@ export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+```ts
+import type { EditorValue } from "./editor-value";
+
+export const DEMO_DOCUMENT_VALUE = [
+  {
+    type: "p",
+    id: "demo-intro",
+    children: [{ text: "This is a paragraph. Click anywhere in it and start typing." }],
+  },
+  {
+    type: "p",
+    id: "demo-enter",
+    children: [{ text: "Press Enter to start a new paragraph." }],
+  },
+  {
+    type: "p",
+    id: "demo-break",
+    children: [
+      { text: "Press Shift+Enter for a line break.\nThis line is in the same paragraph." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-merge",
+    children: [{ text: "Backspace at the start of a paragraph joins it to the one above." }],
+  },
+  {
+    type: "p",
+    id: "demo-unicode",
+    children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+  },
+  {
+    type: "p",
+    id: "demo-paste",
+    children: [
+      {
+        text: "Paste text from anywhere. Each line becomes a paragraph, and formatting this editor does not support yet is removed.",
+      },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-save",
+    children: [
+      {
+        text: "Your changes save in this browser. Reload the page and they are still here. Undo with Cmd+Z or Ctrl+Z.",
+      },
+    ],
+  },
+] satisfies EditorValue;
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
 ```tsx
 "use client";
 
 import { useSyncExternalStore } from "react";
 
+import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { createLocalStorageAdapter } from "./local-storage-adapter";
@@ -5452,7 +5510,9 @@ export function NotionLikeEditorDemo() {
     );
   }
 
-  return <NotionLikeEditorBlock documentId="demo" adapter={adapter} />;
+  return (
+    <NotionLikeEditorBlock documentId="demo" adapter={adapter} initialValue={DEMO_DOCUMENT_VALUE} />
+  );
 }
 ```
 
@@ -5590,6 +5650,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-block.tsx",
     code: readSource(`${BLOCK_DIR}/notion-like-editor-block.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/demo-document.ts",
+    code: readSource(`${BLOCK_DIR}/demo-document.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

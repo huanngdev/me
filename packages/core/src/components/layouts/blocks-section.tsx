@@ -37,7 +37,7 @@ const BLOCK_LIST: readonly BlockItem[] = [
     snapshot: {
       lightSrc: "/images/blocks/notion-like-editor-light.png",
       darkSrc: "/images/blocks/notion-like-editor-dark.png",
-      alt: "Notion-style document editor with a single empty paragraph",
+      alt: "Notion-style editor with paragraphs, a line break, and saved text",
     },
   },
 ];

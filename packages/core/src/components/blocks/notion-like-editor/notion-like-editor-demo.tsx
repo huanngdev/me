@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
+import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { createLocalStorageAdapter } from "./local-storage-adapter";
@@ -33,5 +34,7 @@ export function NotionLikeEditorDemo() {
     );
   }
 
-  return <NotionLikeEditorBlock documentId="demo" adapter={adapter} />;
+  return (
+    <NotionLikeEditorBlock documentId="demo" adapter={adapter} initialValue={DEMO_DOCUMENT_VALUE} />
+  );
 }

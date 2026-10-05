@@ -3,6 +3,8 @@
 import type { ComponentProps } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
+import { cn } from "@/lib/utils";
+
 import type { EditorValue } from "./editor-value";
 
 type EditorSurfaceProps = {
@@ -30,7 +32,8 @@ export function EditorSurface({
     >
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
-        className={className}
+        // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+        className={cn(className, "space-y-4")}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}

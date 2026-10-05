@@ -139,6 +139,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx",
       "packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx",
       "packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/demo-document.ts",
       "packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx",
       "apps/web/src/app/blocks/notion-like-editor/page.tsx",
     ],

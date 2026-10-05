@@ -132,6 +132,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/notion-like-editor-block.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/demo-document.ts",
+    code: readSource(`${BLOCK_DIR}/demo-document.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",
     code: readSource(`${BLOCK_DIR}/notion-like-editor-demo.tsx`),
   },
