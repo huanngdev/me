@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-editor/notion-like-editor-block";
+import { NotionLikeEditorDemo } from "@repo/core/components/blocks/notion-like-editor/notion-like-editor-demo";
 import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-frame";
 import type { Metadata } from "next";
 
@@ -60,8 +60,56 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/use-notion-like-editor.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-persistence.ts",
+    code: readSource(`${BLOCK_DIR}/editor-persistence.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/local-storage-adapter.ts",
+    code: readSource(`${BLOCK_DIR}/local-storage-adapter.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-autosave.ts",
+    code: readSource(`${BLOCK_DIR}/editor-autosave.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/use-editor-document.ts",
+    code: readSource(`${BLOCK_DIR}/use-editor-document.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-surface.tsx",
+    code: readSource(`${BLOCK_DIR}/editor-surface.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-document-skeleton.tsx",
+    code: readSource(`${BLOCK_DIR}/editor-document-skeleton.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-save-status.tsx",
+    code: readSource(`${BLOCK_DIR}/editor-save-status.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-recovery-notice.tsx",
+    code: readSource(`${BLOCK_DIR}/editor-recovery-notice.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/memory-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/memory-editor.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/ready-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/ready-editor.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/persisted-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/persisted-editor.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/notion-like-editor-block.tsx",
     code: readSource(`${BLOCK_DIR}/notion-like-editor-block.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",
+    code: readSource(`${BLOCK_DIR}/notion-like-editor-demo.tsx`),
   },
   {
     path: "app/blocks/notion-like-editor/page.tsx",
@@ -96,7 +144,7 @@ export default function NotionLikeEditorBlockPage() {
       llmText={readLlmsDocument("blocks", "notion-like-editor")}
       backButton={{ label: "Go back", position: "top-left" }}
     >
-      <NotionLikeEditorBlock documentId="demo" />
+      <NotionLikeEditorDemo />
     </BlockPreviewFrame>
   );
 }
