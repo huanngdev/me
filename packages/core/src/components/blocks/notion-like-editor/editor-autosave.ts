@@ -80,7 +80,6 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
   let nextSaveId = 0;
   let conflicted = false;
   let disposed = false;
-  let sawError = false;
   let idleWaiters: Array<() => void> = [];
   const unsubscribe = options.adapter.subscribe?.(options.documentId, (revision) => {
     if (readOnly() || conflicted || disposed || revision === baseRevision) {
@@ -212,10 +211,7 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
       }
 
       emit("error", result.message);
-      if (!sawError) {
-        sawError = true;
-        await writeRecovery("save-failed");
-      }
+      await writeRecovery("save-failed");
 
       if (queued !== undefined && !disposed && !conflicted && !readOnly()) {
         armTimers();
@@ -226,7 +222,6 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
     }
 
     baseRevision = result.revision;
-    sawError = false;
     if (queued !== undefined) {
       startSave();
       return;

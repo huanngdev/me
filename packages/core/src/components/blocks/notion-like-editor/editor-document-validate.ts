@@ -120,7 +120,7 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     return;
   }
 
-  if (!isUnknownArray(value.children)) {
+  if (!isUnknownArray(value.children) || value.children.length === 0) {
     reject(
       state,
       path,

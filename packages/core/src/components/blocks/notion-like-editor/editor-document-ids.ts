@@ -21,12 +21,27 @@ function elementId(node: EditorBlock): string | undefined {
   return node.id;
 }
 
-function allocateId(createId: () => string, seen: Set<string>): string {
+function collectReservedIds(node: EditorBlock, reserved: Set<string>): void {
+  const id = elementId(node);
+  if (id !== undefined) {
+    reserved.add(id);
+  }
+
+  for (const child of node.children) {
+    if (isBlock(child)) {
+      collectReservedIds(child, reserved);
+    }
+  }
+}
+
+function allocateId(createId: () => string, seen: Set<string>, reserved: Set<string>): string {
   const base = createId();
   let unique = base;
   let suffix = 1;
 
-  while (unique.length === 0 || seen.has(unique)) {
+  // Ids already in the document are reserved before this walk, so a generated
+  // id cannot take one that a later block still owns.
+  while (unique.length === 0 || seen.has(unique) || reserved.has(unique)) {
     unique = `${base}-${suffix}`;
     suffix += 1;
   }
@@ -39,6 +54,7 @@ function resolveId(
   currentId: string | undefined,
   path: number[],
   seen: Set<string>,
+  reserved: Set<string>,
   createId: () => string,
 ): { id: string; repair: Repair | undefined } {
   if (currentId !== undefined && !seen.has(currentId)) {
@@ -47,7 +63,7 @@ function resolveId(
   }
 
   return {
-    id: allocateId(createId, seen),
+    id: allocateId(createId, seen, reserved),
     repair: {
       path,
       message:
@@ -62,10 +78,11 @@ function normalizeElement(
   node: EditorBlock,
   path: number[],
   seen: Set<string>,
+  reserved: Set<string>,
   createId: () => string,
   repairs: Repair[],
 ): EditorBlock {
-  const resolved = resolveId(elementId(node), path, seen, createId);
+  const resolved = resolveId(elementId(node), path, seen, reserved, createId);
   if (resolved.repair) {
     repairs.push(resolved.repair);
   }
@@ -76,7 +93,7 @@ function normalizeElement(
       return child;
     }
 
-    const next = normalizeElement(child, [...path, index], seen, createId, repairs);
+    const next = normalizeElement(child, [...path, index], seen, reserved, createId, repairs);
     if (next !== child) {
       childrenChanged = true;
     }
@@ -100,10 +117,15 @@ export function normalizeBlockIds(
   createId: () => string,
 ): { content: EditorValue; repairs: Repair[] } {
   const seen = new Set<string>();
+  const reserved = new Set<string>();
   const repairs: Repair[] = [];
+  for (const node of content) {
+    collectReservedIds(node, reserved);
+  }
+
   let changed = false;
   const next = content.map((node, index) => {
-    const normalized = normalizeElement(node, [index], seen, createId, repairs);
+    const normalized = normalizeElement(node, [index], seen, reserved, createId, repairs);
     if (normalized !== node) {
       changed = true;
     }

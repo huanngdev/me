@@ -1,46 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createSlateEditor, type SlateEditor, type TRange } from "platejs";
+import type { SlateEditor } from "platejs";
 
-import { createEditorPlugins } from "./editor-plugins";
-import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
-
-function createEditor(value: EditorValue = EMPTY_EDITOR_VALUE): SlateEditor {
-  return createSlateEditor({
-    plugins: createEditorPlugins(),
-    value,
-  });
-}
-
-function caret(path: number[], offset: number): TRange {
-  return {
-    anchor: { path, offset },
-    focus: { path, offset },
-  };
-}
-
-function blockIds(editor: SlateEditor): string[] {
-  const ids: string[] = [];
-  for (const block of editor.children) {
-    if ("id" in block && typeof block.id === "string") {
-      ids.push(block.id);
-    }
-  }
-  return ids;
-}
-
-function texts(editor: SlateEditor): string[] {
-  const lines: string[] = [];
-  for (const block of editor.children) {
-    let line = "";
-    for (const child of block.children) {
-      if ("text" in child && typeof child.text === "string") {
-        line += child.text;
-      }
-    }
-    lines.push(line);
-  }
-  return lines;
-}
+import { blockIds, caret, createEditor, texts } from "./test-utils";
 
 function leafMark(editor: SlateEditor, path: number[], key: string): unknown {
   const block = editor.children[path[0] ?? -1];
@@ -69,30 +30,32 @@ function insertPlainText(editor: SlateEditor, text: string): void {
 describe("paragraph", () => {
   test("a new document is one empty paragraph with an id", () => {
     const editor = createEditor();
+    const ids = blockIds(editor);
 
     expect(editor.children).toHaveLength(1);
     expect(texts(editor)).toEqual([""]);
-    expect(blockIds(editor)).toHaveLength(1);
-    expect(blockIds(editor)[0]).not.toBe("");
+    expect(ids).toHaveLength(1);
+    expect(ids[0]).not.toBe("");
   });
 
-  test("enter splits the paragraph and keeps marks on both sides", () => {
+  test("Enter in the middle of a paragraph splits it and gives the new paragraph a new id", () => {
     const editor = createEditor([
       { type: "p", id: "block-a", children: [{ text: "Hello world", bold: true }] },
     ]);
     editor.tf.select(caret([0, 0], 5));
 
     editor.tf.insertBreak();
+    const ids = blockIds(editor);
 
     expect(texts(editor)).toEqual(["Hello", " world"]);
-    expect(blockIds(editor)[0]).toBe("block-a");
-    expect(blockIds(editor)[1]).not.toBe("block-a");
-    expect(blockIds(editor)[1]).not.toBe("");
+    expect(ids[0]).toBe("block-a");
+    expect(ids[1]).not.toBe("block-a");
+    expect(ids[1]).not.toBe("");
     expect(leafMark(editor, [0, 0], "bold")).toBe(true);
     expect(leafMark(editor, [1, 0], "bold")).toBe(true);
   });
 
-  test("insertSoftBreak stores a newline in the same paragraph", () => {
+  test("Shift+Enter stores a newline in the same paragraph", () => {
     const editor = createEditor([
       { type: "p", id: "block-a", children: [{ text: "Hello world" }] },
     ]);
@@ -105,32 +68,37 @@ describe("paragraph", () => {
     expect(texts(editor)).toEqual(["Hello\n world"]);
   });
 
-  test("backspace and delete merge paragraphs and keep the first id", () => {
-    const backspace = createEditor([
+  test("Backspace at the start of a paragraph merges it into the previous one and keeps the first id", () => {
+    const editor = createEditor([
       { type: "p", id: "block-a", children: [{ text: "Hello" }] },
       { type: "p", id: "block-b", children: [{ text: " world" }] },
     ]);
-    backspace.tf.select(caret([1, 0], 0));
-    backspace.tf.deleteBackward();
+    editor.tf.select(caret([1, 0], 0));
 
-    expect(texts(backspace)).toEqual(["Hello world"]);
-    expect(blockIds(backspace)).toEqual(["block-a"]);
+    editor.tf.deleteBackward();
 
-    const forward = createEditor([
-      { type: "p", id: "block-a", children: [{ text: "Hello" }] },
-      { type: "p", id: "block-b", children: [{ text: " world" }] },
-    ]);
-    forward.tf.select(caret([0, 0], 5));
-    forward.tf.deleteForward();
-
-    expect(texts(forward)).toEqual(["Hello world"]);
-    expect(blockIds(forward)).toEqual(["block-a"]);
+    expect(texts(editor)).toEqual(["Hello world"]);
+    expect(blockIds(editor)).toEqual(["block-a"]);
   });
 
-  test("whitespace, unicode, and emoji survive split and merge", () => {
+  test("Delete at the end of a paragraph merges the next one and keeps the first id", () => {
+    const editor = createEditor([
+      { type: "p", id: "block-a", children: [{ text: "Hello" }] },
+      { type: "p", id: "block-b", children: [{ text: " world" }] },
+    ]);
+    editor.tf.select(caret([0, 0], 5));
+
+    editor.tf.deleteForward();
+
+    expect(texts(editor)).toEqual(["Hello world"]);
+    expect(blockIds(editor)).toEqual(["block-a"]);
+  });
+
+  test("a split and merge keep whitespace, unicode, and emoji in the same paragraph", () => {
     const source = "  Tiếng 👩‍💻👍🏽  ";
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: source }] }]);
     editor.tf.select(caret([0, 0], 8));
+
     editor.tf.insertBreak();
 
     expect(texts(editor).join("")).toBe(source);
@@ -143,15 +111,17 @@ describe("paragraph", () => {
     expect(blockIds(editor)).toEqual(["block-a"]);
   });
 
-  test("deleteBackward removes one combined emoji grapheme", () => {
+  test("Backspace removes one combined emoji grapheme", () => {
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "x👩‍💻👍🏽" }] }]);
     const end = "x👩‍💻👍🏽".length;
     editor.tf.select(caret([0, 0], end));
 
     editor.tf.deleteBackward();
+
     expect(texts(editor)).toEqual(["x👩‍💻"]);
 
     editor.tf.deleteBackward();
+
     expect(texts(editor)).toEqual(["x"]);
   });
 
@@ -168,60 +138,92 @@ describe("paragraph", () => {
     editor.tf.select({ anchor, focus });
 
     editor.tf.deleteFragment();
+    const ids = blockIds(editor);
 
     expect(editor.children).toHaveLength(1);
     expect(texts(editor)).toEqual([""]);
-    expect(blockIds(editor)).toHaveLength(1);
-    expect(blockIds(editor)[0]).not.toBe("");
+    expect(ids).toHaveLength(1);
+    expect(ids[0]).not.toBe("");
   });
 
-  test("plain text line endings become one paragraph per line", () => {
+  test("plain text with CR, LF, and CRLF becomes one paragraph per line", () => {
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
     editor.tf.select(caret([0, 0], 0));
 
     insertPlainText(editor, "a\r\nb\nc\rd");
+    const lines = texts(editor);
+    const ids = blockIds(editor);
 
-    expect(texts(editor)).toEqual(["a", "b", "c", "d"]);
-    expect(texts(editor).join("")).not.toContain("\r");
-    expect(new Set(blockIds(editor)).size).toBe(4);
-    expect(blockIds(editor)[0]).toBe("block-a");
+    expect(lines).toEqual(["a", "b", "c", "d"]);
+    expect(lines.join("")).not.toContain("\r");
+    expect(new Set(ids).size).toBe(4);
+    expect(ids[0]).toBe("block-a");
   });
 
-  test("undo and redo restore a split and a merge as one step each", () => {
-    const split = createEditor([
+  test("undo of Enter restores the original paragraph in one step", () => {
+    const editor = createEditor([
       { type: "p", id: "block-a", children: [{ text: "Hello world", bold: true }] },
     ]);
-    split.tf.select(caret([0, 0], 5));
-    const beforeSplit = split.history.undos.length;
-    split.tf.insertBreak();
+    editor.tf.select(caret([0, 0], 5));
+    const before = editor.history.undos.length;
 
-    expect(split.history.undos.length - beforeSplit).toBe(1);
-    split.tf.undo();
-    expect(texts(split)).toEqual(["Hello world"]);
-    expect(blockIds(split)).toEqual(["block-a"]);
-    expect(leafMark(split, [0, 0], "bold")).toBe(true);
+    editor.tf.insertBreak();
 
-    split.tf.redo();
-    expect(texts(split)).toEqual(["Hello", " world"]);
-    expect(blockIds(split)[0]).toBe("block-a");
-    expect(leafMark(split, [0, 0], "bold")).toBe(true);
-    expect(leafMark(split, [1, 0], "bold")).toBe(true);
+    expect(editor.history.undos.length - before).toBe(1);
 
-    const merge = createEditor([
+    editor.tf.undo();
+
+    expect(texts(editor)).toEqual(["Hello world"]);
+    expect(blockIds(editor)).toEqual(["block-a"]);
+    expect(leafMark(editor, [0, 0], "bold")).toBe(true);
+  });
+
+  test("redo of Enter restores the split and the marks", () => {
+    const editor = createEditor([
+      { type: "p", id: "block-a", children: [{ text: "Hello world", bold: true }] },
+    ]);
+    editor.tf.select(caret([0, 0], 5));
+    editor.tf.insertBreak();
+    editor.tf.undo();
+
+    editor.tf.redo();
+
+    expect(texts(editor)).toEqual(["Hello", " world"]);
+    expect(blockIds(editor)[0]).toBe("block-a");
+    expect(leafMark(editor, [0, 0], "bold")).toBe(true);
+    expect(leafMark(editor, [1, 0], "bold")).toBe(true);
+  });
+
+  test("undo of a paragraph merge restores both paragraphs in one step", () => {
+    const editor = createEditor([
       { type: "p", id: "block-a", children: [{ text: "Hello" }] },
       { type: "p", id: "block-b", children: [{ text: " world" }] },
     ]);
-    merge.tf.select(caret([1, 0], 0));
-    const beforeMerge = merge.history.undos.length;
-    merge.tf.deleteBackward();
+    editor.tf.select(caret([1, 0], 0));
+    const before = editor.history.undos.length;
 
-    expect(merge.history.undos.length - beforeMerge).toBe(1);
-    merge.tf.undo();
-    expect(texts(merge)).toEqual(["Hello", " world"]);
-    expect(blockIds(merge)[0]).toBe("block-a");
+    editor.tf.deleteBackward();
 
-    merge.tf.redo();
-    expect(texts(merge)).toEqual(["Hello world"]);
-    expect(blockIds(merge)).toEqual(["block-a"]);
+    expect(editor.history.undos.length - before).toBe(1);
+
+    editor.tf.undo();
+
+    expect(texts(editor)).toEqual(["Hello", " world"]);
+    expect(blockIds(editor)[0]).toBe("block-a");
+  });
+
+  test("redo of a paragraph merge joins them again and keeps the first id", () => {
+    const editor = createEditor([
+      { type: "p", id: "block-a", children: [{ text: "Hello" }] },
+      { type: "p", id: "block-b", children: [{ text: " world" }] },
+    ]);
+    editor.tf.select(caret([1, 0], 0));
+    editor.tf.deleteBackward();
+    editor.tf.undo();
+
+    editor.tf.redo();
+
+    expect(texts(editor)).toEqual(["Hello world"]);
+    expect(blockIds(editor)).toEqual(["block-a"]);
   });
 });

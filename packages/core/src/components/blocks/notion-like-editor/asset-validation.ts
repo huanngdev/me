@@ -19,7 +19,7 @@ export async function validateUpload(
   if (file.size > limit) {
     return {
       ok: false,
-      error: `This ${KIND_NOUN[kind]} is ${formatMegabytes(file.size)}. The limit is ${formatMegabytes(limit)}.`,
+      error: `This ${KIND_NOUN[kind]} is ${formatMegabytes(file.size, "up")}. The limit is ${formatMegabytes(limit)}.`,
     };
   }
 
@@ -159,8 +159,10 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return text;
 }
 
-function formatMegabytes(bytes: number): string {
-  const rounded = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
+  const scaled = (bytes / (1024 * 1024)) * 10;
+  const tenths = round === "up" ? Math.ceil(scaled) : Math.round(scaled);
+  const rounded = tenths / 10;
   if (Number.isInteger(rounded)) {
     return `${String(rounded)} MB`;
   }

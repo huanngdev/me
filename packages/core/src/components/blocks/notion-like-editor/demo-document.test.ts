@@ -4,75 +4,78 @@ import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createEditorDocument } from "./editor-document";
 import { EDITOR_ELEMENT_RULES } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+import { expectOk, isRecord } from "./test-utils";
 
 function textOf(block: (typeof DEMO_DOCUMENT_VALUE)[number]): string {
   return block.children.map((child) => child.text).join("");
 }
 
-function walk(value: unknown): void {
+function allowlistProblems(value: unknown): string[] {
   if (!isRecord(value)) {
-    return;
+    return [];
   }
 
   if (typeof value.text === "string" && !("children" in value)) {
-    expect(Object.keys(value)).toEqual(["text"]);
-    return;
+    const keys = Object.keys(value);
+    return keys.length === 1 && keys[0] === "text" ? [] : ["text leaf has extra keys"];
   }
 
+  const problems: string[] = [];
   if (typeof value.type === "string") {
-    expect(EDITOR_ELEMENT_RULES.some((rule) => rule.type === value.type)).toBe(true);
+    const allowed = EDITOR_ELEMENT_RULES.some((rule) => rule.type === value.type);
+    if (!allowed) {
+      problems.push(`${value.type} is not allowlisted`);
+    }
   }
 
   if (!Array.isArray(value.children)) {
-    return;
+    return problems;
   }
 
   for (const child of value.children) {
-    walk(child);
+    problems.push(...allowlistProblems(child));
   }
+
+  return problems;
 }
 
 describe("demo document", () => {
   test("the demo document parses with no repairs", () => {
-    const parsed = parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE));
-
-    expect(parsed.status).toBe("ok");
-    if (parsed.status !== "ok") {
-      return;
-    }
+    const parsed = expectOk(parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE)));
 
     expect(parsed.repairs).toEqual([]);
   });
 
   test("every demo block is an allowlisted paragraph", () => {
-    for (const block of DEMO_DOCUMENT_VALUE) {
-      walk(block);
-    }
+    const problems = DEMO_DOCUMENT_VALUE.flatMap((block) => allowlistProblems(block));
+
+    expect(problems).toEqual([]);
   });
 
   test("demo text leaves contain only text", () => {
-    for (const block of DEMO_DOCUMENT_VALUE) {
-      for (const child of block.children) {
-        expect(Object.keys(child)).toEqual(["text"]);
-      }
-    }
+    const keys = DEMO_DOCUMENT_VALUE.flatMap((block) =>
+      block.children.map((child) => Object.keys(child)),
+    );
+
+    expect(keys).toEqual(
+      DEMO_DOCUMENT_VALUE.map((block) => block.children.map(() => ["text"])).flat(),
+    );
   });
 
   test("demo paragraph ids are unique", () => {
     const ids = DEMO_DOCUMENT_VALUE.map((block) => block.id);
+    const unique = new Set(ids).size === ids.length;
+    const present = ids.every((id) => id.length > 0);
 
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.every((id) => id.length > 0)).toBe(true);
+    expect(unique).toBe(true);
+    expect(present).toBe(true);
   });
 
-  test("the line-break paragraph contains one newline", () => {
+  test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);
+    const newlines = text.match(/\n/g);
 
-    expect(text.match(/\n/g)).toEqual(["\n"]);
+    expect(newlines).toEqual(["\n"]);
   });
 });

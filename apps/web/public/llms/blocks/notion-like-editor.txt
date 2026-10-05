@@ -160,12 +160,27 @@ function elementId(node: EditorBlock): string | undefined {
   return node.id;
 }
 
-function allocateId(createId: () => string, seen: Set<string>): string {
+function collectReservedIds(node: EditorBlock, reserved: Set<string>): void {
+  const id = elementId(node);
+  if (id !== undefined) {
+    reserved.add(id);
+  }
+
+  for (const child of node.children) {
+    if (isBlock(child)) {
+      collectReservedIds(child, reserved);
+    }
+  }
+}
+
+function allocateId(createId: () => string, seen: Set<string>, reserved: Set<string>): string {
   const base = createId();
   let unique = base;
   let suffix = 1;
 
-  while (unique.length === 0 || seen.has(unique)) {
+  // Ids already in the document are reserved before this walk, so a generated
+  // id cannot take one that a later block still owns.
+  while (unique.length === 0 || seen.has(unique) || reserved.has(unique)) {
     unique = `${base}-${suffix}`;
     suffix += 1;
   }
@@ -178,6 +193,7 @@ function resolveId(
   currentId: string | undefined,
   path: number[],
   seen: Set<string>,
+  reserved: Set<string>,
   createId: () => string,
 ): { id: string; repair: Repair | undefined } {
   if (currentId !== undefined && !seen.has(currentId)) {
@@ -186,7 +202,7 @@ function resolveId(
   }
 
   return {
-    id: allocateId(createId, seen),
+    id: allocateId(createId, seen, reserved),
     repair: {
       path,
       message:
@@ -201,10 +217,11 @@ function normalizeElement(
   node: EditorBlock,
   path: number[],
   seen: Set<string>,
+  reserved: Set<string>,
   createId: () => string,
   repairs: Repair[],
 ): EditorBlock {
-  const resolved = resolveId(elementId(node), path, seen, createId);
+  const resolved = resolveId(elementId(node), path, seen, reserved, createId);
   if (resolved.repair) {
     repairs.push(resolved.repair);
   }
@@ -215,7 +232,7 @@ function normalizeElement(
       return child;
     }
 
-    const next = normalizeElement(child, [...path, index], seen, createId, repairs);
+    const next = normalizeElement(child, [...path, index], seen, reserved, createId, repairs);
     if (next !== child) {
       childrenChanged = true;
     }
@@ -239,10 +256,15 @@ export function normalizeBlockIds(
   createId: () => string,
 ): { content: EditorValue; repairs: Repair[] } {
   const seen = new Set<string>();
+  const reserved = new Set<string>();
   const repairs: Repair[] = [];
+  for (const node of content) {
+    collectReservedIds(node, reserved);
+  }
+
   let changed = false;
   const next = content.map((node, index) => {
-    const normalized = normalizeElement(node, [index], seen, createId, repairs);
+    const normalized = normalizeElement(node, [index], seen, reserved, createId, repairs);
     if (normalized !== node) {
       changed = true;
     }
@@ -403,7 +425,7 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     return;
   }
 
-  if (!isUnknownArray(value.children)) {
+  if (!isUnknownArray(value.children) || value.children.length === 0) {
     reject(
       state,
       path,
@@ -1099,7 +1121,7 @@ export async function validateUpload(
   if (file.size > limit) {
     return {
       ok: false,
-      error: `This ${KIND_NOUN[kind]} is ${formatMegabytes(file.size)}. The limit is ${formatMegabytes(limit)}.`,
+      error: `This ${KIND_NOUN[kind]} is ${formatMegabytes(file.size, "up")}. The limit is ${formatMegabytes(limit)}.`,
     };
   }
 
@@ -1239,8 +1261,10 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return text;
 }
 
-function formatMegabytes(bytes: number): string {
-  const rounded = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
+  const scaled = (bytes / (1024 * 1024)) * 10;
+  const tenths = round === "up" ? Math.ceil(scaled) : Math.round(scaled);
+  const rounded = tenths / 10;
   if (Number.isInteger(rounded)) {
     return `${String(rounded)} MB`;
   }
@@ -2108,7 +2132,6 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
   let nextSaveId = 0;
   let conflicted = false;
   let disposed = false;
-  let sawError = false;
   let idleWaiters: Array<() => void> = [];
   const unsubscribe = options.adapter.subscribe?.(options.documentId, (revision) => {
     if (readOnly() || conflicted || disposed || revision === baseRevision) {
@@ -2240,10 +2263,7 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
       }
 
       emit("error", result.message);
-      if (!sawError) {
-        sawError = true;
-        await writeRecovery("save-failed");
-      }
+      await writeRecovery("save-failed");
 
       if (queued !== undefined && !disposed && !conflicted && !readOnly()) {
         armTimers();
@@ -2254,7 +2274,6 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
     }
 
     baseRevision = result.revision;
-    sawError = false;
     if (queued !== undefined) {
       startSave();
       return;
