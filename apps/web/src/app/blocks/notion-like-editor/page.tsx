@@ -56,6 +56,26 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-assets.ts",
+    code: readSource(`${BLOCK_DIR}/editor-assets.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/asset-validation.ts",
+    code: readSource(`${BLOCK_DIR}/asset-validation.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/upload-controller.ts",
+    code: readSource(`${BLOCK_DIR}/upload-controller.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/asset-references.ts",
+    code: readSource(`${BLOCK_DIR}/asset-references.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/indexed-db-asset-store.ts",
+    code: readSource(`${BLOCK_DIR}/indexed-db-asset-store.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",
     code: readSource(`${BLOCK_DIR}/use-notion-like-editor.ts`),
   },

@@ -2401,21 +2401,26 @@ export default function ErrorPageBlockPage() {
 7. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 8. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
 9. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-10. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-11. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-12. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-13. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-14. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-15. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-16. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-17. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-18. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-19. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-20. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-21. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-22. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-23. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-24. apps/web/src/app/blocks/notion-like-editor/page.tsx
+10. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+11. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+12. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+13. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+14. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+15. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+16. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+17. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+18. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+19. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+20. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+21. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+22. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+24. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+25. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+26. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+27. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+28. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+29. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -3053,6 +3058,771 @@ export function runEditorCommand<Payload>(
   editor.tf.setSplittingOnce(true);
 
   return true;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+```ts
+export type AssetKind = "image" | "video" | "audio" | "file";
+
+export type AssetRecord = {
+  id: string;
+  kind: AssetKind;
+  name: string;
+  mimeType: string;
+  byteSize: number;
+  width?: number;
+  height?: number;
+  durationMs?: number;
+  createdAt: string;
+};
+
+export type UploadState = {
+  uploadId: string;
+  blockId: string;
+  kind: AssetKind;
+  name: string;
+  status: "pending" | "processing" | "ready" | "failed" | "canceled";
+  assetId?: string;
+  error?: string;
+};
+
+export type AssetStore = {
+  put: (record: AssetRecord, blob: Blob) => Promise<void>;
+  get: (id: string) => Promise<{ record: AssetRecord; blob: Blob } | null>;
+  delete: (id: string) => Promise<void>;
+  list: () => Promise<AssetRecord[]>;
+};
+
+const MIB = 1024 * 1024;
+
+export const ASSET_LIMITS = {
+  image: 10 * MIB,
+  video: 100 * MIB,
+  audio: 25 * MIB,
+  file: 25 * MIB,
+} as const satisfies Record<AssetKind, number>;
+
+export type UploadSource = {
+  name: string;
+  type: string;
+  size: number;
+  slice: (start: number, end: number) => Blob;
+};
+
+export type AssetProbe = (
+  blob: Blob,
+  kind: AssetKind,
+) => Promise<{ width?: number; height?: number; durationMs?: number } | undefined>;
+```
+
+## packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+```ts
+import { ASSET_LIMITS, type AssetKind, type UploadSource } from "./editor-assets";
+
+export type UploadValidation = { ok: true; mimeType: string } | { ok: false; error: string };
+
+const AUDIO_BRANDS = new Set(["M4A ", "M4B ", "M4P ", "F4A ", "F4B "]);
+
+const KIND_NOUN: Record<AssetKind, string> = {
+  image: "image",
+  video: "video",
+  audio: "audio",
+  file: "file",
+};
+
+export async function validateUpload(
+  file: UploadSource,
+  kind: AssetKind,
+): Promise<UploadValidation> {
+  const limit = ASSET_LIMITS[kind];
+  if (file.size > limit) {
+    return {
+      ok: false,
+      error: `This ${KIND_NOUN[kind]} is ${formatMegabytes(file.size)}. The limit is ${formatMegabytes(limit)}.`,
+    };
+  }
+
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+
+  if (kind === "file") {
+    return {
+      ok: true,
+      mimeType: isPdf(bytes) ? "application/pdf" : "application/octet-stream",
+    };
+  }
+
+  if (kind === "image") {
+    return validateImage(bytes);
+  }
+
+  if (kind === "video") {
+    return validateVideo(bytes);
+  }
+
+  return validateAudio(bytes);
+}
+
+function validateImage(bytes: Uint8Array): UploadValidation {
+  if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
+    return { ok: true, mimeType: "image/png" };
+  }
+
+  if (startsWith(bytes, [0xff, 0xd8, 0xff])) {
+    return { ok: true, mimeType: "image/jpeg" };
+  }
+
+  const gif = ascii(bytes, 0, 6);
+  if (gif === "GIF87a" || gif === "GIF89a") {
+    return { ok: true, mimeType: "image/gif" };
+  }
+
+  if (isRiff(bytes, "WEBP")) {
+    return { ok: true, mimeType: "image/webp" };
+  }
+
+  if (isSvg(bytes)) {
+    return {
+      ok: false,
+      error: "SVG images are not allowed because they can contain scripts.",
+    };
+  }
+
+  return {
+    ok: false,
+    error: "This file is not a PNG, JPEG, GIF, or WebP image.",
+  };
+}
+
+function validateVideo(bytes: Uint8Array): UploadValidation {
+  if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) {
+    return { ok: true, mimeType: "video/webm" };
+  }
+
+  if (hasFtyp(bytes) && !AUDIO_BRANDS.has(majorBrand(bytes))) {
+    return { ok: true, mimeType: "video/mp4" };
+  }
+
+  return {
+    ok: false,
+    error: "This file is not an MP4 or WebM video.",
+  };
+}
+
+function validateAudio(bytes: Uint8Array): UploadValidation {
+  if (isRiff(bytes, "WAVE")) {
+    return { ok: true, mimeType: "audio/wav" };
+  }
+
+  if (ascii(bytes, 0, 4) === "OggS") {
+    return { ok: true, mimeType: "audio/ogg" };
+  }
+
+  if (ascii(bytes, 0, 3) === "ID3" || isMp3Frame(bytes)) {
+    return { ok: true, mimeType: "audio/mpeg" };
+  }
+
+  if (hasFtyp(bytes) && AUDIO_BRANDS.has(majorBrand(bytes))) {
+    return { ok: true, mimeType: "audio/mp4" };
+  }
+
+  return {
+    ok: false,
+    error: "This file is not an MP3, WAV, OGG, or M4A audio file.",
+  };
+}
+
+function isPdf(bytes: Uint8Array): boolean {
+  return ascii(bytes, 0, 4) === "%PDF";
+}
+
+function isSvg(bytes: Uint8Array): boolean {
+  const text = ascii(bytes, 0, bytes.length).trim().toLowerCase();
+  return text.startsWith("<svg") || (text.startsWith("<?xml") && text.includes("svg"));
+}
+
+function isMp3Frame(bytes: Uint8Array): boolean {
+  const first = bytes[0];
+  const second = bytes[1];
+  return first === 0xff && second !== undefined && (second & 0xe0) === 0xe0;
+}
+
+function hasFtyp(bytes: Uint8Array): boolean {
+  return ascii(bytes, 4, 8) === "ftyp";
+}
+
+function majorBrand(bytes: Uint8Array): string {
+  return ascii(bytes, 8, 12);
+}
+
+function isRiff(bytes: Uint8Array, form: "WAVE" | "WEBP"): boolean {
+  return ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === form;
+}
+
+function startsWith(bytes: Uint8Array, prefix: readonly number[]): boolean {
+  if (bytes.length < prefix.length) {
+    return false;
+  }
+
+  return prefix.every((value, index) => bytes[index] === value);
+}
+
+function ascii(bytes: Uint8Array, start: number, end: number): string {
+  let text = "";
+  for (let index = start; index < end; index += 1) {
+    const byte = bytes[index];
+    if (byte === undefined) {
+      break;
+    }
+    text += String.fromCharCode(byte);
+  }
+  return text;
+}
+
+function formatMegabytes(bytes: number): string {
+  const rounded = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+  if (Number.isInteger(rounded)) {
+    return `${String(rounded)} MB`;
+  }
+
+  return `${rounded.toFixed(1)} MB`;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+```ts
+import { validateUpload } from "./asset-validation";
+import type {
+  AssetProbe,
+  AssetRecord,
+  AssetStore,
+  UploadSource,
+  UploadState,
+} from "./editor-assets";
+
+type UploadControllerOptions = {
+  store: AssetStore;
+  createId: () => string;
+  now: () => string;
+  onChange: (state: UploadState) => void;
+  probe?: AssetProbe;
+};
+
+type UploadEntry = {
+  state: UploadState;
+  file?: UploadSource;
+  assetId?: string;
+  canceled: boolean;
+  inflight?: Promise<void>;
+};
+
+export type UploadController = {
+  start: (file: UploadSource, target: { blockId: string; kind: UploadState["kind"] }) => string;
+  cancel: (uploadId: string) => void;
+  retry: (uploadId: string) => Promise<void>;
+  get: (uploadId: string) => UploadState | undefined;
+  dispose: () => void;
+};
+
+export function createUploadController(options: UploadControllerOptions): UploadController {
+  const uploads = new Map<string, UploadEntry>();
+  let disposed = false;
+
+  function emit(entry: UploadEntry): void {
+    options.onChange({ ...entry.state });
+  }
+
+  function patch(uploadId: string, next: Partial<UploadState>): void {
+    const entry = uploads.get(uploadId);
+    if (!entry) {
+      return;
+    }
+
+    entry.state = { ...entry.state, ...next };
+    emit(entry);
+  }
+
+  function start(
+    file: UploadSource,
+    target: { blockId: string; kind: UploadState["kind"] },
+  ): string {
+    const uploadId = options.createId();
+    const entry: UploadEntry = {
+      canceled: false,
+      file,
+      state: {
+        uploadId,
+        blockId: target.blockId,
+        kind: target.kind,
+        name: file.name,
+        status: "pending",
+      },
+    };
+    uploads.set(uploadId, entry);
+    emit(entry);
+    void schedule(uploadId);
+    return uploadId;
+  }
+
+  function cancel(uploadId: string): void {
+    const entry = uploads.get(uploadId);
+    if (!entry || entry.state.status === "ready" || entry.state.status === "canceled") {
+      return;
+    }
+
+    entry.canceled = true;
+    entry.file = undefined;
+    patch(uploadId, { status: "canceled", error: undefined });
+  }
+
+  async function retry(uploadId: string): Promise<void> {
+    const entry = uploads.get(uploadId);
+    if (!entry || disposed || entry.state.status === "ready") {
+      return;
+    }
+
+    if (entry.inflight) {
+      await entry.inflight;
+    }
+
+    const current = uploads.get(uploadId);
+    if (!current || disposed || current.state.status === "ready" || current.inflight) {
+      return;
+    }
+
+    if (!current.file) {
+      patch(uploadId, { status: "failed", error: "Choose the file again." });
+      return;
+    }
+
+    current.canceled = false;
+    patch(uploadId, { status: "pending", error: undefined });
+    await schedule(uploadId);
+  }
+
+  function schedule(uploadId: string): Promise<void> {
+    const entry = uploads.get(uploadId);
+    if (!entry) {
+      return Promise.resolve();
+    }
+
+    if (entry.inflight) {
+      return entry.inflight;
+    }
+
+    const inflight = Promise.resolve()
+      .then(() => run(uploadId))
+      .finally(() => {
+        const current = uploads.get(uploadId);
+        if (current?.inflight === inflight) {
+          current.inflight = undefined;
+        }
+      });
+    entry.inflight = inflight;
+    return inflight;
+  }
+
+  async function run(uploadId: string): Promise<void> {
+    const entry = uploads.get(uploadId);
+    if (!entry || disposed || entry.canceled || entry.state.status === "ready") {
+      return;
+    }
+
+    if (entry.assetId) {
+      patch(uploadId, { status: "ready", assetId: entry.assetId, error: undefined });
+      return;
+    }
+
+    const file = entry.file;
+    if (!file) {
+      patch(uploadId, { status: "failed", error: "Choose the file again." });
+      return;
+    }
+
+    patch(uploadId, { status: "processing", error: undefined });
+
+    try {
+      const validation = await validateUpload(file, entry.state.kind);
+      if (stopped(uploadId)) {
+        return;
+      }
+
+      if (!validation.ok) {
+        patch(uploadId, { status: "failed", error: validation.error });
+        return;
+      }
+
+      const probed = options.probe
+        ? await options.probe(file.slice(0, file.size), entry.state.kind)
+        : undefined;
+      if (stopped(uploadId)) {
+        return;
+      }
+
+      const assetId = options.createId();
+      const record = withProbe(
+        {
+          id: assetId,
+          kind: entry.state.kind,
+          name: file.name,
+          mimeType: validation.mimeType,
+          byteSize: file.size,
+          createdAt: options.now(),
+        },
+        probed,
+      );
+      try {
+        await options.store.put(record, file.slice(0, file.size));
+      } catch (error) {
+        await options.store.delete(assetId).catch(() => undefined);
+        if (stopped(uploadId)) {
+          return;
+        }
+
+        patch(uploadId, { status: "failed", error: errorMessage(error) });
+        return;
+      }
+
+      if (stopped(uploadId)) {
+        await options.store.delete(assetId).catch(() => undefined);
+        return;
+      }
+
+      const current = uploads.get(uploadId);
+      if (!current) {
+        await options.store.delete(assetId).catch(() => undefined);
+        return;
+      }
+
+      current.assetId = assetId;
+      patch(uploadId, { status: "ready", assetId, error: undefined });
+    } catch (error) {
+      if (stopped(uploadId)) {
+        return;
+      }
+
+      patch(uploadId, { status: "failed", error: errorMessage(error) });
+    }
+  }
+
+  function stopped(uploadId: string): boolean {
+    const entry = uploads.get(uploadId);
+    return disposed || !entry || entry.canceled || entry.state.status === "canceled";
+  }
+
+  function dispose(): void {
+    disposed = true;
+    for (const entry of uploads.values()) {
+      entry.file = undefined;
+      entry.canceled = true;
+    }
+  }
+
+  return {
+    start,
+    cancel,
+    retry,
+    get(uploadId) {
+      const state = uploads.get(uploadId)?.state;
+      return state ? { ...state } : undefined;
+    },
+    dispose,
+  };
+}
+
+function withProbe(
+  record: AssetRecord,
+  probed: { width?: number; height?: number; durationMs?: number } | undefined,
+): AssetRecord {
+  const next: AssetRecord = { ...record };
+  if (typeof probed?.width === "number") {
+    next.width = probed.width;
+  }
+  if (typeof probed?.height === "number") {
+    next.height = probed.height;
+  }
+  if (typeof probed?.durationMs === "number") {
+    next.durationMs = probed.durationMs;
+  }
+  return next;
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.length > 0) {
+    return error.message;
+  }
+
+  return "The file could not be saved. Try again.";
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+```ts
+import { ElementApi, type SlateEditor } from "platejs";
+
+import type { AssetStore } from "./editor-assets";
+import type { EditorValue } from "./editor-value";
+
+const DEFAULT_GRACE_MS = 24 * 60 * 60 * 1000;
+
+export function collectAssetIds(content: EditorValue): Set<string> {
+  const ids = new Set<string>();
+  walk(content, ids);
+  return ids;
+}
+
+export function applyUploadToBlock(
+  editor: SlateEditor,
+  blockId: string,
+  props: Record<string, unknown>,
+): boolean {
+  const entry = editor.api.node({
+    at: [],
+    id: blockId,
+    match: (node) => ElementApi.isElement(node),
+  });
+  if (!entry) {
+    return false;
+  }
+
+  const [, path] = entry;
+  // A finished upload is not a user edit. Saving it would make undo remove the user's last change.
+  editor.tf.withoutSaving(() => {
+    editor.tf.setNodes(props, { at: path });
+  });
+  return true;
+}
+
+export async function cleanupUnreferencedAssets(
+  store: AssetStore,
+  referenced: Set<string>,
+  options: { now: number; graceMs?: number },
+): Promise<string[]> {
+  const graceMs = options.graceMs ?? DEFAULT_GRACE_MS;
+  const deleted: string[] = [];
+
+  for (const record of await store.list()) {
+    if (referenced.has(record.id)) {
+      continue;
+    }
+
+    const created = Date.parse(record.createdAt);
+    if (Number.isNaN(created) || options.now - created <= graceMs) {
+      continue;
+    }
+
+    await store.delete(record.id);
+    deleted.push(record.id);
+  }
+
+  return deleted;
+}
+
+function walk(node: unknown, ids: Set<string>): void {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      walk(child, ids);
+    }
+    return;
+  }
+
+  if (typeof node !== "object" || node === null) {
+    return;
+  }
+
+  if ("assetId" in node && typeof node.assetId === "string") {
+    ids.add(node.assetId);
+  }
+
+  if ("children" in node) {
+    walk(node.children, ids);
+  }
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+```ts
+import type { AssetRecord, AssetStore } from "./editor-assets";
+
+const STORE = "assets";
+const UNAVAILABLE = "Browser storage for files is unavailable.";
+
+type StoredAsset = {
+  record: AssetRecord;
+  blob: Blob;
+};
+
+type IndexedDbAssetStoreOptions = {
+  dbName?: string;
+  getIndexedDb?: () => IDBFactory;
+};
+
+// Local browser storage only. A production adapter has to verify auth and document scope on the server.
+export function createIndexedDbAssetStore(options?: IndexedDbAssetStoreOptions): AssetStore {
+  const dbName = options?.dbName ?? "notion-like-editor-assets";
+  let opening: Promise<IDBDatabase> | undefined;
+
+  function database(): Promise<IDBDatabase> {
+    opening ??= openDatabase(resolveFactory(options?.getIndexedDb), dbName).catch(
+      (error: unknown) => {
+        opening = undefined;
+        throw error;
+      },
+    );
+    return opening;
+  }
+
+  async function transaction<T>(
+    mode: IDBTransactionMode,
+    run: (store: IDBObjectStore) => IDBRequest<T> | Promise<T>,
+  ): Promise<T> {
+    const db = await database();
+    const tx = db.transaction(STORE, mode);
+    const done = transactionDone(tx);
+    try {
+      const result = await Promise.resolve(run(tx.objectStore(STORE))).then((value) =>
+        isRequest(value) ? requestResult(value) : value,
+      );
+      await done;
+      return result;
+    } catch (error) {
+      await done.catch(() => undefined);
+      throw error instanceof Error ? error : new Error(UNAVAILABLE);
+    }
+  }
+
+  return {
+    async put(record, blob) {
+      await transaction("readwrite", (store) => store.put({ record, blob }, record.id));
+    },
+
+    async get(id) {
+      const value: unknown = await transaction("readonly", (store) => store.get(id));
+      if (!isStoredAsset(value)) {
+        return null;
+      }
+
+      return value;
+    },
+
+    async delete(id) {
+      await transaction("readwrite", (store) => store.delete(id));
+    },
+
+    async list() {
+      const values: unknown = await transaction("readonly", (store) => store.getAll());
+      if (!Array.isArray(values)) {
+        return [];
+      }
+
+      const records: AssetRecord[] = [];
+      for (const value of values) {
+        if (isStoredAsset(value)) {
+          records.push(value.record);
+        }
+      }
+      return records;
+    },
+  };
+}
+
+function resolveFactory(getIndexedDb: (() => IDBFactory) | undefined): IDBFactory {
+  try {
+    if (getIndexedDb) {
+      return getIndexedDb();
+    }
+
+    if (typeof indexedDB === "undefined") {
+      throw new Error(UNAVAILABLE);
+    }
+
+    return indexedDB;
+  } catch (error) {
+    throw new Error(
+      error instanceof Error && error.message === UNAVAILABLE ? error.message : UNAVAILABLE,
+    );
+  }
+}
+
+function openDatabase(factory: IDBFactory, dbName: string): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    let request: IDBOpenDBRequest;
+    try {
+      request = factory.open(dbName, 1);
+    } catch {
+      reject(new Error(UNAVAILABLE));
+      return;
+    }
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(new Error(UNAVAILABLE));
+    request.onblocked = () => reject(new Error(UNAVAILABLE));
+  });
+}
+
+function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(new Error(UNAVAILABLE));
+  });
+}
+
+function transactionDone(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(new Error(UNAVAILABLE));
+    transaction.onabort = () => reject(new Error(UNAVAILABLE));
+  });
+}
+
+function isRequest(value: unknown): value is IDBRequest {
+  return typeof value === "object" && value !== null && "onsuccess" in value && "result" in value;
+}
+
+function isStoredAsset(value: unknown): value is StoredAsset {
+  if (typeof value !== "object" || value === null || !("record" in value) || !("blob" in value)) {
+    return false;
+  }
+
+  return isAssetRecord(value.record) && value.blob instanceof Blob;
+}
+
+function isAssetRecord(value: unknown): value is AssetRecord {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  if (!("id" in value) || typeof value.id !== "string") {
+    return false;
+  }
+
+  if (!("kind" in value) || !isKind(value.kind)) {
+    return false;
+  }
+
+  if (!("name" in value) || typeof value.name !== "string") {
+    return false;
+  }
+
+  if (!("mimeType" in value) || typeof value.mimeType !== "string") {
+    return false;
+  }
+
+  if (!("byteSize" in value) || typeof value.byteSize !== "number") {
+    return false;
+  }
+
+  return "createdAt" in value && typeof value.createdAt === "string";
+}
+
+function isKind(value: unknown): value is AssetRecord["kind"] {
+  return value === "image" || value === "video" || value === "audio" || value === "file";
 }
 ```
 
@@ -4401,6 +5171,26 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/editor-commands.ts",
     code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-assets.ts",
+    code: readSource(`${BLOCK_DIR}/editor-assets.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/asset-validation.ts",
+    code: readSource(`${BLOCK_DIR}/asset-validation.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/upload-controller.ts",
+    code: readSource(`${BLOCK_DIR}/upload-controller.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/asset-references.ts",
+    code: readSource(`${BLOCK_DIR}/asset-references.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/indexed-db-asset-store.ts",
+    code: readSource(`${BLOCK_DIR}/indexed-db-asset-store.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",
