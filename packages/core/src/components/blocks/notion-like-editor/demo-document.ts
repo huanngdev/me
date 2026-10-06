@@ -86,6 +86,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-subscript",
+    children: [
+      { text: "This is subscript: H" },
+      { text: "2", subscript: true },
+      { text: "O. Press Cmd+, or Ctrl+," },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

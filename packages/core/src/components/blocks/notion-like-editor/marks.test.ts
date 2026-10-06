@@ -8,6 +8,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSubscript,
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
@@ -18,7 +19,8 @@ import { isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { caret, createEditor, expectOk, field, plainText, textRange } from "./test-utils";
 
-type MarkKey = "bold" | "italic" | "underline" | "strikethrough" | "code" | "superscript";
+type MarkKey =
+  "bold" | "italic" | "underline" | "strikethrough" | "code" | "superscript" | "subscript";
 
 type MarkCase = {
   key: MarkKey;
@@ -39,6 +41,7 @@ type Leaf = {
   strikethrough?: true;
   code?: true;
   superscript?: true;
+  subscript?: true;
 };
 
 function shortcutName(keys: readonly string[]): string {
@@ -119,6 +122,18 @@ const MARKS: Array<[string, MarkCase]> = [
       samples: ["2", "2"],
     },
   ],
+  [
+    "subscript",
+    {
+      key: KEYS.sub,
+      label: "subscript",
+      command: formatSubscript,
+      keys: ["Mod", "comma"],
+      demoId: "demo-subscript",
+      sentence: "This is subscript: H2O. Press Cmd+, or Ctrl+,",
+      sample: "2",
+    },
+  ],
 ];
 
 function paragraph(text: string) {
@@ -157,6 +172,10 @@ function withMark(text: string, key: MarkKey): Leaf {
 
   if (key === KEYS.sup) {
     return { text, superscript: true };
+  }
+
+  if (key === KEYS.sub) {
+    return { text, subscript: true };
   }
 
   const unreachable: never = key;
@@ -428,7 +447,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
     const expected = mark.samples === undefined ? [mark.sample] : [...mark.samples];
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(13);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(14);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });
@@ -954,39 +973,49 @@ describe("marks", () => {
   });
 });
 
-describe("superscript and subscript", () => {
-  test("superscript and subscript use the plate mark keys, and subscript stays unregistered", () => {
-    const editor = createEditor([paragraph("Hello")]);
+function leafHasBothScripts(node: unknown): boolean {
+  return field(node, "superscript") === true && field(node, "subscript") === true;
+}
 
+function hasBothScripts(editor: SlateEditor): boolean {
+  const block = editor.children[0];
+  if (!block) {
+    return false;
+  }
+
+  return block.children.some((child) => leafHasBothScripts(child));
+}
+
+describe("superscript and subscript", () => {
+  test("superscript and subscript use the plate mark keys", () => {
     expect(KEYS.sup).toBe("superscript");
     expect(KEYS.sub).toBe("subscript");
     expect(isAllowedMark(KEYS.sup)).toBe(true);
-    expect(isAllowedMark(KEYS.sub)).toBe(false);
-    expect(editor.meta.shortcuts[`${KEYS.sub}.toggle`]).toBeUndefined();
+    expect(isAllowedMark(KEYS.sub)).toBe(true);
   });
 
   test("applying superscript to a subscript range removes subscript and sets superscript in one undo step", () => {
-    const editor = createEditor([{ type: "p", children: [{ text: "H2O", [KEYS.sub]: true }] }]);
+    const editor = createEditor([paragraph("H2O")]);
     editor.tf.select(textRange([0, 0], 0, 3));
+    runEditorCommand(editor, formatSubscript, undefined);
     const undos = editor.history.undos.length;
 
     runEditorCommand(editor, formatSuperscript, undefined);
 
     expect(editor.history.undos.length - undos).toBe(1);
+    expect(hasBothScripts(editor)).toBe(false);
     expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
 
     editor.tf.undo();
 
+    expect(hasBothScripts(editor)).toBe(false);
     expect(editor.children[0]?.children).toEqual([{ text: "H2O", subscript: true }]);
   });
 
   test("applying superscript to a mixed subscript range marks the whole range and leaves no subscript", () => {
-    const editor = createEditor([
-      {
-        type: "p",
-        children: [{ text: "H", [KEYS.sub]: true }, { text: "2O" }],
-      },
-    ]);
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 1));
+    runEditorCommand(editor, formatSubscript, undefined);
     editor.tf.select({
       anchor: { path: [0, 0], offset: 0 },
       focus: { path: [0, 1], offset: 2 },
@@ -995,11 +1024,14 @@ describe("superscript and subscript", () => {
     runEditorCommand(editor, formatSuperscript, undefined);
 
     expect(plainText(editor)).toBe("H2O");
+    expect(hasBothScripts(editor)).toBe(false);
     expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
   });
 
   test("a caret inside subscript text makes the next typed text superscript and not subscript", () => {
-    const editor = createEditor([{ type: "p", children: [{ text: "H2O", [KEYS.sub]: true }] }]);
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+    runEditorCommand(editor, formatSubscript, undefined);
     editor.tf.select(caret([0, 0], 1));
 
     expect(markState(editor, formatSuperscript)).toBe("off");
@@ -1007,6 +1039,7 @@ describe("superscript and subscript", () => {
     runEditorCommand(editor, formatSuperscript, undefined);
     editor.tf.insertText("x");
 
+    expect(hasBothScripts(editor)).toBe(false);
     expect(editor.children[0]?.children).toEqual([
       { text: "H", subscript: true },
       { text: "x", superscript: true },
@@ -1016,7 +1049,7 @@ describe("superscript and subscript", () => {
 
   test("removing superscript never adds or removes subscript", () => {
     const both = createEditor([
-      { type: "p", children: [{ text: "Hi", superscript: true, [KEYS.sub]: true }] },
+      { type: "p", children: [{ text: "Hi", superscript: true, subscript: true }] },
     ]);
     both.tf.select(textRange([0, 0], 0, 2));
 
@@ -1024,11 +1057,150 @@ describe("superscript and subscript", () => {
 
     expect(both.children[0]?.children).toEqual([{ text: "Hi", subscript: true }]);
 
-    const only = createEditor([{ type: "p", children: [{ text: "Hi", superscript: true }] }]);
+    const only = createEditor([paragraph("Hi")]);
     only.tf.select(textRange([0, 0], 0, 2));
+    runEditorCommand(only, formatSuperscript, undefined);
 
     runEditorCommand(only, formatSuperscript, undefined);
 
     expect(only.children[0]?.children).toEqual([{ text: "Hi" }]);
+  });
+
+  test("applying subscript to a superscript range removes superscript and sets subscript in one undo step", () => {
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+    runEditorCommand(editor, formatSuperscript, undefined);
+    const undos = editor.history.undos.length;
+
+    runEditorCommand(editor, formatSubscript, undefined);
+
+    expect(editor.history.undos.length - undos).toBe(1);
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", subscript: true }]);
+
+    editor.tf.undo();
+
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
+  });
+
+  test("applying subscript to a mixed superscript range marks the whole range and leaves no superscript", () => {
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 1));
+    runEditorCommand(editor, formatSuperscript, undefined);
+    editor.tf.select({
+      anchor: { path: [0, 0], offset: 0 },
+      focus: { path: [0, 1], offset: 2 },
+    });
+
+    runEditorCommand(editor, formatSubscript, undefined);
+
+    expect(plainText(editor)).toBe("H2O");
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", subscript: true }]);
+  });
+
+  test("a caret inside superscript text makes the next typed text subscript and not superscript", () => {
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+    runEditorCommand(editor, formatSuperscript, undefined);
+    editor.tf.select(caret([0, 0], 1));
+
+    expect(markState(editor, formatSubscript)).toBe("off");
+
+    runEditorCommand(editor, formatSubscript, undefined);
+    editor.tf.insertText("x");
+
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([
+      { text: "H", superscript: true },
+      { text: "x", subscript: true },
+      { text: "2O", superscript: true },
+    ]);
+  });
+
+  test("removing subscript never adds or removes superscript", () => {
+    const both = createEditor([
+      { type: "p", children: [{ text: "Hi", superscript: true, subscript: true }] },
+    ]);
+    both.tf.select(textRange([0, 0], 0, 2));
+
+    runEditorCommand(both, formatSubscript, undefined);
+
+    expect(both.children[0]?.children).toEqual([{ text: "Hi", superscript: true }]);
+
+    const only = createEditor([paragraph("Hi")]);
+    only.tf.select(textRange([0, 0], 0, 2));
+    runEditorCommand(only, formatSubscript, undefined);
+
+    runEditorCommand(only, formatSubscript, undefined);
+
+    expect(only.children[0]?.children).toEqual([{ text: "Hi" }]);
+  });
+
+  test("superscript then subscript then superscript never leaves both marks on one leaf", () => {
+    const editor = createEditor([paragraph("H2O")]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
+
+    runEditorCommand(editor, formatSubscript, undefined);
+
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", subscript: true }]);
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(hasBothScripts(editor)).toBe(false);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
+  });
+
+  test("bold, italic, underline, strikethrough, code, superscript, and subscript round-trip as two leaves", () => {
+    const document = createEditorDocument("doc-seven", [
+      {
+        type: "p",
+        id: "p",
+        children: [
+          {
+            text: "H",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+            superscript: true,
+          },
+          {
+            text: "2",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+            subscript: true,
+          },
+        ],
+      },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+    const leaves = parsed.document.content[0]?.children ?? [];
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+    expect(leaves.some((leaf) => leafHasBothScripts(leaf))).toBe(false);
+    expect(leaves.map((leaf) => leaf.text)).toEqual(["H", "2"]);
+  });
+
+  test("subscript renders as sub", async () => {
+    const editor = createEditor([{ type: "p", children: [{ text: "2", subscript: true }] }]);
+
+    const html = await serializeHtml(editor);
+    const sub = html.match(/<sub\b[^>]*>([\s\S]*?)<\/sub>/);
+
+    expect(sub?.[1]).toContain("2");
   });
 });

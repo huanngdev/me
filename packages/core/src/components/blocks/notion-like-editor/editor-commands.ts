@@ -125,6 +125,12 @@ export const formatSuperscript: EditorCommand = createMarkCommand({
   excludes: [KEYS.sub],
 });
 
+export const formatSubscript: EditorCommand = createMarkCommand({
+  key: KEYS.sub,
+  label: "Subscript",
+  excludes: [KEYS.sup],
+});
+
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
     id: "history.undo",

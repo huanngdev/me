@@ -78,6 +78,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.strikethrough },
   { type: KEYS.code },
   { type: KEYS.sup },
+  { type: KEYS.sub },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -959,6 +960,7 @@ import {
   CodePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
+  SubscriptPlugin,
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
@@ -970,6 +972,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSubscript,
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
@@ -1101,6 +1104,10 @@ const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
 const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
   keys: [[Key.Mod, "period"]],
 });
+// SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
+const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
+  keys: [[Key.Mod, "comma"]],
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
@@ -1113,6 +1120,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     strikethroughPlugin,
     codePlugin,
     superscriptPlugin,
+    subscriptPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -1262,6 +1270,12 @@ export const formatSuperscript: EditorCommand = createMarkCommand({
   key: KEYS.sup,
   label: "Superscript",
   excludes: [KEYS.sub],
+});
+
+export const formatSubscript: EditorCommand = createMarkCommand({
+  key: KEYS.sub,
+  label: "Subscript",
+  excludes: [KEYS.sup],
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
@@ -3407,6 +3421,15 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: " and E = mc" },
       { text: "2", superscript: true },
       { text: ". Press Cmd+. or Ctrl+." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-subscript",
+    children: [
+      { text: "This is subscript: H" },
+      { text: "2", subscript: true },
+      { text: "O. Press Cmd+, or Ctrl+," },
     ],
   },
   {

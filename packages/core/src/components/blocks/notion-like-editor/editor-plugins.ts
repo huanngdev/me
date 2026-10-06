@@ -3,6 +3,7 @@ import {
   CodePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
+  SubscriptPlugin,
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
@@ -14,6 +15,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSubscript,
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
@@ -145,6 +147,10 @@ const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
 const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
   keys: [[Key.Mod, "period"]],
 });
+// SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
+const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
+  keys: [[Key.Mod, "comma"]],
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
@@ -157,6 +163,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     strikethroughPlugin,
     codePlugin,
     superscriptPlugin,
+    subscriptPlugin,
     PasteFallbackPlugin,
   ];
 }

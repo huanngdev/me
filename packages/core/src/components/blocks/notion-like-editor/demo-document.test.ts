@@ -142,6 +142,20 @@ describe("demo document", () => {
     expect(marked).toEqual(["2", "2"]);
   });
 
+  test("the subscript paragraph marks only the 2", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-subscript");
+    if (!block) {
+      throw new Error("Missing subscript paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "subscript") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe("This is subscript: H2O. Press Cmd+, or Ctrl+,");
+    expect(marked).toEqual(["2"]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

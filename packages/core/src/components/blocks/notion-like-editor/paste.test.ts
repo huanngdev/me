@@ -411,20 +411,28 @@ describe("paste", () => {
     expect(markedText(editor, "superscript")).toEqual(["2"]);
   });
 
-  test("pasting vertical-align sub stays plain", () => {
+  test("pasting vertical-align sub makes only that text subscript", () => {
     const editor = pasteHtml('<p>x<span style="vertical-align: sub">2</span></p>');
 
     expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "subscript")).toEqual(["2"]);
     expect(markedText(editor, "superscript")).toEqual([]);
-    expect(markedText(editor, "subscript")).toEqual([]);
   });
 
-  test("pasting sub stays plain text", () => {
+  test("pasting sub makes only that text subscript", () => {
     const editor = pasteHtml("<p>x<sub>2</sub></p>");
 
     expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "subscript")).toEqual(["2"]);
     expect(markedText(editor, "superscript")).toEqual([]);
-    expect(markedText(editor, "subscript")).toEqual([]);
+  });
+
+  test("pasting sub and sup in one paragraph marks each character", () => {
+    const editor = pasteHtml("<p>H<sub>2</sub>O and x<sup>2</sup></p>");
+
+    expect(plainText(editor)).toBe("H2O and x2");
+    expect(markedText(editor, "subscript")).toEqual(["2"]);
+    expect(markedText(editor, "superscript")).toEqual(["2"]);
   });
 
   test("pasting kbd stays plain text", () => {
