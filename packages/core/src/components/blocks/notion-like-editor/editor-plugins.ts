@@ -20,10 +20,12 @@ import {
 } from "@platejs/basic-styles/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
+import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
 import {
   KEYS,
   NodeIdPlugin,
+  PathApi,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
@@ -43,11 +45,19 @@ import {
   formatUnderline,
   runEditorCommand,
   toggleBulletedList,
+  toggleNumberedList,
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
 } from "./editor-commands";
-import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
+import {
+  FONT_FAMILIES,
+  LIST_NUMBER_RANGE,
+  isAllowedValue,
+  isPaletteToken,
+  isWithinAttrRange,
+  unsatisfiedDependentAttrs,
+} from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
 
@@ -406,6 +416,16 @@ function listIndentOf(node: unknown): number {
   return typeof node.indent === "number" ? node.indent : 1;
 }
 
+function isElementRecord(node: unknown): node is Record<string, unknown> & { type: string } {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    typeof node.type === "string" &&
+    "children" in node
+  );
+}
+
 // Targets stay on paragraphs. Headings are not list items in this milestone.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
 const indentPlugin = IndentPlugin.configure({
@@ -419,15 +439,89 @@ const indentPlugin = IndentPlugin.configure({
   },
 });
 
-const bulletedListPlugin = ListPlugin.configure({
+function isUnorderedListStyle(style: string): boolean {
+  return ULIST_STYLE_TYPES.some((item) => item === style);
+}
+
+function isKnownListStyle(style: string): boolean {
+  return Object.values(ListStyleType).some((item) => item === style);
+}
+
+// Nested Google Docs items use lower-alpha or lower-roman. The stored value stays decimal.
+function storedListStyle(style: string | undefined): "disc" | "decimal" | undefined {
+  if (style === undefined || style.length === 0) {
+    return undefined;
+  }
+
+  if (isUnorderedListStyle(style)) {
+    return "disc";
+  }
+
+  if (isKnownListStyle(style)) {
+    return "decimal";
+  }
+
+  return undefined;
+}
+
+// Plate's LI parser ignores ol start. The first item stores listRestart so normalizeListStart
+// can derive listStart. start="1" is omitted; that is Plate's default.
+function listRestartFromStart(element: HTMLElement): number | undefined {
+  const list = element.closest("ol");
+  if (list === null || list.querySelector("li") !== element) {
+    return undefined;
+  }
+
+  const raw = list.getAttribute("start");
+  if (raw === null) {
+    return undefined;
+  }
+
+  const start = Number(raw);
+  if (!isWithinAttrRange(start, LIST_NUMBER_RANGE) || start === LIST_NUMBER_RANGE.min) {
+    return undefined;
+  }
+
+  return start;
+}
+
+// The "1. " markdown trigger is deferred to DEV-126. OrderedListRules stays unregistered.
+const listPlugin = ListPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p],
+  },
+  options: {
+    // Plate's normalizer passes breakOnEqIndentNeqListStyleType: false, then spreads these
+    // options, so a bullet at the same depth ends the numbered run.
+    getSiblingListOptions: {
+      breakOnEqIndentNeqListStyleType: true,
+    },
+  },
+  parsers: {
+    html: {
+      deserializer: {
+        parse: ({ editor, element }) => {
+          const dataIndent = element.dataset.indent;
+          const ariaLevel = element.getAttribute("aria-level");
+          const indent = dataIndent ? Number(dataIndent) : Number(ariaLevel);
+          const listStyleType = storedListStyle(element.dataset.listStyleType);
+          const listRestart = listRestartFromStart(element);
+
+          return {
+            indent: indent || undefined,
+            listStyleType,
+            listRestart,
+            type: editor.getType(KEYS.p),
+          };
+        },
+      },
+    },
   },
   render: {
     belowNodes: BlockList,
   },
   shortcuts: {
-    toggle: {
+    toggleBulleted: {
       keys: [[Key.Mod, Key.Shift, "8"]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleBulletedList, undefined, {
@@ -435,8 +529,38 @@ const bulletedListPlugin = ListPlugin.configure({
         });
       },
     },
+    toggleNumbered: {
+      keys: [[Key.Mod, Key.Shift, "7"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleNumberedList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
   },
 });
+
+// attrRequires is the only dependent-attr rule. Plate's normalizeListStart deletes
+// listStart on a disc item and leaves listRestart. This pass removes every unsatisfied
+// dependent, then returns so the next pass reads the updated node.
+const dependentAttrsPlugin = createSlatePlugin({
+  key: "dependentAttrs",
+}).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
+  transforms: {
+    normalizeNode(entry) {
+      const [node, path] = entry;
+      if (isElementRecord(node)) {
+        const unsatisfied = unsatisfiedDependentAttrs(node.type, node);
+        if (unsatisfied.length > 0) {
+          editor.tf.unsetNodes(unsatisfied, { at: path });
+          return;
+        }
+      }
+
+      normalizeNode(entry);
+    },
+  },
+}));
 
 // IndentPlugin's Tab indents every paragraph. Outside a list, Tab must leave the editor.
 // At the depth cap, Tab is handled and changes nothing.
@@ -546,9 +670,49 @@ const clearFormattingPlugin = createSlatePlugin({
   },
 });
 
+// The empty block above becomes the first item, so a restart moves with it.
+function listBreakAbove(source: object): {
+  attrs: {
+    listStyleType?: string;
+    indent?: number;
+    listRestart?: number;
+    listRestartPolite?: number;
+  };
+  unset: string[];
+} {
+  const attrs: {
+    listStyleType?: string;
+    indent?: number;
+    listRestart?: number;
+    listRestartPolite?: number;
+  } = {};
+  const unset: string[] = [];
+  if (
+    !("listStyleType" in source) ||
+    typeof source.listStyleType !== "string" ||
+    !("indent" in source) ||
+    typeof source.indent !== "number"
+  ) {
+    return { attrs, unset };
+  }
+
+  attrs.listStyleType = source.listStyleType;
+  attrs.indent = source.indent;
+  if ("listRestart" in source && typeof source.listRestart === "number") {
+    attrs.listRestart = source.listRestart;
+    unset.push(KEYS.listRestart);
+  }
+  if ("listRestartPolite" in source && typeof source.listRestartPolite === "number") {
+    attrs.listRestartPolite = source.listRestartPolite;
+    unset.push(KEYS.listRestartPolite);
+  }
+
+  return { attrs, unset };
+}
+
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty block is inserted above. A list item copies its list
-// attrs onto that block. Registered last so this runs before heading splitReset.
+// A non-empty block keeps its identity and an empty block is inserted above. Registered last so this
+// runs before heading splitReset.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -562,18 +726,15 @@ const breakAbovePlugin = createSlatePlugin({
         editor.api.isAt({ start: true }) &&
         !editor.api.isEmpty(selection, { block: true })
       ) {
-        const source = block[0];
         const above = editor.api.create.block();
-        if (
-          "listStyleType" in source &&
-          typeof source.listStyleType === "string" &&
-          "indent" in source &&
-          typeof source.indent === "number"
-        ) {
-          above.listStyleType = source.listStyleType;
-          above.indent = source.indent;
+        const copied = listBreakAbove(block[0]);
+        Object.assign(above, copied.attrs);
+        const sourcePath = block[1];
+        editor.tf.insertNodes(above, { at: sourcePath, select: false });
+        const moved = PathApi.next(sourcePath);
+        if (copied.unset.length > 0 && moved) {
+          editor.tf.unsetNodes(copied.unset, { at: moved });
         }
-        editor.tf.insertNodes(above, { at: block[1], select: false });
         return;
       }
 
@@ -606,7 +767,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,
-    bulletedListPlugin,
+    listPlugin,
+    dependentAttrsPlugin,
     listKeyboardPlugin,
     PasteFallbackPlugin,
     breakAbovePlugin,

@@ -4,7 +4,7 @@ import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createEditorDocument } from "./editor-document";
 import { EDITOR_ELEMENT_RULES, EDITOR_MARK_RULES, isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
-import { expectOk, field, isRecord } from "./test-utils";
+import { createEditor, expectOk, field, isRecord } from "./test-utils";
 
 function textOf(block: (typeof DEMO_DOCUMENT_VALUE)[number]): string {
   return block.children.map((child) => child.text).join("");
@@ -133,6 +133,37 @@ describe("demo document", () => {
     expect(third.id).toBe("demo-bullet-3");
     expect(field(third, "indent")).toBe(1);
     expect(textOf(third)).toBe("Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet.");
+
+    const numbered = DEMO_DOCUMENT_VALUE[clear + 5];
+    const nestedNumber = DEMO_DOCUMENT_VALUE[clear + 6];
+    const numberedTail = DEMO_DOCUMENT_VALUE[clear + 7];
+    if (!numbered || !nestedNumber || !numberedTail) {
+      throw new Error("Missing numbered lists.");
+    }
+
+    expect(numbered.id).toBe("demo-number-1");
+    expect(field(numbered, "listStyleType")).toBe("decimal");
+    expect(field(numbered, "indent")).toBe(1);
+    expect(field(numbered, "listStart")).toBeUndefined();
+    expect(textOf(numbered)).toBe("Numbered lists count for you.");
+    expect(nestedNumber.id).toBe("demo-number-2");
+    expect(field(nestedNumber, "listStyleType")).toBe("decimal");
+    expect(field(nestedNumber, "indent")).toBe(2);
+    expect(textOf(nestedNumber)).toBe("Nested steps use letters.");
+    expect(numberedTail.id).toBe("demo-number-3");
+    expect(field(numberedTail, "listStyleType")).toBe("decimal");
+    expect(field(numberedTail, "indent")).toBe(1);
+    expect(field(numberedTail, "listStart")).toBe(2);
+    expect(textOf(numberedTail)).toBe("Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering.");
+  });
+
+  test("normalizing the demo leaves every derived list attr unchanged", () => {
+    const editor = createEditor(DEMO_DOCUMENT_VALUE);
+    const before = JSON.parse(JSON.stringify(editor.children));
+
+    editor.tf.normalize({ force: true });
+
+    expect(editor.children).toEqual(before);
   });
 
   test("the italic paragraph marks only italic text", () => {

@@ -1,11 +1,24 @@
 import { KEYS } from "platejs";
 
+export type IntegerAttrRange = {
+  readonly min: number;
+  readonly max: number;
+};
+
+export type AttrRequirement = {
+  attr: string;
+  /** When set, the required attribute must be one of these values. */
+  values?: readonly (string | number)[];
+};
+
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
-  /** A dependent attribute is stored only when this attribute is present and allowed. */
-  attrRequires?: Readonly<Record<string, string>>;
+  /** Inclusive integer range. Literal lists cannot express one. */
+  attrRanges?: Readonly<Record<string, IntegerAttrRange>>;
+  /** A dependent attribute is stored only when `attr` is present, allowed, and in `values`. */
+  attrRequires?: Readonly<Record<string, AttrRequirement>>;
 };
 
 export type EditorMarkRule = {
@@ -59,10 +72,14 @@ export const LIST_INDENTS = [1, 2, 3, 4, 5, 6] as const;
 
 export type ListIndent = (typeof LIST_INDENTS)[number];
 
-// Bullets only. Numbered lists add "decimal" later. The stored value stays "disc" at every depth.
-export const BULLET_LIST_STYLES = ["disc"] as const;
+// Stored list styles. Marker cycles (circle, lower-alpha, …) are rendering only.
+export const LIST_STYLES = ["disc", "decimal"] as const;
 
-export type BulletListStyle = (typeof BULLET_LIST_STYLES)[number];
+export type ListStyle = (typeof LIST_STYLES)[number];
+
+// Plate does not cap list numbers. 9999 is four digits, enough for a document list,
+// and past that the value is rejected instead of stored.
+export const LIST_NUMBER_RANGE = { min: 1, max: 9999 } as const satisfies IntegerAttrRange;
 
 const headingElementRule = {
   attrs: ["id", "align"],
@@ -72,15 +89,36 @@ const headingElementRule = {
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
-    attrs: ["id", "align", "lineHeight", "indent", "listStyleType"],
+    attrs: [
+      "id",
+      "align",
+      "lineHeight",
+      "indent",
+      "listStyleType",
+      "listStart",
+      "listRestart",
+      "listRestartPolite",
+    ],
     attrValues: {
       align: TEXT_ALIGNS,
       lineHeight: LINE_HEIGHTS,
       indent: LIST_INDENTS,
-      listStyleType: BULLET_LIST_STYLES,
+      listStyleType: LIST_STYLES,
+    },
+    attrRanges: {
+      listStart: LIST_NUMBER_RANGE,
+      listRestart: LIST_NUMBER_RANGE,
+      listRestartPolite: LIST_NUMBER_RANGE,
     },
     // Standalone block indent is a later task. Indent is kept only with a list style.
-    attrRequires: { indent: "listStyleType" },
+    // Numbering attrs are kept only on decimal items. Plate deletes listStart on disc
+    // and leaves listRestart, so a disc item would not round-trip those attrs.
+    attrRequires: {
+      indent: { attr: "listStyleType" },
+      listStart: { attr: "listStyleType", values: ["decimal"] },
+      listRestart: { attr: "listStyleType", values: ["decimal"] },
+      listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
+    },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
   { type: "h1", ...headingElementRule },
@@ -108,33 +146,44 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = new Map<string, ReadonlyMap<string, readonly (string | number)[]>>(
-  EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
+const elementAttrValues = ruleMaps<readonly (string | number)[]>((rule) => rule.attrValues);
+
+const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
+  "attrRanges" in rule ? rule.attrRanges : undefined,
 );
 
-const elementAttrRequires = new Map<string, Readonly<Record<string, string>>>(
-  EDITOR_ELEMENT_RULES.flatMap((rule) => {
-    if (!("attrRequires" in rule) || rule.attrRequires === undefined) {
-      return [];
-    }
-
-    return [[rule.type, rule.attrRequires]];
-  }),
+const elementAttrRequires = ruleMaps<AttrRequirement>((rule) =>
+  "attrRequires" in rule ? rule.attrRequires : undefined,
 );
 
-function attrValueMap(
-  declared: Readonly<Record<string, readonly (string | number)[]>> | undefined,
-): ReadonlyMap<string, readonly (string | number)[]> {
-  const values = new Map<string, readonly (string | number)[]>();
+function ruleMaps<T>(
+  pick: (rule: (typeof EDITOR_ELEMENT_RULES)[number]) => Readonly<Record<string, T>> | undefined,
+): ReadonlyMap<string, ReadonlyMap<string, T>> {
+  const maps = new Map<string, ReadonlyMap<string, T>>();
+  for (const rule of EDITOR_ELEMENT_RULES) {
+    maps.set(rule.type, declaredMap(pick(rule)));
+  }
+
+  return maps;
+}
+
+function declaredMap<T>(declared: Readonly<Record<string, T>> | undefined): ReadonlyMap<string, T> {
+  const map = new Map<string, T>();
   if (declared === undefined) {
-    return values;
+    return map;
   }
 
-  for (const [attr, allowed] of Object.entries(declared)) {
-    values.set(attr, allowed);
+  for (const [key, value] of Object.entries(declared)) {
+    map.set(key, value);
   }
 
-  return values;
+  return map;
+}
+
+export function isWithinAttrRange(value: unknown, range: IntegerAttrRange): boolean {
+  return (
+    typeof value === "number" && Number.isInteger(value) && value >= range.min && value <= range.max
+  );
 }
 
 const allowedMarks = new Set<string>(CLEARABLE_MARK_KEYS);
@@ -149,6 +198,10 @@ export function allowedElementAttrs(type: string): ReadonlySet<string> | undefin
   return elementAttrs.get(type);
 }
 
+export function requiredAttr(type: string, dependent: string): string | undefined {
+  return elementAttrRequires.get(type)?.get(dependent)?.attr;
+}
+
 // Dependent keys that are present while the attribute they require is missing or not allowed.
 export function unsatisfiedDependentAttrs(type: string, node: Record<string, unknown>): string[] {
   const requires = elementAttrRequires.get(type);
@@ -157,17 +210,22 @@ export function unsatisfiedDependentAttrs(type: string, node: Record<string, unk
   }
 
   const unsatisfied: string[] = [];
-  for (const dependent of Object.keys(requires)) {
+  for (const [dependent, requirement] of requires) {
     if (!(dependent in node)) {
       continue;
     }
 
-    const required = requires[dependent];
-    if (required === undefined) {
+    const required = requirement.attr;
+    if (!(required in node) || !isAllowedElementAttrValue(type, required, node[required])) {
+      unsatisfied.push(dependent);
       continue;
     }
 
-    if (!(required in node) || !isAllowedElementAttrValue(type, required, node[required])) {
+    const allowedValues = "values" in requirement ? requirement.values : undefined;
+    if (
+      allowedValues !== undefined &&
+      !allowedValues.some((allowed) => allowed === node[required])
+    ) {
       unsatisfied.push(dependent);
     }
   }
@@ -184,11 +242,16 @@ export function allowedElementAttrValues(
 
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
   const values = allowedElementAttrValues(type, attr);
-  if (values === undefined) {
-    return true;
+  if (values !== undefined && !isAllowedValue(value, values)) {
+    return false;
   }
 
-  return isAllowedValue(value, values);
+  const range = elementAttrRanges.get(type)?.get(attr);
+  if (range !== undefined && !isWithinAttrRange(value, range)) {
+    return false;
+  }
+
+  return true;
 }
 
 export function isAllowedMark(mark: string): boolean {

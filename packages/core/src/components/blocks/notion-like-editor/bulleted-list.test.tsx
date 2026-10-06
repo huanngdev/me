@@ -4,7 +4,7 @@ import { KEYS, type SlateEditor } from "platejs";
 import { Key, Plate, PlateContent, createPlateEditor } from "platejs/react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { bulletMarker } from "./block-list";
+import { listMarker } from "./block-list";
 import { createEditorPlugins } from "./editor-plugins";
 import {
   BULLETED_LIST_TYPE,
@@ -46,7 +46,7 @@ function bullet(text: string, id: string, indent = 1): EditorValue[number] {
 }
 
 function pressBulletedList(editor: SlateEditor): void {
-  const shortcut = editor.meta.shortcuts["list.toggle"];
+  const shortcut = editor.meta.shortcuts["list.toggleBulleted"];
   if (!shortcut?.handler) {
     throw new Error("Missing bulleted list shortcut.");
   }
@@ -109,9 +109,7 @@ function pasteHtml(html: string): SlateEditor {
 describe("dependent attribute rule", () => {
   test("a dependent attribute is unsatisfied without an allowed required attribute", () => {
     expect(unsatisfiedDependentAttrs("p", { indent: 1 })).toEqual(["indent"]);
-    expect(unsatisfiedDependentAttrs("p", { indent: 1, listStyleType: "decimal" })).toEqual([
-      "indent",
-    ]);
+    expect(unsatisfiedDependentAttrs("p", { indent: 1, listStyleType: "decimal" })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { indent: 2, listStyleType: "disc" })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { listStyleType: "disc" })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { align: "center" })).toEqual([]);
@@ -143,7 +141,6 @@ describe("bulleted list allowlist", () => {
 
   test.each([
     [7, "disc", "indent"],
-    [1, "decimal", "listStyleType"],
     [1, "square", "listStyleType"],
   ] as const)("indent %s and listStyleType %s is unsupported", (indent, listStyleType, key) => {
     const content = [
@@ -348,7 +345,7 @@ describe("toggle bulleted list", () => {
 describe("bulleted list shortcut", () => {
   test("Mod+Shift+8 does not share its keys with another editor shortcut", () => {
     const editor = createEditor();
-    const id = "list.toggle";
+    const id = "list.toggleBulleted";
     const keys = JSON.stringify(editor.meta.shortcuts[id]?.keys);
     const collisions = Object.entries(editor.meta.shortcuts).filter(([shortcutId, shortcut]) => {
       if (shortcutId === id || !isRecord(shortcut) || !("keys" in shortcut)) {
@@ -595,13 +592,18 @@ describe("bulleted list paste", () => {
     expect(editor.children.map((node) => field(node, "indent"))).toEqual([1, 1, 2]);
   });
 
-  test("an ol becomes paragraphs with no indent", () => {
+  test("an ol becomes decimal items", () => {
     const editor = pasteHtml("<ol><li>a</li><li>b</li></ol>");
 
     expect(texts(editor)).toEqual(["a", "b"]);
     expect(editor.children.every((node) => field(node, "type") === "p")).toBe(true);
-    expect(editor.children.every((node) => field(node, "indent") === undefined)).toBe(true);
-    expect(editor.children.every((node) => field(node, "listStyleType") === undefined)).toBe(true);
+    expect(editor.children.map((node) => field(node, "listStyleType"))).toEqual([
+      "decimal",
+      "decimal",
+    ]);
+    expect(editor.children.map((node) => field(node, "indent"))).toEqual([1, 1]);
+    expect(field(editor.children[0], "listStart")).toBeUndefined();
+    expect(field(editor.children[1], "listStart")).toBe(2);
   });
 
   test("an li that contains a paragraph stays one bullet", () => {
@@ -718,11 +720,11 @@ describe("bulleted list rendering", () => {
     expect(html).toContain("pl-24");
     expect(html.match(/data-list-item="disc"/g)?.length).toBe(4);
     expect(html).not.toContain("mb-1");
-    expect(bulletMarker(1)).toBe("disc");
-    expect(bulletMarker(2)).toBe("circle");
-    expect(bulletMarker(3)).toBe("square");
-    expect(bulletMarker(4)).toBe("disc");
-    expect(bulletMarker(6)).toBe("square");
+    expect(listMarker("disc", 1)).toBe("disc");
+    expect(listMarker("disc", 2)).toBe("circle");
+    expect(listMarker("disc", 3)).toBe("square");
+    expect(listMarker("disc", 4)).toBe("disc");
+    expect(listMarker("disc", 6)).toBe("square");
   });
 
   test("a list item's markup does not depend on the next block", () => {

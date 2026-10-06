@@ -215,6 +215,28 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-number-1",
+    indent: 1,
+    listStyleType: "decimal",
+    children: [{ text: "Numbered lists count for you." }],
+  },
+  {
+    type: "p",
+    id: "demo-number-2",
+    indent: 2,
+    listStyleType: "decimal",
+    children: [{ text: "Nested steps use letters." }],
+  },
+  {
+    type: "p",
+    id: "demo-number-3",
+    indent: 1,
+    listStyleType: "decimal",
+    listStart: 2,
+    children: [{ text: "Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering." }],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

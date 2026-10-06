@@ -3,37 +3,63 @@ import { PlateElement, type PlateElementProps, type RenderNodeWrapper } from "pl
 
 import { cn } from "@/lib/utils";
 
-// Rendering only. The stored listStyleType stays "disc" at every depth.
-const BULLET_MARKERS = ["disc", "circle", "square"] as const;
+import { LIST_INDENTS, type ListIndent } from "./editor-document-schema";
 
-const LIST_INDENT_CLASS = {
-  1: "pl-6",
-  2: "pl-12",
-  3: "pl-18",
-  4: "pl-24",
-  5: "pl-30",
-  6: "pl-36",
+// Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
+const MARKER_CYCLE = {
+  disc: ["disc", "circle", "square"],
+  decimal: ["decimal", "lower-alpha", "lower-roman"],
 } as const;
 
-type BulletMarker = (typeof BULLET_MARKERS)[number];
-type ListIndentLevel = keyof typeof LIST_INDENT_CLASS;
+// Bullets use a 1.5rem step. Numbers use the same step with an extra 1rem so a
+// two-digit marker sits in the gutter. list-style-position: outside right-aligns
+// the marker to that padding, so 9 and 10 share the same text start.
+const LIST_INDENT_CLASS = {
+  disc: {
+    1: "pl-6",
+    2: "pl-12",
+    3: "pl-18",
+    4: "pl-24",
+    5: "pl-30",
+    6: "pl-36",
+  },
+  decimal: {
+    1: "pl-10",
+    2: "pl-16",
+    3: "pl-22",
+    4: "pl-28",
+    5: "pl-34",
+    6: "pl-40",
+  },
+} as const;
 
-export function bulletMarker(indent: number): BulletMarker {
+type MarkerStyle = keyof typeof MARKER_CYCLE;
+
+function isMarkerStyle(style: string): style is MarkerStyle {
+  return Object.hasOwn(MARKER_CYCLE, style);
+}
+
+function isListIndent(indent: number): indent is ListIndent {
+  return LIST_INDENTS.some((level) => level === indent);
+}
+
+export function listMarker<Style extends MarkerStyle>(
+  style: Style,
+  indent: number,
+): (typeof MARKER_CYCLE)[Style][number] {
+  const cycle = MARKER_CYCLE[style];
   const level = indent >= 1 ? indent : 1;
-  const marker = BULLET_MARKERS[(level - 1) % BULLET_MARKERS.length];
-  return marker ?? "disc";
+  const marker = cycle[(level - 1) % cycle.length];
+  return marker ?? cycle[0];
 }
 
-function isListIndent(indent: number): indent is ListIndentLevel {
-  return Object.hasOwn(LIST_INDENT_CLASS, indent);
-}
-
-function listIndentClass(indent: number): string {
+function listIndentClass(style: string, indent: number): string {
+  const classes = isMarkerStyle(style) ? LIST_INDENT_CLASS[style] : LIST_INDENT_CLASS.disc;
   if (isListIndent(indent)) {
-    return LIST_INDENT_CLASS[indent];
+    return classes[indent];
   }
 
-  return LIST_INDENT_CLASS[1];
+  return classes[1];
 }
 
 function listIndent(element: PlateElementProps["element"]): number {
@@ -65,12 +91,16 @@ export const BlockList: RenderNodeWrapper = (props) => {
     const element = nodeProps.element;
     const stored = storedListStyle(element);
     const indent = listIndent(element);
-    const Tag = isOrderedList(element) ? "ol" : "ul";
+    const ordered = isOrderedList(element);
+    const Tag = ordered ? "ol" : "ul";
+    const listStart = element.listStart;
+    const marker = isMarkerStyle(stored) ? listMarker(stored, indent) : stored;
 
     return (
       <Tag
-        className={cn("relative m-0 list-outside py-0 pr-0", listIndentClass(indent))}
-        style={{ listStyleType: stored === "disc" ? bulletMarker(indent) : stored }}
+        className={cn("relative m-0 list-outside py-0 pr-0", listIndentClass(stored, indent))}
+        style={{ listStyleType: marker }}
+        start={ordered && typeof listStart === "number" ? listStart : undefined}
       >
         <li>{nodeProps.children}</li>
       </Tag>

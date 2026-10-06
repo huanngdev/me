@@ -17,14 +17,17 @@ import {
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
   LINE_HEIGHTS,
+  LIST_NUMBER_RANGE,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
   allowedElementAttrs,
   isAllowedValue,
+  isWithinAttrRange,
   type FontFamily,
   type FontSize,
   type HighlightToken,
   type LineHeight,
+  type ListStyle,
   type TextAlign,
   type TextColorToken,
 } from "./editor-document-schema";
@@ -450,10 +453,21 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
 }
 
 export const BULLETED_LIST_TYPE = "bulleted-list";
+export const NUMBERED_LIST_TYPE = "numbered-list";
+
+const LIST_BLOCK_TYPE = {
+  disc: BULLETED_LIST_TYPE,
+  decimal: NUMBERED_LIST_TYPE,
+} as const;
+
+function isReportedListStyle(style: string): style is keyof typeof LIST_BLOCK_TYPE {
+  return Object.hasOwn(LIST_BLOCK_TYPE, style);
+}
 
 function reportedBlockType(node: TElement): string {
-  if (node.type === KEYS.p && node.listStyleType === ListStyleType.Disc) {
-    return BULLETED_LIST_TYPE;
+  const style = node.listStyleType;
+  if (node.type === KEYS.p && typeof style === "string" && isReportedListStyle(style)) {
+    return LIST_BLOCK_TYPE[style];
   }
 
   return node.type;
@@ -530,51 +544,81 @@ export const TURN_INTO_HEADING = {
   3: turnIntoHeading3,
 } as const satisfies Record<HeadingLevel, EditorCommand>;
 
-// toggleList outdents a nested bullet by one level and can leave indent behind.
-// A full toggle removes that indent so the paragraph does not keep a list offset.
-export const toggleBulletedList: EditorCommand = {
-  id: "block.turn-into.bulleted-list",
-  label: "Bulleted list",
-  group: "turn-into",
-  run: (editor) => {
-    const selection = editor.selection;
-    if (!selection) {
-      return;
-    }
+const TOGGLE_LIST_COMMAND = {
+  disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },
+  decimal: { id: "block.turn-into.numbered-list", label: "Numbered list" },
+} as const satisfies Record<ListStyle, { id: string; label: string }>;
 
-    const paragraphs = [
-      ...editor.api.nodes({
-        at: selection,
-        block: true,
-        match: (node) => ElementApi.isElement(node) && node.type === KEYS.p,
-      }),
-    ];
-    if (paragraphs.length === 0) {
-      return;
-    }
+function paragraphEntries(editor: SlateEditor) {
+  const selection = editor.selection;
+  if (!selection) {
+    return [];
+  }
 
-    const allBullets = paragraphs.every(
-      ([node]) => ElementApi.isElement(node) && node.listStyleType === ListStyleType.Disc,
-    );
+  return [
+    ...editor.api.nodes({
+      at: selection,
+      block: true,
+      match: (node) => ElementApi.isElement(node) && node.type === KEYS.p,
+    }),
+  ];
+}
 
-    toggleList(editor, { listStyleType: ListStyleType.Disc });
+// Orphan indent and numbering attrs are removed by dependentAttrsPlugin, not here.
+export function createToggleList(style: ListStyle): EditorCommand {
+  const command = TOGGLE_LIST_COMMAND[style];
 
-    if (!allBullets) {
-      return;
-    }
-
-    for (const [, path] of paragraphs) {
-      const current = editor.api.node(path)?.[0];
-      if (!ElementApi.isElement(current) || typeof current.listStyleType === "string") {
-        continue;
+  return {
+    id: command.id,
+    label: command.label,
+    group: "turn-into",
+    run: (editor) => {
+      if (paragraphEntries(editor).length === 0) {
+        return;
       }
 
-      if (typeof current.indent !== "number") {
-        continue;
-      }
+      toggleList(editor, { listStyleType: style });
+    },
+  };
+}
 
-      editor.tf.unsetNodes(KEYS.indent, { at: path });
+export const toggleBulletedList = createToggleList("disc");
+export const toggleNumberedList = createToggleList("decimal");
+
+function decimalItemAtCaret(editor: SlateEditor): boolean {
+  const block = editor.api.block()?.[0];
+  return ElementApi.isElement(block) && block.listStyleType === ListStyleType.Decimal;
+}
+
+// Plate has no setListRestart transform. toggleList writes listRestart only while turning a
+// block into a list (src-D073vI9-.js). On an item that is already decimal, listRestart is the
+// property normalizeListStart reads to choose the number.
+export const setListRestart: EditorCommand<number | null> = {
+  id: "format.list-restart",
+  label: "Restart numbering",
+  group: "format",
+  isEnabled: decimalItemAtCaret,
+  run: (editor, value) => {
+    const entry = editor.api.block();
+    if (
+      !entry ||
+      !ElementApi.isElement(entry[0]) ||
+      entry[0].listStyleType !== ListStyleType.Decimal
+    ) {
+      return;
     }
+
+    if (value === null) {
+      editor.tf.unsetNodes([KEYS.listRestart, KEYS.listRestartPolite], { at: entry[1] });
+      return;
+    }
+
+    if (!isWithinAttrRange(value, LIST_NUMBER_RANGE)) {
+      return;
+    }
+
+    editor.tf.unsetNodes(KEYS.listRestartPolite, { at: entry[1] });
+    editor.tf.setNodes({ [KEYS.listRestart]: value }, { at: entry[1] });
   },
 };
 

@@ -9,11 +9,11 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
-  EDITOR_ELEMENT_RULES,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 
@@ -133,18 +133,6 @@ function markValueLabel(value: unknown): string {
   return "value";
 }
 
-function requiredAttr(type: string, dependent: string): string | undefined {
-  for (const rule of EDITOR_ELEMENT_RULES) {
-    if (rule.type !== type || !("attrRequires" in rule) || rule.attrRequires === undefined) {
-      continue;
-    }
-
-    return Object.entries(rule.attrRequires).find(([key]) => key === dependent)?.[1];
-  }
-
-  return undefined;
-}
-
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
@@ -219,9 +207,12 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
 
       const required = requiredAttr(type, key);
       if (required !== undefined && unsatisfied.has(key)) {
+        const requiredPresent =
+          required in value && isAllowedElementAttrValue(type, required, value[required]);
+        const detail = requiredPresent ? key : `${key} without ${required}`;
         state.unsupported.push({
           path,
-          message: `${formatBlockLabel(path)} has an unsupported ${key} without ${required}. Restore from a backup or remove the attribute.`,
+          message: `${formatBlockLabel(path)} has an unsupported ${detail}. Restore from a backup or remove the attribute.`,
         });
       }
       continue;
