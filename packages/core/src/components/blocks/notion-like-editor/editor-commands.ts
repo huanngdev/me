@@ -3,6 +3,7 @@ import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
+  PathApi,
   RangeApi,
   TextApi,
   type SlateEditor,
@@ -758,6 +759,75 @@ export const setListRestart: EditorCommand<number | null> = {
 
     editor.tf.unsetNodes(KEYS.listRestartPolite, { at: entry[1] });
     editor.tf.setNodes({ [KEYS.listRestart]: value }, { at: entry[1] });
+  },
+};
+
+function directText(node: TElement): string {
+  let text = "";
+  for (const child of node.children) {
+    if (TextApi.isText(child)) {
+      text += child.text;
+    }
+  }
+
+  return text;
+}
+
+function isPlainParagraph(node: TElement): boolean {
+  return node.type === KEYS.p && node.listStyleType === undefined;
+}
+
+function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
+  const entry = editor.api.node(path);
+  const node = entry?.[0];
+  if (entry && entry[1].length === 1 && ElementApi.isElement(node) && isPlainParagraph(node)) {
+    const start = editor.api.start(path);
+    if (start) {
+      editor.tf.select(start);
+    }
+    return;
+  }
+
+  editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
+}
+
+// No shortcut. Notion and Google Docs have none. The --- trigger is DEV-126.
+export const insertDivider: EditorCommand = {
+  id: "block.insert.divider",
+  label: "Divider",
+  group: "insert",
+  run: (editor) => {
+    const entry = editor.api.block({ highest: true });
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let hrPath = path;
+    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
+      const drop = Object.keys(node).filter(
+        (key) => key !== "type" && key !== "children" && key !== "id",
+      );
+      if (drop.length > 0) {
+        editor.tf.unsetNodes(drop, { at: path });
+      }
+      editor.tf.setNodes({ type: KEYS.hr }, { at: path });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes({ type: KEYS.hr, children: [{ text: "" }] }, { at, select: false });
+      hrPath = at;
+    }
+
+    const after = PathApi.next(hrPath);
+    if (!after) {
+      return;
+    }
+
+    selectPlainParagraph(editor, after);
   },
 };
 

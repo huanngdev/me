@@ -5,6 +5,7 @@ import {
   H1Plugin,
   H2Plugin,
   H3Plugin,
+  HorizontalRulePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -27,6 +28,7 @@ import {
   KEYS,
   NodeIdPlugin,
   PathApi,
+  combineTransformMatchOptions,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
@@ -36,6 +38,7 @@ import { Key, ParagraphPlugin } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
+import { HrElement } from "./hr-element";
 import {
   clearFormatting,
   formatBold,
@@ -60,6 +63,7 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  isVoidElementType,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -478,7 +482,8 @@ const blockquotePlugin = BlockquotePlugin.configure({
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
 // outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
-// only sees paragraphs or wraps leftover inlines.
+// only sees paragraphs or wraps leftover inlines. A disallowed void is lifted out so
+// it is not retyped into an empty paragraph.
 function normalizeDisallowedChild(
   editor: SlateEditor,
   node: { type: string } & Record<string, unknown>,
@@ -496,6 +501,11 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
+    if (isVoidElementType(child.type)) {
+      editor.tf.liftNodes({ at: childPath, voids: true });
+      return true;
+    }
+
     if (allowedChildTypes(child.type) !== undefined) {
       // Match this path only. A type match would also unwrap the parent quote.
       editor.tf.unwrapNodes({
@@ -877,9 +887,182 @@ function listBreakAbove(source: object): {
   return { attrs, unset };
 }
 
+function voidEntry(editor: SlateEditor): { path: number[] } | undefined {
+  const selection = editor.selection;
+  if (!selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const entry = editor.api.above({
+    match: (node) => isElementRecord(node) && isVoidElementType(node.type),
+    voids: true,
+  });
+  if (!entry) {
+    return undefined;
+  }
+
+  return { path: entry[1] };
+}
+
+function blockString(node: unknown): string {
+  if (!isElementRecord(node) || !Array.isArray(node.children)) {
+    return "";
+  }
+
+  let text = "";
+  for (const child of node.children) {
+    if (
+      typeof child === "object" &&
+      child !== null &&
+      "text" in child &&
+      typeof child.text === "string" &&
+      !("children" in child)
+    ) {
+      text += child.text;
+    }
+  }
+
+  return text;
+}
+
+// Slate's deleteText removes a void when the caret is inside it (slate dist/index.js
+// 4540-4566). The caret after that removal is not the end of the previous block, so
+// this places it. Backspace at the start of the next block would otherwise skip the
+// void (Editor.before, voids false) and merge the neighbors.
+function removeVoid(editor: SlateEditor, path: number[]): void {
+  const previous = PathApi.hasPrevious(path) ? PathApi.previous(path) : undefined;
+  editor.tf.removeNodes({ at: path, voids: true });
+  if (previous) {
+    const end = editor.api.end(previous);
+    if (end) {
+      editor.tf.select(end);
+    }
+    return;
+  }
+
+  const start = editor.api.start(path);
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function selectVoidNeighbor(editor: SlateEditor, reverse: boolean): boolean {
+  const selection = editor.selection;
+  const block = selection ? editor.api.block() : undefined;
+  if (
+    !block ||
+    !isElementRecord(block[0]) ||
+    isVoidElementType(block[0].type) ||
+    !editor.api.isCollapsed() ||
+    !editor.api.isAt(reverse ? { start: true } : { end: true })
+  ) {
+    return false;
+  }
+
+  const neighborPath = reverse ? PathApi.previous(block[1]) : PathApi.next(block[1]);
+  if (!neighborPath) {
+    return false;
+  }
+
+  const neighbor = editor.api.node(neighborPath);
+  if (!neighbor || !isElementRecord(neighbor[0]) || !isVoidElementType(neighbor[0].type)) {
+    return false;
+  }
+
+  // An empty block after a void is removed and the void becomes selected.
+  // Delete in front of a void keeps the block, empty or not.
+  if (reverse && blockString(block[0]).length === 0) {
+    const voidPath = neighborPath;
+    editor.tf.removeNodes({ at: block[1] });
+    editor.tf.select(voidPath);
+    return true;
+  }
+
+  editor.tf.select(neighborPath);
+  return true;
+}
+
+// Chrome's keydown calls deleteBackward("block") on a selected void (slate-react
+// dist/index.js 4332-4343). beforeinput deleteContentBackward calls deleteBackward()
+// with the default character unit (3539-3541). Both remove only the void.
+const voidKeyboardPlugin = createSlatePlugin({
+  key: "voidKeyboard",
+}).overrideEditor(({ editor, tf: { deleteBackward, deleteForward } }) => ({
+  transforms: {
+    deleteBackward(unit) {
+      const selected = voidEntry(editor);
+      if (selected) {
+        removeVoid(editor, selected.path);
+        return;
+      }
+
+      if (selectVoidNeighbor(editor, true)) {
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+    deleteForward(unit) {
+      const selected = voidEntry(editor);
+      if (selected) {
+        removeVoid(editor, selected.path);
+        return;
+      }
+
+      if (selectVoidNeighbor(editor, false)) {
+        return;
+      }
+
+      deleteForward(unit);
+    },
+  },
+}));
+
+function isPropsRecord(props: unknown): props is Record<string, unknown> {
+  return typeof props === "object" && props !== null && !Array.isArray(props);
+}
+
+// A void accepts the write only when every key is in its attrs. `type` never is.
+function voidAcceptsProps(type: string, props: Record<string, unknown>): boolean {
+  const allowed = allowedElementAttrs(type);
+  return Object.keys(props).every((key) => key !== "type" && allowed?.has(key) === true);
+}
+
+// combineTransformMatchOptions (@platejs/slate dist/index.js:472) keeps the caller's
+// match. An object is tested key-by-key (index.js:409 and getMatch at 435). A function
+// is called as given. A missing match stays the node at a path, or any block.
+const voidPropsPlugin = createSlatePlugin({
+  key: "voidProps",
+}).overrideEditor(({ editor, tf: { setNodes } }) => ({
+  transforms: {
+    setNodes(props, options) {
+      if (!isPropsRecord(props)) {
+        setNodes(props, options);
+        return;
+      }
+
+      setNodes(props, {
+        ...options,
+        match: combineTransformMatchOptions(
+          editor,
+          (node) => {
+            if (!isElementRecord(node) || !isVoidElementType(node.type)) {
+              return true;
+            }
+
+            return voidAcceptsProps(node.type, props);
+          },
+          options,
+        ),
+      });
+    },
+  },
+}));
+
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
 // A non-empty block keeps its identity and an empty block is inserted above. Registered last so this
-// runs before heading splitReset.
+// runs before heading splitReset. Slate's isEmpty is false for a void, so Enter on a divider would
+// insert above it. A void gets an empty paragraph after it instead.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -887,6 +1070,21 @@ const breakAbovePlugin = createSlatePlugin({
     insertBreak() {
       const selection = editor.selection;
       const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        isElementRecord(block[0]) &&
+        isVoidElementType(block[0].type) &&
+        editor.api.isCollapsed()
+      ) {
+        const at = PathApi.next(block[1]);
+        if (!at) {
+          return;
+        }
+
+        editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
+        return;
+      }
+
       if (
         block &&
         editor.api.isCollapsed() &&
@@ -910,6 +1108,10 @@ const breakAbovePlugin = createSlatePlugin({
   },
 }));
 
+const horizontalRulePlugin = HorizontalRulePlugin.configure({
+  render: { node: HrElement },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -931,6 +1133,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading2Plugin,
     heading3Plugin,
     blockquotePlugin,
+    // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
+    horizontalRulePlugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -939,7 +1143,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     PasteFallbackPlugin,
+    voidKeyboardPlugin,
     breakAbovePlugin,
     childTypesPlugin,
+    voidPropsPlugin,
   ];
 }

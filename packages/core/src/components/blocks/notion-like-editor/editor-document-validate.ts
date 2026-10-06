@@ -14,6 +14,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isVoidElementType,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
@@ -152,6 +153,17 @@ function structuralChildType(value: unknown): string | undefined {
   return undefined;
 }
 
+// A void's only legal child is one empty text leaf with no marks. Anything else is
+// unsupported: the type is known, and the raw document stays intact.
+function isEmptyUnmarkedText(children: unknown[]): boolean {
+  const only = children.length === 1 ? children[0] : undefined;
+  if (!isRecord(only) || only.text !== "" || "children" in only || "type" in only) {
+    return false;
+  }
+
+  return Object.keys(only).length === 1 && Object.hasOwn(only, "text");
+}
+
 function childIsAllowed(parentType: string, child: unknown): boolean {
   const childTypes = allowedChildTypes(parentType);
   const childType = structuralChildType(child);
@@ -253,9 +265,17 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const voidBlock = isVoidElementType(type);
+  if (voidBlock && !isEmptyUnmarkedText(value.children)) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} must contain one empty text node. Restore from a backup or remove the block.`,
+    });
+  }
+
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
-    if (!childIsAllowed(type, child)) {
+    if (!voidBlock && !childIsAllowed(type, child)) {
       const childType = structuralChildType(child);
       const detail =
         childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;

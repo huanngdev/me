@@ -24,6 +24,11 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
+  /**
+   * A void stores exactly one empty text leaf and no marks.
+   * It is not a container, so childTypes stays absent.
+   */
+  isVoid?: true;
 };
 
 export type EditorMarkRule = {
@@ -139,6 +144,12 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     childTypes: [KEYS.p],
   },
+  // A divider is a void. It stores only its id, never align, line height, or list attrs.
+  {
+    type: KEYS.hr,
+    attrs: ["id"],
+    isVoid: true,
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -179,8 +190,16 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
+const voidElementTypes = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
+);
+
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
+}
+
+export function isVoidElementType(type: string): boolean {
+  return voidElementTypes.has(type);
 }
 
 // The child type a container stores text in. That type is not itself a container.

@@ -2403,29 +2403,30 @@ export default function ErrorPageBlockPage() {
 9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
 10. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
 11. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
-12. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-13. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-14. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-15. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-16. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-17. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-18. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-19. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-20. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-21. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-22. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-23. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-24. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-25. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-26. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-27. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-28. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-29. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-30. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-31. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-32. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-33. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-34. apps/web/src/app/blocks/notion-like-editor/page.tsx
+12. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+13. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+14. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+15. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+16. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+17. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+18. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+19. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+20. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+21. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+22. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+23. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+24. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+25. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+26. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+27. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+28. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+29. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+30. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+31. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+32. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+33. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+34. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+35. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2469,6 +2470,11 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
+  /**
+   * A void stores exactly one empty text leaf and no marks.
+   * It is not a container, so childTypes stays absent.
+   */
+  isVoid?: true;
 };
 
 export type EditorMarkRule = {
@@ -2584,6 +2590,12 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     childTypes: [KEYS.p],
   },
+  // A divider is a void. It stores only its id, never align, line height, or list attrs.
+  {
+    type: KEYS.hr,
+    attrs: ["id"],
+    isVoid: true,
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -2624,8 +2636,16 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
+const voidElementTypes = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
+);
+
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
+}
+
+export function isVoidElementType(type: string): boolean {
+  return voidElementTypes.has(type);
 }
 
 // The child type a container stores text in. That type is not itself a container.
@@ -2997,6 +3017,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isVoidElementType,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
@@ -3135,6 +3156,17 @@ function structuralChildType(value: unknown): string | undefined {
   return undefined;
 }
 
+// A void's only legal child is one empty text leaf with no marks. Anything else is
+// unsupported: the type is known, and the raw document stays intact.
+function isEmptyUnmarkedText(children: unknown[]): boolean {
+  const only = children.length === 1 ? children[0] : undefined;
+  if (!isRecord(only) || only.text !== "" || "children" in only || "type" in only) {
+    return false;
+  }
+
+  return Object.keys(only).length === 1 && Object.hasOwn(only, "text");
+}
+
 function childIsAllowed(parentType: string, child: unknown): boolean {
   const childTypes = allowedChildTypes(parentType);
   const childType = structuralChildType(child);
@@ -3236,9 +3268,17 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const voidBlock = isVoidElementType(type);
+  if (voidBlock && !isEmptyUnmarkedText(value.children)) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} must contain one empty text node. Restore from a backup or remove the block.`,
+    });
+  }
+
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
-    if (!childIsAllowed(type, child)) {
+    if (!voidBlock && !childIsAllowed(type, child)) {
       const childType = structuralChildType(child);
       const detail =
         childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;
@@ -3388,6 +3428,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isVoidElementType,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
@@ -3532,23 +3573,43 @@ function collectIds(value: unknown, seen: Set<string>): void {
   }
 }
 
+function disallowedVoid(node: TElement, parentType: string): boolean {
+  if (!isVoidElementType(node.type)) {
+    return false;
+  }
+
+  const childTypes = allowedChildTypes(parentType);
+  return childTypes !== undefined && !childTypes.some((type) => type === node.type);
+}
+
 function placeInParent(
   node: TElement,
   parentType: string,
   isInline: IsInline,
   seen: Set<string>,
 ): TElement[] {
+  // A void is never retyped. A container that cannot hold it splits around the void.
+  if (isVoidElementType(node.type)) {
+    return expandBlock(node, isInline, seen);
+  }
+
   const parentTypes = allowedChildTypes(parentType) ?? [];
   if (parentTypes.some((type) => type === node.type)) {
     return expandBlock(node, isInline, seen);
   }
 
   if (allowedChildTypes(node.type) !== undefined) {
-    const inner = sanitizeContainer(node, isInline, seen);
     const placed: TElement[] = [];
-    for (const child of inner.children) {
-      if (isElementNode(child)) {
-        placed.push(...placeInParent(child, parentType, isInline, seen));
+    for (const piece of containerPieces(node, isInline, seen)) {
+      if (isVoidElementType(piece.type)) {
+        placed.push(piece);
+        continue;
+      }
+
+      for (const child of piece.children) {
+        if (isElementNode(child)) {
+          placed.push(...placeInParent(child, parentType, isInline, seen));
+        }
       }
     }
 
@@ -3563,12 +3624,16 @@ function placeInParent(
   return expandBlock({ ...node, type: target }, isInline, seen);
 }
 
-function sanitizeContainer(node: TElement, isInline: IsInline, seen: Set<string>): TElement {
+// One container, or several pieces when a disallowed void splits it:
+// quote(a), hr, quote(b). An empty piece on either side is not emitted.
+function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
   const contentType = containerContentType(node.type);
-  const blocks: TElement[] = [];
+  const pieces: TElement[] = [];
+  let blocks: TElement[] = [];
   let inlines: Descendant[] = [];
+  let usedId = false;
 
-  const flush = (): void => {
+  const flushInlines = (): void => {
     if (inlines.length === 0 || contentType === undefined) {
       inlines = [];
       return;
@@ -3576,6 +3641,20 @@ function sanitizeContainer(node: TElement, isInline: IsInline, seen: Set<string>
 
     blocks.push(elementNode(contentType, inlines, undefined));
     inlines = [];
+  };
+
+  const flushContainer = (): void => {
+    flushInlines();
+    if (blocks.length === 0) {
+      return;
+    }
+
+    const id = usedId ? undefined : takeId(node, seen);
+    usedId = true;
+    const props = elementNode(node.type, blocks, id);
+    copyAllowedAttrs(node, props);
+    pieces.push(props);
+    blocks = [];
   };
 
   for (const child of node.children) {
@@ -3594,22 +3673,40 @@ function sanitizeContainer(node: TElement, isInline: IsInline, seen: Set<string>
       continue;
     }
 
-    flush();
-    blocks.push(...placeInParent(classified.node, node.type, isInline, seen));
+    flushInlines();
+    for (const part of placeInParent(classified.node, node.type, isInline, seen)) {
+      if (disallowedVoid(part, node.type)) {
+        flushContainer();
+        pieces.push(part);
+        continue;
+      }
+
+      blocks.push(part);
+    }
   }
 
-  flush();
+  flushContainer();
 
-  const children =
-    blocks.length > 0 ? blocks : [elementNode(contentType ?? "p", [{ text: "" }], undefined)];
-  const props = elementNode(node.type, children, takeId(node, seen));
+  if (pieces.length > 0) {
+    return pieces;
+  }
+
+  const props = elementNode(
+    node.type,
+    [elementNode(contentType ?? "p", [{ text: "" }], undefined)],
+    takeId(node, seen),
+  );
   copyAllowedAttrs(node, props);
-  return props;
+  return [props];
 }
 
 function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+  if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
+    return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
+  }
+
   if (allowedChildTypes(node.type) !== undefined) {
-    return [sanitizeContainer(node, isInline, seen)];
+    return containerPieces(node, isInline, seen);
   }
 
   const allowed = allowedElementAttrs(node.type) !== undefined;
@@ -3808,6 +3905,7 @@ import {
   H1Plugin,
   H2Plugin,
   H3Plugin,
+  HorizontalRulePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -3830,6 +3928,7 @@ import {
   KEYS,
   NodeIdPlugin,
   PathApi,
+  combineTransformMatchOptions,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
@@ -3839,6 +3938,7 @@ import { Key, ParagraphPlugin } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
+import { HrElement } from "./hr-element";
 import {
   clearFormatting,
   formatBold,
@@ -3863,6 +3963,7 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  isVoidElementType,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -4281,7 +4382,8 @@ const blockquotePlugin = BlockquotePlugin.configure({
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
 // outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
-// only sees paragraphs or wraps leftover inlines.
+// only sees paragraphs or wraps leftover inlines. A disallowed void is lifted out so
+// it is not retyped into an empty paragraph.
 function normalizeDisallowedChild(
   editor: SlateEditor,
   node: { type: string } & Record<string, unknown>,
@@ -4299,6 +4401,11 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
+    if (isVoidElementType(child.type)) {
+      editor.tf.liftNodes({ at: childPath, voids: true });
+      return true;
+    }
+
     if (allowedChildTypes(child.type) !== undefined) {
       // Match this path only. A type match would also unwrap the parent quote.
       editor.tf.unwrapNodes({
@@ -4680,9 +4787,182 @@ function listBreakAbove(source: object): {
   return { attrs, unset };
 }
 
+function voidEntry(editor: SlateEditor): { path: number[] } | undefined {
+  const selection = editor.selection;
+  if (!selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const entry = editor.api.above({
+    match: (node) => isElementRecord(node) && isVoidElementType(node.type),
+    voids: true,
+  });
+  if (!entry) {
+    return undefined;
+  }
+
+  return { path: entry[1] };
+}
+
+function blockString(node: unknown): string {
+  if (!isElementRecord(node) || !Array.isArray(node.children)) {
+    return "";
+  }
+
+  let text = "";
+  for (const child of node.children) {
+    if (
+      typeof child === "object" &&
+      child !== null &&
+      "text" in child &&
+      typeof child.text === "string" &&
+      !("children" in child)
+    ) {
+      text += child.text;
+    }
+  }
+
+  return text;
+}
+
+// Slate's deleteText removes a void when the caret is inside it (slate dist/index.js
+// 4540-4566). The caret after that removal is not the end of the previous block, so
+// this places it. Backspace at the start of the next block would otherwise skip the
+// void (Editor.before, voids false) and merge the neighbors.
+function removeVoid(editor: SlateEditor, path: number[]): void {
+  const previous = PathApi.hasPrevious(path) ? PathApi.previous(path) : undefined;
+  editor.tf.removeNodes({ at: path, voids: true });
+  if (previous) {
+    const end = editor.api.end(previous);
+    if (end) {
+      editor.tf.select(end);
+    }
+    return;
+  }
+
+  const start = editor.api.start(path);
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function selectVoidNeighbor(editor: SlateEditor, reverse: boolean): boolean {
+  const selection = editor.selection;
+  const block = selection ? editor.api.block() : undefined;
+  if (
+    !block ||
+    !isElementRecord(block[0]) ||
+    isVoidElementType(block[0].type) ||
+    !editor.api.isCollapsed() ||
+    !editor.api.isAt(reverse ? { start: true } : { end: true })
+  ) {
+    return false;
+  }
+
+  const neighborPath = reverse ? PathApi.previous(block[1]) : PathApi.next(block[1]);
+  if (!neighborPath) {
+    return false;
+  }
+
+  const neighbor = editor.api.node(neighborPath);
+  if (!neighbor || !isElementRecord(neighbor[0]) || !isVoidElementType(neighbor[0].type)) {
+    return false;
+  }
+
+  // An empty block after a void is removed and the void becomes selected.
+  // Delete in front of a void keeps the block, empty or not.
+  if (reverse && blockString(block[0]).length === 0) {
+    const voidPath = neighborPath;
+    editor.tf.removeNodes({ at: block[1] });
+    editor.tf.select(voidPath);
+    return true;
+  }
+
+  editor.tf.select(neighborPath);
+  return true;
+}
+
+// Chrome's keydown calls deleteBackward("block") on a selected void (slate-react
+// dist/index.js 4332-4343). beforeinput deleteContentBackward calls deleteBackward()
+// with the default character unit (3539-3541). Both remove only the void.
+const voidKeyboardPlugin = createSlatePlugin({
+  key: "voidKeyboard",
+}).overrideEditor(({ editor, tf: { deleteBackward, deleteForward } }) => ({
+  transforms: {
+    deleteBackward(unit) {
+      const selected = voidEntry(editor);
+      if (selected) {
+        removeVoid(editor, selected.path);
+        return;
+      }
+
+      if (selectVoidNeighbor(editor, true)) {
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+    deleteForward(unit) {
+      const selected = voidEntry(editor);
+      if (selected) {
+        removeVoid(editor, selected.path);
+        return;
+      }
+
+      if (selectVoidNeighbor(editor, false)) {
+        return;
+      }
+
+      deleteForward(unit);
+    },
+  },
+}));
+
+function isPropsRecord(props: unknown): props is Record<string, unknown> {
+  return typeof props === "object" && props !== null && !Array.isArray(props);
+}
+
+// A void accepts the write only when every key is in its attrs. `type` never is.
+function voidAcceptsProps(type: string, props: Record<string, unknown>): boolean {
+  const allowed = allowedElementAttrs(type);
+  return Object.keys(props).every((key) => key !== "type" && allowed?.has(key) === true);
+}
+
+// combineTransformMatchOptions (@platejs/slate dist/index.js:472) keeps the caller's
+// match. An object is tested key-by-key (index.js:409 and getMatch at 435). A function
+// is called as given. A missing match stays the node at a path, or any block.
+const voidPropsPlugin = createSlatePlugin({
+  key: "voidProps",
+}).overrideEditor(({ editor, tf: { setNodes } }) => ({
+  transforms: {
+    setNodes(props, options) {
+      if (!isPropsRecord(props)) {
+        setNodes(props, options);
+        return;
+      }
+
+      setNodes(props, {
+        ...options,
+        match: combineTransformMatchOptions(
+          editor,
+          (node) => {
+            if (!isElementRecord(node) || !isVoidElementType(node.type)) {
+              return true;
+            }
+
+            return voidAcceptsProps(node.type, props);
+          },
+          options,
+        ),
+      });
+    },
+  },
+}));
+
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
 // A non-empty block keeps its identity and an empty block is inserted above. Registered last so this
-// runs before heading splitReset.
+// runs before heading splitReset. Slate's isEmpty is false for a void, so Enter on a divider would
+// insert above it. A void gets an empty paragraph after it instead.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -4690,6 +4970,21 @@ const breakAbovePlugin = createSlatePlugin({
     insertBreak() {
       const selection = editor.selection;
       const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        isElementRecord(block[0]) &&
+        isVoidElementType(block[0].type) &&
+        editor.api.isCollapsed()
+      ) {
+        const at = PathApi.next(block[1]);
+        if (!at) {
+          return;
+        }
+
+        editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
+        return;
+      }
+
       if (
         block &&
         editor.api.isCollapsed() &&
@@ -4713,6 +5008,10 @@ const breakAbovePlugin = createSlatePlugin({
   },
 }));
 
+const horizontalRulePlugin = HorizontalRulePlugin.configure({
+  render: { node: HrElement },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -4734,6 +5033,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading2Plugin,
     heading3Plugin,
     blockquotePlugin,
+    // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
+    horizontalRulePlugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -4742,8 +5043,10 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     PasteFallbackPlugin,
+    voidKeyboardPlugin,
     breakAbovePlugin,
     childTypesPlugin,
+    voidPropsPlugin,
   ];
 }
 ```
@@ -5029,6 +5332,49 @@ export function BlockquoteElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+```tsx
+import {
+  PlateElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+// AGENTS.md line 29 keeps the accent for active states. The selected ring uses
+// the focus ring token, which is the violet accent under the site palette.
+// Plate wraps an <hr> the same way (react/index.js FastIntrinsicElement): a div,
+// <hr contentEditable={false}>, then the Slate children. There is no click handler.
+export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
+export const HR_SELECTED_CLASS_NAME = "ring-2 ring-ring";
+
+export function hrElementClassName(
+  selected: boolean,
+  focused: boolean,
+  readOnly: boolean,
+): string | undefined {
+  if (!selected || !focused || readOnly) {
+    return undefined;
+  }
+
+  return HR_SELECTED_CLASS_NAME;
+}
+
+export function HrElement(props: PlateElementProps) {
+  const className = hrElementClassName(useSelected(), useFocused(), useReadOnly());
+
+  return (
+    <PlateElement {...props} className={cn("py-2", className)}>
+      <hr contentEditable={false} className={HR_RULE_CLASS_NAME} />
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
@@ -5053,6 +5399,7 @@ import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
+  PathApi,
   RangeApi,
   TextApi,
   type SlateEditor,
@@ -5808,6 +6155,75 @@ export const setListRestart: EditorCommand<number | null> = {
 
     editor.tf.unsetNodes(KEYS.listRestartPolite, { at: entry[1] });
     editor.tf.setNodes({ [KEYS.listRestart]: value }, { at: entry[1] });
+  },
+};
+
+function directText(node: TElement): string {
+  let text = "";
+  for (const child of node.children) {
+    if (TextApi.isText(child)) {
+      text += child.text;
+    }
+  }
+
+  return text;
+}
+
+function isPlainParagraph(node: TElement): boolean {
+  return node.type === KEYS.p && node.listStyleType === undefined;
+}
+
+function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
+  const entry = editor.api.node(path);
+  const node = entry?.[0];
+  if (entry && entry[1].length === 1 && ElementApi.isElement(node) && isPlainParagraph(node)) {
+    const start = editor.api.start(path);
+    if (start) {
+      editor.tf.select(start);
+    }
+    return;
+  }
+
+  editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
+}
+
+// No shortcut. Notion and Google Docs have none. The --- trigger is DEV-126.
+export const insertDivider: EditorCommand = {
+  id: "block.insert.divider",
+  label: "Divider",
+  group: "insert",
+  run: (editor) => {
+    const entry = editor.api.block({ highest: true });
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let hrPath = path;
+    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
+      const drop = Object.keys(node).filter(
+        (key) => key !== "type" && key !== "children" && key !== "id",
+      );
+      if (drop.length > 0) {
+        editor.tf.unsetNodes(drop, { at: path });
+      }
+      editor.tf.setNodes({ type: KEYS.hr }, { at: path });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes({ type: KEYS.hr, children: [{ text: "" }] }, { at, select: false });
+      hrPath = at;
+    }
+
+    const after = PathApi.next(hrPath);
+    if (!after) {
+      return;
+    }
+
+    selectPlainParagraph(editor, after);
   },
 };
 
@@ -8157,6 +8573,11 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "hr",
+    id: "demo-divider",
+    children: [{ text: "" }],
+  },
+  {
     type: "h3",
     id: "demo-quotes",
     children: [{ text: "Quotes" }],
@@ -8314,6 +8735,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/blockquote-element.tsx",
     code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/hr-element.tsx",
+    code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

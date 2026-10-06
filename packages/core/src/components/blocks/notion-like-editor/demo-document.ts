@@ -272,6 +272,11 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "hr",
+    id: "demo-divider",
+    children: [{ text: "" }],
+  },
+  {
     type: "h3",
     id: "demo-quotes",
     children: [{ text: "Quotes" }],

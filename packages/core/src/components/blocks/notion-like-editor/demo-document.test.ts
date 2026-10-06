@@ -214,11 +214,17 @@ describe("demo document", () => {
       "Press Cmd+Shift+9 or Ctrl+Shift+9 to make a to-do, and Cmd+Enter or Ctrl+Enter to check it.",
     );
 
+    const divider = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-divider");
     const quotes = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-quotes");
     const quote = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-quote");
-    if (!quotes || !quote || quote.type !== "blockquote") {
+    if (!divider || !quotes || !quote || quote.type !== "blockquote") {
       throw new Error("Missing the quotes demo.");
     }
+
+    expect(divider.type).toBe("hr");
+    expect(divider.children).toEqual([{ text: "" }]);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(divider)).toBe(DEMO_DOCUMENT_VALUE.indexOf(todoHint) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(quotes)).toBe(DEMO_DOCUMENT_VALUE.indexOf(divider) + 1);
 
     expect(quotes.type).toBe("h3");
     expect(textOf(quotes)).toBe("Quotes");
