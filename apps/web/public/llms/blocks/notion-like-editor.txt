@@ -65,7 +65,23 @@ export type EditorElementRule = {
 
 export type EditorMarkRule = {
   type: string;
+  values?: readonly string[];
 };
+
+// Proposed Notion-like palette. The stored mark is the token name, not a CSS color.
+export const TEXT_COLOR_TOKENS = [
+  "gray",
+  "brown",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "purple",
+  "pink",
+  "red",
+] as const;
+
+export type TextColorToken = (typeof TEXT_COLOR_TOKENS)[number];
 
 export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
@@ -79,6 +95,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
+  { type: KEYS.color, values: TEXT_COLOR_TOKENS },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -87,12 +104,35 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
 
 const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
 
+const markValues = new Map<string, readonly string[]>(
+  EDITOR_MARK_RULES.flatMap((rule) =>
+    rule.values === undefined ? [] : [[rule.type, rule.values]],
+  ),
+);
+
 export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
   return elementAttrs.get(type);
 }
 
 export function isAllowedMark(mark: string): boolean {
   return allowedMarks.has(mark);
+}
+
+export function allowedMarkValues(mark: string): readonly string[] | undefined {
+  return markValues.get(mark);
+}
+
+export function isAllowedMarkValue(mark: string, value: unknown): boolean {
+  const values = allowedMarkValues(mark);
+  if (values === undefined) {
+    return true;
+  }
+
+  return typeof value === "string" && values.some((allowed) => allowed === value);
+}
+
+export function isTextColorToken(value: unknown): value is TextColorToken {
+  return typeof value === "string" && TEXT_COLOR_TOKENS.some((token) => token === value);
 }
 ```
 
@@ -323,7 +363,7 @@ import {
   type EditorDocument,
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
-import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
 
 export type Issue = {
   path: number[];
@@ -410,15 +450,35 @@ function walkText(value: Record<string, unknown>, path: number[], state: WalkSta
   }
 
   for (const key of Object.keys(value)) {
-    if (key === "text" || isAllowedMark(key)) {
+    if (key === "text") {
+      continue;
+    }
+
+    if (!isAllowedMark(key)) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      });
+      continue;
+    }
+
+    if (isAllowedMarkValue(key, value[key])) {
       continue;
     }
 
     state.unsupported.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(value[key])}". Restore from a backup or remove the mark.`,
     });
   }
+}
+
+function markValueLabel(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "value";
 }
 
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
@@ -626,7 +686,7 @@ import {
   type TText,
 } from "platejs";
 
-import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -662,7 +722,7 @@ function sanitizeText(node: Record<string, unknown>): TText {
   const next: TText = { text };
 
   for (const key of Object.keys(node)) {
-    if (key === "text" || !isAllowedMark(key)) {
+    if (key === "text" || !isAllowedMark(key) || !isAllowedMarkValue(key, node[key])) {
       continue;
     }
 
@@ -964,7 +1024,14 @@ import {
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
-import { NodeIdPlugin, someHtmlElement, type AnyPluginConfig, type SlateEditor } from "platejs";
+import { FontColorPlugin } from "@platejs/basic-styles/react";
+import {
+  KEYS,
+  NodeIdPlugin,
+  someHtmlElement,
+  type AnyPluginConfig,
+  type SlateEditor,
+} from "platejs";
 import { Key } from "platejs/react";
 
 import {
@@ -978,6 +1045,7 @@ import {
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
+import { isTextColorToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type TextDecorationRule = {
@@ -1109,6 +1177,27 @@ const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
 
+// The stored value is a palette token. Plate's default inject would copy that token
+// into style.color. transformStyle is typed as CSSStyleDeclaration, which the leaf
+// does not use, so transformProps replaces the injected style with the theme variable.
+const textColorPlugin = FontColorPlugin.configure({
+  inject: {
+    nodeProps: {
+      nodeKey: KEYS.color,
+      transformProps: ({ nodeValue, props }) => {
+        if (!isTextColorToken(nodeValue)) {
+          return {};
+        }
+
+        return {
+          ...props,
+          style: { color: `var(--editor-text-${nodeValue})` },
+        };
+      },
+    },
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -1121,6 +1210,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codePlugin,
     superscriptPlugin,
     subscriptPlugin,
+    textColorPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -1146,6 +1236,8 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
+
+import { isTextColorToken, type TextColorToken } from "./editor-document-schema";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -1277,6 +1369,67 @@ export const formatSubscript: EditorCommand = createMarkCommand({
   label: "Subscript",
   excludes: [KEYS.sup],
 });
+
+export type TextColorState = TextColorToken | null | "mixed";
+
+export function getTextColor(editor: SlateEditor): TextColorState {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  if (RangeApi.isCollapsed(selection)) {
+    const value = editor.api.marks()?.[KEYS.color];
+    return isTextColorToken(value) ? value : null;
+  }
+
+  let token: TextColorToken | null = null;
+  let sawPlain = false;
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => TextApi.isText(candidate),
+  })) {
+    if (!TextApi.isText(node) || node.text.length === 0) {
+      continue;
+    }
+
+    const value = node[KEYS.color];
+    if (!isTextColorToken(value)) {
+      sawPlain = true;
+      continue;
+    }
+
+    if (token === null) {
+      token = value;
+      continue;
+    }
+
+    if (token !== value) {
+      return "mixed";
+    }
+  }
+
+  if (token !== null && sawPlain) {
+    return "mixed";
+  }
+
+  return token;
+}
+
+export const setTextColor: EditorCommand<TextColorToken | null> = {
+  id: "format.text-color",
+  label: "Text color",
+  group: "format",
+  run: (editor, color) => {
+    if (color === null) {
+      editor.tf.removeMark(KEYS.color);
+      return;
+    }
+
+    editor.tf.addMark(KEYS.color, color);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -3430,6 +3583,19 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "This is subscript: H" },
       { text: "2", subscript: true },
       { text: "O. Press Cmd+, or Ctrl+," },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-color",
+    children: [
+      { text: "Text can be " },
+      { text: "red", color: "red" },
+      { text: ", " },
+      { text: "blue", color: "blue" },
+      { text: ", or " },
+      { text: "green", color: "green" },
+      { text: ". Colors come from a preset palette that adapts to light and dark mode." },
     ],
   },
   {

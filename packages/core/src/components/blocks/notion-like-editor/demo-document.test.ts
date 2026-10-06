@@ -156,6 +156,26 @@ describe("demo document", () => {
     expect(marked).toEqual(["2"]);
   });
 
+  test("the color paragraph marks red, blue, and green", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-color");
+    if (!block) {
+      throw new Error("Missing color paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "color") !== undefined)
+      .map((child) => [child.text, field(child, "color")]);
+
+    expect(textOf(block)).toBe(
+      "Text can be red, blue, or green. Colors come from a preset palette that adapts to light and dark mode.",
+    );
+    expect(marked).toEqual([
+      ["red", "red"],
+      ["blue", "blue"],
+      ["green", "green"],
+    ]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

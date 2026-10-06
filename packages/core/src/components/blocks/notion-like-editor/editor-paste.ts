@@ -6,7 +6,7 @@ import {
   type TText,
 } from "platejs";
 
-import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -42,7 +42,7 @@ function sanitizeText(node: Record<string, unknown>): TText {
   const next: TText = { text };
 
   for (const key of Object.keys(node)) {
-    if (key === "text" || !isAllowedMark(key)) {
+    if (key === "text" || !isAllowedMark(key) || !isAllowedMarkValue(key, node[key])) {
       continue;
     }
 

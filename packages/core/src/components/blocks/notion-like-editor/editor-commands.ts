@@ -1,5 +1,7 @@
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
+import { isTextColorToken, type TextColorToken } from "./editor-document-schema";
+
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
 export type EditorCommand<Payload = void> = {
@@ -130,6 +132,67 @@ export const formatSubscript: EditorCommand = createMarkCommand({
   label: "Subscript",
   excludes: [KEYS.sup],
 });
+
+export type TextColorState = TextColorToken | null | "mixed";
+
+export function getTextColor(editor: SlateEditor): TextColorState {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  if (RangeApi.isCollapsed(selection)) {
+    const value = editor.api.marks()?.[KEYS.color];
+    return isTextColorToken(value) ? value : null;
+  }
+
+  let token: TextColorToken | null = null;
+  let sawPlain = false;
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => TextApi.isText(candidate),
+  })) {
+    if (!TextApi.isText(node) || node.text.length === 0) {
+      continue;
+    }
+
+    const value = node[KEYS.color];
+    if (!isTextColorToken(value)) {
+      sawPlain = true;
+      continue;
+    }
+
+    if (token === null) {
+      token = value;
+      continue;
+    }
+
+    if (token !== value) {
+      return "mixed";
+    }
+  }
+
+  if (token !== null && sawPlain) {
+    return "mixed";
+  }
+
+  return token;
+}
+
+export const setTextColor: EditorCommand<TextColorToken | null> = {
+  id: "format.text-color",
+  label: "Text color",
+  group: "format",
+  run: (editor, color) => {
+    if (color === null) {
+      editor.tf.removeMark(KEYS.color);
+      return;
+    }
+
+    editor.tf.addMark(KEYS.color, color);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

@@ -7,7 +7,14 @@ import {
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
-import { NodeIdPlugin, someHtmlElement, type AnyPluginConfig, type SlateEditor } from "platejs";
+import { FontColorPlugin } from "@platejs/basic-styles/react";
+import {
+  KEYS,
+  NodeIdPlugin,
+  someHtmlElement,
+  type AnyPluginConfig,
+  type SlateEditor,
+} from "platejs";
 import { Key } from "platejs/react";
 
 import {
@@ -21,6 +28,7 @@ import {
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
+import { isTextColorToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type TextDecorationRule = {
@@ -152,6 +160,27 @@ const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
 
+// The stored value is a palette token. Plate's default inject would copy that token
+// into style.color. transformStyle is typed as CSSStyleDeclaration, which the leaf
+// does not use, so transformProps replaces the injected style with the theme variable.
+const textColorPlugin = FontColorPlugin.configure({
+  inject: {
+    nodeProps: {
+      nodeKey: KEYS.color,
+      transformProps: ({ nodeValue, props }) => {
+        if (!isTextColorToken(nodeValue)) {
+          return {};
+        }
+
+        return {
+          ...props,
+          style: { color: `var(--editor-text-${nodeValue})` },
+        };
+      },
+    },
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -164,6 +193,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codePlugin,
     superscriptPlugin,
     subscriptPlugin,
+    textColorPlugin,
     PasteFallbackPlugin,
   ];
 }

@@ -95,6 +95,19 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-color",
+    children: [
+      { text: "Text can be " },
+      { text: "red", color: "red" },
+      { text: ", " },
+      { text: "blue", color: "blue" },
+      { text: ", or " },
+      { text: "green", color: "green" },
+      { text: ". Colors come from a preset palette that adapts to light and dark mode." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

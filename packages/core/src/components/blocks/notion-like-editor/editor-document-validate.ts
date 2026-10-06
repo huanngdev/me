@@ -8,7 +8,7 @@ import {
   type EditorDocument,
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
-import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
 
 export type Issue = {
   path: number[];
@@ -95,15 +95,35 @@ function walkText(value: Record<string, unknown>, path: number[], state: WalkSta
   }
 
   for (const key of Object.keys(value)) {
-    if (key === "text" || isAllowedMark(key)) {
+    if (key === "text") {
+      continue;
+    }
+
+    if (!isAllowedMark(key)) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      });
+      continue;
+    }
+
+    if (isAllowedMarkValue(key, value[key])) {
       continue;
     }
 
     state.unsupported.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(value[key])}". Restore from a backup or remove the mark.`,
     });
   }
+}
+
+function markValueLabel(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "value";
 }
 
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
