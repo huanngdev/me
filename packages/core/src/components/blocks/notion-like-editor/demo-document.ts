@@ -48,6 +48,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-underline",
+    children: [
+      { text: "This is " },
+      { text: "underlined text", underline: true },
+      { text: ". Press Cmd+U or Ctrl+U." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

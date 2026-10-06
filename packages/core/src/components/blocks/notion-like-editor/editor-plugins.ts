@@ -1,7 +1,13 @@
-import { BoldPlugin, ItalicPlugin } from "@platejs/basic-nodes/react";
+import { BoldPlugin, ItalicPlugin, UnderlinePlugin } from "@platejs/basic-nodes/react";
 import { NodeIdPlugin, type AnyPluginConfig, type SlateEditor } from "platejs";
 
-import { formatBold, formatItalic, runEditorCommand, type EditorCommand } from "./editor-commands";
+import {
+  formatBold,
+  formatItalic,
+  formatUnderline,
+  runEditorCommand,
+  type EditorCommand,
+} from "./editor-commands";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type MarkShortcutConfig = {
@@ -32,9 +38,10 @@ export function configureMarkShortcut<
 
 const boldPlugin = configureMarkShortcut(BoldPlugin, formatBold);
 const italicPlugin = configureMarkShortcut(ItalicPlugin, formatItalic);
+const underlinePlugin = configureMarkShortcut(UnderlinePlugin, formatUnderline);
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
-  return [NodeIdPlugin, boldPlugin, italicPlugin, PasteFallbackPlugin];
+  return [NodeIdPlugin, boldPlugin, italicPlugin, underlinePlugin, PasteFallbackPlugin];
 }

@@ -3,13 +3,19 @@ import { KEYS, type SlateEditor, type TRange } from "platejs";
 import { serializeHtml } from "platejs/static";
 
 import { DEMO_DOCUMENT_VALUE } from "./demo-document";
-import { formatBold, formatItalic, runEditorCommand, type EditorCommand } from "./editor-commands";
+import {
+  formatBold,
+  formatItalic,
+  formatUnderline,
+  runEditorCommand,
+  type EditorCommand,
+} from "./editor-commands";
 import { createEditorDocument, serializeEditorDocument } from "./editor-document";
 import { isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { caret, createEditor, expectOk, field, plainText, textRange } from "./test-utils";
 
-type MarkKey = "bold" | "italic";
+type MarkKey = "bold" | "italic" | "underline";
 
 type MarkCase = {
   key: MarkKey;
@@ -21,7 +27,7 @@ type MarkCase = {
   sample: string;
 };
 
-type Leaf = { text: string; bold?: true; italic?: true };
+type Leaf = { text: string; bold?: true; italic?: true; underline?: true };
 
 const MARKS: Array<[string, MarkCase]> = [
   [
@@ -48,6 +54,18 @@ const MARKS: Array<[string, MarkCase]> = [
       sample: "italic text",
     },
   ],
+  [
+    "underline",
+    {
+      key: KEYS.underline,
+      label: "underline",
+      command: formatUnderline,
+      hotkey: "u",
+      demoId: "demo-underline",
+      sentence: "This is underlined text. Press Cmd+U or Ctrl+U.",
+      sample: "underlined text",
+    },
+  ],
 ];
 
 function paragraph(text: string) {
@@ -68,7 +86,11 @@ function withMark(text: string, key: MarkKey): Leaf {
     return { text, bold: true };
   }
 
-  return { text, italic: true };
+  if (key === KEYS.italic) {
+    return { text, italic: true };
+  }
+
+  return { text, underline: true };
 }
 
 function leaves(editor: SlateEditor, index: number, key: MarkKey): Leaf[] {
@@ -334,7 +356,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
       .map((child) => child.text);
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(9);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(10);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual([mark.sample]);
   });
@@ -422,5 +444,52 @@ describe("marks", () => {
 
     expect(markState(editor, formatBold)).toBe("on");
     expect(markState(editor, formatItalic)).toBe("mixed");
+  });
+
+  test("removing underline keeps bold and italic on the same text", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [{ text: "Hello", bold: true, italic: true, underline: true }],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatUnderline, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", bold: true, italic: true });
+  });
+
+  test("bold, italic, and underline on the same text round-trip together", () => {
+    const document = createEditorDocument("doc-three", [
+      {
+        type: "p",
+        id: "p",
+        children: [{ text: "Hi", bold: true, italic: true, underline: true }],
+      },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+  });
+
+  test("bold, italic, and underline on the same text render as strong, em, and u", async () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [{ text: "Hi", bold: true, italic: true, underline: true }],
+      },
+    ]);
+
+    const html = await serializeHtml(editor);
+    const strong = html.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/);
+    const em = html.match(/<em\b[^>]*>([\s\S]*?)<\/em>/);
+    const underline = html.match(/<u\b[^>]*>([\s\S]*?)<\/u>/);
+
+    expect(strong?.[1]).toContain("Hi");
+    expect(em?.[1]).toContain("Hi");
+    expect(underline?.[1]).toContain("Hi");
   });
 });

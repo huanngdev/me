@@ -2458,6 +2458,7 @@ export const EDITOR_ELEMENT_RULES = [
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.bold },
   { type: KEYS.italic },
+  { type: KEYS.underline },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -3334,10 +3335,16 @@ export const PasteFallbackPlugin = createSlatePlugin({
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ```ts
-import { BoldPlugin, ItalicPlugin } from "@platejs/basic-nodes/react";
+import { BoldPlugin, ItalicPlugin, UnderlinePlugin } from "@platejs/basic-nodes/react";
 import { NodeIdPlugin, type AnyPluginConfig, type SlateEditor } from "platejs";
 
-import { formatBold, formatItalic, runEditorCommand, type EditorCommand } from "./editor-commands";
+import {
+  formatBold,
+  formatItalic,
+  formatUnderline,
+  runEditorCommand,
+  type EditorCommand,
+} from "./editor-commands";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type MarkShortcutConfig = {
@@ -3368,11 +3375,12 @@ export function configureMarkShortcut<
 
 const boldPlugin = configureMarkShortcut(BoldPlugin, formatBold);
 const italicPlugin = configureMarkShortcut(ItalicPlugin, formatItalic);
+const underlinePlugin = configureMarkShortcut(UnderlinePlugin, formatUnderline);
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
-  return [NodeIdPlugin, boldPlugin, italicPlugin, PasteFallbackPlugin];
+  return [NodeIdPlugin, boldPlugin, italicPlugin, underlinePlugin, PasteFallbackPlugin];
 }
 ```
 
@@ -3486,6 +3494,11 @@ export const formatBold: EditorCommand = createMarkCommand({
 export const formatItalic: EditorCommand = createMarkCommand({
   key: KEYS.italic,
   label: "Italic",
+});
+
+export const formatUnderline: EditorCommand = createMarkCommand({
+  key: KEYS.underline,
+  label: "Underline",
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
@@ -5593,6 +5606,15 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "This is " },
       { text: "italic text", italic: true },
       { text: ". Press Cmd+I or Ctrl+I, and combine it with bold." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-underline",
+    children: [
+      { text: "This is " },
+      { text: "underlined text", underline: true },
+      { text: ". Press Cmd+U or Ctrl+U." },
     ],
   },
   {

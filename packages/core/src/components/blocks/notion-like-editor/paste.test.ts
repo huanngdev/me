@@ -218,6 +218,67 @@ describe("paste", () => {
     expect(markedText(editor, "italic")).toEqual(["b"]);
   });
 
+  test("pasting u makes only that text underlined", () => {
+    const editor = pasteHtml("<p>a <u>b</u> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+  });
+
+  test("pasting text-decoration underline makes only that text underlined", () => {
+    const editor = pasteHtml('<p>a <span style="text-decoration: underline">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+  });
+
+  test("pasting a Google Docs underline span makes only that text underlined", () => {
+    const editor = pasteHtml('<p>a <span style="text-decoration:underline">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+  });
+
+  test("pasting an anchor unwraps to plain text without an underline", () => {
+    const editor = pasteHtml('<p><a href="https://example.com">x</a></p>');
+    const serialized = JSON.stringify(editor.children);
+
+    expect(plainText(editor)).toBe("x");
+    expect(markedText(editor, "underline")).toEqual([]);
+    expect(serialized).not.toContain("underline");
+    expect(serialized).not.toContain("example.com");
+  });
+
+  test("pasting an underlined word beside a link underlines only the word", () => {
+    const editor = pasteHtml('<p>a <u>b</u> <a href="https://example.com">c</a></p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+  });
+
+  test("a text-decoration of underline and line-through stays plain", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="text-decoration: underline line-through">b</span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("text-decoration-line underline stays plain", () => {
+    const editor = pasteHtml('<p>a <span style="text-decoration-line: underline">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("a u with text-decoration none stays plain", () => {
+    const editor = pasteHtml('<p>a <u style="text-decoration: none">b</u> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
   test("pasting Word or Notion HTML keeps each div and turns br into a newline", () => {
     const editor = paste(structuredClone(PASTE_WORD_NOTION));
 

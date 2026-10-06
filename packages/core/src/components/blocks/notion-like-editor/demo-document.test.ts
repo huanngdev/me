@@ -86,6 +86,20 @@ describe("demo document", () => {
     expect(marked).toEqual(["italic text"]);
   });
 
+  test("the underline paragraph marks only underlined text", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-underline");
+    if (!block) {
+      throw new Error("Missing underline paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "underline") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe("This is underlined text. Press Cmd+U or Ctrl+U.");
+    expect(marked).toEqual(["underlined text"]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

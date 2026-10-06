@@ -91,6 +91,11 @@ export const formatItalic: EditorCommand = createMarkCommand({
   label: "Italic",
 });
 
+export const formatUnderline: EditorCommand = createMarkCommand({
+  key: KEYS.underline,
+  label: "Underline",
+});
+
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
     id: "history.undo",
