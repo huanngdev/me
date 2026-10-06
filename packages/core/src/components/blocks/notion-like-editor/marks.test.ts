@@ -223,7 +223,9 @@ function acrossParagraphs(): TRange {
 }
 
 function textOf(block: (typeof DEMO_DOCUMENT_VALUE)[number]): string {
-  return block.children.map((child) => child.text).join("");
+  return block.children
+    .map((child) => ("text" in child && typeof child.text === "string" ? child.text : ""))
+    .join("");
 }
 
 describe.each(MARKS)("%s", (_name, mark) => {
@@ -442,12 +444,13 @@ describe.each(MARKS)("%s", (_name, mark) => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === mark.demoId);
     const markedLeaves = block?.children
       .filter((child) => field(child, mark.key) === true)
-      .map((child) => child.text);
+      .map((child) => ("text" in child && typeof child.text === "string" ? child.text : ""));
 
     const expected = mark.samples === undefined ? [mark.sample] : [...mark.samples];
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(35);
+    // Top-level blocks. Paragraphs nested in the quote are not counted.
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(37);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });

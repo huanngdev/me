@@ -135,7 +135,10 @@ function TodoCheck({
   );
 }
 
-// The gap between items is a sibling rule on the editor surface. This render reads only its own element.
+// One class plus two attribute selectors, so this margin wins over space-y on the same parent.
+export const LIST_SIBLING_GAP_CLASS = "[&>[data-list-item]:has(+[data-list-item])]:mb-1";
+
+// The gap between items is this sibling rule on the parent. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
   const listStyleType = element.listStyleType;
   const listAttributes =

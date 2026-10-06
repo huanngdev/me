@@ -5,6 +5,7 @@ import { Plate, PlateContent } from "platejs/react";
 
 import { cn } from "@/lib/utils";
 
+import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { EditorValue } from "./editor-value";
 
 type EditorSurfaceProps = {
@@ -35,7 +36,7 @@ export function EditorSurface({
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
         // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
         // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-        className={cn(className, "space-y-4 [&>[data-list-item]:has(+[data-list-item])]:mb-1")}
+        className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}

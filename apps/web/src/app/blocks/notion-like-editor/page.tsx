@@ -60,6 +60,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/block-list.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/blockquote-element.tsx",
+    code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-selection.ts",
     code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
   },

@@ -7,6 +7,8 @@ import {
 } from "platejs";
 
 import {
+  allowedChildTypes,
+  containerContentType,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
@@ -155,7 +157,86 @@ function collectIds(value: unknown, seen: Set<string>): void {
   }
 }
 
+function placeInParent(
+  node: TElement,
+  parentType: string,
+  isInline: IsInline,
+  seen: Set<string>,
+): TElement[] {
+  const parentTypes = allowedChildTypes(parentType) ?? [];
+  if (parentTypes.some((type) => type === node.type)) {
+    return expandBlock(node, isInline, seen);
+  }
+
+  if (allowedChildTypes(node.type) !== undefined) {
+    const inner = sanitizeContainer(node, isInline, seen);
+    const placed: TElement[] = [];
+    for (const child of inner.children) {
+      if (isElementNode(child)) {
+        placed.push(...placeInParent(child, parentType, isInline, seen));
+      }
+    }
+
+    return placed;
+  }
+
+  const target = containerContentType(parentType);
+  if (target === undefined) {
+    return expandBlock(node, isInline, seen);
+  }
+
+  return expandBlock({ ...node, type: target }, isInline, seen);
+}
+
+function sanitizeContainer(node: TElement, isInline: IsInline, seen: Set<string>): TElement {
+  const contentType = containerContentType(node.type);
+  const blocks: TElement[] = [];
+  let inlines: Descendant[] = [];
+
+  const flush = (): void => {
+    if (inlines.length === 0 || contentType === undefined) {
+      inlines = [];
+      return;
+    }
+
+    blocks.push(elementNode(contentType, inlines, undefined));
+    inlines = [];
+  };
+
+  for (const child of node.children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    blocks.push(...placeInParent(classified.node, node.type, isInline, seen));
+  }
+
+  flush();
+
+  const children =
+    blocks.length > 0 ? blocks : [elementNode(contentType ?? "p", [{ text: "" }], undefined)];
+  const props = elementNode(node.type, children, takeId(node, seen));
+  copyAllowedAttrs(node, props);
+  return props;
+}
+
 function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+  if (allowedChildTypes(node.type) !== undefined) {
+    return [sanitizeContainer(node, isInline, seen)];
+  }
+
   const allowed = allowedElementAttrs(node.type) !== undefined;
   const paragraphs: TElement[] = [];
   let inlines: Descendant[] = [];

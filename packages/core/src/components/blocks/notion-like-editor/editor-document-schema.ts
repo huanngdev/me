@@ -19,6 +19,11 @@ export type EditorElementRule = {
   attrRanges?: Readonly<Record<string, IntegerAttrRange>>;
   /** A dependent attribute is stored only when `attr` is present, allowed, and in `values`. */
   attrRequires?: Readonly<Record<string, AttrRequirement>>;
+  /**
+   * Absent: children are inline text, which is every block except containers.
+   * Present: every child is an element of one of these types.
+   */
+  childTypes?: readonly string[];
 };
 
 export type EditorMarkRule = {
@@ -128,6 +133,12 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
+  // Alignment and line height stay on the child paragraphs. A quote stores only its id.
+  {
+    type: KEYS.blockquote,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -150,8 +161,8 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>(
-  (rule) => rule.attrValues,
+const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>((rule) =>
+  "attrValues" in rule ? rule.attrValues : undefined,
 );
 
 const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
@@ -161,6 +172,22 @@ const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
 const elementAttrRequires = ruleMaps<AttrRequirement>((rule) =>
   "attrRequires" in rule ? rule.attrRequires : undefined,
 );
+
+const elementChildTypes = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "childTypes" in rule && rule.childTypes !== undefined ? [[rule.type, rule.childTypes]] : [],
+  ),
+);
+
+export function allowedChildTypes(type: string): readonly string[] | undefined {
+  return elementChildTypes.get(type);
+}
+
+// The child type a container stores text in. That type is not itself a container.
+export function containerContentType(type: string): string | undefined {
+  const childTypes = allowedChildTypes(type);
+  return childTypes?.find((childType) => allowedChildTypes(childType) === undefined);
+}
 
 function ruleMaps<T>(
   pick: (rule: (typeof EDITOR_ELEMENT_RULES)[number]) => Readonly<Record<string, T>> | undefined,

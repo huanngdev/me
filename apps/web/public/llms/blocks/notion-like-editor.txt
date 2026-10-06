@@ -18,29 +18,30 @@
 8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
 10. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
-11. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-12. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-13. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-14. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-15. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-16. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-17. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-18. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-19. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-20. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-21. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-22. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-23. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-24. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-25. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-26. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-27. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-28. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-29. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-30. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-31. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-32. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-33. apps/web/src/app/blocks/notion-like-editor/page.tsx
+11. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
+12. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+13. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+14. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+15. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+16. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+17. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+18. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+19. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+20. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+21. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+22. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+23. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+24. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+25. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+26. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+27. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+28. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+29. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+30. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+31. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+32. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+33. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+34. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -79,6 +80,11 @@ export type EditorElementRule = {
   attrRanges?: Readonly<Record<string, IntegerAttrRange>>;
   /** A dependent attribute is stored only when `attr` is present, allowed, and in `values`. */
   attrRequires?: Readonly<Record<string, AttrRequirement>>;
+  /**
+   * Absent: children are inline text, which is every block except containers.
+   * Present: every child is an element of one of these types.
+   */
+  childTypes?: readonly string[];
 };
 
 export type EditorMarkRule = {
@@ -188,6 +194,12 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
+  // Alignment and line height stay on the child paragraphs. A quote stores only its id.
+  {
+    type: KEYS.blockquote,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -210,8 +222,8 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>(
-  (rule) => rule.attrValues,
+const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>((rule) =>
+  "attrValues" in rule ? rule.attrValues : undefined,
 );
 
 const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
@@ -221,6 +233,22 @@ const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
 const elementAttrRequires = ruleMaps<AttrRequirement>((rule) =>
   "attrRequires" in rule ? rule.attrRequires : undefined,
 );
+
+const elementChildTypes = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "childTypes" in rule && rule.childTypes !== undefined ? [[rule.type, rule.childTypes]] : [],
+  ),
+);
+
+export function allowedChildTypes(type: string): readonly string[] | undefined {
+  return elementChildTypes.get(type);
+}
+
+// The child type a container stores text in. That type is not itself a container.
+export function containerContentType(type: string): string | undefined {
+  const childTypes = allowedChildTypes(type);
+  return childTypes?.find((childType) => allowedChildTypes(childType) === undefined);
+}
 
 function ruleMaps<T>(
   pick: (rule: (typeof EDITOR_ELEMENT_RULES)[number]) => Readonly<Record<string, T>> | undefined,
@@ -580,6 +608,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  allowedChildTypes,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
@@ -704,6 +733,34 @@ function markValueLabel(value: unknown): string {
   return "value";
 }
 
+function isTextChild(value: unknown): boolean {
+  return (
+    isRecord(value) && "text" in value && !("children" in value) && typeof value.type !== "string"
+  );
+}
+
+function structuralChildType(value: unknown): string | undefined {
+  if (!isRecord(value) || isTextChild(value)) {
+    return undefined;
+  }
+
+  if ("children" in value || "type" in value) {
+    return typeof value.type === "string" ? value.type : "";
+  }
+
+  return undefined;
+}
+
+function childIsAllowed(parentType: string, child: unknown): boolean {
+  const childTypes = allowedChildTypes(parentType);
+  const childType = structuralChildType(child);
+  if (childTypes === undefined) {
+    return childType === undefined;
+  }
+
+  return childType !== undefined && childTypes.some((type) => type === childType);
+}
+
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
@@ -796,7 +853,18 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
   }
 
   for (let index = 0; index < value.children.length; index += 1) {
-    walkDescendant(value.children[index], [...path, index], state);
+    const child = value.children[index];
+    if (!childIsAllowed(type, child)) {
+      const childType = structuralChildType(child);
+      const detail =
+        childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or remove the block.`,
+      });
+    }
+
+    walkDescendant(child, [...path, index], state);
     if (state.invalid) {
       return;
     }
@@ -930,6 +998,8 @@ import {
 } from "platejs";
 
 import {
+  allowedChildTypes,
+  containerContentType,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
@@ -1078,7 +1148,86 @@ function collectIds(value: unknown, seen: Set<string>): void {
   }
 }
 
+function placeInParent(
+  node: TElement,
+  parentType: string,
+  isInline: IsInline,
+  seen: Set<string>,
+): TElement[] {
+  const parentTypes = allowedChildTypes(parentType) ?? [];
+  if (parentTypes.some((type) => type === node.type)) {
+    return expandBlock(node, isInline, seen);
+  }
+
+  if (allowedChildTypes(node.type) !== undefined) {
+    const inner = sanitizeContainer(node, isInline, seen);
+    const placed: TElement[] = [];
+    for (const child of inner.children) {
+      if (isElementNode(child)) {
+        placed.push(...placeInParent(child, parentType, isInline, seen));
+      }
+    }
+
+    return placed;
+  }
+
+  const target = containerContentType(parentType);
+  if (target === undefined) {
+    return expandBlock(node, isInline, seen);
+  }
+
+  return expandBlock({ ...node, type: target }, isInline, seen);
+}
+
+function sanitizeContainer(node: TElement, isInline: IsInline, seen: Set<string>): TElement {
+  const contentType = containerContentType(node.type);
+  const blocks: TElement[] = [];
+  let inlines: Descendant[] = [];
+
+  const flush = (): void => {
+    if (inlines.length === 0 || contentType === undefined) {
+      inlines = [];
+      return;
+    }
+
+    blocks.push(elementNode(contentType, inlines, undefined));
+    inlines = [];
+  };
+
+  for (const child of node.children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    blocks.push(...placeInParent(classified.node, node.type, isInline, seen));
+  }
+
+  flush();
+
+  const children =
+    blocks.length > 0 ? blocks : [elementNode(contentType ?? "p", [{ text: "" }], undefined)];
+  const props = elementNode(node.type, children, takeId(node, seen));
+  copyAllowedAttrs(node, props);
+  return props;
+}
+
 function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+  if (allowedChildTypes(node.type) !== undefined) {
+    return [sanitizeContainer(node, isInline, seen)];
+  }
+
   const allowed = allowedElementAttrs(node.type) !== undefined;
   const paragraphs: TElement[] = [];
   let inlines: Descendant[] = [];
@@ -1269,6 +1418,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ```ts
 import {
+  BlockquotePlugin,
   BoldPlugin,
   CodePlugin,
   H1Plugin,
@@ -1304,6 +1454,7 @@ import {
 import { Key, ParagraphPlugin } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
+import { BlockquoteElement } from "./blockquote-element";
 import {
   clearFormatting,
   formatBold,
@@ -1325,6 +1476,9 @@ import {
 import {
   FONT_FAMILIES,
   LIST_NUMBER_RANGE,
+  allowedChildTypes,
+  containerContentType,
+  allowedElementAttrs,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -1697,6 +1851,114 @@ function isElementRecord(node: unknown): node is Record<string, unknown> & { typ
     "children" in node
   );
 }
+
+// Same gate as Plate's isLiftableBlockquoteChild: a paragraph whose parent is the quote,
+// and not a list item.
+function isQuoteParagraph(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
+    return false;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !isElementRecord(parent[0])) {
+    return false;
+  }
+
+  return parent[0].type === KEYS.blockquote;
+}
+
+// Plate's shouldLiftOnDeleteStart (BaseBlockquotePlugin) lifts every non-empty quote
+// paragraph. A later paragraph has to merge, so delete.start lifts only the first child.
+// break.empty stays on every quote paragraph, and liftBlock splits the quote around a
+// middle empty line. No shortcut: Mod+Shift+. is the superscript chord.
+const blockquotePlugin = BlockquotePlugin.configure({
+  render: { node: BlockquoteElement },
+  rules: {
+    break: { empty: "lift" },
+    delete: { start: "lift" },
+    match: ({ editor, node, path, rule }) => {
+      if ((rule !== "break.empty" && rule !== "delete.start") || !path || !isElementRecord(node)) {
+        return false;
+      }
+
+      if (!isQuoteParagraph(editor, node, path)) {
+        return false;
+      }
+
+      return rule === "break.empty" || !PathApi.hasPrevious(path);
+    },
+  },
+});
+
+// Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
+// block children unchanged, including a nested quote or a heading. This pass is the
+// outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
+// only sees paragraphs or wraps leftover inlines.
+function normalizeDisallowedChild(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const childTypes = allowedChildTypes(node.type);
+  if (childTypes === undefined || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  for (let index = 0; index < node.children.length; index += 1) {
+    const child = node.children[index];
+    if (!isElementRecord(child) || childTypes.some((type) => type === child.type)) {
+      continue;
+    }
+
+    const childPath = path.concat(index);
+    if (allowedChildTypes(child.type) !== undefined) {
+      // Match this path only. A type match would also unwrap the parent quote.
+      editor.tf.unwrapNodes({
+        at: childPath,
+        match: (_candidate, candidatePath) => PathApi.equals(candidatePath, childPath),
+      });
+      return true;
+    }
+
+    const target = containerContentType(node.type);
+    if (target === undefined) {
+      return false;
+    }
+
+    const allowed = allowedElementAttrs(target);
+    const drop = Object.keys(child).filter(
+      (key) => key !== "type" && key !== "children" && allowed?.has(key) !== true,
+    );
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.setNodes({ type: target }, { at: childPath });
+      if (drop.length > 0) {
+        editor.tf.unsetNodes(drop, { at: childPath });
+      }
+    });
+    return true;
+  }
+
+  return false;
+}
+
+const childTypesPlugin = createSlatePlugin({
+  key: "childTypes",
+}).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
+  transforms: {
+    normalizeNode(entry) {
+      const [node, path] = entry;
+      if (isElementRecord(node) && normalizeDisallowedChild(editor, node, path)) {
+        return;
+      }
+
+      normalizeNode(entry);
+    },
+  },
+}));
 
 // Targets stay on paragraphs. Headings are not list items in this milestone.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
@@ -2087,6 +2349,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading1Plugin,
     heading2Plugin,
     heading3Plugin,
+    blockquotePlugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -2096,6 +2359,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listKeyboardPlugin,
     PasteFallbackPlugin,
     breakAbovePlugin,
+    childTypesPlugin,
   ];
 }
 ```
@@ -2294,7 +2558,10 @@ function TodoCheck({
   );
 }
 
-// The gap between items is a sibling rule on the editor surface. This render reads only its own element.
+// One class plus two attribute selectors, so this margin wins over space-y on the same parent.
+export const LIST_SIBLING_GAP_CLASS = "[&>[data-list-item]:has(+[data-list-item])]:mb-1";
+
+// The gap between items is this sibling rule on the parent. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
   const listStyleType = element.listStyleType;
   const listAttributes =
@@ -2353,6 +2620,31 @@ export const BlockList: RenderNodeWrapper = (props) => {
 };
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
+```tsx
+import { PlateElement, type PlateElementProps } from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+
+// AGENTS.md keeps the accent for active states, underlines, pills, and the hero.
+// A quote uses the same low-opacity border as the rest of the page. space-y-2 is
+// tighter than the surface space-y-4. The list gap class is the surface's rule.
+export const BLOCKQUOTE_CLASS_NAME =
+  "border-l-2 border-border text-foreground space-y-2 pl-4 font-normal";
+
+export function BlockquoteElement(props: PlateElementProps) {
+  return (
+    <PlateElement
+      {...props}
+      as="blockquote"
+      className={cn(BLOCKQUOTE_CLASS_NAME, LIST_SIBLING_GAP_CLASS)}
+    />
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
@@ -2394,6 +2686,7 @@ import {
   LIST_NUMBER_RANGE,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
+  allowedChildTypes,
   allowedElementAttrs,
   isAllowedValue,
   isWithinAttrRange,
@@ -2849,6 +3142,22 @@ function reportedBlockType(node: TElement): string {
   return node.type;
 }
 
+// Lowest blocks only, so a quote container is not visited beside its paragraph.
+// A paragraph inside a quote reports blockquote unless it is a list item.
+function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
+  const reported = reportedBlockType(node);
+  if (reported !== node.type || node.type !== KEYS.p) {
+    return reported;
+  }
+
+  const parent = editor.api.parent(path);
+  if (parent && ElementApi.isElement(parent[0]) && parent[0].type === KEYS.blockquote) {
+    return KEYS.blockquote;
+  }
+
+  return reported;
+}
+
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   const selection = editor.selection;
   if (!selection) {
@@ -2856,15 +3165,16 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   }
 
   let type: string | undefined;
-  for (const [node] of editor.api.nodes({
+  for (const [node, path] of editor.api.nodes({
     at: selection,
+    mode: "lowest",
     match: (candidate) => editor.api.isBlock(candidate),
   })) {
     if (!ElementApi.isElement(node) || typeof node.type !== "string") {
       continue;
     }
 
-    const next = reportedBlockType(node);
+    const next = blockTypeOf(editor, node, path);
     if (type === undefined) {
       type = next;
       continue;
@@ -2886,6 +3196,42 @@ export const HEADING_TYPE = {
 
 export type HeadingLevel = keyof typeof HEADING_TYPE;
 
+function lowestBlocks(editor: SlateEditor) {
+  const selection = editor.selection;
+  if (!selection) {
+    return [];
+  }
+
+  return [
+    ...editor.api.nodes({
+      at: selection,
+      mode: "lowest",
+      match: (node) => editor.api.isBlock(node),
+    }),
+  ];
+}
+
+// A heading is not an allowed child of a quote. Lift it before toggleBlock, or the
+// childTypes normalizer turns the new heading back into a paragraph.
+function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): void {
+  const blocks = lowestBlocks(editor);
+  editor.tf.withoutNormalizing(() => {
+    for (const [, blockPath] of blocks.reverse()) {
+      const parent = editor.api.parent(blockPath);
+      if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+        continue;
+      }
+
+      const childTypes = allowedChildTypes(parent[0].type);
+      if (childTypes === undefined || childTypes.some((type) => type === targetType)) {
+        continue;
+      }
+
+      editor.tf.liftBlock({ at: blockPath, match: { type: parent[0].type } });
+    }
+  });
+}
+
 // toggleBlock writes only the type. It resets to a paragraph only when a selected
 // block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
 export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
@@ -2897,6 +3243,9 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
     group: "turn-into",
     run: (editor) => {
       const becomesHeading = !editor.api.some({ match: { type } });
+      if (becomesHeading) {
+        liftWhereChildTypeDisallowed(editor, type);
+      }
       editor.tf.toggleBlock(type);
       if (!becomesHeading || !editor.selection) {
         return;
@@ -2913,6 +3262,27 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
 export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
+
+// Outside a quote, Plate's toggleBlock(..., { wrap: true }) wraps the selection in one quote.
+// Inside a quote, liftBlock unwraps the selected paragraphs and splits the quote around a partial selection.
+export const turnIntoBlockquote: EditorCommand = {
+  id: "block.turn-into.blockquote",
+  label: "Quote",
+  group: "turn-into",
+  run: (editor) => {
+    if (editor.api.above({ match: { type: KEYS.blockquote } })) {
+      const blocks = lowestBlocks(editor);
+      editor.tf.withoutNormalizing(() => {
+        for (const [, blockPath] of blocks.reverse()) {
+          editor.tf.liftBlock({ at: blockPath, match: { type: KEYS.blockquote } });
+        }
+      });
+      return;
+    }
+
+    editor.tf.toggleBlock(KEYS.blockquote, { wrap: true });
+  },
+};
 
 export const TURN_INTO_HEADING = {
   1: turnIntoHeading1,
@@ -4728,6 +5098,7 @@ import { Plate, PlateContent } from "platejs/react";
 
 import { cn } from "@/lib/utils";
 
+import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { EditorValue } from "./editor-value";
 
 type EditorSurfaceProps = {
@@ -4758,7 +5129,7 @@ export function EditorSurface({
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
         // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
         // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-        className={cn(className, "space-y-4 [&>[data-list-item]:has(+[data-list-item])]:mb-1")}
+        className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}
@@ -5402,6 +5773,33 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-quotes",
+    children: [{ text: "Quotes" }],
+  },
+  {
+    type: "blockquote",
+    id: "demo-quote",
+    children: [
+      {
+        type: "p",
+        id: "demo-quote-1",
+        children: [{ text: "Quotes hold a thought on its own." }],
+      },
+      {
+        type: "p",
+        id: "demo-quote-2",
+        children: [
+          { text: "Press " },
+          { text: "Enter", bold: true },
+          { text: " for a new line in the quote, and " },
+          { text: "Enter", bold: true },
+          { text: " on an empty line to leave it." },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -5528,6 +5926,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/block-list.tsx",
     code: readSource(`${BLOCK_DIR}/block-list.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/blockquote-element.tsx",
+    code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

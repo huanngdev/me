@@ -9,6 +9,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  allowedChildTypes,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
@@ -133,6 +134,34 @@ function markValueLabel(value: unknown): string {
   return "value";
 }
 
+function isTextChild(value: unknown): boolean {
+  return (
+    isRecord(value) && "text" in value && !("children" in value) && typeof value.type !== "string"
+  );
+}
+
+function structuralChildType(value: unknown): string | undefined {
+  if (!isRecord(value) || isTextChild(value)) {
+    return undefined;
+  }
+
+  if ("children" in value || "type" in value) {
+    return typeof value.type === "string" ? value.type : "";
+  }
+
+  return undefined;
+}
+
+function childIsAllowed(parentType: string, child: unknown): boolean {
+  const childTypes = allowedChildTypes(parentType);
+  const childType = structuralChildType(child);
+  if (childTypes === undefined) {
+    return childType === undefined;
+  }
+
+  return childType !== undefined && childTypes.some((type) => type === childType);
+}
+
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
@@ -225,7 +254,18 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
   }
 
   for (let index = 0; index < value.children.length; index += 1) {
-    walkDescendant(value.children[index], [...path, index], state);
+    const child = value.children[index];
+    if (!childIsAllowed(type, child)) {
+      const childType = structuralChildType(child);
+      const detail =
+        childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or remove the block.`,
+      });
+    }
+
+    walkDescendant(child, [...path, index], state);
     if (state.invalid) {
       return;
     }

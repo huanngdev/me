@@ -1,4 +1,5 @@
 import {
+  BlockquotePlugin,
   BoldPlugin,
   CodePlugin,
   H1Plugin,
@@ -34,6 +35,7 @@ import {
 import { Key, ParagraphPlugin } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
+import { BlockquoteElement } from "./blockquote-element";
 import {
   clearFormatting,
   formatBold,
@@ -55,6 +57,9 @@ import {
 import {
   FONT_FAMILIES,
   LIST_NUMBER_RANGE,
+  allowedChildTypes,
+  containerContentType,
+  allowedElementAttrs,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -427,6 +432,114 @@ function isElementRecord(node: unknown): node is Record<string, unknown> & { typ
     "children" in node
   );
 }
+
+// Same gate as Plate's isLiftableBlockquoteChild: a paragraph whose parent is the quote,
+// and not a list item.
+function isQuoteParagraph(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
+    return false;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !isElementRecord(parent[0])) {
+    return false;
+  }
+
+  return parent[0].type === KEYS.blockquote;
+}
+
+// Plate's shouldLiftOnDeleteStart (BaseBlockquotePlugin) lifts every non-empty quote
+// paragraph. A later paragraph has to merge, so delete.start lifts only the first child.
+// break.empty stays on every quote paragraph, and liftBlock splits the quote around a
+// middle empty line. No shortcut: Mod+Shift+. is the superscript chord.
+const blockquotePlugin = BlockquotePlugin.configure({
+  render: { node: BlockquoteElement },
+  rules: {
+    break: { empty: "lift" },
+    delete: { start: "lift" },
+    match: ({ editor, node, path, rule }) => {
+      if ((rule !== "break.empty" && rule !== "delete.start") || !path || !isElementRecord(node)) {
+        return false;
+      }
+
+      if (!isQuoteParagraph(editor, node, path)) {
+        return false;
+      }
+
+      return rule === "break.empty" || !PathApi.hasPrevious(path);
+    },
+  },
+});
+
+// Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
+// block children unchanged, including a nested quote or a heading. This pass is the
+// outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
+// only sees paragraphs or wraps leftover inlines.
+function normalizeDisallowedChild(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const childTypes = allowedChildTypes(node.type);
+  if (childTypes === undefined || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  for (let index = 0; index < node.children.length; index += 1) {
+    const child = node.children[index];
+    if (!isElementRecord(child) || childTypes.some((type) => type === child.type)) {
+      continue;
+    }
+
+    const childPath = path.concat(index);
+    if (allowedChildTypes(child.type) !== undefined) {
+      // Match this path only. A type match would also unwrap the parent quote.
+      editor.tf.unwrapNodes({
+        at: childPath,
+        match: (_candidate, candidatePath) => PathApi.equals(candidatePath, childPath),
+      });
+      return true;
+    }
+
+    const target = containerContentType(node.type);
+    if (target === undefined) {
+      return false;
+    }
+
+    const allowed = allowedElementAttrs(target);
+    const drop = Object.keys(child).filter(
+      (key) => key !== "type" && key !== "children" && allowed?.has(key) !== true,
+    );
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.setNodes({ type: target }, { at: childPath });
+      if (drop.length > 0) {
+        editor.tf.unsetNodes(drop, { at: childPath });
+      }
+    });
+    return true;
+  }
+
+  return false;
+}
+
+const childTypesPlugin = createSlatePlugin({
+  key: "childTypes",
+}).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
+  transforms: {
+    normalizeNode(entry) {
+      const [node, path] = entry;
+      if (isElementRecord(node) && normalizeDisallowedChild(editor, node, path)) {
+        return;
+      }
+
+      normalizeNode(entry);
+    },
+  },
+}));
 
 // Targets stay on paragraphs. Headings are not list items in this milestone.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
@@ -817,6 +930,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading1Plugin,
     heading2Plugin,
     heading3Plugin,
+    blockquotePlugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -826,5 +940,6 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listKeyboardPlugin,
     PasteFallbackPlugin,
     breakAbovePlugin,
+    childTypesPlugin,
   ];
 }

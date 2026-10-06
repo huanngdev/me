@@ -491,7 +491,7 @@ describe("paste", () => {
     expectOpenable(editor);
   });
 
-  test("a pasted heading stays a heading and a block outside the allowlist becomes a paragraph", () => {
+  test("a pasted heading stays a heading, a quote stays a quote, and a block outside the allowlist becomes a paragraph", () => {
     const editor = paste([
       {
         type: "h1",
@@ -503,11 +503,19 @@ describe("paste", () => {
         type: "blockquote",
         children: [{ text: "Quoted" }],
       },
+      {
+        type: "callout",
+        children: [{ text: "Aside" }],
+      },
     ]);
+    const quote = editor.children[1];
+    const quoted = quote && "children" in quote ? quote.children[0] : undefined;
     const serialized = JSON.stringify(editor.children);
 
-    expect(texts(editor)).toEqual(["Title", "Quoted"]);
-    expect(editor.children.map((block) => block.type)).toEqual(["h1", "p"]);
+    expect(texts(editor)).toEqual(["Title", "", "Aside"]);
+    expect(editor.children.map((block) => block.type)).toEqual(["h1", "blockquote", "p"]);
+    expect(field(quoted, "type")).toBe("p");
+    expect(field(quoted, "children")).toEqual([{ text: "Quoted" }]);
     expect(blockIds(editor)[0]).toBe("heading-1");
     expect(serialized).not.toContain("sparkle");
     expect(serialized).not.toContain("example.com");

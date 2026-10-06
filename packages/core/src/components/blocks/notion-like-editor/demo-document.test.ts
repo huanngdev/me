@@ -7,7 +7,19 @@ import { parseEditorDocument } from "./editor-document-validate";
 import { createEditor, expectOk, field, isRecord } from "./test-utils";
 
 function textOf(block: (typeof DEMO_DOCUMENT_VALUE)[number]): string {
-  return block.children.map((child) => child.text).join("");
+  return block.children
+    .map((child) => ("text" in child && typeof child.text === "string" ? child.text : ""))
+    .join("");
+}
+
+function leafText(node: unknown): string {
+  const text = field(node, "text");
+  return typeof text === "string" ? text : "";
+}
+
+function elementChildren(node: unknown): unknown[] {
+  const children = field(node, "children");
+  return Array.isArray(children) ? children : [];
 }
 
 function allowlistProblems(value: unknown): string[] {
@@ -54,9 +66,29 @@ describe("demo document", () => {
 
   test("demo text leaves contain only text and allowlisted marks", () => {
     const allowed = new Set<string>(["text", ...EDITOR_MARK_RULES.map((rule) => rule.type)]);
-    const extra = DEMO_DOCUMENT_VALUE.flatMap((block) =>
-      block.children.flatMap((child) => Object.keys(child).filter((key) => !allowed.has(key))),
-    );
+    const extra: string[] = [];
+    const visit = (value: unknown): void => {
+      if (!isRecord(value)) {
+        return;
+      }
+
+      if (typeof value.text === "string" && !("children" in value)) {
+        extra.push(...Object.keys(value).filter((key) => key !== "text" && !allowed.has(key)));
+        return;
+      }
+
+      if (!Array.isArray(value.children)) {
+        return;
+      }
+
+      for (const child of value.children) {
+        visit(child);
+      }
+    };
+
+    for (const block of DEMO_DOCUMENT_VALUE) {
+      visit(block);
+    }
 
     expect(extra).toEqual([]);
   });
@@ -181,6 +213,25 @@ describe("demo document", () => {
     expect(textOf(todoHint)).toBe(
       "Press Cmd+Shift+9 or Ctrl+Shift+9 to make a to-do, and Cmd+Enter or Ctrl+Enter to check it.",
     );
+
+    const quotes = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-quotes");
+    const quote = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-quote");
+    if (!quotes || !quote || quote.type !== "blockquote") {
+      throw new Error("Missing the quotes demo.");
+    }
+
+    expect(quotes.type).toBe("h3");
+    expect(textOf(quotes)).toBe("Quotes");
+    const paragraphs = elementChildren(quote);
+    expect(paragraphs.map((child) => field(child, "id"))).toEqual(["demo-quote-1", "demo-quote-2"]);
+    expect(elementChildren(paragraphs[0])).toEqual([{ text: "Quotes hold a thought on its own." }]);
+    expect(elementChildren(paragraphs[1])).toEqual([
+      { text: "Press " },
+      { text: "Enter", bold: true },
+      { text: " for a new line in the quote, and " },
+      { text: "Enter", bold: true },
+      { text: " on an empty line to leave it." },
+    ]);
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {
@@ -200,7 +251,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "italic") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe(
       "This is italic text. Press Cmd+I or Ctrl+I, and combine it with bold.",
@@ -216,7 +267,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "underline") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe("This is underlined text. Press Cmd+U or Ctrl+U.");
     expect(marked).toEqual(["underlined text"]);
@@ -230,7 +281,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "strikethrough") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe("This is strikethrough text. Press Cmd+Shift+X or Ctrl+Shift+X.");
     expect(marked).toEqual(["strikethrough text"]);
@@ -244,7 +295,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "code") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe("This is inline code. Press Cmd+E or Ctrl+E.");
     expect(marked).toEqual(["inline code"]);
@@ -258,7 +309,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "superscript") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe("This is superscript: x2 and E = mc2. Press Cmd+. or Ctrl+.");
     expect(marked).toEqual(["2", "2"]);
@@ -272,7 +323,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "subscript") === true)
-      .map((child) => child.text);
+      .map((child) => leafText(child));
 
     expect(textOf(block)).toBe("This is subscript: H2O. Press Cmd+, or Ctrl+,");
     expect(marked).toEqual(["2"]);
@@ -286,7 +337,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "color") !== undefined)
-      .map((child) => [child.text, field(child, "color")]);
+      .map((child) => [leafText(child), field(child, "color")]);
 
     expect(textOf(block)).toBe(
       "Text can be red, blue, or green. Colors come from a preset palette that adapts to light and dark mode.",
@@ -306,7 +357,11 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "backgroundColor") !== undefined)
-      .map((child) => [child.text, field(child, "backgroundColor"), field(child, "color") ?? null]);
+      .map((child) => [
+        leafText(child),
+        field(child, "backgroundColor"),
+        field(child, "color") ?? null,
+      ]);
 
     expect(textOf(block)).toBe(
       "This is highlighted text. Highlights and text colors combine and stay readable in both themes.",
@@ -325,7 +380,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "fontSize") !== undefined)
-      .map((child) => [child.text, field(child, "fontSize")]);
+      .map((child) => [leafText(child), field(child, "fontSize")]);
 
     expect(textOf(block)).toBe("Text comes in sizes from small to large and extra large.");
     expect(marked).toEqual([
@@ -343,7 +398,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "fontFamily") !== undefined)
-      .map((child) => [child.text, field(child, "fontFamily")]);
+      .map((child) => [leafText(child), field(child, "fontFamily")]);
 
     expect(textOf(block)).toBe("Text can switch between sans, serif, and mono.");
     expect(marked).toEqual([
@@ -385,7 +440,7 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "bold") === true)
-      .map((child) => [child.text, field(child, "italic"), field(child, "color")]);
+      .map((child) => [leafText(child), field(child, "italic"), field(child, "color")]);
 
     expect(textOf(block)).toBe("Select formatted text and press Cmd+\\ or Ctrl+\\ to clear it.");
     expect(marked).toEqual([["formatted text", true, "red"]]);

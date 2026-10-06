@@ -20,6 +20,7 @@ import {
   LIST_NUMBER_RANGE,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
+  allowedChildTypes,
   allowedElementAttrs,
   isAllowedValue,
   isWithinAttrRange,
@@ -475,6 +476,22 @@ function reportedBlockType(node: TElement): string {
   return node.type;
 }
 
+// Lowest blocks only, so a quote container is not visited beside its paragraph.
+// A paragraph inside a quote reports blockquote unless it is a list item.
+function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
+  const reported = reportedBlockType(node);
+  if (reported !== node.type || node.type !== KEYS.p) {
+    return reported;
+  }
+
+  const parent = editor.api.parent(path);
+  if (parent && ElementApi.isElement(parent[0]) && parent[0].type === KEYS.blockquote) {
+    return KEYS.blockquote;
+  }
+
+  return reported;
+}
+
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   const selection = editor.selection;
   if (!selection) {
@@ -482,15 +499,16 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   }
 
   let type: string | undefined;
-  for (const [node] of editor.api.nodes({
+  for (const [node, path] of editor.api.nodes({
     at: selection,
+    mode: "lowest",
     match: (candidate) => editor.api.isBlock(candidate),
   })) {
     if (!ElementApi.isElement(node) || typeof node.type !== "string") {
       continue;
     }
 
-    const next = reportedBlockType(node);
+    const next = blockTypeOf(editor, node, path);
     if (type === undefined) {
       type = next;
       continue;
@@ -512,6 +530,42 @@ export const HEADING_TYPE = {
 
 export type HeadingLevel = keyof typeof HEADING_TYPE;
 
+function lowestBlocks(editor: SlateEditor) {
+  const selection = editor.selection;
+  if (!selection) {
+    return [];
+  }
+
+  return [
+    ...editor.api.nodes({
+      at: selection,
+      mode: "lowest",
+      match: (node) => editor.api.isBlock(node),
+    }),
+  ];
+}
+
+// A heading is not an allowed child of a quote. Lift it before toggleBlock, or the
+// childTypes normalizer turns the new heading back into a paragraph.
+function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): void {
+  const blocks = lowestBlocks(editor);
+  editor.tf.withoutNormalizing(() => {
+    for (const [, blockPath] of blocks.reverse()) {
+      const parent = editor.api.parent(blockPath);
+      if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+        continue;
+      }
+
+      const childTypes = allowedChildTypes(parent[0].type);
+      if (childTypes === undefined || childTypes.some((type) => type === targetType)) {
+        continue;
+      }
+
+      editor.tf.liftBlock({ at: blockPath, match: { type: parent[0].type } });
+    }
+  });
+}
+
 // toggleBlock writes only the type. It resets to a paragraph only when a selected
 // block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
 export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
@@ -523,6 +577,9 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
     group: "turn-into",
     run: (editor) => {
       const becomesHeading = !editor.api.some({ match: { type } });
+      if (becomesHeading) {
+        liftWhereChildTypeDisallowed(editor, type);
+      }
       editor.tf.toggleBlock(type);
       if (!becomesHeading || !editor.selection) {
         return;
@@ -539,6 +596,27 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
 export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
+
+// Outside a quote, Plate's toggleBlock(..., { wrap: true }) wraps the selection in one quote.
+// Inside a quote, liftBlock unwraps the selected paragraphs and splits the quote around a partial selection.
+export const turnIntoBlockquote: EditorCommand = {
+  id: "block.turn-into.blockquote",
+  label: "Quote",
+  group: "turn-into",
+  run: (editor) => {
+    if (editor.api.above({ match: { type: KEYS.blockquote } })) {
+      const blocks = lowestBlocks(editor);
+      editor.tf.withoutNormalizing(() => {
+        for (const [, blockPath] of blocks.reverse()) {
+          editor.tf.liftBlock({ at: blockPath, match: { type: KEYS.blockquote } });
+        }
+      });
+      return;
+    }
+
+    editor.tf.toggleBlock(KEYS.blockquote, { wrap: true });
+  },
+};
 
 export const TURN_INTO_HEADING = {
   1: turnIntoHeading1,

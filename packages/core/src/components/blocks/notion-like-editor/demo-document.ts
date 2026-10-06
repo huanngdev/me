@@ -272,6 +272,33 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-quotes",
+    children: [{ text: "Quotes" }],
+  },
+  {
+    type: "blockquote",
+    id: "demo-quote",
+    children: [
+      {
+        type: "p",
+        id: "demo-quote-1",
+        children: [{ text: "Quotes hold a thought on its own." }],
+      },
+      {
+        type: "p",
+        id: "demo-quote-2",
+        children: [
+          { text: "Press " },
+          { text: "Enter", bold: true },
+          { text: " for a new line in the quote, and " },
+          { text: "Enter", bold: true },
+          { text: " on an empty line to leave it." },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
