@@ -57,6 +57,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-strikethrough",
+    children: [
+      { text: "This is " },
+      { text: "strikethrough text", strikethrough: true },
+      { text: ". Press Cmd+Shift+X or Ctrl+Shift+X." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

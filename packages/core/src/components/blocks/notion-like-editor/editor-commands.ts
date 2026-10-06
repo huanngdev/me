@@ -96,6 +96,11 @@ export const formatUnderline: EditorCommand = createMarkCommand({
   label: "Underline",
 });
 
+export const formatStrikethrough: EditorCommand = createMarkCommand({
+  key: KEYS.strikethrough,
+  label: "Strikethrough",
+});
+
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
     id: "history.undo",

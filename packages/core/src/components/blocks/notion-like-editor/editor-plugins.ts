@@ -1,29 +1,86 @@
-import { BoldPlugin, ItalicPlugin, UnderlinePlugin } from "@platejs/basic-nodes/react";
-import { NodeIdPlugin, type AnyPluginConfig, type SlateEditor } from "platejs";
+import {
+  BoldPlugin,
+  ItalicPlugin,
+  StrikethroughPlugin,
+  UnderlinePlugin,
+} from "@platejs/basic-nodes/react";
+import { NodeIdPlugin, someHtmlElement, type AnyPluginConfig, type SlateEditor } from "platejs";
+import { Key } from "platejs/react";
 
 import {
   formatBold,
   formatItalic,
+  formatStrikethrough,
   formatUnderline,
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
 import { PasteFallbackPlugin } from "./editor-paste";
 
-type MarkShortcutConfig = {
+type TextDecorationRule = {
+  validNodeName?: string[];
+  validStyle?: {
+    textDecoration?: string[];
+    textDecorationLine?: string[];
+  };
+};
+
+type MarkPluginConfig = {
   shortcuts: {
     toggle: {
+      keys?: string[][];
       handler: (context: { editor: SlateEditor }) => void;
+    };
+  };
+  parsers?: {
+    html: {
+      deserializer: {
+        rules: TextDecorationRule[];
+        query: (context: { element: HTMLElement }) => boolean;
+      };
     };
   };
 };
 
-// Plate's toggle follows the first text node and shares an undo step with nearby typing.
-// This handler marks unless every selected text has the mark, in its own undo step.
-export function configureMarkShortcut<
-  TPlugin extends { configure: (config: MarkShortcutConfig) => TPlugin },
->(plugin: TPlugin, command: EditorCommand): TPlugin {
-  return plugin.configure({
+type MarkPluginOptions = {
+  keys?: string[][];
+  rules?: TextDecorationRule[];
+};
+
+const underlineDecorations = ["underline", "underline line-through", "line-through underline"];
+
+const strikethroughDecorations = [
+  "line-through",
+  "underline line-through",
+  "line-through underline",
+];
+
+// Plate matches each validStyle string exactly, and a rules array from configure replaces the old one.
+const underlineRules: TextDecorationRule[] = [
+  { validNodeName: ["U"] },
+  { validStyle: { textDecoration: underlineDecorations } },
+  { validStyle: { textDecorationLine: underlineDecorations } },
+];
+
+const strikethroughRules: TextDecorationRule[] = [
+  { validNodeName: ["S", "DEL", "STRIKE"] },
+  { validStyle: { textDecoration: strikethroughDecorations } },
+  { validStyle: { textDecorationLine: strikethroughDecorations } },
+];
+
+function allowsTextDecoration(element: HTMLElement): boolean {
+  return !someHtmlElement(
+    element,
+    (node) => node.style.textDecoration === "none" || node.style.textDecorationLine === "none",
+  );
+}
+
+// Sets the mixed-selection shortcut and, when rules are given, the HTML deserializer.
+// Both share one configure call, because a later configure replaces the first.
+export function configureMarkPlugin<
+  TPlugin extends { configure: (config: MarkPluginConfig) => TPlugin },
+>(plugin: TPlugin, command: EditorCommand, options?: MarkPluginOptions): TPlugin {
+  const config: MarkPluginConfig = {
     shortcuts: {
       toggle: {
         handler: ({ editor }) => {
@@ -33,15 +90,45 @@ export function configureMarkShortcut<
         },
       },
     },
-  });
+  };
+
+  if (options?.keys) {
+    config.shortcuts.toggle.keys = options.keys;
+  }
+
+  if (options?.rules) {
+    config.parsers = {
+      html: {
+        deserializer: {
+          rules: options.rules,
+          query: ({ element }) => allowsTextDecoration(element),
+        },
+      },
+    };
+  }
+
+  return plugin.configure(config);
 }
 
-const boldPlugin = configureMarkShortcut(BoldPlugin, formatBold);
-const italicPlugin = configureMarkShortcut(ItalicPlugin, formatItalic);
-const underlinePlugin = configureMarkShortcut(UnderlinePlugin, formatUnderline);
+const boldPlugin = configureMarkPlugin(BoldPlugin, formatBold);
+const italicPlugin = configureMarkPlugin(ItalicPlugin, formatItalic);
+const underlinePlugin = configureMarkPlugin(UnderlinePlugin, formatUnderline, {
+  rules: underlineRules,
+});
+const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrikethrough, {
+  keys: [[Key.Mod, Key.Shift, "x"]],
+  rules: strikethroughRules,
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
-  return [NodeIdPlugin, boldPlugin, italicPlugin, underlinePlugin, PasteFallbackPlugin];
+  return [
+    NodeIdPlugin,
+    boldPlugin,
+    italicPlugin,
+    underlinePlugin,
+    strikethroughPlugin,
+    PasteFallbackPlugin,
+  ];
 }

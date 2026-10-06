@@ -256,20 +256,52 @@ describe("paste", () => {
     expect(markedText(editor, "underline")).toEqual(["b"]);
   });
 
-  test("a text-decoration of underline and line-through stays plain", () => {
+  test("pasting underline and line-through marks that text with both", () => {
     const editor = pasteHtml(
       '<p>a <span style="text-decoration: underline line-through">b</span> c</p>',
     );
 
     expect(plainText(editor)).toBe("a b c");
-    expect(markedText(editor, "underline")).toEqual([]);
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
   });
 
-  test("text-decoration-line underline stays plain", () => {
+  test("pasting line-through and underline marks that text with both", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="text-decoration: line-through underline">b</span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+  });
+
+  test("pasting text-decoration-line underline makes only that text underlined", () => {
     const editor = pasteHtml('<p>a <span style="text-decoration-line: underline">b</span> c</p>');
 
     expect(plainText(editor)).toBe("a b c");
-    expect(markedText(editor, "underline")).toEqual([]);
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(markedText(editor, "strikethrough")).toEqual([]);
+  });
+
+  test("pasting text-decoration-line underline and line-through marks that text with both", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="text-decoration-line: underline line-through">b</span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+  });
+
+  test("pasting text-decoration-line line-through and underline marks that text with both", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="text-decoration-line: line-through underline">b</span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
   });
 
   test("a u with text-decoration none stays plain", () => {
@@ -277,6 +309,67 @@ describe("paste", () => {
 
     expect(plainText(editor)).toBe("a b c");
     expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("a u with text-decoration-line none stays plain", () => {
+    const editor = pasteHtml('<p>a <u style="text-decoration-line: none">b</u> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("pasting s makes only that text strikethrough", () => {
+    const editor = pasteHtml("<p>a <s>b</s> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("pasting del makes only that text strikethrough", () => {
+    const editor = pasteHtml("<p>a <del>b</del> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+  });
+
+  test("pasting strike makes only that text strikethrough", () => {
+    const editor = pasteHtml("<p>a <strike>b</strike> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+  });
+
+  test("pasting text-decoration line-through makes only that text strikethrough", () => {
+    const editor = pasteHtml('<p>a <span style="text-decoration: line-through">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("pasting text-decoration-line line-through makes only that text strikethrough", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="text-decoration-line: line-through">b</span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual(["b"]);
+    expect(markedText(editor, "underline")).toEqual([]);
+  });
+
+  test("an s with text-decoration none stays plain", () => {
+    const editor = pasteHtml('<p>a <s style="text-decoration: none">b</s> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual([]);
+  });
+
+  test("an s with text-decoration-line none stays plain", () => {
+    const editor = pasteHtml('<p>a <s style="text-decoration-line: none">b</s> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "strikethrough")).toEqual([]);
   });
 
   test("pasting Word or Notion HTML keeps each div and turns br into a newline", () => {

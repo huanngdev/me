@@ -100,6 +100,20 @@ describe("demo document", () => {
     expect(marked).toEqual(["underlined text"]);
   });
 
+  test("the strikethrough paragraph marks only strikethrough text", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-strikethrough");
+    if (!block) {
+      throw new Error("Missing strikethrough paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "strikethrough") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe("This is strikethrough text. Press Cmd+Shift+X or Ctrl+Shift+X.");
+    expect(marked).toEqual(["strikethrough text"]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

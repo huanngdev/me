@@ -6,6 +6,7 @@ import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import {
   formatBold,
   formatItalic,
+  formatStrikethrough,
   formatUnderline,
   runEditorCommand,
   type EditorCommand,
@@ -15,19 +16,29 @@ import { isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { caret, createEditor, expectOk, field, plainText, textRange } from "./test-utils";
 
-type MarkKey = "bold" | "italic" | "underline";
+type MarkKey = "bold" | "italic" | "underline" | "strikethrough";
 
 type MarkCase = {
   key: MarkKey;
   label: string;
   command: EditorCommand;
-  hotkey: string;
+  keys: readonly string[];
   demoId: string;
   sentence: string;
   sample: string;
 };
 
-type Leaf = { text: string; bold?: true; italic?: true; underline?: true };
+type Leaf = {
+  text: string;
+  bold?: true;
+  italic?: true;
+  underline?: true;
+  strikethrough?: true;
+};
+
+function shortcutName(keys: readonly string[]): string {
+  return keys.map((key) => (key.length === 1 ? key.toUpperCase() : key)).join("+");
+}
 
 const MARKS: Array<[string, MarkCase]> = [
   [
@@ -36,7 +47,7 @@ const MARKS: Array<[string, MarkCase]> = [
       key: KEYS.bold,
       label: "bold",
       command: formatBold,
-      hotkey: "b",
+      keys: ["Mod", "b"],
       demoId: "demo-bold",
       sentence: "This is bold text. Select words and press Cmd+B or Ctrl+B.",
       sample: "bold text",
@@ -48,7 +59,7 @@ const MARKS: Array<[string, MarkCase]> = [
       key: KEYS.italic,
       label: "italic",
       command: formatItalic,
-      hotkey: "i",
+      keys: ["Mod", "i"],
       demoId: "demo-italic",
       sentence: "This is italic text. Press Cmd+I or Ctrl+I, and combine it with bold.",
       sample: "italic text",
@@ -60,10 +71,22 @@ const MARKS: Array<[string, MarkCase]> = [
       key: KEYS.underline,
       label: "underline",
       command: formatUnderline,
-      hotkey: "u",
+      keys: ["Mod", "u"],
       demoId: "demo-underline",
       sentence: "This is underlined text. Press Cmd+U or Ctrl+U.",
       sample: "underlined text",
+    },
+  ],
+  [
+    "strikethrough",
+    {
+      key: KEYS.strikethrough,
+      label: "strikethrough",
+      command: formatStrikethrough,
+      keys: ["Mod", "Shift", "x"],
+      demoId: "demo-strikethrough",
+      sentence: "This is strikethrough text. Press Cmd+Shift+X or Ctrl+Shift+X.",
+      sample: "strikethrough text",
     },
   ],
 ];
@@ -90,7 +113,16 @@ function withMark(text: string, key: MarkKey): Leaf {
     return { text, italic: true };
   }
 
-  return { text, underline: true };
+  if (key === KEYS.underline) {
+    return { text, underline: true };
+  }
+
+  if (key === KEYS.strikethrough) {
+    return { text, strikethrough: true };
+  }
+
+  const unreachable: never = key;
+  throw new Error(`Unknown mark ${unreachable}`);
 }
 
 function leaves(editor: SlateEditor, index: number, key: MarkKey): Leaf[] {
@@ -298,13 +330,13 @@ describe.each(MARKS)("%s", (_name, mark) => {
     expect(parsed.document.content).toEqual(document.content);
   });
 
-  test(`the ${mark.label} shortcut uses Mod+${mark.hotkey.toUpperCase()} and toggles a range in one undo step`, () => {
+  test(`the ${mark.label} shortcut uses ${shortcutName(mark.keys)} and toggles a range in one undo step`, () => {
     const editor = createEditor([paragraph("Hello world")]);
     const shortcut = editor.meta.shortcuts[`${mark.key}.toggle`];
     editor.tf.select(textRange([0, 0], 6, 11));
     const undos = editor.history.undos.length;
 
-    expect(shortcut?.keys).toEqual([["Mod", mark.hotkey]]);
+    expect(shortcut?.keys).toEqual([[...mark.keys]]);
 
     press(editor, mark.key);
 
@@ -356,7 +388,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
       .map((child) => child.text);
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(10);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(11);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual([mark.sample]);
   });
@@ -491,5 +523,67 @@ describe("marks", () => {
     expect(strong?.[1]).toContain("Hi");
     expect(em?.[1]).toContain("Hi");
     expect(underline?.[1]).toContain("Hi");
+  });
+
+  test("removing strikethrough keeps bold, italic, and underline on the same text", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hello",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+          },
+        ],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatStrikethrough, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      bold: true,
+      italic: true,
+      underline: true,
+    });
+  });
+
+  test("bold, italic, underline, and strikethrough on the same text round-trip together", () => {
+    const document = createEditorDocument("doc-four", [
+      {
+        type: "p",
+        id: "p",
+        children: [{ text: "Hi", bold: true, italic: true, underline: true, strikethrough: true }],
+      },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+  });
+
+  test("bold, italic, underline, and strikethrough on the same text render as strong, em, u, and s", async () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [{ text: "Hi", bold: true, italic: true, underline: true, strikethrough: true }],
+      },
+    ]);
+
+    const html = await serializeHtml(editor);
+    const strong = html.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/);
+    const em = html.match(/<em\b[^>]*>([\s\S]*?)<\/em>/);
+    const underline = html.match(/<u\b[^>]*>([\s\S]*?)<\/u>/);
+    const strikethrough = html.match(/<s\b[^>]*>([\s\S]*?)<\/s>/);
+
+    expect(strong?.[1]).toContain("Hi");
+    expect(em?.[1]).toContain("Hi");
+    expect(underline?.[1]).toContain("Hi");
+    expect(strikethrough?.[1]).toContain("Hi");
   });
 });
