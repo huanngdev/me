@@ -2440,6 +2440,8 @@ export const EMPTY_EDITOR_VALUE = [
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
 ```ts
+import { KEYS } from "platejs";
+
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
@@ -2453,7 +2455,10 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
 ] as const satisfies readonly EditorElementRule[];
 
-export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [{ type: "bold" }];
+export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
+  { type: KEYS.bold },
+  { type: KEYS.italic },
+];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
@@ -3329,30 +3334,45 @@ export const PasteFallbackPlugin = createSlatePlugin({
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ```ts
-import { BoldPlugin } from "@platejs/basic-nodes/react";
-import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
+import { BoldPlugin, ItalicPlugin } from "@platejs/basic-nodes/react";
+import { NodeIdPlugin, type AnyPluginConfig, type SlateEditor } from "platejs";
 
-import { formatBold, runEditorCommand } from "./editor-commands";
+import { formatBold, formatItalic, runEditorCommand, type EditorCommand } from "./editor-commands";
 import { PasteFallbackPlugin } from "./editor-paste";
 
-// Plate's toggle follows the first text node and shares an undo step with nearby typing.
-// This handler bolds unless every selected text is bold, in its own undo step.
-const boldPlugin = BoldPlugin.configure({
+type MarkShortcutConfig = {
   shortcuts: {
     toggle: {
-      handler: ({ editor }) => {
-        runEditorCommand(editor, formatBold, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
+      handler: (context: { editor: SlateEditor }) => void;
+    };
+  };
+};
+
+// Plate's toggle follows the first text node and shares an undo step with nearby typing.
+// This handler marks unless every selected text has the mark, in its own undo step.
+export function configureMarkShortcut<
+  TPlugin extends { configure: (config: MarkShortcutConfig) => TPlugin },
+>(plugin: TPlugin, command: EditorCommand): TPlugin {
+  return plugin.configure({
+    shortcuts: {
+      toggle: {
+        handler: ({ editor }) => {
+          runEditorCommand(editor, command, undefined, {
+            readOnly: editor.dom.readOnly,
+          });
+        },
       },
     },
-  },
-});
+  });
+}
+
+const boldPlugin = configureMarkShortcut(BoldPlugin, formatBold);
+const italicPlugin = configureMarkShortcut(ItalicPlugin, formatItalic);
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
-  return [NodeIdPlugin, boldPlugin, PasteFallbackPlugin];
+  return [NodeIdPlugin, boldPlugin, italicPlugin, PasteFallbackPlugin];
 }
 ```
 
@@ -3375,7 +3395,7 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
-import { RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
+import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -3393,17 +3413,17 @@ export type RunEditorCommandOptions = {
   readOnly?: boolean;
 };
 
-const BOLD_MARK = "bold";
+type MarkState = "on" | "off" | "mixed";
 
 function hasHistory(editor: SlateEditor, stack: "undos" | "redos"): boolean {
   return editor.history[stack].length > 0;
 }
 
-function textIsBold(node: TText): boolean {
-  return node[BOLD_MARK] === true;
+function textHasMark(node: TText, key: string): boolean {
+  return node[key] === true;
 }
 
-function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
+function markState(editor: SlateEditor, key: string): MarkState {
   const selection = editor.selection;
   if (!selection) {
     return "off";
@@ -3411,10 +3431,10 @@ function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
 
   if (RangeApi.isCollapsed(selection)) {
     const marks = editor.api.marks();
-    return marks?.[BOLD_MARK] === true ? "on" : "off";
+    return marks?.[key] === true ? "on" : "off";
   }
 
-  let sawBold = false;
+  let sawMarked = false;
   let sawPlain = false;
   for (const [node] of editor.api.nodes({
     at: selection,
@@ -3424,34 +3444,49 @@ function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
       continue;
     }
 
-    if (textIsBold(node)) {
-      sawBold = true;
+    if (textHasMark(node, key)) {
+      sawMarked = true;
     } else {
       sawPlain = true;
     }
   }
 
-  if (sawBold && sawPlain) {
+  if (sawMarked && sawPlain) {
     return "mixed";
   }
 
-  return sawBold ? "on" : "off";
+  return sawMarked ? "on" : "off";
 }
 
-export const formatBold: EditorCommand = {
-  id: "format.bold",
-  label: "Bold",
-  group: "format",
-  getState: boldState,
-  run: (editor) => {
-    if (boldState(editor) === "on") {
-      editor.tf.removeMark(BOLD_MARK);
-      return;
-    }
+export function createMarkCommand(options: { key: string; label: string }): EditorCommand {
+  const { key, label } = options;
+  const state = (editor: SlateEditor): MarkState => markState(editor, key);
 
-    editor.tf.addMark(BOLD_MARK, true);
-  },
-};
+  return {
+    id: `format.${key}`,
+    label,
+    group: "format",
+    getState: state,
+    run: (editor) => {
+      if (state(editor) === "on") {
+        editor.tf.removeMark(key);
+        return;
+      }
+
+      editor.tf.addMark(key, true);
+    },
+  };
+}
+
+export const formatBold: EditorCommand = createMarkCommand({
+  key: KEYS.bold,
+  label: "Bold",
+});
+
+export const formatItalic: EditorCommand = createMarkCommand({
+  key: KEYS.italic,
+  label: "Italic",
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -5549,6 +5584,15 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "This is " },
       { text: "bold text", bold: true },
       { text: ". Select words and press Cmd+B or Ctrl+B." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-italic",
+    children: [
+      { text: "This is " },
+      { text: "italic text", italic: true },
+      { text: ". Press Cmd+I or Ctrl+I, and combine it with bold." },
     ],
   },
   {

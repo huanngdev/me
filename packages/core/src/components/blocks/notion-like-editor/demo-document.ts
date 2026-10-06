@@ -39,6 +39,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-italic",
+    children: [
+      { text: "This is " },
+      { text: "italic text", italic: true },
+      { text: ". Press Cmd+I or Ctrl+I, and combine it with bold." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

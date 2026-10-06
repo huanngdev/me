@@ -1,4 +1,4 @@
-import { RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
+import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -16,17 +16,17 @@ export type RunEditorCommandOptions = {
   readOnly?: boolean;
 };
 
-const BOLD_MARK = "bold";
+type MarkState = "on" | "off" | "mixed";
 
 function hasHistory(editor: SlateEditor, stack: "undos" | "redos"): boolean {
   return editor.history[stack].length > 0;
 }
 
-function textIsBold(node: TText): boolean {
-  return node[BOLD_MARK] === true;
+function textHasMark(node: TText, key: string): boolean {
+  return node[key] === true;
 }
 
-function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
+function markState(editor: SlateEditor, key: string): MarkState {
   const selection = editor.selection;
   if (!selection) {
     return "off";
@@ -34,10 +34,10 @@ function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
 
   if (RangeApi.isCollapsed(selection)) {
     const marks = editor.api.marks();
-    return marks?.[BOLD_MARK] === true ? "on" : "off";
+    return marks?.[key] === true ? "on" : "off";
   }
 
-  let sawBold = false;
+  let sawMarked = false;
   let sawPlain = false;
   for (const [node] of editor.api.nodes({
     at: selection,
@@ -47,34 +47,49 @@ function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
       continue;
     }
 
-    if (textIsBold(node)) {
-      sawBold = true;
+    if (textHasMark(node, key)) {
+      sawMarked = true;
     } else {
       sawPlain = true;
     }
   }
 
-  if (sawBold && sawPlain) {
+  if (sawMarked && sawPlain) {
     return "mixed";
   }
 
-  return sawBold ? "on" : "off";
+  return sawMarked ? "on" : "off";
 }
 
-export const formatBold: EditorCommand = {
-  id: "format.bold",
-  label: "Bold",
-  group: "format",
-  getState: boldState,
-  run: (editor) => {
-    if (boldState(editor) === "on") {
-      editor.tf.removeMark(BOLD_MARK);
-      return;
-    }
+export function createMarkCommand(options: { key: string; label: string }): EditorCommand {
+  const { key, label } = options;
+  const state = (editor: SlateEditor): MarkState => markState(editor, key);
 
-    editor.tf.addMark(BOLD_MARK, true);
-  },
-};
+  return {
+    id: `format.${key}`,
+    label,
+    group: "format",
+    getState: state,
+    run: (editor) => {
+      if (state(editor) === "on") {
+        editor.tf.removeMark(key);
+        return;
+      }
+
+      editor.tf.addMark(key, true);
+    },
+  };
+}
+
+export const formatBold: EditorCommand = createMarkCommand({
+  key: KEYS.bold,
+  label: "Bold",
+});
+
+export const formatItalic: EditorCommand = createMarkCommand({
+  key: KEYS.italic,
+  label: "Italic",
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

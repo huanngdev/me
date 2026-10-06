@@ -241,7 +241,7 @@ describe("document validation", () => {
 
   test("an unknown mark is unsupported and the raw input is kept", () => {
     const raw = envelope("doc-mark", [
-      { type: "p", id: "p", children: [{ text: "Hi", italic: true }] },
+      { type: "p", id: "p", children: [{ text: "Hi", sparkle: true }] },
     ]);
 
     const result = expectUnsupported(parseEditorDocument(raw));
@@ -250,8 +250,8 @@ describe("document validation", () => {
 
     expect(result.raw).toBe(raw);
     expect(result.issues[0]?.path).toEqual([0, 0]);
-    expect(result.issues[0]?.message).toContain("italic");
-    expect(field(textNode, "italic")).toBe(true);
+    expect(result.issues[0]?.message).toContain("sparkle");
+    expect(field(textNode, "sparkle")).toBe(true);
   });
 
   test("a future schema version is reported without reading the tree", () => {

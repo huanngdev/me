@@ -4,7 +4,7 @@ import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createEditorDocument } from "./editor-document";
 import { EDITOR_ELEMENT_RULES, EDITOR_MARK_RULES, isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
-import { expectOk, isRecord } from "./test-utils";
+import { expectOk, field, isRecord } from "./test-utils";
 
 function textOf(block: (typeof DEMO_DOCUMENT_VALUE)[number]): string {
   return block.children.map((child) => child.text).join("");
@@ -68,6 +68,22 @@ describe("demo document", () => {
 
     expect(unique).toBe(true);
     expect(present).toBe(true);
+  });
+
+  test("the italic paragraph marks only italic text", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-italic");
+    if (!block) {
+      throw new Error("Missing italic paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "italic") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe(
+      "This is italic text. Press Cmd+I or Ctrl+I, and combine it with bold.",
+    );
+    expect(marked).toEqual(["italic text"]);
   });
 
   test("the line-break paragraph contains exactly one newline", () => {

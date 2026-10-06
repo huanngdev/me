@@ -120,12 +120,12 @@ const WEBPAGE_HTML =
   '<h1>Title</h1><p>Para with <strong>bold</strong> and <a href="https://example.com">link</a></p><ul><li>One</li><li>Two</li></ul>';
 
 describe("paste", () => {
-  test("pasting Google Docs HTML keeps the bold word and leaves the rest plain", () => {
+  test("pasting Google Docs HTML marks the bold word and the italic word", () => {
     const editor = pasteHtml(GOOGLE_DOCS_HTML);
 
     expect(texts(editor)).toEqual(["Bold and italic", "Second line"]);
     expect(markedText(editor, "bold")).toEqual(["Bold"]);
-    expect(markedText(editor, "italic")).toEqual([]);
+    expect(markedText(editor, "italic")).toEqual(["italic"]);
     expectOpenable(editor);
   });
 
@@ -171,6 +171,51 @@ describe("paste", () => {
 
     expect(plainText(editor)).toBe("Bold and italicSecond line");
     expect(markedText(editor, "bold")).toEqual(["Bold"]);
+    expect(markedText(editor, "italic")).toEqual(["italic"]);
+  });
+
+  test("pasting em makes only that text italic", () => {
+    const editor = pasteHtml("<p>a <em>b</em> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual(["b"]);
+  });
+
+  test("pasting i makes only that text italic", () => {
+    const editor = pasteHtml("<p>a <i>b</i> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual(["b"]);
+  });
+
+  test("pasting font-style italic makes only that text italic", () => {
+    const editor = pasteHtml('<p>a <span style="font-style:italic">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual(["b"]);
+  });
+
+  test("an em with font-style normal stays plain", () => {
+    const editor = pasteHtml('<p>a <em style="font-style:normal">b</em> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual([]);
+  });
+
+  test("a font-style italic wrapper with a font-style normal child stays plain", () => {
+    const editor = pasteHtml(
+      '<p>a <span style="font-style:italic"><span style="font-style:normal">b</span></span> c</p>',
+    );
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual([]);
+  });
+
+  test("a font-style normal ancestor leaves an em child italic", () => {
+    const editor = pasteHtml('<p>a <span style="font-style:normal"><em>b</em></span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "italic")).toEqual(["b"]);
   });
 
   test("pasting Word or Notion HTML keeps each div and turns br into a newline", () => {
@@ -208,7 +253,7 @@ describe("paste", () => {
         type: "h1",
         id: "heading-1",
         url: "https://example.com",
-        children: [{ text: "Title", italic: true }],
+        children: [{ text: "Title", sparkle: true }],
       },
       {
         type: "blockquote",
@@ -219,7 +264,7 @@ describe("paste", () => {
 
     expect(texts(editor)).toEqual(["Title", "Quoted"]);
     expect(editor.children.every((block) => block.type === "p")).toBe(true);
-    expect(serialized).not.toContain("italic");
+    expect(serialized).not.toContain("sparkle");
     expect(serialized).not.toContain("example.com");
     expectOpenable(editor);
   });
