@@ -13,6 +13,8 @@ import {
 } from "platejs";
 
 import {
+  CALLOUT_ICONS,
+  CALLOUT_TONES,
   CLEARABLE_MARK_KEYS,
   FONT_FAMILIES,
   FONT_SIZES,
@@ -477,20 +479,37 @@ function reportedBlockType(node: TElement): string {
   return node.type;
 }
 
-// Lowest blocks only, so a quote container is not visited beside its paragraph.
-// A paragraph inside a quote reports blockquote unless it is a list item.
+// A plain paragraph whose parent lists that paragraph in childTypes reports the parent.
+// A list item keeps its list type. Lowest blocks only, so the container is not visited too.
+export function containerParentType(
+  editor: SlateEditor,
+  node: { type: string; listStyleType?: unknown },
+  path: number[],
+): string | undefined {
+  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
+    return undefined;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+    return undefined;
+  }
+
+  const childTypes = allowedChildTypes(parent[0].type);
+  if (childTypes === undefined || !childTypes.some((type) => type === node.type)) {
+    return undefined;
+  }
+
+  return parent[0].type;
+}
+
 function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
   }
 
-  const parent = editor.api.parent(path);
-  if (parent && ElementApi.isElement(parent[0]) && parent[0].type === KEYS.blockquote) {
-    return KEYS.blockquote;
-  }
-
-  return reported;
+  return containerParentType(editor, node, path) ?? reported;
 }
 
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
@@ -598,26 +617,110 @@ export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
 
-// Outside a quote, Plate's toggleBlock(..., { wrap: true }) wraps the selection in one quote.
-// Inside a quote, liftBlock unwraps the selected paragraphs and splits the quote around a partial selection.
-export const turnIntoBlockquote: EditorCommand = {
+// Outside, toggleBlock wraps the selection in one container and leaves its attrs unset.
+// Inside, liftBlock unwraps the selected paragraphs and splits a partial selection.
+export function createTurnIntoContainer(
+  type: string,
+  meta: { id: string; label: string },
+): EditorCommand {
+  return {
+    id: meta.id,
+    label: meta.label,
+    group: "turn-into",
+    run: (editor) => {
+      if (editor.api.above({ match: { type } })) {
+        const blocks = lowestBlocks(editor);
+        editor.tf.withoutNormalizing(() => {
+          for (const [, blockPath] of blocks.reverse()) {
+            editor.tf.liftBlock({ at: blockPath, match: { type } });
+          }
+        });
+        return;
+      }
+
+      editor.tf.toggleBlock(type, { wrap: true });
+    },
+  };
+}
+
+export const turnIntoBlockquote = createTurnIntoContainer(KEYS.blockquote, {
   id: "block.turn-into.blockquote",
   label: "Quote",
-  group: "turn-into",
-  run: (editor) => {
-    if (editor.api.above({ match: { type: KEYS.blockquote } })) {
-      const blocks = lowestBlocks(editor);
-      editor.tf.withoutNormalizing(() => {
-        for (const [, blockPath] of blocks.reverse()) {
-          editor.tf.liftBlock({ at: blockPath, match: { type: KEYS.blockquote } });
-        }
-      });
-      return;
+});
+
+export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
+  id: "block.turn-into.callout",
+  label: "Callout",
+});
+
+export type CalloutAttrPayload = {
+  value: string | null;
+  at?: number[];
+};
+
+function calloutPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
+  if (at !== undefined) {
+    const entry = editor.api.node(at);
+    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.callout) {
+      return undefined;
     }
 
-    editor.tf.toggleBlock(KEYS.blockquote, { wrap: true });
+    return entry[1];
+  }
+
+  const above = editor.api.above({ match: { type: KEYS.callout } });
+  return above?.[1];
+}
+
+function setCalloutAttr(
+  editor: SlateEditor,
+  key: "icon" | "variant",
+  allowed: readonly string[],
+  payload: CalloutAttrPayload,
+): void {
+  const path = calloutPath(editor, payload.at);
+  if (!path) {
+    return;
+  }
+
+  if (payload.value === null) {
+    editor.tf.unsetNodes(key, { at: path });
+    return;
+  }
+
+  if (!isAllowedValue(payload.value, allowed)) {
+    return;
+  }
+
+  editor.tf.setNodes({ [key]: payload.value }, { at: path });
+}
+
+export const setCalloutIcon: EditorCommand<CalloutAttrPayload> = {
+  id: "format.callout-icon",
+  label: "Callout icon",
+  group: "format",
+  run: (editor, payload) => {
+    setCalloutAttr(editor, "icon", CALLOUT_ICONS, payload);
   },
 };
+
+export const setCalloutTone: EditorCommand<CalloutAttrPayload> = {
+  id: "format.callout-tone",
+  label: "Callout tone",
+  group: "format",
+  run: (editor, payload) => {
+    setCalloutAttr(editor, "variant", CALLOUT_TONES, payload);
+  },
+};
+
+// One history batch so Reset removes the icon and the tone together.
+export function resetCallout(editor: SlateEditor, at?: number[]): void {
+  editor.tf.withNewBatch(() => {
+    setCalloutIcon.run(editor, { value: null, at });
+    setCalloutTone.run(editor, { value: null, at });
+  });
+  editor.tf.setSplittingOnce(true);
+}
 
 export const TURN_INTO_HEADING = {
   1: turnIntoHeading1,

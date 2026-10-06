@@ -1,7 +1,7 @@
 import { expect } from "bun:test";
-import { Window } from "happy-dom";
 import { createSlateEditor, type Descendant, type SlateEditor, type TRange } from "platejs";
 
+import { parseHtml } from "../../../../test/setup-dom";
 import type { AssetRecord, AssetStore } from "./editor-assets";
 import type { AutosaveTimers } from "./editor-autosave";
 import type { ParseResult } from "./editor-document-validate";
@@ -28,27 +28,12 @@ function isHtmlElement(value: unknown): value is HTMLElement {
 
 // Plate compares nodeType to the global Node constants while it walks the element.
 export function deserializeHtmlInDom(editor: SlateEditor, html: string): Descendant[] {
-  const dom = new Window();
-  const hadNode = Object.hasOwn(globalThis, "Node");
-  const previousNode = hadNode ? Reflect.get(globalThis, "Node") : undefined;
-
-  try {
-    Reflect.set(globalThis, "Node", dom.Node);
-    const body: unknown = new dom.DOMParser().parseFromString(html, "text/html").body;
-    if (!isHtmlElement(body)) {
-      throw new Error("The HTML parser did not return a body element.");
-    }
-
-    return editor.api.html.deserialize({ element: body });
-  } finally {
-    if (hadNode) {
-      Reflect.set(globalThis, "Node", previousNode);
-    } else {
-      Reflect.deleteProperty(globalThis, "Node");
-    }
-
-    dom.close();
+  const body: unknown = parseHtml(html);
+  if (!isHtmlElement(body)) {
+    throw new Error("The HTML parser did not return a body element.");
   }
+
+  return editor.api.html.deserialize({ element: body });
 }
 
 export function texts(editor: SlateEditor): string[] {

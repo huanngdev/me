@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
 import { KEYS, type SlateEditor } from "platejs";
 import { Key, Plate, PlateContent, createPlateEditor } from "platejs/react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -75,41 +74,12 @@ function pressTab(editor: SlateEditor, reverse = false): boolean {
   return editor.tf.tab({ reverse }) === true;
 }
 
-function restoreGlobal(key: string, had: boolean, previous: unknown): void {
-  if (had) {
-    Reflect.set(globalThis, key, previous);
-    return;
-  }
-
-  Reflect.deleteProperty(globalThis, key);
-}
-
 function pasteHtml(html: string): SlateEditor {
   const editor = createEditor();
   editor.tf.select(caret([0, 0], 0));
-  const dom = new Window();
-  const hadNode = Object.hasOwn(globalThis, "Node");
-  const hadParser = Object.hasOwn(globalThis, "DOMParser");
-  const hadTransfer = Object.hasOwn(globalThis, "DataTransfer");
-  const previousNode = hadNode ? Reflect.get(globalThis, "Node") : undefined;
-  const previousParser = hadParser ? Reflect.get(globalThis, "DOMParser") : undefined;
-  const previousTransfer = hadTransfer ? Reflect.get(globalThis, "DataTransfer") : undefined;
-
-  Reflect.set(globalThis, "Node", dom.Node);
-  Reflect.set(globalThis, "DOMParser", dom.DOMParser);
-  Reflect.set(globalThis, "DataTransfer", dom.DataTransfer);
-
-  try {
-    const data = new DataTransfer();
-    data.setData("text/html", html);
-    editor.tf.insertData(data);
-  } finally {
-    restoreGlobal("Node", hadNode, previousNode);
-    restoreGlobal("DOMParser", hadParser, previousParser);
-    restoreGlobal("DataTransfer", hadTransfer, previousTransfer);
-    dom.close();
-  }
-
+  const data = new DataTransfer();
+  data.setData("text/html", html);
+  editor.tf.insertData(data);
   return editor;
 }
 

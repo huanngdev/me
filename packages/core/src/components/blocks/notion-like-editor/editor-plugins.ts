@@ -20,6 +20,7 @@ import {
   LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
+import { CalloutPlugin } from "@platejs/callout/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -34,13 +35,16 @@ import {
   type AnyPluginConfig,
   type SlateEditor,
 } from "platejs";
-import { Key, ParagraphPlugin } from "platejs/react";
+import type { JSX } from "react";
+import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
+import { CalloutElement } from "./callout-element";
 import { HrElement } from "./hr-element";
 import {
   clearFormatting,
+  containerParentType,
   formatBold,
   formatCode,
   formatItalic,
@@ -437,47 +441,58 @@ function isElementRecord(node: unknown): node is Record<string, unknown> & { typ
   );
 }
 
-// Same gate as Plate's isLiftableBlockquoteChild: a paragraph whose parent is the quote,
-// and not a list item.
-function isQuoteParagraph(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
-    return false;
-  }
-
-  const parent = editor.api.parent(path);
-  if (!parent || !isElementRecord(parent[0])) {
-    return false;
-  }
-
-  return parent[0].type === KEYS.blockquote;
-}
-
-// Plate's shouldLiftOnDeleteStart (BaseBlockquotePlugin) lifts every non-empty quote
-// paragraph. A later paragraph has to merge, so delete.start lifts only the first child.
-// break.empty stays on every quote paragraph, and liftBlock splits the quote around a
-// middle empty line. No shortcut: Mod+Shift+. is the superscript chord.
-const blockquotePlugin = BlockquotePlugin.configure({
-  render: { node: BlockquoteElement },
-  rules: {
-    break: { empty: "lift" },
-    delete: { start: "lift" },
-    match: ({ editor, node, path, rule }) => {
+// Plate's quote delete.start lifts every non-empty paragraph. A later paragraph has to
+// merge, so delete.start lifts only the first child. break.empty stays on every plain
+// paragraph, and liftBlock splits the container around a middle empty line.
+// Callout's published rules are lineBreak, reset, and deleteExit. This match returns
+// false for those, so a callout paragraph uses the same container behavior. No shortcut.
+// One configure() call: a later configure() replaces __configuration and drops these rules.
+function containerRules(type: string) {
+  return {
+    break: { empty: "lift" as const },
+    delete: { start: "lift" as const },
+    match: ({
+      editor,
+      node,
+      path,
+      rule,
+    }: {
+      editor: SlateEditor;
+      node: unknown;
+      path?: number[];
+      rule: string;
+    }) => {
       if ((rule !== "break.empty" && rule !== "delete.start") || !path || !isElementRecord(node)) {
         return false;
       }
 
-      if (!isQuoteParagraph(editor, node, path)) {
+      if (containerParentType(editor, node, path) !== type) {
         return false;
       }
 
       return rule === "break.empty" || !PathApi.hasPrevious(path);
     },
+  };
+}
+
+function configureContainerPlugin<TNode extends (props: PlateElementProps) => JSX.Element, TResult>(
+  plugin: {
+    key: string;
+    configure: (config: {
+      render: { node: TNode };
+      rules: ReturnType<typeof containerRules>;
+    }) => TResult;
   },
-});
+  node: TNode,
+): TResult {
+  return plugin.configure({
+    render: { node },
+    rules: containerRules(plugin.key),
+  });
+}
+
+const blockquotePlugin = configureContainerPlugin(BlockquotePlugin, BlockquoteElement);
+const calloutPlugin = configureContainerPlugin(CalloutPlugin, CalloutElement);
 
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
@@ -1133,6 +1148,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading2Plugin,
     heading3Plugin,
     blockquotePlugin,
+    calloutPlugin,
     // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,

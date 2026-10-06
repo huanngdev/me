@@ -504,7 +504,7 @@ describe("paste", () => {
         children: [{ text: "Quoted" }],
       },
       {
-        type: "callout",
+        type: "column",
         children: [{ text: "Aside" }],
       },
     ]);

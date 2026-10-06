@@ -64,6 +64,16 @@
   --color-editor-bg-purple: var(--editor-bg-purple);
   --color-editor-bg-pink: var(--editor-bg-pink);
   --color-editor-bg-red: var(--editor-bg-red);
+  --color-editor-callout-default-bg: var(--editor-callout-default-bg);
+  --color-editor-callout-default-border: var(--editor-callout-default-border);
+  --color-editor-callout-info-bg: var(--editor-callout-info-bg);
+  --color-editor-callout-info-border: var(--editor-callout-info-border);
+  --color-editor-callout-success-bg: var(--editor-callout-success-bg);
+  --color-editor-callout-success-border: var(--editor-callout-success-border);
+  --color-editor-callout-warning-bg: var(--editor-callout-warning-bg);
+  --color-editor-callout-warning-border: var(--editor-callout-warning-border);
+  --color-editor-callout-danger-bg: var(--editor-callout-danger-bg);
+  --color-editor-callout-danger-border: var(--editor-callout-danger-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -141,6 +151,16 @@
   --editor-font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --editor-font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --editor-font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --editor-callout-default-bg: oklch(0.97 0 0);
+  --editor-callout-default-border: oklch(0.922 0 0);
+  --editor-callout-info-bg: oklch(0.955 0.02 255);
+  --editor-callout-info-border: oklch(0.86 0.04 255);
+  --editor-callout-success-bg: oklch(0.955 0.03 155);
+  --editor-callout-success-border: oklch(0.86 0.05 155);
+  --editor-callout-warning-bg: oklch(0.96 0.045 95);
+  --editor-callout-warning-border: oklch(0.86 0.06 95);
+  --editor-callout-danger-bg: oklch(0.955 0.025 25);
+  --editor-callout-danger-border: oklch(0.86 0.04 25);
 }
 
 .dark {
@@ -196,6 +216,16 @@
   --editor-bg-purple: oklch(0.365 0.085 305);
   --editor-bg-pink: oklch(0.365 0.085 5);
   --editor-bg-red: oklch(0.365 0.085 25);
+  --editor-callout-default-bg: oklch(0.269 0 0);
+  --editor-callout-default-border: oklch(1 0 0 / 18%);
+  --editor-callout-info-bg: oklch(0.32 0.04 255);
+  --editor-callout-info-border: oklch(0.45 0.06 255);
+  --editor-callout-success-bg: oklch(0.32 0.045 155);
+  --editor-callout-success-border: oklch(0.45 0.06 155);
+  --editor-callout-warning-bg: oklch(0.34 0.05 95);
+  --editor-callout-warning-border: oklch(0.48 0.07 95);
+  --editor-callout-danger-bg: oklch(0.32 0.05 25);
+  --editor-callout-danger-border: oklch(0.45 0.07 25);
 }
 
 [data-palette="violet"]:not(.dark) {

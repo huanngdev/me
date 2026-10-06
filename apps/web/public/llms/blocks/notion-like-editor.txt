@@ -19,30 +19,31 @@
 9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
 10. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
 11. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
-12. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-13. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-14. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-15. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-16. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-17. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-18. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-19. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-20. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-21. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-22. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-23. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-24. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-25. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-26. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-27. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-28. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-29. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-30. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-31. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-32. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-33. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-34. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-35. apps/web/src/app/blocks/notion-like-editor/page.tsx
+12. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
+13. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+14. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+15. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+16. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+17. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+18. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+19. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+20. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+21. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+22. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+23. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+24. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+25. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+26. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+27. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+28. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+29. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+30. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+31. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+32. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+33. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+34. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+35. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+36. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -153,6 +154,31 @@ export type ListStyle = (typeof LIST_STYLES)[number];
 // and past that the value is rejected instead of stored.
 export const LIST_NUMBER_RANGE = { min: 1, max: 9999 } as const satisfies IntegerAttrRange;
 
+// Stored tones. Absence means default, so default is not a stored value.
+export const CALLOUT_TONES = ["info", "success", "warning", "danger"] as const;
+
+export type CalloutTone = (typeof CALLOUT_TONES)[number];
+
+// Preset icons. Absence means 💡. An emoji outside this list is not stored.
+export const CALLOUT_ICONS = [
+  "💡",
+  "ℹ️",
+  "✅",
+  "⚠️",
+  "🚫",
+  "📌",
+  "📝",
+  "🔥",
+  "❓",
+  "⭐",
+  "🎯",
+  "💬",
+] as const;
+
+export type CalloutIcon = (typeof CALLOUT_ICONS)[number];
+
+export const CALLOUT_DEFAULT_ICON: CalloutIcon = "💡";
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -211,6 +237,17 @@ export const EDITOR_ELEMENT_RULES = [
     type: KEYS.hr,
     attrs: ["id"],
     isVoid: true,
+  },
+  // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
+  // so a list inside a callout stays a list. backgroundColor is not stored.
+  {
+    type: KEYS.callout,
+    attrs: ["id", "icon", "variant"],
+    attrValues: {
+      icon: CALLOUT_ICONS,
+      variant: CALLOUT_TONES,
+    },
+    childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -1536,6 +1573,7 @@ import {
   LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
+import { CalloutPlugin } from "@platejs/callout/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -1550,13 +1588,16 @@ import {
   type AnyPluginConfig,
   type SlateEditor,
 } from "platejs";
-import { Key, ParagraphPlugin } from "platejs/react";
+import type { JSX } from "react";
+import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
+import { CalloutElement } from "./callout-element";
 import { HrElement } from "./hr-element";
 import {
   clearFormatting,
+  containerParentType,
   formatBold,
   formatCode,
   formatItalic,
@@ -1953,47 +1994,58 @@ function isElementRecord(node: unknown): node is Record<string, unknown> & { typ
   );
 }
 
-// Same gate as Plate's isLiftableBlockquoteChild: a paragraph whose parent is the quote,
-// and not a list item.
-function isQuoteParagraph(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
-    return false;
-  }
-
-  const parent = editor.api.parent(path);
-  if (!parent || !isElementRecord(parent[0])) {
-    return false;
-  }
-
-  return parent[0].type === KEYS.blockquote;
-}
-
-// Plate's shouldLiftOnDeleteStart (BaseBlockquotePlugin) lifts every non-empty quote
-// paragraph. A later paragraph has to merge, so delete.start lifts only the first child.
-// break.empty stays on every quote paragraph, and liftBlock splits the quote around a
-// middle empty line. No shortcut: Mod+Shift+. is the superscript chord.
-const blockquotePlugin = BlockquotePlugin.configure({
-  render: { node: BlockquoteElement },
-  rules: {
-    break: { empty: "lift" },
-    delete: { start: "lift" },
-    match: ({ editor, node, path, rule }) => {
+// Plate's quote delete.start lifts every non-empty paragraph. A later paragraph has to
+// merge, so delete.start lifts only the first child. break.empty stays on every plain
+// paragraph, and liftBlock splits the container around a middle empty line.
+// Callout's published rules are lineBreak, reset, and deleteExit. This match returns
+// false for those, so a callout paragraph uses the same container behavior. No shortcut.
+// One configure() call: a later configure() replaces __configuration and drops these rules.
+function containerRules(type: string) {
+  return {
+    break: { empty: "lift" as const },
+    delete: { start: "lift" as const },
+    match: ({
+      editor,
+      node,
+      path,
+      rule,
+    }: {
+      editor: SlateEditor;
+      node: unknown;
+      path?: number[];
+      rule: string;
+    }) => {
       if ((rule !== "break.empty" && rule !== "delete.start") || !path || !isElementRecord(node)) {
         return false;
       }
 
-      if (!isQuoteParagraph(editor, node, path)) {
+      if (containerParentType(editor, node, path) !== type) {
         return false;
       }
 
       return rule === "break.empty" || !PathApi.hasPrevious(path);
     },
+  };
+}
+
+function configureContainerPlugin<TNode extends (props: PlateElementProps) => JSX.Element, TResult>(
+  plugin: {
+    key: string;
+    configure: (config: {
+      render: { node: TNode };
+      rules: ReturnType<typeof containerRules>;
+    }) => TResult;
   },
-});
+  node: TNode,
+): TResult {
+  return plugin.configure({
+    render: { node },
+    rules: containerRules(plugin.key),
+  });
+}
+
+const blockquotePlugin = configureContainerPlugin(BlockquotePlugin, BlockquoteElement);
+const calloutPlugin = configureContainerPlugin(CalloutPlugin, CalloutElement);
 
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
@@ -2649,6 +2701,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading2Plugin,
     heading3Plugin,
     blockquotePlugin,
+    calloutPlugin,
     // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,
@@ -2948,6 +3001,188 @@ export function BlockquoteElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
+```tsx
+import { useRef } from "react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useReadOnly,
+  type PlateElementProps,
+} from "platejs/react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import { resetCallout, runEditorCommand, setCalloutIcon, setCalloutTone } from "./editor-commands";
+import {
+  CALLOUT_DEFAULT_ICON,
+  CALLOUT_ICONS,
+  CALLOUT_TONES,
+  type CalloutIcon,
+  type CalloutTone,
+} from "./editor-document-schema";
+
+// role="note" is an ancillary note. An aside would be a complementary landmark.
+// AGENTS.md keeps the accent for active states. The fill is the tone surface.
+export const CALLOUT_TONE_CLASS_NAME = {
+  default: "border-editor-callout-default-border bg-editor-callout-default-bg text-foreground",
+  info: "border-editor-callout-info-border bg-editor-callout-info-bg text-foreground",
+  success: "border-editor-callout-success-border bg-editor-callout-success-bg text-foreground",
+  warning: "border-editor-callout-warning-border bg-editor-callout-warning-bg text-foreground",
+  danger: "border-editor-callout-danger-border bg-editor-callout-danger-bg text-foreground",
+} as const;
+
+const TONE_LABEL = {
+  default: "Default",
+  info: "Info",
+  success: "Success",
+  warning: "Warning",
+  danger: "Danger",
+} as const;
+
+export function calloutIcon(value: unknown): CalloutIcon {
+  const found = CALLOUT_ICONS.find((icon) => icon === value);
+  return found ?? CALLOUT_DEFAULT_ICON;
+}
+
+export function calloutTone(value: unknown): "default" | CalloutTone {
+  const found = CALLOUT_TONES.find((tone) => tone === value);
+  return found ?? "default";
+}
+
+function elementAttr(element: object, key: string): unknown {
+  if (!(key in element)) {
+    return undefined;
+  }
+
+  return Reflect.get(element, key);
+}
+
+const TONE_CHOICES = ["default", ...CALLOUT_TONES] as const;
+
+// mousedown would move the editor selection onto the button. Cancelling it leaves
+// the caret where it was. pointerdown stays untouched: Radix opens the menu there,
+// and its own handler cancels that event so the button does not take focus.
+function keepEditorSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+export function CalloutElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const icon = calloutIcon(elementAttr(element, "icon"));
+  const tone = calloutTone(elementAttr(element, "variant"));
+  const path = editor.api.findPath(element);
+  const savedSelection = useRef(editor.selection);
+
+  return (
+    <PlateElement
+      {...props}
+      attributes={{ ...props.attributes, role: "note" }}
+      className={cn(
+        "my-0 flex items-start gap-2 rounded-md border px-3 py-2",
+        CALLOUT_TONE_CLASS_NAME[tone],
+      )}
+    >
+      <div className="shrink-0 select-none" contentEditable={false}>
+        {readOnly || !path ? (
+          <span
+            aria-hidden="true"
+            className="inline-flex size-7 items-center justify-center text-base leading-none"
+          >
+            {icon}
+          </span>
+        ) : (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
+              aria-label="Change callout icon and color"
+              className="hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md text-base leading-none"
+              onMouseDown={keepEditorSelection}
+              onPointerDown={() => {
+                savedSelection.current = editor.selection;
+              }}
+            >
+              <span aria-hidden="true">{icon}</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-64"
+              onCloseAutoFocus={(event) => {
+                // Radix would focus the trigger here, which drops the text selection.
+                event.preventDefault();
+                const selection = savedSelection.current;
+                editor.tf.withoutSaving(() => {
+                  editor.tf.focus();
+                  if (selection) {
+                    editor.tf.select(selection);
+                  }
+                });
+              }}
+            >
+              <DropdownMenuGroup className="grid grid-cols-6 gap-1">
+                {CALLOUT_ICONS.map((choice) => (
+                  <DropdownMenuItem
+                    key={choice}
+                    aria-label={choice}
+                    className="justify-center px-0"
+                    onMouseDown={keepEditorSelection}
+                    onSelect={() => {
+                      runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
+                    }}
+                  >
+                    <span aria-hidden="true">{choice}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              {TONE_CHOICES.map((choice) => (
+                <DropdownMenuItem
+                  key={choice}
+                  onMouseDown={keepEditorSelection}
+                  onSelect={() => {
+                    runEditorCommand(editor, setCalloutTone, {
+                      value: choice === "default" ? null : choice,
+                      at: path,
+                    });
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
+                  />
+                  {TONE_LABEL[choice]}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onMouseDown={keepEditorSelection}
+                onSelect={() => {
+                  resetCallout(editor, path);
+                }}
+              >
+                Reset
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+      <div className={cn("min-w-0 flex-1 space-y-2", LIST_SIBLING_GAP_CLASS)}>{props.children}</div>
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
 ```tsx
 import {
@@ -3025,6 +3260,8 @@ import {
 } from "platejs";
 
 import {
+  CALLOUT_ICONS,
+  CALLOUT_TONES,
   CLEARABLE_MARK_KEYS,
   FONT_FAMILIES,
   FONT_SIZES,
@@ -3489,20 +3726,37 @@ function reportedBlockType(node: TElement): string {
   return node.type;
 }
 
-// Lowest blocks only, so a quote container is not visited beside its paragraph.
-// A paragraph inside a quote reports blockquote unless it is a list item.
+// A plain paragraph whose parent lists that paragraph in childTypes reports the parent.
+// A list item keeps its list type. Lowest blocks only, so the container is not visited too.
+export function containerParentType(
+  editor: SlateEditor,
+  node: { type: string; listStyleType?: unknown },
+  path: number[],
+): string | undefined {
+  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
+    return undefined;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+    return undefined;
+  }
+
+  const childTypes = allowedChildTypes(parent[0].type);
+  if (childTypes === undefined || !childTypes.some((type) => type === node.type)) {
+    return undefined;
+  }
+
+  return parent[0].type;
+}
+
 function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
   }
 
-  const parent = editor.api.parent(path);
-  if (parent && ElementApi.isElement(parent[0]) && parent[0].type === KEYS.blockquote) {
-    return KEYS.blockquote;
-  }
-
-  return reported;
+  return containerParentType(editor, node, path) ?? reported;
 }
 
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
@@ -3610,26 +3864,110 @@ export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
 
-// Outside a quote, Plate's toggleBlock(..., { wrap: true }) wraps the selection in one quote.
-// Inside a quote, liftBlock unwraps the selected paragraphs and splits the quote around a partial selection.
-export const turnIntoBlockquote: EditorCommand = {
+// Outside, toggleBlock wraps the selection in one container and leaves its attrs unset.
+// Inside, liftBlock unwraps the selected paragraphs and splits a partial selection.
+export function createTurnIntoContainer(
+  type: string,
+  meta: { id: string; label: string },
+): EditorCommand {
+  return {
+    id: meta.id,
+    label: meta.label,
+    group: "turn-into",
+    run: (editor) => {
+      if (editor.api.above({ match: { type } })) {
+        const blocks = lowestBlocks(editor);
+        editor.tf.withoutNormalizing(() => {
+          for (const [, blockPath] of blocks.reverse()) {
+            editor.tf.liftBlock({ at: blockPath, match: { type } });
+          }
+        });
+        return;
+      }
+
+      editor.tf.toggleBlock(type, { wrap: true });
+    },
+  };
+}
+
+export const turnIntoBlockquote = createTurnIntoContainer(KEYS.blockquote, {
   id: "block.turn-into.blockquote",
   label: "Quote",
-  group: "turn-into",
-  run: (editor) => {
-    if (editor.api.above({ match: { type: KEYS.blockquote } })) {
-      const blocks = lowestBlocks(editor);
-      editor.tf.withoutNormalizing(() => {
-        for (const [, blockPath] of blocks.reverse()) {
-          editor.tf.liftBlock({ at: blockPath, match: { type: KEYS.blockquote } });
-        }
-      });
-      return;
+});
+
+export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
+  id: "block.turn-into.callout",
+  label: "Callout",
+});
+
+export type CalloutAttrPayload = {
+  value: string | null;
+  at?: number[];
+};
+
+function calloutPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
+  if (at !== undefined) {
+    const entry = editor.api.node(at);
+    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.callout) {
+      return undefined;
     }
 
-    editor.tf.toggleBlock(KEYS.blockquote, { wrap: true });
+    return entry[1];
+  }
+
+  const above = editor.api.above({ match: { type: KEYS.callout } });
+  return above?.[1];
+}
+
+function setCalloutAttr(
+  editor: SlateEditor,
+  key: "icon" | "variant",
+  allowed: readonly string[],
+  payload: CalloutAttrPayload,
+): void {
+  const path = calloutPath(editor, payload.at);
+  if (!path) {
+    return;
+  }
+
+  if (payload.value === null) {
+    editor.tf.unsetNodes(key, { at: path });
+    return;
+  }
+
+  if (!isAllowedValue(payload.value, allowed)) {
+    return;
+  }
+
+  editor.tf.setNodes({ [key]: payload.value }, { at: path });
+}
+
+export const setCalloutIcon: EditorCommand<CalloutAttrPayload> = {
+  id: "format.callout-icon",
+  label: "Callout icon",
+  group: "format",
+  run: (editor, payload) => {
+    setCalloutAttr(editor, "icon", CALLOUT_ICONS, payload);
   },
 };
+
+export const setCalloutTone: EditorCommand<CalloutAttrPayload> = {
+  id: "format.callout-tone",
+  label: "Callout tone",
+  group: "format",
+  run: (editor, payload) => {
+    setCalloutAttr(editor, "variant", CALLOUT_TONES, payload);
+  },
+};
+
+// One history batch so Reset removes the icon and the tone together.
+export function resetCallout(editor: SlateEditor, at?: number[]): void {
+  editor.tf.withNewBatch(() => {
+    setCalloutIcon.run(editor, { value: null, at });
+    setCalloutTone.run(editor, { value: null, at });
+  });
+  editor.tf.setSplittingOnce(true);
+}
 
 export const TURN_INTO_HEADING = {
   1: turnIntoHeading1,
@@ -6221,6 +6559,31 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-callouts",
+    children: [{ text: "Callouts" }],
+  },
+  {
+    type: "callout",
+    id: "demo-callout",
+    icon: "💡",
+    variant: "info",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-1",
+        children: [{ text: "Callouts hold a note with an icon and a color." }],
+      },
+      {
+        type: "p",
+        id: "demo-callout-2",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Click the icon to change both." }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -6351,6 +6714,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/blockquote-element.tsx",
     code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/callout-element.tsx",
+    code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/hr-element.tsx",

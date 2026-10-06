@@ -304,6 +304,31 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-callouts",
+    children: [{ text: "Callouts" }],
+  },
+  {
+    type: "callout",
+    id: "demo-callout",
+    icon: "💡",
+    variant: "info",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-1",
+        children: [{ text: "Callouts hold a note with an icon and a color." }],
+      },
+      {
+        type: "p",
+        id: "demo-callout-2",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Click the icon to change both." }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

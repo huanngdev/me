@@ -217,15 +217,15 @@ describe("document validation", () => {
 
   test("an unknown element type is unsupported and the raw input is kept", () => {
     const raw = envelope("doc-unknown", [
-      { type: "callout", id: "h", children: [{ text: "Title" }] },
+      { type: "column", id: "h", children: [{ text: "Title" }] },
     ]);
 
     const result = expectUnsupported(parseEditorDocument(raw));
 
     expect(result.raw).toBe(raw);
     expect(result.issues[0]?.path).toEqual([0]);
-    expect(result.issues[0]?.message).toContain("callout");
-    expect(field(raw.content[0], "type")).toBe("callout");
+    expect(result.issues[0]?.message).toContain("column");
+    expect(field(raw.content[0], "type")).toBe("column");
   });
 
   test("an unknown attribute is unsupported and the raw input is kept", () => {

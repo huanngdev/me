@@ -238,6 +238,32 @@ describe("demo document", () => {
       { text: "Enter", bold: true },
       { text: " on an empty line to leave it." },
     ]);
+
+    const callouts = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callouts");
+    const callout = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callout");
+    if (!callouts || !callout || callout.type !== "callout") {
+      throw new Error("Missing the callouts demo.");
+    }
+
+    expect(callouts.type).toBe("h3");
+    expect(textOf(callouts)).toBe("Callouts");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(callouts)).toBe(DEMO_DOCUMENT_VALUE.indexOf(quote) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(callout)).toBe(DEMO_DOCUMENT_VALUE.indexOf(callouts) + 1);
+    expect(field(callout, "icon")).toBe("💡");
+    expect(field(callout, "variant")).toBe("info");
+    const calloutChildren = elementChildren(callout);
+    expect(calloutChildren.map((child) => field(child, "id"))).toEqual([
+      "demo-callout-1",
+      "demo-callout-2",
+    ]);
+    expect(elementChildren(calloutChildren[0])).toEqual([
+      { text: "Callouts hold a note with an icon and a color." },
+    ]);
+    expect(field(calloutChildren[1], "listStyleType")).toBe("disc");
+    expect(field(calloutChildren[1], "indent")).toBe(1);
+    expect(elementChildren(calloutChildren[1])).toEqual([
+      { text: "Click the icon to change both." },
+    ]);
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {

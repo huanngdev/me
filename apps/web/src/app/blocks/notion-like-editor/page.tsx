@@ -64,6 +64,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/callout-element.tsx",
+    code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/hr-element.tsx",
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },

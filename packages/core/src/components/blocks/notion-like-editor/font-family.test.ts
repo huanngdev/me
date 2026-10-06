@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
 import { readFileSync } from "node:fs";
 import { KEYS, type SlateEditor } from "platejs";
 import { serializeHtml } from "platejs/static";
@@ -102,27 +101,31 @@ function codeMarks(editor: SlateEditor): boolean[] {
 }
 
 function computedFamily(html: string, sample: string): string {
-  const dom = new Window();
+  const style = document.createElement("style");
+  const host = document.createElement("div");
+  style.textContent = `:root { --font-mono: "JetBrains Mono"; --font-sans: Inter; ${[
+    `--editor-font-sans: ${SANS_STACK}`,
+    `--editor-font-mono: ${MONO_STACK}`,
+    `--editor-font-serif: ${SERIF_STACK}`,
+  ].join("; ")}; }`;
+  host.innerHTML = html;
+  document.body.append(style, host);
 
   try {
-    dom.document.body.innerHTML = `<style>:root { --font-mono: "JetBrains Mono"; --font-sans: Inter; ${[
-      `--editor-font-sans: ${SANS_STACK}`,
-      `--editor-font-mono: ${MONO_STACK}`,
-      `--editor-font-serif: ${SERIF_STACK}`,
-    ].join("; ")}; }</style>${html}`;
-    const walker = dom.document.createTreeWalker(dom.document.body, dom.NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
     while (node) {
       const parent = node.parentElement;
       if (node.textContent === sample && parent && parent.tagName !== "STYLE") {
-        return dom.getComputedStyle(parent).fontFamily;
+        return getComputedStyle(parent).fontFamily;
       }
       node = walker.nextNode();
     }
 
     throw new Error("The rendered HTML has no matching text.");
   } finally {
-    dom.close();
+    style.remove();
+    host.remove();
   }
 }
 

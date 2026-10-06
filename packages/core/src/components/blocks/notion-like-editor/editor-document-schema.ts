@@ -91,6 +91,31 @@ export type ListStyle = (typeof LIST_STYLES)[number];
 // and past that the value is rejected instead of stored.
 export const LIST_NUMBER_RANGE = { min: 1, max: 9999 } as const satisfies IntegerAttrRange;
 
+// Stored tones. Absence means default, so default is not a stored value.
+export const CALLOUT_TONES = ["info", "success", "warning", "danger"] as const;
+
+export type CalloutTone = (typeof CALLOUT_TONES)[number];
+
+// Preset icons. Absence means 💡. An emoji outside this list is not stored.
+export const CALLOUT_ICONS = [
+  "💡",
+  "ℹ️",
+  "✅",
+  "⚠️",
+  "🚫",
+  "📌",
+  "📝",
+  "🔥",
+  "❓",
+  "⭐",
+  "🎯",
+  "💬",
+] as const;
+
+export type CalloutIcon = (typeof CALLOUT_ICONS)[number];
+
+export const CALLOUT_DEFAULT_ICON: CalloutIcon = "💡";
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -149,6 +174,17 @@ export const EDITOR_ELEMENT_RULES = [
     type: KEYS.hr,
     attrs: ["id"],
     isVoid: true,
+  },
+  // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
+  // so a list inside a callout stays a list. backgroundColor is not stored.
+  {
+    type: KEYS.callout,
+    attrs: ["id", "icon", "variant"],
+    attrValues: {
+      icon: CALLOUT_ICONS,
+      variant: CALLOUT_TONES,
+    },
+    childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
 

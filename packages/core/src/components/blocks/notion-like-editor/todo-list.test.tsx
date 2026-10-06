@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
 import { KEYS, type SlateEditor } from "platejs";
 import { Key, createPlateEditor } from "platejs/react";
 import { act } from "react";
@@ -93,20 +92,10 @@ function pressTab(editor: SlateEditor, reverse = false): boolean {
   return editor.tf.tab({ reverse }) === true;
 }
 
-function restoreGlobal(key: string, had: boolean, previous: unknown): void {
-  if (had) {
-    Reflect.set(globalThis, key, previous);
-    return;
-  }
-
-  Reflect.deleteProperty(globalThis, key);
-}
-
-function taskItem(dom: Window, html: string): HTMLElement {
-  const created = dom.document.createElement("li");
+function taskItem(html: string): HTMLElement {
+  const created = document.createElement("li");
   created.innerHTML = html;
-  // happy-dom's HTMLLIElement does not overlap the DOM HTMLElement (TS2352).
-  return created as unknown as HTMLElement;
+  return created;
 }
 
 function keepsCheckbox(element: ParentNode): boolean {
@@ -116,29 +105,9 @@ function keepsCheckbox(element: ParentNode): boolean {
 function pasteHtml(html: string): SlateEditor {
   const editor = createEditor();
   editor.tf.select(caret([0, 0], 0));
-  const dom = new Window();
-  const hadNode = Object.hasOwn(globalThis, "Node");
-  const hadParser = Object.hasOwn(globalThis, "DOMParser");
-  const hadTransfer = Object.hasOwn(globalThis, "DataTransfer");
-  const previousNode = hadNode ? Reflect.get(globalThis, "Node") : undefined;
-  const previousParser = hadParser ? Reflect.get(globalThis, "DOMParser") : undefined;
-  const previousTransfer = hadTransfer ? Reflect.get(globalThis, "DataTransfer") : undefined;
-
-  Reflect.set(globalThis, "Node", dom.Node);
-  Reflect.set(globalThis, "DOMParser", dom.DOMParser);
-  Reflect.set(globalThis, "DataTransfer", dom.DataTransfer);
-
-  try {
-    const data = new DataTransfer();
-    data.setData("text/html", html);
-    editor.tf.insertData(data);
-  } finally {
-    restoreGlobal("Node", hadNode, previousNode);
-    restoreGlobal("DOMParser", hadParser, previousParser);
-    restoreGlobal("DataTransfer", hadTransfer, previousTransfer);
-    dom.close();
-  }
-
+  const data = new DataTransfer();
+  data.setData("text/html", html);
+  editor.tf.insertData(data);
   return editor;
 }
 
@@ -165,23 +134,6 @@ function shortcutCollisions(editor: SlateEditor, id: string): string[] {
     })
     .map(([shortcutId]) => shortcutId);
 }
-
-const DOM_GLOBALS = [
-  "window",
-  "document",
-  "HTMLElement",
-  "Element",
-  "Node",
-  "navigator",
-  "DocumentFragment",
-  "Document",
-  "ShadowRoot",
-  "MutationObserver",
-  "getComputedStyle",
-  "requestAnimationFrame",
-  "cancelAnimationFrame",
-  "IS_REACT_ACT_ENVIRONMENT",
-] as const;
 
 type CheckboxControl = {
   dispatchEvent: (event: Event) => boolean;
@@ -222,6 +174,30 @@ function checkboxEvent(checkbox: CheckboxControl, type: "mousedown" | "click"): 
 
 // Plate's checkbox hook prevents mousedown (react/index.js). Mounting the same
 // control is what proves the click writes one history entry without moving the selection.
+function stubAnimationFrame(): () => void {
+  const previousFrame = Reflect.get(globalThis, "requestAnimationFrame");
+  const previousCancel = Reflect.get(globalThis, "cancelAnimationFrame");
+  const hadAct = Object.hasOwn(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+  const previousAct = hadAct ? Reflect.get(globalThis, "IS_REACT_ACT_ENVIRONMENT") : undefined;
+
+  Reflect.set(globalThis, "requestAnimationFrame", (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  Reflect.set(globalThis, "cancelAnimationFrame", () => {});
+  Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
+
+  return () => {
+    Reflect.set(globalThis, "requestAnimationFrame", previousFrame);
+    Reflect.set(globalThis, "cancelAnimationFrame", previousCancel);
+    if (hadAct) {
+      Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", previousAct);
+      return;
+    }
+    Reflect.deleteProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+  };
+}
+
 async function mountTodos(
   value: EditorValue,
   readOnly: boolean,
@@ -230,46 +206,22 @@ async function mountTodos(
   checkbox: CheckboxControl;
   cleanup: () => Promise<void>;
 }> {
-  const dom = new Window();
-  const previous = DOM_GLOBALS.map((key) => ({
-    key,
-    had: Object.hasOwn(globalThis, key),
-    value: Reflect.get(globalThis, key),
-  }));
-
-  Reflect.set(globalThis, "window", dom);
-  Reflect.set(globalThis, "document", dom.document);
-  Reflect.set(globalThis, "HTMLElement", dom.HTMLElement);
-  Reflect.set(globalThis, "Element", dom.Element);
-  Reflect.set(globalThis, "Node", dom.Node);
-  Reflect.set(globalThis, "navigator", dom.navigator);
-  Reflect.set(globalThis, "DocumentFragment", dom.DocumentFragment);
-  Reflect.set(globalThis, "Document", dom.Document);
-  Reflect.set(globalThis, "ShadowRoot", dom.ShadowRoot);
-  Reflect.set(globalThis, "MutationObserver", dom.MutationObserver);
-  Reflect.set(globalThis, "getComputedStyle", dom.getComputedStyle.bind(dom));
-  Reflect.set(globalThis, "requestAnimationFrame", (callback: FrameRequestCallback) => {
-    callback(0);
-    return 1;
-  });
-  Reflect.set(globalThis, "cancelAnimationFrame", () => {});
-  Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
-
-  const host = dom.document.createElement("div");
-  dom.document.body.appendChild(host);
+  const restoreFrame = stubAnimationFrame();
+  const before = new Set(Array.from(document.body.childNodes));
+  const host = document.createElement("div");
+  document.body.appendChild(host);
   const editor = createPlateEditor({
     plugins: createEditorPlugins(),
     value,
   });
   let root: Root | undefined;
 
-  const container: object = host;
-  if (!isReactContainer(container)) {
+  if (!isReactContainer(host)) {
     throw new Error("Missing mount node.");
   }
 
   await act(async () => {
-    root = createRoot(container);
+    root = createRoot(host);
     root.render(
       <EditorSurface editor={editor} readOnly={readOnly} placeholder="" className="editor" />,
     );
@@ -287,10 +239,12 @@ async function mountTodos(
       await act(async () => {
         root?.unmount();
       });
-      dom.close();
-      for (const entry of previous) {
-        restoreGlobal(entry.key, entry.had, entry.value);
+      for (const node of Array.from(document.body.childNodes)) {
+        if (!before.has(node)) {
+          node.remove();
+        }
       }
+      restoreFrame();
     },
   };
 }
@@ -881,21 +835,15 @@ describe("to-do list paste", () => {
   });
 
   test("parsing the same task item twice returns the same checked value", () => {
-    const dom = new Window();
+    const done = taskItem('<input type="checkbox" checked disabled> Done');
+    const open = taskItem('<input type="checkbox" disabled> Open');
 
-    try {
-      const done = taskItem(dom, '<input type="checkbox" checked disabled> Done');
-      const open = taskItem(dom, '<input type="checkbox" disabled> Open');
-
-      expect(pastedTodoChecked(done)).toBe(pastedTodoChecked(done));
-      expect(pastedTodoChecked(done)).toBe(true);
-      expect(pastedTodoChecked(open)).toBe(pastedTodoChecked(open));
-      expect(pastedTodoChecked(open)).toBe(false);
-      expect(keepsCheckbox(done)).toBe(true);
-      expect(keepsCheckbox(open)).toBe(true);
-    } finally {
-      dom.close();
-    }
+    expect(pastedTodoChecked(done)).toBe(pastedTodoChecked(done));
+    expect(pastedTodoChecked(done)).toBe(true);
+    expect(pastedTodoChecked(open)).toBe(pastedTodoChecked(open));
+    expect(pastedTodoChecked(open)).toBe(false);
+    expect(keepsCheckbox(done)).toBe(true);
+    expect(keepsCheckbox(open)).toBe(true);
   });
 
   test("Google Docs checklist HTML keeps role=checkbox as a to-do", () => {
@@ -944,37 +892,18 @@ describe("to-do list paste", () => {
   });
 
   test("plain text checkbox syntax stays text", () => {
-    const dom = new Window();
-    const hadWindow = Object.hasOwn(globalThis, "window");
-    const hadDocument = Object.hasOwn(globalThis, "document");
-    const hadTransfer = Object.hasOwn(globalThis, "DataTransfer");
-    const previousWindow = hadWindow ? Reflect.get(globalThis, "window") : undefined;
-    const previousDocument = hadDocument ? Reflect.get(globalThis, "document") : undefined;
-    const previousTransfer = hadTransfer ? Reflect.get(globalThis, "DataTransfer") : undefined;
+    const editor = createPlateEditor({
+      plugins: createEditorPlugins(),
+      value: [{ type: "p", id: "block-a", children: [{ text: "" }] }],
+    });
+    editor.tf.select(caret([0, 0], 0));
+    const data = new DataTransfer();
+    data.setData("text/plain", "[ ] a");
+    editor.tf.insertData(data);
 
-    Reflect.set(globalThis, "window", dom);
-    Reflect.set(globalThis, "document", dom.document);
-    Reflect.set(globalThis, "DataTransfer", dom.DataTransfer);
-
-    try {
-      const editor = createPlateEditor({
-        plugins: createEditorPlugins(),
-        value: [{ type: "p", id: "block-a", children: [{ text: "" }] }],
-      });
-      editor.tf.select(caret([0, 0], 0));
-      const data = new DataTransfer();
-      data.setData("text/plain", "[ ] a");
-      editor.tf.insertData(data);
-
-      expect(JSON.stringify(editor.children)).not.toContain("listStyleType");
-      expect(JSON.stringify(editor.children)).not.toContain("checked");
-      expect(texts(editor)).toEqual(["[ ] a"]);
-    } finally {
-      restoreGlobal("window", hadWindow, previousWindow);
-      restoreGlobal("document", hadDocument, previousDocument);
-      restoreGlobal("DataTransfer", hadTransfer, previousTransfer);
-      dom.close();
-    }
+    expect(JSON.stringify(editor.children)).not.toContain("listStyleType");
+    expect(JSON.stringify(editor.children)).not.toContain("checked");
+    expect(texts(editor)).toEqual(["[ ] a"]);
   });
 });
 
