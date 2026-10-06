@@ -2509,6 +2509,7 @@ export const EDITOR_ELEMENT_RULES = [
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
+  { type: "h3", ...headingElementRule },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -3512,6 +3513,7 @@ import {
   CodePlugin,
   H1Plugin,
   H2Plugin,
+  H3Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -3546,9 +3548,9 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
-  turnIntoHeading1,
-  turnIntoHeading2,
+  TURN_INTO_HEADING,
   type EditorCommand,
+  type HeadingLevel,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
@@ -3851,11 +3853,11 @@ type HeadingPluginConfig = {
 };
 
 // Plate resets a heading on any Backspace at the block start. "default" lets a non-empty
-// heading merge, and an empty heading still resets. Neither plugin ships a hotkey.
+// heading merge, and an empty heading still resets. Heading plugins ship no hotkey.
 function configureHeadingPlugin<
   TPlugin extends { configure: (config: HeadingPluginConfig) => TPlugin },
->(plugin: TPlugin, level: 1 | 2): TPlugin {
-  const command = level === 1 ? turnIntoHeading1 : turnIntoHeading2;
+>(plugin: TPlugin, level: HeadingLevel): TPlugin {
+  const command = TURN_INTO_HEADING[level];
 
   return plugin.configure({
     render: { node: HeadingElement },
@@ -3880,10 +3882,11 @@ function configureHeadingPlugin<
 
 const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
+const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2],
+    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
   },
 });
 
@@ -3932,7 +3935,7 @@ const clearFormattingPlugin = createSlatePlugin({
 });
 
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before H1's splitReset.
+// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before heading splitReset.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -3973,6 +3976,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontFamilyPlugin,
     heading1Plugin,
     heading2Plugin,
+    heading3Plugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -3987,9 +3991,10 @@ export function createEditorPlugins(): AnyPluginConfig[] {
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
-const HEADING_STYLES = {
+export const HEADING_STYLES = {
   h1: "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0",
   h2: "mt-6 text-2xl font-medium leading-tight text-foreground first:mt-0",
+  h3: "mt-4 text-xl font-medium leading-tight text-foreground first:mt-0",
 } as const;
 
 type HeadingTag = keyof typeof HEADING_STYLES;
@@ -4532,15 +4537,16 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   return type ?? null;
 }
 
-const HEADING_TYPE = {
+export const HEADING_TYPE = {
   1: KEYS.h1,
   2: KEYS.h2,
+  3: KEYS.h3,
 } as const;
 
-type HeadingLevel = keyof typeof HEADING_TYPE;
+export type HeadingLevel = keyof typeof HEADING_TYPE;
 
 // toggleBlock writes only the type. It resets to a paragraph only when a selected
-// block is already that type, so an h1 becomes an h2 in place. Becoming a heading unsets lineHeight.
+// block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
 export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
   const type = HEADING_TYPE[level];
 
@@ -4565,6 +4571,13 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
 
 export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
+export const turnIntoHeading3 = createTurnIntoHeading(3);
+
+export const TURN_INTO_HEADING = {
+  1: turnIntoHeading1,
+  2: turnIntoHeading2,
+  3: turnIntoHeading3,
+} as const satisfies Record<HeadingLevel, EditorCommand>;
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
@@ -6789,6 +6802,11 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "mono", fontFamily: "mono" },
       { text: "." },
     ],
+  },
+  {
+    type: "h3",
+    id: "demo-block-styles",
+    children: [{ text: "Block styles" }],
   },
   {
     type: "p",

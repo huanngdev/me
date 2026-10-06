@@ -96,6 +96,20 @@ describe("demo document", () => {
     expect(next.id).toBe("demo-bold");
   });
 
+  test("the block styles heading sits directly before the centered paragraph", () => {
+    const index = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-block-styles");
+    const block = DEMO_DOCUMENT_VALUE[index];
+    const next = DEMO_DOCUMENT_VALUE[index + 1];
+    if (!block || !next) {
+      throw new Error("Missing block styles heading.");
+    }
+
+    expect(block.type).toBe("h3");
+    expect(textOf(block)).toBe("Block styles");
+    expect(field(block, "lineHeight")).toBeUndefined();
+    expect(next.id).toBe("demo-align");
+  });
+
   test("the italic paragraph marks only italic text", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-italic");
     if (!block) {

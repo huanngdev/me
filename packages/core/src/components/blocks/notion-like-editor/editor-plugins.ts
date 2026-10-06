@@ -3,6 +3,7 @@ import {
   CodePlugin,
   H1Plugin,
   H2Plugin,
+  H3Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -37,9 +38,9 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
-  turnIntoHeading1,
-  turnIntoHeading2,
+  TURN_INTO_HEADING,
   type EditorCommand,
+  type HeadingLevel,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
@@ -342,11 +343,11 @@ type HeadingPluginConfig = {
 };
 
 // Plate resets a heading on any Backspace at the block start. "default" lets a non-empty
-// heading merge, and an empty heading still resets. Neither plugin ships a hotkey.
+// heading merge, and an empty heading still resets. Heading plugins ship no hotkey.
 function configureHeadingPlugin<
   TPlugin extends { configure: (config: HeadingPluginConfig) => TPlugin },
->(plugin: TPlugin, level: 1 | 2): TPlugin {
-  const command = level === 1 ? turnIntoHeading1 : turnIntoHeading2;
+>(plugin: TPlugin, level: HeadingLevel): TPlugin {
+  const command = TURN_INTO_HEADING[level];
 
   return plugin.configure({
     render: { node: HeadingElement },
@@ -371,10 +372,11 @@ function configureHeadingPlugin<
 
 const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
+const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2],
+    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
   },
 });
 
@@ -423,7 +425,7 @@ const clearFormattingPlugin = createSlatePlugin({
 });
 
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before H1's splitReset.
+// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before heading splitReset.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -464,6 +466,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontFamilyPlugin,
     heading1Plugin,
     heading2Plugin,
+    heading3Plugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,

@@ -154,6 +154,11 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-block-styles",
+    children: [{ text: "Block styles" }],
+  },
+  {
     type: "p",
     id: "demo-align",
     align: "center",

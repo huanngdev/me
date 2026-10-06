@@ -1,9 +1,10 @@
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
-const HEADING_STYLES = {
+export const HEADING_STYLES = {
   h1: "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0",
   h2: "mt-6 text-2xl font-medium leading-tight text-foreground first:mt-0",
+  h3: "mt-4 text-xl font-medium leading-tight text-foreground first:mt-0",
 } as const;
 
 type HeadingTag = keyof typeof HEADING_STYLES;

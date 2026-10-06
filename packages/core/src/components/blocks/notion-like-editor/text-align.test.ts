@@ -194,7 +194,7 @@ describe("text align", () => {
 
     expect(KEYS.textAlign).toBe("textAlign");
     expect(editor.getType(KEYS.textAlign)).toBe("align");
-    expect(plugin.inject.targetPlugins).toEqual([KEYS.p, KEYS.h1, KEYS.h2]);
+    expect(plugin.inject.targetPlugins).toEqual([KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3]);
     expect(setTextAlign.id).toBe("format.align");
     expect(setTextAlign.group).toBe("format");
     expect(setTextAlign.label).toBe("Text align");

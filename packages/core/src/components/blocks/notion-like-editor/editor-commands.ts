@@ -475,15 +475,16 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   return type ?? null;
 }
 
-const HEADING_TYPE = {
+export const HEADING_TYPE = {
   1: KEYS.h1,
   2: KEYS.h2,
+  3: KEYS.h3,
 } as const;
 
-type HeadingLevel = keyof typeof HEADING_TYPE;
+export type HeadingLevel = keyof typeof HEADING_TYPE;
 
 // toggleBlock writes only the type. It resets to a paragraph only when a selected
-// block is already that type, so an h1 becomes an h2 in place. Becoming a heading unsets lineHeight.
+// block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
 export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
   const type = HEADING_TYPE[level];
 
@@ -508,6 +509,13 @@ export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
 
 export const turnIntoHeading1 = createTurnIntoHeading(1);
 export const turnIntoHeading2 = createTurnIntoHeading(2);
+export const turnIntoHeading3 = createTurnIntoHeading(3);
+
+export const TURN_INTO_HEADING = {
+  1: turnIntoHeading1,
+  2: turnIntoHeading2,
+  3: turnIntoHeading3,
+} as const satisfies Record<HeadingLevel, EditorCommand>;
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",

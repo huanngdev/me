@@ -66,6 +66,7 @@ export const EDITOR_ELEMENT_RULES = [
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
+  { type: "h3", ...headingElementRule },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [

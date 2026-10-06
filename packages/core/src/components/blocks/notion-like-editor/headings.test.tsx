@@ -5,17 +5,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   getBlockType,
+  HEADING_TYPE,
   runEditorCommand,
   setFontSize,
   setLineHeight,
   setTextAlign,
-  turnIntoHeading1,
-  turnIntoHeading2,
+  TURN_INTO_HEADING,
   type EditorCommand,
+  type HeadingLevel,
 } from "./editor-commands";
 import { createEditorDocument, serializeEditorDocument } from "./editor-document";
+import { EDITOR_ELEMENT_RULES } from "./editor-document-schema";
 import { createEditorPlugins } from "./editor-plugins";
-import { headingAnchorId } from "./heading-element";
+import { HEADING_STYLES, headingAnchorId } from "./heading-element";
 import { parseEditorDocument } from "./editor-document-validate";
 import {
   blockIds,
@@ -30,18 +32,21 @@ import {
   texts,
 } from "./test-utils";
 
-type Level = 1 | 2;
-type HeadingType = "h1" | "h2";
+const HEADING_CLASS = {
+  1: { size: "text-3xl", margin: "mt-8" },
+  2: { size: "text-2xl", margin: "mt-6" },
+  3: { size: "text-xl", margin: "mt-4" },
+} as const;
 
-function headingType(level: Level): HeadingType {
-  return level === 1 ? "h1" : "h2";
+function headingType(level: HeadingLevel) {
+  return HEADING_TYPE[level];
 }
 
-function turnInto(level: Level): EditorCommand {
-  return level === 1 ? turnIntoHeading1 : turnIntoHeading2;
+function turnInto(level: HeadingLevel): EditorCommand {
+  return TURN_INTO_HEADING[level];
 }
 
-function heading(level: Level, text: string, id = "heading-a") {
+function heading(level: HeadingLevel, text: string, id = "heading-a") {
   return { type: headingType(level), id, children: [{ text }] };
 }
 
@@ -53,7 +58,7 @@ function blockType(editor: SlateEditor, index: number): unknown {
   return field(editor.children[index], "type");
 }
 
-function pressHeading(editor: SlateEditor, level: Level): void {
+function pressHeading(editor: SlateEditor, level: HeadingLevel): void {
   const shortcut = editor.meta.shortcuts[`${headingType(level)}.toggle`];
   if (!shortcut?.handler) {
     throw new Error(`Missing h${level} shortcut.`);
@@ -87,26 +92,19 @@ describe("headings", () => {
     expect(field(raw.content[0], "type")).toBe("h7");
   });
 
-  test("h3 remains unsupported until its task and the raw input is kept", () => {
+  test("h4 remains unsupported and the raw input is kept", () => {
     const raw = createEditorDocument("doc-heading", [
-      { type: "h3", id: "block-a", children: [{ text: "Title" }] },
+      { type: "h4", id: "block-a", children: [{ text: "Title" }] },
     ]);
     const result = expectUnsupported(parseEditorDocument(raw));
 
     expect(result.raw).toBe(raw);
-    expect(result.issues[0]?.message).toContain('unsupported block type "h3"');
-    expect(field(raw.content[0], "type")).toBe("h3");
+    expect(result.issues[0]?.message).toContain('unsupported block type "h4"');
+    expect(field(raw.content[0], "type")).toBe("h4");
   });
 
-  test("pasting an h3 element stays a paragraph", () => {
-    const editor = pasteHtml("<h3>Title</h3>");
-
-    expect(texts(editor)).toEqual(["Title"]);
-    expect(blockType(editor, 0)).toBe("p");
-  });
-
-  test("pasting an h4 element still becomes a paragraph", () => {
-    const editor = pasteHtml("<h4>Title</h4>");
+  test.each(["h4", "h5", "h6"])("pasting a %s element becomes a paragraph", (tag) => {
+    const editor = pasteHtml(`<${tag}>Title</${tag}>`);
 
     expect(texts(editor)).toEqual(["Title"]);
     expect(blockType(editor, 0)).toBe("p");
@@ -119,7 +117,7 @@ describe("headings", () => {
     expect(blockType(editor, 0)).toBe("p");
   });
 
-  test("turning heading 1 into heading 2 and back keeps id, text, marks, and align", () => {
+  test("turning heading 1 into heading 3, heading 2, and back keeps id, text, marks, and align", () => {
     const editor = createEditor([
       {
         type: "h1",
@@ -130,27 +128,20 @@ describe("headings", () => {
     ]);
     editor.tf.select(caret([0, 0], 1));
 
-    expect(runEditorCommand(editor, turnIntoHeading2, undefined)).toBe(true);
-
-    expect(blockType(editor, 0)).toBe("h2");
-    expect(blockIds(editor)).toEqual(["block-a"]);
-    expect(texts(editor)).toEqual(["Hello"]);
-    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", bold: true });
-    expect(field(editor.children[0], "align")).toBe("center");
-
-    runEditorCommand(editor, turnIntoHeading1, undefined);
-
-    expect(blockType(editor, 0)).toBe("h1");
-    expect(blockIds(editor)).toEqual(["block-a"]);
-    expect(texts(editor)).toEqual(["Hello"]);
-    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", bold: true });
-    expect(field(editor.children[0], "align")).toBe("center");
+    for (const level of [3, 2, 1] as const) {
+      expect(runEditorCommand(editor, TURN_INTO_HEADING[level], undefined)).toBe(true);
+      expect(blockType(editor, 0)).toBe(HEADING_TYPE[level]);
+      expect(blockIds(editor)).toEqual(["block-a"]);
+      expect(texts(editor)).toEqual(["Hello"]);
+      expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", bold: true });
+      expect(field(editor.children[0], "align")).toBe("center");
+    }
   });
 
-  test("getBlockType across a heading 1 and a heading 2 returns mixed", () => {
+  test("getBlockType across a heading 2 and a heading 3 returns mixed", () => {
     const editor = createEditor([
-      { type: "h1", id: "block-a", children: [{ text: "One" }] },
-      { type: "h2", id: "block-b", children: [{ text: "Two" }] },
+      { type: "h2", id: "block-a", children: [{ text: "One" }] },
+      { type: "h3", id: "block-b", children: [{ text: "Two" }] },
     ]);
     editor.tf.select({
       anchor: { path: [0, 0], offset: 1 },
@@ -160,24 +151,20 @@ describe("headings", () => {
     expect(getBlockType(editor)).toBe("mixed");
   });
 
-  test("Mod+Alt+2 does not share its keys with another editor shortcut", () => {
+  test("every heading type has a style, an allowlist rule, and a text align target", () => {
     const editor = createEditor();
-    const keys = JSON.stringify(editor.meta.shortcuts["h2.toggle"]?.keys);
-    const collisions = Object.entries(editor.meta.shortcuts).filter(([id, shortcut]) => {
-      if (id === "h2.toggle" || !isRecord(shortcut) || !("keys" in shortcut)) {
-        return false;
-      }
+    const plugin = editor.getPlugin({ key: KEYS.textAlign });
 
-      return JSON.stringify(shortcut.keys) === keys;
-    });
-
-    expect(editor.meta.shortcuts["h2.toggle"]?.keys).toEqual([[Key.Mod, Key.Alt, "2"]]);
-    expect(collisions).toEqual([]);
+    for (const type of Object.values(HEADING_TYPE)) {
+      expect(Object.hasOwn(HEADING_STYLES, type)).toBe(true);
+      expect(EDITOR_ELEMENT_RULES.some((rule) => rule.type === type)).toBe(true);
+      expect(plugin.inject.targetPlugins).toContain(type);
+    }
   });
 });
 
-describe.each([1, 2])("heading %i", (value) => {
-  if (value !== 1 && value !== 2) {
+describe.each([1, 2, 3])("heading %i", (value) => {
+  if (value !== 1 && value !== 2 && value !== 3) {
     throw new Error("Unexpected heading level.");
   }
 
@@ -196,17 +183,23 @@ describe.each([1, 2])("heading %i", (value) => {
       </Plate>,
     );
 
+    const style = HEADING_CLASS[level];
+
     expect(html).toContain(`<h${level}`);
     expect(html).toContain('id="heading-alpha"');
     expect(html).toContain('id="heading-beta"');
-    expect(html).toContain(level === 1 ? "text-3xl" : "text-2xl");
-    expect(html).toContain(level === 1 ? "mt-8" : "mt-6");
+    expect(html).toContain(style.size);
+    expect(html).toContain(style.margin);
     expect(html).toContain("font-medium");
     expect(html).toContain("leading-tight");
     expect(html).toContain("first:mt-0");
     expect(html).not.toContain("font-bold");
     expect(html).not.toContain("font-semibold");
-    expect(html).not.toContain(level === 1 ? "text-2xl" : "text-3xl");
+    for (const size of ["text-3xl", "text-2xl", "text-xl"] as const) {
+      if (size !== style.size) {
+        expect(html).not.toContain(size);
+      }
+    }
   });
 
   test(`turn into heading ${level} keeps text, marks, id, and align, drops line height, and undoes in one step`, () => {
@@ -498,9 +491,9 @@ describe.each([1, 2])("heading %i", (value) => {
 
   test(`heading ${level} has no markdown input rule`, () => {
     const editor = createEditor();
-    const plugin = editor.getPlugin({ key: level === 1 ? KEYS.h1 : KEYS.h2 });
+    const plugin = editor.getPlugin({ key: type });
 
-    expect(level === 1 ? KEYS.h1 : KEYS.h2).toBe(type);
+    expect(HEADING_TYPE[level]).toBe(type);
     expect(plugin.rules.delete).toEqual({ empty: "reset", start: "default" });
     expect(plugin.rules.break?.splitReset).toBe(true);
     expect(plugin.rules.merge?.removeEmpty).toBe(true);
@@ -511,6 +504,22 @@ describe.each([1, 2])("heading %i", (value) => {
     expect(editor.meta.shortcuts[`${type}.toggle`]?.keys).toEqual([
       [Key.Mod, Key.Alt, String(level)],
     ]);
+  });
+
+  test(`Mod+Alt+${level} does not share its keys with another editor shortcut`, () => {
+    const editor = createEditor();
+    const id = `${type}.toggle`;
+    const keys = JSON.stringify(editor.meta.shortcuts[id]?.keys);
+    const collisions = Object.entries(editor.meta.shortcuts).filter(([shortcutId, shortcut]) => {
+      if (shortcutId === id || !isRecord(shortcut) || !("keys" in shortcut)) {
+        return false;
+      }
+
+      return JSON.stringify(shortcut.keys) === keys;
+    });
+
+    expect(editor.meta.shortcuts[id]?.keys).toEqual([[Key.Mod, Key.Alt, String(level)]]);
+    expect(collisions).toEqual([]);
   });
 
   test(`Mod+Alt+${level} toggles a paragraph to a heading and back`, () => {
