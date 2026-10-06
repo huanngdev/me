@@ -1,16 +1,19 @@
-import { setAlign } from "@platejs/basic-styles";
+import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
+  LINE_HEIGHTS,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
+  allowedElementAttrs,
   isAllowedValue,
   type FontFamily,
   type FontSize,
   type HighlightToken,
+  type LineHeight,
   type TextAlign,
   type TextColorToken,
 } from "./editor-document-schema";
@@ -274,43 +277,53 @@ export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCo
 });
 
 export type TextAlignState = TextAlign | null | "mixed";
+export type LineHeightState = LineHeight | null | "mixed";
 
-// Plate's defaultNodeValue. setAlign unsets `align` when the value matches it.
+// setAlign unsets `align` when the value matches Plate's defaultNodeValue.
 const PLATE_DEFAULT_ALIGN = "start";
+// Plate ships defaultNodeValue 1.5, which is one of the presets. 0 is outside
+// that list, so setLineHeight(editor, 0) removes the attribute and 1.5 is stored.
+const PLATE_DEFAULT_LINE_HEIGHT = 0;
 
-function isParagraph(
+function isSupportedBlock(
   node: unknown,
-): node is { type: string; children: unknown[]; align?: unknown } {
+  key: string,
+): node is { type: string; children: unknown[] } & Record<string, unknown> {
   return (
     typeof node === "object" &&
     node !== null &&
     "type" in node &&
-    node.type === KEYS.p &&
+    typeof node.type === "string" &&
+    allowedElementAttrs(node.type)?.has(key) === true &&
     "children" in node &&
     Array.isArray(node.children)
   );
 }
 
-export function getTextAlign(editor: SlateEditor): TextAlignState {
+export function getBlockAttr<T extends string | number>(
+  editor: SlateEditor,
+  key: string,
+  values: readonly T[],
+): T | null | "mixed" {
   const selection = editor.selection;
   if (!selection) {
     return null;
   }
 
-  let token: TextAlign | null = null;
+  let token: T | null = null;
   let sawDefault = false;
   let sawBlock = false;
 
   for (const [node] of editor.api.nodes({
     at: selection,
-    match: (candidate) => isParagraph(candidate),
+    match: (candidate) => isSupportedBlock(candidate, key),
   })) {
-    if (!isParagraph(node)) {
+    if (!isSupportedBlock(node, key)) {
       continue;
     }
 
     sawBlock = true;
-    const value = isAllowedValue(node.align, TEXT_ALIGNS) ? node.align : null;
+    const value = isAllowedValue(node[key], values) ? node[key] : null;
     if (value === null) {
       sawDefault = true;
       continue;
@@ -337,23 +350,61 @@ export function getTextAlign(editor: SlateEditor): TextAlignState {
   return token;
 }
 
-export const setTextAlign: EditorCommand<TextAlign | null> = {
-  id: "format.align",
+export function createBlockAttrCommand<T extends string | number>(options: {
+  key: string;
+  label: string;
+  id: string;
+  values: readonly T[];
+  apply: (editor: SlateEditor, value: T | null) => void;
+}): EditorCommand<T | null> {
+  const { label, id, values, apply } = options;
+
+  return {
+    id,
+    label,
+    group: "format",
+    run: (editor, value) => {
+      if (value === null) {
+        apply(editor, null);
+        return;
+      }
+
+      if (!isAllowedValue(value, values)) {
+        return;
+      }
+
+      apply(editor, value);
+    },
+  };
+}
+
+export function getTextAlign(editor: SlateEditor): TextAlignState {
+  return getBlockAttr(editor, "align", TEXT_ALIGNS);
+}
+
+export const setTextAlign: EditorCommand<TextAlign | null> = createBlockAttrCommand({
+  key: "align",
   label: "Text align",
-  group: "format",
-  run: (editor, value) => {
-    if (value === null) {
-      setAlign(editor, PLATE_DEFAULT_ALIGN);
-      return;
-    }
-
-    if (!isAllowedValue(value, TEXT_ALIGNS)) {
-      return;
-    }
-
-    setAlign(editor, value);
+  id: "format.align",
+  values: TEXT_ALIGNS,
+  apply: (editor, value) => {
+    setAlign(editor, value === null ? PLATE_DEFAULT_ALIGN : value);
   },
-};
+});
+
+export function getLineHeight(editor: SlateEditor): LineHeightState {
+  return getBlockAttr(editor, "lineHeight", LINE_HEIGHTS);
+}
+
+export const setLineHeight: EditorCommand<LineHeight | null> = createBlockAttrCommand({
+  key: "lineHeight",
+  label: "Line height",
+  id: "format.line-height",
+  values: LINE_HEIGHTS,
+  apply: (editor, value) => {
+    setPlateLineHeight(editor, value === null ? PLATE_DEFAULT_LINE_HEIGHT : value);
+  },
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

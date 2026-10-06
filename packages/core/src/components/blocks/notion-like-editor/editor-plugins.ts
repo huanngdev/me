@@ -12,6 +12,7 @@ import {
   FontColorPlugin,
   FontFamilyPlugin,
   FontSizePlugin,
+  LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import {
@@ -305,6 +306,46 @@ const fontFamilyPlugin = FontFamilyPlugin.configure({
   inject: { nodeProps: fontFamilyNodeProps() },
 });
 
+// Unitless CSS becomes a number. px, %, and keywords stay strings for the allowlist to drop.
+const UNITLESS_LINE_HEIGHT = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
+
+function lineHeightFromCss(value: string): number | string {
+  const trimmed = value.trim();
+  if (!UNITLESS_LINE_HEIGHT.test(trimmed)) {
+    return trimmed;
+  }
+
+  return Number(trimmed);
+}
+
+const lineHeightPlugin = LineHeightPlugin.configure({
+  inject: {
+    // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
+    // and the injector skips only that sentinel, so 1.5 still renders.
+    nodeProps: {
+      nodeKey: "lineHeight",
+      defaultNodeValue: 0,
+    },
+    targetPlugins: [KEYS.p],
+    targetPluginToInject: ({ editor }) => ({
+      parsers: {
+        html: {
+          deserializer: {
+            parse: ({ element }) => {
+              const raw = element.style.lineHeight;
+              if (!raw) {
+                return;
+              }
+
+              return { [editor.getType(KEYS.lineHeight)]: lineHeightFromCss(raw) };
+            },
+          },
+        },
+      },
+    }),
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -322,6 +363,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontSizePlugin,
     fontFamilyPlugin,
     TextAlignPlugin,
+    lineHeightPlugin,
     PasteFallbackPlugin,
   ];
 }

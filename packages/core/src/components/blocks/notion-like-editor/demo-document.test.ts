@@ -243,6 +243,18 @@ describe("demo document", () => {
     expect(field(block, "align")).toBe("center");
   });
 
+  test("the line height paragraph is double spaced", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-line-height");
+    if (!block) {
+      throw new Error("Missing line height paragraph.");
+    }
+
+    expect(textOf(block)).toBe(
+      "This paragraph uses double line height, so its wrapped lines sit further apart than the others. A second line stays in this same block.",
+    );
+    expect(field(block, "lineHeight")).toBe(2);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

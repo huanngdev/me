@@ -3,7 +3,7 @@ import { KEYS } from "platejs";
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
-  attrValues?: Readonly<Record<string, readonly string[]>>;
+  attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
 };
 
 export type EditorMarkRule = {
@@ -47,8 +47,17 @@ export const TEXT_ALIGNS = ["left", "center", "right", "justify"] as const;
 
 export type TextAlign = (typeof TEXT_ALIGNS)[number];
 
+// Proposed line heights. The stored attribute is the unitless number; clearing it inherits leading-relaxed.
+export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
+
+export type LineHeight = (typeof LINE_HEIGHTS)[number];
+
 export const EDITOR_ELEMENT_RULES = [
-  { type: "p", attrs: ["id", "align"], attrValues: { align: TEXT_ALIGNS } },
+  {
+    type: "p",
+    attrs: ["id", "align", "lineHeight"],
+    attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -69,14 +78,14 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = new Map<string, ReadonlyMap<string, readonly string[]>>(
+const elementAttrValues = new Map<string, ReadonlyMap<string, readonly (string | number)[]>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
 );
 
 function attrValueMap(
-  declared: Readonly<Record<string, readonly string[]>> | undefined,
-): ReadonlyMap<string, readonly string[]> {
-  const values = new Map<string, readonly string[]>();
+  declared: Readonly<Record<string, readonly (string | number)[]>> | undefined,
+): ReadonlyMap<string, readonly (string | number)[]> {
+  const values = new Map<string, readonly (string | number)[]>();
   if (declared === undefined) {
     return values;
   }
@@ -103,7 +112,7 @@ export function allowedElementAttrs(type: string): ReadonlySet<string> | undefin
 export function allowedElementAttrValues(
   type: string,
   attr: string,
-): readonly string[] | undefined {
+): readonly (string | number)[] | undefined {
   return elementAttrValues.get(type)?.get(attr);
 }
 
@@ -133,8 +142,14 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return isAllowedValue(value, values);
 }
 
-export function isAllowedValue<T extends string>(value: unknown, values: readonly T[]): value is T {
-  return typeof value === "string" && values.some((allowed) => allowed === value);
+export function isAllowedValue<T extends string | number>(
+  value: unknown,
+  values: readonly T[],
+): value is T {
+  return (
+    (typeof value === "string" || typeof value === "number") &&
+    values.some((allowed) => allowed === value)
+  );
 }
 
 export function isPaletteToken(value: unknown): value is PaletteToken {

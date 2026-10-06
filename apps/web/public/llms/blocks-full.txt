@@ -2445,7 +2445,7 @@ import { KEYS } from "platejs";
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
-  attrValues?: Readonly<Record<string, readonly string[]>>;
+  attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
 };
 
 export type EditorMarkRule = {
@@ -2489,8 +2489,17 @@ export const TEXT_ALIGNS = ["left", "center", "right", "justify"] as const;
 
 export type TextAlign = (typeof TEXT_ALIGNS)[number];
 
+// Proposed line heights. The stored attribute is the unitless number; clearing it inherits leading-relaxed.
+export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
+
+export type LineHeight = (typeof LINE_HEIGHTS)[number];
+
 export const EDITOR_ELEMENT_RULES = [
-  { type: "p", attrs: ["id", "align"], attrValues: { align: TEXT_ALIGNS } },
+  {
+    type: "p",
+    attrs: ["id", "align", "lineHeight"],
+    attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -2511,14 +2520,14 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = new Map<string, ReadonlyMap<string, readonly string[]>>(
+const elementAttrValues = new Map<string, ReadonlyMap<string, readonly (string | number)[]>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
 );
 
 function attrValueMap(
-  declared: Readonly<Record<string, readonly string[]>> | undefined,
-): ReadonlyMap<string, readonly string[]> {
-  const values = new Map<string, readonly string[]>();
+  declared: Readonly<Record<string, readonly (string | number)[]>> | undefined,
+): ReadonlyMap<string, readonly (string | number)[]> {
+  const values = new Map<string, readonly (string | number)[]>();
   if (declared === undefined) {
     return values;
   }
@@ -2545,7 +2554,7 @@ export function allowedElementAttrs(type: string): ReadonlySet<string> | undefin
 export function allowedElementAttrValues(
   type: string,
   attr: string,
-): readonly string[] | undefined {
+): readonly (string | number)[] | undefined {
   return elementAttrValues.get(type)?.get(attr);
 }
 
@@ -2575,8 +2584,14 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return isAllowedValue(value, values);
 }
 
-export function isAllowedValue<T extends string>(value: unknown, values: readonly T[]): value is T {
-  return typeof value === "string" && values.some((allowed) => allowed === value);
+export function isAllowedValue<T extends string | number>(
+  value: unknown,
+  values: readonly T[],
+): value is T {
+  return (
+    (typeof value === "string" || typeof value === "number") &&
+    values.some((allowed) => allowed === value)
+  );
 }
 
 export function isPaletteToken(value: unknown): value is PaletteToken {
@@ -3495,6 +3510,7 @@ import {
   FontColorPlugin,
   FontFamilyPlugin,
   FontSizePlugin,
+  LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import {
@@ -3788,6 +3804,46 @@ const fontFamilyPlugin = FontFamilyPlugin.configure({
   inject: { nodeProps: fontFamilyNodeProps() },
 });
 
+// Unitless CSS becomes a number. px, %, and keywords stay strings for the allowlist to drop.
+const UNITLESS_LINE_HEIGHT = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
+
+function lineHeightFromCss(value: string): number | string {
+  const trimmed = value.trim();
+  if (!UNITLESS_LINE_HEIGHT.test(trimmed)) {
+    return trimmed;
+  }
+
+  return Number(trimmed);
+}
+
+const lineHeightPlugin = LineHeightPlugin.configure({
+  inject: {
+    // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
+    // and the injector skips only that sentinel, so 1.5 still renders.
+    nodeProps: {
+      nodeKey: "lineHeight",
+      defaultNodeValue: 0,
+    },
+    targetPlugins: [KEYS.p],
+    targetPluginToInject: ({ editor }) => ({
+      parsers: {
+        html: {
+          deserializer: {
+            parse: ({ element }) => {
+              const raw = element.style.lineHeight;
+              if (!raw) {
+                return;
+              }
+
+              return { [editor.getType(KEYS.lineHeight)]: lineHeightFromCss(raw) };
+            },
+          },
+        },
+      },
+    }),
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -3805,6 +3861,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontSizePlugin,
     fontFamilyPlugin,
     TextAlignPlugin,
+    lineHeightPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -3829,19 +3886,22 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
-import { setAlign } from "@platejs/basic-styles";
+import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
+  LINE_HEIGHTS,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
+  allowedElementAttrs,
   isAllowedValue,
   type FontFamily,
   type FontSize,
   type HighlightToken,
+  type LineHeight,
   type TextAlign,
   type TextColorToken,
 } from "./editor-document-schema";
@@ -4105,43 +4165,53 @@ export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCo
 });
 
 export type TextAlignState = TextAlign | null | "mixed";
+export type LineHeightState = LineHeight | null | "mixed";
 
-// Plate's defaultNodeValue. setAlign unsets `align` when the value matches it.
+// setAlign unsets `align` when the value matches Plate's defaultNodeValue.
 const PLATE_DEFAULT_ALIGN = "start";
+// Plate ships defaultNodeValue 1.5, which is one of the presets. 0 is outside
+// that list, so setLineHeight(editor, 0) removes the attribute and 1.5 is stored.
+const PLATE_DEFAULT_LINE_HEIGHT = 0;
 
-function isParagraph(
+function isSupportedBlock(
   node: unknown,
-): node is { type: string; children: unknown[]; align?: unknown } {
+  key: string,
+): node is { type: string; children: unknown[] } & Record<string, unknown> {
   return (
     typeof node === "object" &&
     node !== null &&
     "type" in node &&
-    node.type === KEYS.p &&
+    typeof node.type === "string" &&
+    allowedElementAttrs(node.type)?.has(key) === true &&
     "children" in node &&
     Array.isArray(node.children)
   );
 }
 
-export function getTextAlign(editor: SlateEditor): TextAlignState {
+export function getBlockAttr<T extends string | number>(
+  editor: SlateEditor,
+  key: string,
+  values: readonly T[],
+): T | null | "mixed" {
   const selection = editor.selection;
   if (!selection) {
     return null;
   }
 
-  let token: TextAlign | null = null;
+  let token: T | null = null;
   let sawDefault = false;
   let sawBlock = false;
 
   for (const [node] of editor.api.nodes({
     at: selection,
-    match: (candidate) => isParagraph(candidate),
+    match: (candidate) => isSupportedBlock(candidate, key),
   })) {
-    if (!isParagraph(node)) {
+    if (!isSupportedBlock(node, key)) {
       continue;
     }
 
     sawBlock = true;
-    const value = isAllowedValue(node.align, TEXT_ALIGNS) ? node.align : null;
+    const value = isAllowedValue(node[key], values) ? node[key] : null;
     if (value === null) {
       sawDefault = true;
       continue;
@@ -4168,23 +4238,61 @@ export function getTextAlign(editor: SlateEditor): TextAlignState {
   return token;
 }
 
-export const setTextAlign: EditorCommand<TextAlign | null> = {
-  id: "format.align",
+export function createBlockAttrCommand<T extends string | number>(options: {
+  key: string;
+  label: string;
+  id: string;
+  values: readonly T[];
+  apply: (editor: SlateEditor, value: T | null) => void;
+}): EditorCommand<T | null> {
+  const { label, id, values, apply } = options;
+
+  return {
+    id,
+    label,
+    group: "format",
+    run: (editor, value) => {
+      if (value === null) {
+        apply(editor, null);
+        return;
+      }
+
+      if (!isAllowedValue(value, values)) {
+        return;
+      }
+
+      apply(editor, value);
+    },
+  };
+}
+
+export function getTextAlign(editor: SlateEditor): TextAlignState {
+  return getBlockAttr(editor, "align", TEXT_ALIGNS);
+}
+
+export const setTextAlign: EditorCommand<TextAlign | null> = createBlockAttrCommand({
+  key: "align",
   label: "Text align",
-  group: "format",
-  run: (editor, value) => {
-    if (value === null) {
-      setAlign(editor, PLATE_DEFAULT_ALIGN);
-      return;
-    }
-
-    if (!isAllowedValue(value, TEXT_ALIGNS)) {
-      return;
-    }
-
-    setAlign(editor, value);
+  id: "format.align",
+  values: TEXT_ALIGNS,
+  apply: (editor, value) => {
+    setAlign(editor, value === null ? PLATE_DEFAULT_ALIGN : value);
   },
-};
+});
+
+export function getLineHeight(editor: SlateEditor): LineHeightState {
+  return getBlockAttr(editor, "lineHeight", LINE_HEIGHTS);
+}
+
+export const setLineHeight: EditorCommand<LineHeight | null> = createBlockAttrCommand({
+  key: "lineHeight",
+  label: "Line height",
+  id: "format.line-height",
+  values: LINE_HEIGHTS,
+  apply: (editor, value) => {
+    setPlateLineHeight(editor, value === null ? PLATE_DEFAULT_LINE_HEIGHT : value);
+  },
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -6397,6 +6505,16 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [
       {
         text: "This paragraph is centered. Blocks can align left, center, right, or justify.",
+      },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-line-height",
+    lineHeight: 2,
+    children: [
+      {
+        text: "This paragraph uses double line height, so its wrapped lines sit further apart than the others. A second line stays in this same block.",
       },
     ],
   },

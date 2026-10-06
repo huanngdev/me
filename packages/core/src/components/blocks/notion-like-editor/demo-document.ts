@@ -155,6 +155,16 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-line-height",
+    lineHeight: 2,
+    children: [
+      {
+        text: "This paragraph uses double line height, so its wrapped lines sit further apart than the others. A second line stays in this same block.",
+      },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {
