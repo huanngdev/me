@@ -111,6 +111,11 @@ export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
 
 export type LineHeight = (typeof LINE_HEIGHTS)[number];
 
+const headingElementRule = {
+  attrs: ["id", "align"],
+  attrValues: { align: TEXT_ALIGNS },
+} as const;
+
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
@@ -118,11 +123,8 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
-  {
-    type: "h1",
-    attrs: ["id", "align"],
-    attrValues: { align: TEXT_ALIGNS },
-  },
+  { type: "h1", ...headingElementRule },
+  { type: "h2", ...headingElementRule },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -1125,6 +1127,7 @@ import {
   BoldPlugin,
   CodePlugin,
   H1Plugin,
+  H2Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -1160,6 +1163,7 @@ import {
   formatUnderline,
   runEditorCommand,
   turnIntoHeading1,
+  turnIntoHeading2,
   type EditorCommand,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
@@ -1446,32 +1450,56 @@ function lineHeightFromCss(value: string): number | string {
   return Number(trimmed);
 }
 
-// Plate's H1 rule resets on any Backspace at the block start, including a non-empty heading.
-// "default" lets that Backspace merge. An empty heading still resets to a paragraph.
-// H1Plugin ships no hotkey. "1" is KeyboardEvent.code Digit1, the Mod+Alt+1 key.
-const heading1Plugin = H1Plugin.configure({
-  render: { node: HeadingElement },
+type HeadingPluginConfig = {
+  render: { node: typeof HeadingElement };
   rules: {
     delete: {
-      empty: "reset",
-      start: "default",
-    },
-  },
+      empty: "reset";
+      start: "default";
+    };
+  };
   shortcuts: {
     toggle: {
-      keys: [[Key.Mod, Key.Alt, "1"]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, turnIntoHeading1, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
+      keys: string[][];
+      handler: (context: { editor: SlateEditor }) => void;
+    };
+  };
+};
+
+// Plate resets a heading on any Backspace at the block start. "default" lets a non-empty
+// heading merge, and an empty heading still resets. Neither plugin ships a hotkey.
+function configureHeadingPlugin<
+  TPlugin extends { configure: (config: HeadingPluginConfig) => TPlugin },
+>(plugin: TPlugin, level: 1 | 2): TPlugin {
+  const command = level === 1 ? turnIntoHeading1 : turnIntoHeading2;
+
+  return plugin.configure({
+    render: { node: HeadingElement },
+    rules: {
+      delete: {
+        empty: "reset",
+        start: "default",
       },
     },
-  },
-});
+    shortcuts: {
+      toggle: {
+        keys: [[Key.Mod, Key.Alt, String(level)]],
+        handler: ({ editor }) => {
+          runEditorCommand(editor, command, undefined, {
+            readOnly: editor.dom.readOnly,
+          });
+        },
+      },
+    },
+  });
+}
+
+const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
+const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p, KEYS.h1],
+    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2],
   },
 });
 
@@ -1560,6 +1588,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontSizePlugin,
     fontFamilyPlugin,
     heading1Plugin,
+    heading2Plugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
@@ -1574,7 +1603,24 @@ export function createEditorPlugins(): AnyPluginConfig[] {
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
-const HEADING_CLASS_NAME = "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0";
+const HEADING_STYLES = {
+  h1: "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0",
+  h2: "mt-6 text-2xl font-medium leading-tight text-foreground first:mt-0",
+} as const;
+
+type HeadingTag = keyof typeof HEADING_STYLES;
+
+function isHeadingTag(type: string): type is HeadingTag {
+  return Object.hasOwn(HEADING_STYLES, type);
+}
+
+function headingTag(type: string): HeadingTag {
+  if (isHeadingTag(type)) {
+    return type;
+  }
+
+  return "h1";
+}
 
 // The DOM id is derived from the block id. It is not stored on the node.
 export function headingAnchorId(blockId: string): string {
@@ -1592,14 +1638,15 @@ function blockAnchor(element: PlateElementProps["element"]): string | undefined 
 
 export function HeadingElement({ attributes, element, ...props }: PlateElementProps) {
   const anchorId = blockAnchor(element);
+  const tag = headingTag(element.type);
 
   return (
     <PlateElement
       {...props}
       element={element}
       attributes={anchorId === undefined ? attributes : { ...attributes, id: anchorId }}
-      as="h1"
-      className={HEADING_CLASS_NAME}
+      as={tag}
+      className={HEADING_STYLES[tag]}
     />
   );
 }
@@ -2101,25 +2148,39 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   return type ?? null;
 }
 
-// toggleBlock only changes the block type. A heading has no lineHeight, so turning
-// a paragraph into one unsets that attribute in the same command batch.
-export const turnIntoHeading1: EditorCommand = {
-  id: "block.turn-into.h1",
-  label: "Heading 1",
-  group: "turn-into",
-  run: (editor) => {
-    const becomesHeading = !editor.api.some({ match: { type: KEYS.h1 } });
-    editor.tf.toggleBlock(KEYS.h1);
-    if (!becomesHeading || !editor.selection) {
-      return;
-    }
+const HEADING_TYPE = {
+  1: KEYS.h1,
+  2: KEYS.h2,
+} as const;
 
-    editor.tf.unsetNodes(KEYS.lineHeight, {
-      at: editor.selection,
-      match: (node) => ElementApi.isElement(node) && node.type === KEYS.h1,
-    });
-  },
-};
+type HeadingLevel = keyof typeof HEADING_TYPE;
+
+// toggleBlock writes only the type. It resets to a paragraph only when a selected
+// block is already that type, so an h1 becomes an h2 in place. Becoming a heading unsets lineHeight.
+export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
+  const type = HEADING_TYPE[level];
+
+  return {
+    id: `block.turn-into.h${level}`,
+    label: `Heading ${level}`,
+    group: "turn-into",
+    run: (editor) => {
+      const becomesHeading = !editor.api.some({ match: { type } });
+      editor.tf.toggleBlock(type);
+      if (!becomesHeading || !editor.selection) {
+        return;
+      }
+
+      editor.tf.unsetNodes(KEYS.lineHeight, {
+        at: editor.selection,
+        match: (node) => ElementApi.isElement(node) && node.type === type,
+      });
+    },
+  };
+}
+
+export const turnIntoHeading1 = createTurnIntoHeading(1);
+export const turnIntoHeading2 = createTurnIntoHeading(2);
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
@@ -4224,6 +4285,11 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "p",
     id: "demo-unicode",
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+  },
+  {
+    type: "h2",
+    id: "demo-text-styles",
+    children: [{ text: "Text styles" }],
   },
   {
     type: "p",

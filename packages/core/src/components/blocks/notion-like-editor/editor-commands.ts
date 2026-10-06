@@ -475,25 +475,39 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   return type ?? null;
 }
 
-// toggleBlock only changes the block type. A heading has no lineHeight, so turning
-// a paragraph into one unsets that attribute in the same command batch.
-export const turnIntoHeading1: EditorCommand = {
-  id: "block.turn-into.h1",
-  label: "Heading 1",
-  group: "turn-into",
-  run: (editor) => {
-    const becomesHeading = !editor.api.some({ match: { type: KEYS.h1 } });
-    editor.tf.toggleBlock(KEYS.h1);
-    if (!becomesHeading || !editor.selection) {
-      return;
-    }
+const HEADING_TYPE = {
+  1: KEYS.h1,
+  2: KEYS.h2,
+} as const;
 
-    editor.tf.unsetNodes(KEYS.lineHeight, {
-      at: editor.selection,
-      match: (node) => ElementApi.isElement(node) && node.type === KEYS.h1,
-    });
-  },
-};
+type HeadingLevel = keyof typeof HEADING_TYPE;
+
+// toggleBlock writes only the type. It resets to a paragraph only when a selected
+// block is already that type, so an h1 becomes an h2 in place. Becoming a heading unsets lineHeight.
+export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
+  const type = HEADING_TYPE[level];
+
+  return {
+    id: `block.turn-into.h${level}`,
+    label: `Heading ${level}`,
+    group: "turn-into",
+    run: (editor) => {
+      const becomesHeading = !editor.api.some({ match: { type } });
+      editor.tf.toggleBlock(type);
+      if (!becomesHeading || !editor.selection) {
+        return;
+      }
+
+      editor.tf.unsetNodes(KEYS.lineHeight, {
+        at: editor.selection,
+        match: (node) => ElementApi.isElement(node) && node.type === type,
+      });
+    },
+  };
+}
+
+export const turnIntoHeading1 = createTurnIntoHeading(1);
+export const turnIntoHeading2 = createTurnIntoHeading(2);
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",

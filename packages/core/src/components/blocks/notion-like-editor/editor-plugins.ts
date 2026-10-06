@@ -2,6 +2,7 @@ import {
   BoldPlugin,
   CodePlugin,
   H1Plugin,
+  H2Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -37,6 +38,7 @@ import {
   formatUnderline,
   runEditorCommand,
   turnIntoHeading1,
+  turnIntoHeading2,
   type EditorCommand,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
@@ -323,32 +325,56 @@ function lineHeightFromCss(value: string): number | string {
   return Number(trimmed);
 }
 
-// Plate's H1 rule resets on any Backspace at the block start, including a non-empty heading.
-// "default" lets that Backspace merge. An empty heading still resets to a paragraph.
-// H1Plugin ships no hotkey. "1" is KeyboardEvent.code Digit1, the Mod+Alt+1 key.
-const heading1Plugin = H1Plugin.configure({
-  render: { node: HeadingElement },
+type HeadingPluginConfig = {
+  render: { node: typeof HeadingElement };
   rules: {
     delete: {
-      empty: "reset",
-      start: "default",
-    },
-  },
+      empty: "reset";
+      start: "default";
+    };
+  };
   shortcuts: {
     toggle: {
-      keys: [[Key.Mod, Key.Alt, "1"]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, turnIntoHeading1, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
+      keys: string[][];
+      handler: (context: { editor: SlateEditor }) => void;
+    };
+  };
+};
+
+// Plate resets a heading on any Backspace at the block start. "default" lets a non-empty
+// heading merge, and an empty heading still resets. Neither plugin ships a hotkey.
+function configureHeadingPlugin<
+  TPlugin extends { configure: (config: HeadingPluginConfig) => TPlugin },
+>(plugin: TPlugin, level: 1 | 2): TPlugin {
+  const command = level === 1 ? turnIntoHeading1 : turnIntoHeading2;
+
+  return plugin.configure({
+    render: { node: HeadingElement },
+    rules: {
+      delete: {
+        empty: "reset",
+        start: "default",
       },
     },
-  },
-});
+    shortcuts: {
+      toggle: {
+        keys: [[Key.Mod, Key.Alt, String(level)]],
+        handler: ({ editor }) => {
+          runEditorCommand(editor, command, undefined, {
+            readOnly: editor.dom.readOnly,
+          });
+        },
+      },
+    },
+  });
+}
+
+const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
+const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p, KEYS.h1],
+    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2],
   },
 });
 
@@ -437,6 +463,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontSizePlugin,
     fontFamilyPlugin,
     heading1Plugin,
+    heading2Plugin,
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,

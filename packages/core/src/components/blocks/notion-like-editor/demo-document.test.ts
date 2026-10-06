@@ -82,6 +82,20 @@ describe("demo document", () => {
     expect(field(block, "lineHeight")).toBeUndefined();
   });
 
+  test("the text styles heading sits directly before the bold paragraph", () => {
+    const index = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-text-styles");
+    const block = DEMO_DOCUMENT_VALUE[index];
+    const next = DEMO_DOCUMENT_VALUE[index + 1];
+    if (!block || !next) {
+      throw new Error("Missing text styles heading.");
+    }
+
+    expect(block.type).toBe("h2");
+    expect(textOf(block)).toBe("Text styles");
+    expect(field(block, "lineHeight")).toBeUndefined();
+    expect(next.id).toBe("demo-bold");
+  });
+
   test("the italic paragraph marks only italic text", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-italic");
     if (!block) {

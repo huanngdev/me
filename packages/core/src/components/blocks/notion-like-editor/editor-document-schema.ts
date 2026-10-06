@@ -52,6 +52,11 @@ export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
 
 export type LineHeight = (typeof LINE_HEIGHTS)[number];
 
+const headingElementRule = {
+  attrs: ["id", "align"],
+  attrValues: { align: TEXT_ALIGNS },
+} as const;
+
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
@@ -59,11 +64,8 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
-  {
-    type: "h1",
-    attrs: ["id", "align"],
-    attrValues: { align: TEXT_ALIGNS },
-  },
+  { type: "h1", ...headingElementRule },
+  { type: "h2", ...headingElementRule },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [

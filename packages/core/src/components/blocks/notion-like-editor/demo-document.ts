@@ -34,6 +34,11 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
   },
   {
+    type: "h2",
+    id: "demo-text-styles",
+    children: [{ text: "Text styles" }],
+  },
+  {
     type: "p",
     id: "demo-bold",
     children: [
