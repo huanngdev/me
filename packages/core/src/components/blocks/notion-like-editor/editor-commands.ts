@@ -1,14 +1,17 @@
+import { setAlign } from "@platejs/basic-styles";
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
+  TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
   isAllowedValue,
   type FontFamily,
   type FontSize,
   type HighlightToken,
+  type TextAlign,
   type TextColorToken,
 } from "./editor-document-schema";
 
@@ -269,6 +272,88 @@ export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCo
   id: "format.font-family",
   values: FONT_FAMILIES,
 });
+
+export type TextAlignState = TextAlign | null | "mixed";
+
+// Plate's defaultNodeValue. setAlign unsets `align` when the value matches it.
+const PLATE_DEFAULT_ALIGN = "start";
+
+function isParagraph(
+  node: unknown,
+): node is { type: string; children: unknown[]; align?: unknown } {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    node.type === KEYS.p &&
+    "children" in node &&
+    Array.isArray(node.children)
+  );
+}
+
+export function getTextAlign(editor: SlateEditor): TextAlignState {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  let token: TextAlign | null = null;
+  let sawDefault = false;
+  let sawBlock = false;
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => isParagraph(candidate),
+  })) {
+    if (!isParagraph(node)) {
+      continue;
+    }
+
+    sawBlock = true;
+    const value = isAllowedValue(node.align, TEXT_ALIGNS) ? node.align : null;
+    if (value === null) {
+      sawDefault = true;
+      continue;
+    }
+
+    if (token === null) {
+      token = value;
+      continue;
+    }
+
+    if (token !== value) {
+      return "mixed";
+    }
+  }
+
+  if (!sawBlock) {
+    return null;
+  }
+
+  if (token !== null && sawDefault) {
+    return "mixed";
+  }
+
+  return token;
+}
+
+export const setTextAlign: EditorCommand<TextAlign | null> = {
+  id: "format.align",
+  label: "Text align",
+  group: "format",
+  run: (editor, value) => {
+    if (value === null) {
+      setAlign(editor, PLATE_DEFAULT_ALIGN);
+      return;
+    }
+
+    if (!isAllowedValue(value, TEXT_ALIGNS)) {
+      return;
+    }
+
+    setAlign(editor, value);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

@@ -3,6 +3,7 @@ import { KEYS } from "platejs";
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
+  attrValues?: Readonly<Record<string, readonly string[]>>;
 };
 
 export type EditorMarkRule = {
@@ -41,8 +42,13 @@ export const FONT_FAMILIES = ["sans", "serif", "mono"] as const;
 
 export type FontFamily = (typeof FONT_FAMILIES)[number];
 
+// Stored on the block. Plate's default "start" is absence of the attribute, not a value.
+export const TEXT_ALIGNS = ["left", "center", "right", "justify"] as const;
+
+export type TextAlign = (typeof TEXT_ALIGNS)[number];
+
 export const EDITOR_ELEMENT_RULES = [
-  { type: "p", attrs: ["id"] },
+  { type: "p", attrs: ["id", "align"], attrValues: { align: TEXT_ALIGNS } },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -63,6 +69,25 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
+const elementAttrValues = new Map<string, ReadonlyMap<string, readonly string[]>>(
+  EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
+);
+
+function attrValueMap(
+  declared: Readonly<Record<string, readonly string[]>> | undefined,
+): ReadonlyMap<string, readonly string[]> {
+  const values = new Map<string, readonly string[]>();
+  if (declared === undefined) {
+    return values;
+  }
+
+  for (const [attr, allowed] of Object.entries(declared)) {
+    values.set(attr, allowed);
+  }
+
+  return values;
+}
+
 const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
 
 const markValues = new Map<string, readonly string[]>(
@@ -73,6 +98,22 @@ const markValues = new Map<string, readonly string[]>(
 
 export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
   return elementAttrs.get(type);
+}
+
+export function allowedElementAttrValues(
+  type: string,
+  attr: string,
+): readonly string[] | undefined {
+  return elementAttrValues.get(type)?.get(attr);
+}
+
+export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  const values = allowedElementAttrValues(type, attr);
+  if (values === undefined) {
+    return true;
+  }
+
+  return isAllowedValue(value, values);
 }
 
 export function isAllowedMark(mark: string): boolean {

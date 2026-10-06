@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { SlateEditor, TElement } from "platejs";
 
 import { createEditorDocument } from "./editor-document";
-import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
+import {
+  allowedElementAttrs,
+  isAllowedElementAttrValue,
+  isAllowedMark,
+} from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { sanitizePastedFragment } from "./editor-paste";
 import { PASTE_SLATE_FRAGMENT } from "./fixtures/paste-slate-fragment";
@@ -61,7 +65,7 @@ function allowlisted(value: unknown): boolean {
       continue;
     }
 
-    if (!allowed.has(key)) {
+    if (!allowed.has(key) || !isAllowedElementAttrValue(type, key, field(value, key))) {
       return false;
     }
   }

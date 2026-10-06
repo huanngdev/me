@@ -8,7 +8,12 @@ import {
   type EditorDocument,
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
-import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
+import {
+  allowedElementAttrs,
+  isAllowedElementAttrValue,
+  isAllowedMark,
+  isAllowedMarkValue,
+} from "./editor-document-schema";
 
 export type Issue = {
   path: number[];
@@ -188,6 +193,14 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     }
 
     if (allowed !== undefined && allowed.has(key)) {
+      if (isAllowedElementAttrValue(type, key, attr)) {
+        continue;
+      }
+
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
+      });
       continue;
     }
 

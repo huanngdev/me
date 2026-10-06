@@ -6,7 +6,12 @@ import {
   type TText,
 } from "platejs";
 
-import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
+import {
+  allowedElementAttrs,
+  isAllowedElementAttrValue,
+  isAllowedMark,
+  isAllowedMarkValue,
+} from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -92,7 +97,7 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
-    if (key === "id" || !(key in node)) {
+    if (key === "id" || !(key in node) || !isAllowedElementAttrValue(props.type, key, node[key])) {
       continue;
     }
 

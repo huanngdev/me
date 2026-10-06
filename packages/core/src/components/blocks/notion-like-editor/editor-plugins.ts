@@ -12,6 +12,7 @@ import {
   FontColorPlugin,
   FontFamilyPlugin,
   FontSizePlugin,
+  TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import {
   KEYS,
@@ -320,6 +321,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     highlightPlugin,
     fontSizePlugin,
     fontFamilyPlugin,
+    TextAlignPlugin,
     PasteFallbackPlugin,
   ];
 }

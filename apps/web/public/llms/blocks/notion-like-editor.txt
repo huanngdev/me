@@ -61,6 +61,7 @@ import { KEYS } from "platejs";
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
+  attrValues?: Readonly<Record<string, readonly string[]>>;
 };
 
 export type EditorMarkRule = {
@@ -99,8 +100,13 @@ export const FONT_FAMILIES = ["sans", "serif", "mono"] as const;
 
 export type FontFamily = (typeof FONT_FAMILIES)[number];
 
+// Stored on the block. Plate's default "start" is absence of the attribute, not a value.
+export const TEXT_ALIGNS = ["left", "center", "right", "justify"] as const;
+
+export type TextAlign = (typeof TEXT_ALIGNS)[number];
+
 export const EDITOR_ELEMENT_RULES = [
-  { type: "p", attrs: ["id"] },
+  { type: "p", attrs: ["id", "align"], attrValues: { align: TEXT_ALIGNS } },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -121,6 +127,25 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
+const elementAttrValues = new Map<string, ReadonlyMap<string, readonly string[]>>(
+  EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
+);
+
+function attrValueMap(
+  declared: Readonly<Record<string, readonly string[]>> | undefined,
+): ReadonlyMap<string, readonly string[]> {
+  const values = new Map<string, readonly string[]>();
+  if (declared === undefined) {
+    return values;
+  }
+
+  for (const [attr, allowed] of Object.entries(declared)) {
+    values.set(attr, allowed);
+  }
+
+  return values;
+}
+
 const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
 
 const markValues = new Map<string, readonly string[]>(
@@ -131,6 +156,22 @@ const markValues = new Map<string, readonly string[]>(
 
 export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
   return elementAttrs.get(type);
+}
+
+export function allowedElementAttrValues(
+  type: string,
+  attr: string,
+): readonly string[] | undefined {
+  return elementAttrValues.get(type)?.get(attr);
+}
+
+export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  const values = allowedElementAttrValues(type, attr);
+  if (values === undefined) {
+    return true;
+  }
+
+  return isAllowedValue(value, values);
 }
 
 export function isAllowedMark(mark: string): boolean {
@@ -386,7 +427,12 @@ import {
   type EditorDocument,
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
-import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
+import {
+  allowedElementAttrs,
+  isAllowedElementAttrValue,
+  isAllowedMark,
+  isAllowedMarkValue,
+} from "./editor-document-schema";
 
 export type Issue = {
   path: number[];
@@ -566,6 +612,14 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     }
 
     if (allowed !== undefined && allowed.has(key)) {
+      if (isAllowedElementAttrValue(type, key, attr)) {
+        continue;
+      }
+
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
+      });
       continue;
     }
 
@@ -709,7 +763,12 @@ import {
   type TText,
 } from "platejs";
 
-import { allowedElementAttrs, isAllowedMark, isAllowedMarkValue } from "./editor-document-schema";
+import {
+  allowedElementAttrs,
+  isAllowedElementAttrValue,
+  isAllowedMark,
+  isAllowedMarkValue,
+} from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -795,7 +854,7 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
-    if (key === "id" || !(key in node)) {
+    if (key === "id" || !(key in node) || !isAllowedElementAttrValue(props.type, key, node[key])) {
       continue;
     }
 
@@ -1052,6 +1111,7 @@ import {
   FontColorPlugin,
   FontFamilyPlugin,
   FontSizePlugin,
+  TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import {
   KEYS,
@@ -1360,6 +1420,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     highlightPlugin,
     fontSizePlugin,
     fontFamilyPlugin,
+    TextAlignPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -1384,17 +1445,20 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
+import { setAlign } from "@platejs/basic-styles";
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
+  TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
   isAllowedValue,
   type FontFamily,
   type FontSize,
   type HighlightToken,
+  type TextAlign,
   type TextColorToken,
 } from "./editor-document-schema";
 
@@ -1655,6 +1719,88 @@ export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCo
   id: "format.font-family",
   values: FONT_FAMILIES,
 });
+
+export type TextAlignState = TextAlign | null | "mixed";
+
+// Plate's defaultNodeValue. setAlign unsets `align` when the value matches it.
+const PLATE_DEFAULT_ALIGN = "start";
+
+function isParagraph(
+  node: unknown,
+): node is { type: string; children: unknown[]; align?: unknown } {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    node.type === KEYS.p &&
+    "children" in node &&
+    Array.isArray(node.children)
+  );
+}
+
+export function getTextAlign(editor: SlateEditor): TextAlignState {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  let token: TextAlign | null = null;
+  let sawDefault = false;
+  let sawBlock = false;
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => isParagraph(candidate),
+  })) {
+    if (!isParagraph(node)) {
+      continue;
+    }
+
+    sawBlock = true;
+    const value = isAllowedValue(node.align, TEXT_ALIGNS) ? node.align : null;
+    if (value === null) {
+      sawDefault = true;
+      continue;
+    }
+
+    if (token === null) {
+      token = value;
+      continue;
+    }
+
+    if (token !== value) {
+      return "mixed";
+    }
+  }
+
+  if (!sawBlock) {
+    return null;
+  }
+
+  if (token !== null && sawDefault) {
+    return "mixed";
+  }
+
+  return token;
+}
+
+export const setTextAlign: EditorCommand<TextAlign | null> = {
+  id: "format.align",
+  label: "Text align",
+  group: "format",
+  run: (editor, value) => {
+    if (value === null) {
+      setAlign(editor, PLATE_DEFAULT_ALIGN);
+      return;
+    }
+
+    if (!isAllowedValue(value, TEXT_ALIGNS)) {
+      return;
+    }
+
+    setAlign(editor, value);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -3858,6 +4004,16 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: ", and " },
       { text: "mono", fontFamily: "mono" },
       { text: "." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-align",
+    align: "center",
+    children: [
+      {
+        text: "This paragraph is centered. Blocks can align left, center, right, or justify.",
+      },
     ],
   },
   {

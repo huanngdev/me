@@ -231,6 +231,18 @@ describe("demo document", () => {
     ]);
   });
 
+  test("the alignment paragraph is centered", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-align");
+    if (!block) {
+      throw new Error("Missing alignment paragraph.");
+    }
+
+    expect(textOf(block)).toBe(
+      "This paragraph is centered. Blocks can align left, center, right, or justify.",
+    );
+    expect(field(block, "align")).toBe("center");
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

@@ -145,6 +145,16 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-align",
+    align: "center",
+    children: [
+      {
+        text: "This paragraph is centered. Blocks can align left, center, right, or justify.",
+      },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {
