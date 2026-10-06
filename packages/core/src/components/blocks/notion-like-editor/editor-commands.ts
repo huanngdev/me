@@ -1,10 +1,12 @@
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
+import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
   RangeApi,
   TextApi,
   type SlateEditor,
+  type TElement,
   type TRange,
   type TText,
 } from "platejs";
@@ -447,6 +449,16 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
   return false;
 }
 
+export const BULLETED_LIST_TYPE = "bulleted-list";
+
+function reportedBlockType(node: TElement): string {
+  if (node.type === KEYS.p && node.listStyleType === ListStyleType.Disc) {
+    return BULLETED_LIST_TYPE;
+  }
+
+  return node.type;
+}
+
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   const selection = editor.selection;
   if (!selection) {
@@ -462,12 +474,13 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
       continue;
     }
 
+    const next = reportedBlockType(node);
     if (type === undefined) {
-      type = node.type;
+      type = next;
       continue;
     }
 
-    if (type !== node.type) {
+    if (type !== next) {
       return "mixed";
     }
   }
@@ -516,6 +529,54 @@ export const TURN_INTO_HEADING = {
   2: turnIntoHeading2,
   3: turnIntoHeading3,
 } as const satisfies Record<HeadingLevel, EditorCommand>;
+
+// toggleList outdents a nested bullet by one level and can leave indent behind.
+// A full toggle removes that indent so the paragraph does not keep a list offset.
+export const toggleBulletedList: EditorCommand = {
+  id: "block.turn-into.bulleted-list",
+  label: "Bulleted list",
+  group: "turn-into",
+  run: (editor) => {
+    const selection = editor.selection;
+    if (!selection) {
+      return;
+    }
+
+    const paragraphs = [
+      ...editor.api.nodes({
+        at: selection,
+        block: true,
+        match: (node) => ElementApi.isElement(node) && node.type === KEYS.p,
+      }),
+    ];
+    if (paragraphs.length === 0) {
+      return;
+    }
+
+    const allBullets = paragraphs.every(
+      ([node]) => ElementApi.isElement(node) && node.listStyleType === ListStyleType.Disc,
+    );
+
+    toggleList(editor, { listStyleType: ListStyleType.Disc });
+
+    if (!allBullets) {
+      return;
+    }
+
+    for (const [, path] of paragraphs) {
+      const current = editor.api.node(path)?.[0];
+      if (!ElementApi.isElement(current) || typeof current.listStyleType === "string") {
+        continue;
+      }
+
+      if (typeof current.indent !== "number") {
+        continue;
+      }
+
+      editor.tf.unsetNodes(KEYS.indent, { at: path });
+    }
+  },
+};
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",

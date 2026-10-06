@@ -110,6 +110,31 @@ describe("demo document", () => {
     expect(next.id).toBe("demo-align");
   });
 
+  test("the lists heading follows the block styles section", () => {
+    const clear = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-clear");
+    const lists = DEMO_DOCUMENT_VALUE[clear + 1];
+    const first = DEMO_DOCUMENT_VALUE[clear + 2];
+    const nested = DEMO_DOCUMENT_VALUE[clear + 3];
+    const third = DEMO_DOCUMENT_VALUE[clear + 4];
+    if (!lists || !first || !nested || !third) {
+      throw new Error("Missing lists section.");
+    }
+
+    expect(lists.type).toBe("h3");
+    expect(lists.id).toBe("demo-lists");
+    expect(textOf(lists)).toBe("Lists");
+    expect(first.id).toBe("demo-bullet-1");
+    expect(field(first, "listStyleType")).toBe("disc");
+    expect(field(first, "indent")).toBe(1);
+    expect(textOf(first)).toBe("Bulleted lists use Tab and Shift+Tab to nest.");
+    expect(nested.id).toBe("demo-bullet-2");
+    expect(field(nested, "indent")).toBe(2);
+    expect(textOf(nested)).toBe("Nested items show a different marker.");
+    expect(third.id).toBe("demo-bullet-3");
+    expect(field(third, "indent")).toBe(1);
+    expect(textOf(third)).toBe("Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet.");
+  });
+
   test("the italic paragraph marks only italic text", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-italic");
     if (!block) {

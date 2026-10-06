@@ -6,6 +6,7 @@ import {
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
+  unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { sanitizePastedFragment } from "./editor-paste";
@@ -17,6 +18,7 @@ import {
   createEditor,
   deserializeHtmlInDom,
   field,
+  isRecord,
   plainText,
   texts,
 } from "./test-utils";
@@ -68,6 +70,10 @@ function allowlisted(value: unknown): boolean {
     if (!allowed.has(key) || !isAllowedElementAttrValue(type, key, field(value, key))) {
       return false;
     }
+  }
+
+  if (isRecord(value) && unsatisfiedDependentAttrs(type, value).length > 0) {
+    return false;
   }
 
   return value.children.every((child) => allowlisted(child));

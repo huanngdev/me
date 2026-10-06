@@ -18,6 +18,9 @@ import {
   LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
+import { indent, setIndent } from "@platejs/indent";
+import { IndentPlugin } from "@platejs/indent/react";
+import { ListPlugin } from "@platejs/list/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -26,8 +29,9 @@ import {
   type AnyPluginConfig,
   type SlateEditor,
 } from "platejs";
-import { Key } from "platejs/react";
+import { Key, ParagraphPlugin } from "platejs/react";
 
+import { BlockList, ListParagraph } from "./block-list";
 import {
   clearFormatting,
   formatBold,
@@ -38,6 +42,7 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
+  toggleBulletedList,
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
@@ -45,6 +50,14 @@ import {
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
+
+const LIST_INDENT_MAX = 6;
+
+const paragraphPlugin = ParagraphPlugin.configure({
+  render: {
+    node: ListParagraph,
+  },
+});
 
 type TextDecorationRule = {
   validNodeName?: string[];
@@ -374,6 +387,115 @@ const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
+function isListParagraph(node: unknown): boolean {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    node.type === KEYS.p &&
+    "listStyleType" in node &&
+    typeof node.listStyleType === "string"
+  );
+}
+
+function listIndentOf(node: unknown): number {
+  if (typeof node !== "object" || node === null || !("indent" in node)) {
+    return 1;
+  }
+
+  return typeof node.indent === "number" ? node.indent : 1;
+}
+
+// Targets stay on paragraphs. Headings are not list items in this milestone.
+// offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
+const indentPlugin = IndentPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p],
+  },
+  options: {
+    indentMax: LIST_INDENT_MAX,
+    offset: 0,
+    unit: "px",
+  },
+});
+
+const bulletedListPlugin = ListPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p],
+  },
+  render: {
+    belowNodes: BlockList,
+  },
+  shortcuts: {
+    toggle: {
+      keys: [[Key.Mod, Key.Shift, "8"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleBulletedList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
+// IndentPlugin's Tab indents every paragraph. Outside a list, Tab must leave the editor.
+// At the depth cap, Tab is handled and changes nothing.
+const listKeyboardPlugin = createSlatePlugin({
+  key: "listKeyboard",
+}).overrideEditor(({ editor, tf: { deleteBackward } }) => ({
+  transforms: {
+    tab(options?: { reverse?: boolean }) {
+      const items = [
+        ...editor.api.nodes({
+          block: true,
+          match: (node) => isListParagraph(node),
+        }),
+      ];
+      if (items.length === 0) {
+        return false;
+      }
+
+      const match = (node: unknown) => isListParagraph(node);
+      if (options?.reverse) {
+        // Same unset as outdentList: indent 1 drops listStyleType and indent together.
+        setIndent(editor, {
+          offset: -1,
+          unsetNodesProps: [KEYS.listType, KEYS.listChecked],
+          getNodesOptions: { match },
+        });
+        return true;
+      }
+
+      if (!items.some(([node]) => listIndentOf(node) < LIST_INDENT_MAX)) {
+        return true;
+      }
+
+      indent(editor, {
+        getNodesOptions: {
+          match: (node) => isListParagraph(node) && listIndentOf(node) < LIST_INDENT_MAX,
+        },
+      });
+      return true;
+    },
+    deleteBackward(unit) {
+      const selection = editor.selection;
+      const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        isListParagraph(block[0]) &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true }) &&
+        !editor.api.isEmpty(selection, { block: true })
+      ) {
+        editor.tf.unsetNodes([KEYS.listType, KEYS.indent], { at: block[1] });
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+  },
+}));
+
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
@@ -425,7 +547,8 @@ const clearFormattingPlugin = createSlatePlugin({
 });
 
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before heading splitReset.
+// A non-empty block keeps its identity and an empty block is inserted above. A list item copies its list
+// attrs onto that block. Registered last so this runs before heading splitReset.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -439,7 +562,18 @@ const breakAbovePlugin = createSlatePlugin({
         editor.api.isAt({ start: true }) &&
         !editor.api.isEmpty(selection, { block: true })
       ) {
-        editor.tf.insertNodes(editor.api.create.block(), { at: block[1], select: false });
+        const source = block[0];
+        const above = editor.api.create.block();
+        if (
+          "listStyleType" in source &&
+          typeof source.listStyleType === "string" &&
+          "indent" in source &&
+          typeof source.indent === "number"
+        ) {
+          above.listStyleType = source.listStyleType;
+          above.indent = source.indent;
+        }
+        editor.tf.insertNodes(above, { at: block[1], select: false });
         return;
       }
 
@@ -453,6 +587,7 @@ const breakAbovePlugin = createSlatePlugin({
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
     NodeIdPlugin,
+    paragraphPlugin,
     boldPlugin,
     italicPlugin,
     underlinePlugin,
@@ -470,6 +605,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
+    indentPlugin,
+    bulletedListPlugin,
+    listKeyboardPlugin,
     PasteFallbackPlugin,
     breakAbovePlugin,
   ];

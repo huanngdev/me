@@ -33,7 +33,9 @@ export function EditorSurface({
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-        className={cn(className, "space-y-4")}
+        // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+        // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+        className={cn(className, "space-y-4 [&>[data-list-item]:has(+[data-list-item])]:mb-1")}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}

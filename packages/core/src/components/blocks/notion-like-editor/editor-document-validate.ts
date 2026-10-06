@@ -9,10 +9,12 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  EDITOR_ELEMENT_RULES,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 
 export type Issue = {
@@ -131,6 +133,18 @@ function markValueLabel(value: unknown): string {
   return "value";
 }
 
+function requiredAttr(type: string, dependent: string): string | undefined {
+  for (const rule of EDITOR_ELEMENT_RULES) {
+    if (rule.type !== type || !("attrRequires" in rule) || rule.attrRequires === undefined) {
+      continue;
+    }
+
+    return Object.entries(rule.attrRequires).find(([key]) => key === dependent)?.[1];
+  }
+
+  return undefined;
+}
+
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
@@ -172,6 +186,8 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+
   for (const key of Object.keys(value)) {
     if (key === "type" || key === "children" || key === "id") {
       continue;
@@ -193,14 +209,21 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     }
 
     if (allowed !== undefined && allowed.has(key)) {
-      if (isAllowedElementAttrValue(type, key, attr)) {
+      if (!isAllowedElementAttrValue(type, key, attr)) {
+        state.unsupported.push({
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
+        });
         continue;
       }
 
-      state.unsupported.push({
-        path,
-        message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
-      });
+      const required = requiredAttr(type, key);
+      if (required !== undefined && unsatisfied.has(key)) {
+        state.unsupported.push({
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported ${key} without ${required}. Restore from a backup or remove the attribute.`,
+        });
+      }
       continue;
     }
 

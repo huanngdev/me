@@ -4,6 +4,8 @@ export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
+  /** A dependent attribute is stored only when this attribute is present and allowed. */
+  attrRequires?: Readonly<Record<string, string>>;
 };
 
 export type EditorMarkRule = {
@@ -52,6 +54,16 @@ export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
 
 export type LineHeight = (typeof LINE_HEIGHTS)[number];
 
+// Flat list depth. Plate stores this on the paragraph as `indent`, not as a nested list node.
+export const LIST_INDENTS = [1, 2, 3, 4, 5, 6] as const;
+
+export type ListIndent = (typeof LIST_INDENTS)[number];
+
+// Bullets only. Numbered lists add "decimal" later. The stored value stays "disc" at every depth.
+export const BULLET_LIST_STYLES = ["disc"] as const;
+
+export type BulletListStyle = (typeof BULLET_LIST_STYLES)[number];
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -60,8 +72,15 @@ const headingElementRule = {
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
-    attrs: ["id", "align", "lineHeight"],
-    attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
+    attrs: ["id", "align", "lineHeight", "indent", "listStyleType"],
+    attrValues: {
+      align: TEXT_ALIGNS,
+      lineHeight: LINE_HEIGHTS,
+      indent: LIST_INDENTS,
+      listStyleType: BULLET_LIST_STYLES,
+    },
+    // Standalone block indent is a later task. Indent is kept only with a list style.
+    attrRequires: { indent: "listStyleType" },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
   { type: "h1", ...headingElementRule },
@@ -93,6 +112,16 @@ const elementAttrValues = new Map<string, ReadonlyMap<string, readonly (string |
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
 );
 
+const elementAttrRequires = new Map<string, Readonly<Record<string, string>>>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) => {
+    if (!("attrRequires" in rule) || rule.attrRequires === undefined) {
+      return [];
+    }
+
+    return [[rule.type, rule.attrRequires]];
+  }),
+);
+
 function attrValueMap(
   declared: Readonly<Record<string, readonly (string | number)[]>> | undefined,
 ): ReadonlyMap<string, readonly (string | number)[]> {
@@ -118,6 +147,32 @@ const markValues = new Map<string, readonly string[]>(
 
 export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
   return elementAttrs.get(type);
+}
+
+// Dependent keys that are present while the attribute they require is missing or not allowed.
+export function unsatisfiedDependentAttrs(type: string, node: Record<string, unknown>): string[] {
+  const requires = elementAttrRequires.get(type);
+  if (requires === undefined) {
+    return [];
+  }
+
+  const unsatisfied: string[] = [];
+  for (const dependent of Object.keys(requires)) {
+    if (!(dependent in node)) {
+      continue;
+    }
+
+    const required = requires[dependent];
+    if (required === undefined) {
+      continue;
+    }
+
+    if (!(required in node) || !isAllowedElementAttrValue(type, required, node[required])) {
+      unsatisfied.push(dependent);
+    }
+  }
+
+  return unsatisfied;
 }
 
 export function allowedElementAttrValues(

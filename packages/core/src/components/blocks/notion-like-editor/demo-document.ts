@@ -188,6 +188,32 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-lists",
+    children: [{ text: "Lists" }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-1",
+    indent: 1,
+    listStyleType: "disc",
+    children: [{ text: "Bulleted lists use Tab and Shift+Tab to nest." }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-2",
+    indent: 2,
+    listStyleType: "disc",
+    children: [{ text: "Nested items show a different marker." }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-3",
+    indent: 1,
+    listStyleType: "disc",
+    children: [{ text: "Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet." }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

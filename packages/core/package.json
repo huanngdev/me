@@ -27,6 +27,8 @@
     "@headless-tree/react": "^1.7.0",
     "@platejs/basic-nodes": "53.0.0",
     "@platejs/basic-styles": "53.0.0",
+    "@platejs/indent": "53.0.0",
+    "@platejs/list": "53.3.13",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@tanstack/react-table": "^9.2.4",

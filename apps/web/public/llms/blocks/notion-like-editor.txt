@@ -17,29 +17,30 @@
 7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
 8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
-10. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-11. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-12. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-13. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-14. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-15. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-16. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-17. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-18. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-19. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-20. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-21. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-22. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-24. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-25. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-26. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-27. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-28. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-29. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-30. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-31. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-32. apps/web/src/app/blocks/notion-like-editor/page.tsx
+10. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
+11. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+12. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+13. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+14. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+15. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+16. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+17. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+18. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+19. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+20. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+21. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+22. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+23. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+24. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+25. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+26. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+27. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+28. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+29. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+30. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+31. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+32. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+33. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -63,6 +64,8 @@ export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
+  /** A dependent attribute is stored only when this attribute is present and allowed. */
+  attrRequires?: Readonly<Record<string, string>>;
 };
 
 export type EditorMarkRule = {
@@ -111,6 +114,16 @@ export const LINE_HEIGHTS = [1, 1.25, 1.5, 1.75, 2] as const;
 
 export type LineHeight = (typeof LINE_HEIGHTS)[number];
 
+// Flat list depth. Plate stores this on the paragraph as `indent`, not as a nested list node.
+export const LIST_INDENTS = [1, 2, 3, 4, 5, 6] as const;
+
+export type ListIndent = (typeof LIST_INDENTS)[number];
+
+// Bullets only. Numbered lists add "decimal" later. The stored value stays "disc" at every depth.
+export const BULLET_LIST_STYLES = ["disc"] as const;
+
+export type BulletListStyle = (typeof BULLET_LIST_STYLES)[number];
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -119,8 +132,15 @@ const headingElementRule = {
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
-    attrs: ["id", "align", "lineHeight"],
-    attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
+    attrs: ["id", "align", "lineHeight", "indent", "listStyleType"],
+    attrValues: {
+      align: TEXT_ALIGNS,
+      lineHeight: LINE_HEIGHTS,
+      indent: LIST_INDENTS,
+      listStyleType: BULLET_LIST_STYLES,
+    },
+    // Standalone block indent is a later task. Indent is kept only with a list style.
+    attrRequires: { indent: "listStyleType" },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
   { type: "h1", ...headingElementRule },
@@ -152,6 +172,16 @@ const elementAttrValues = new Map<string, ReadonlyMap<string, readonly (string |
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, attrValueMap(rule.attrValues)]),
 );
 
+const elementAttrRequires = new Map<string, Readonly<Record<string, string>>>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) => {
+    if (!("attrRequires" in rule) || rule.attrRequires === undefined) {
+      return [];
+    }
+
+    return [[rule.type, rule.attrRequires]];
+  }),
+);
+
 function attrValueMap(
   declared: Readonly<Record<string, readonly (string | number)[]>> | undefined,
 ): ReadonlyMap<string, readonly (string | number)[]> {
@@ -177,6 +207,32 @@ const markValues = new Map<string, readonly string[]>(
 
 export function allowedElementAttrs(type: string): ReadonlySet<string> | undefined {
   return elementAttrs.get(type);
+}
+
+// Dependent keys that are present while the attribute they require is missing or not allowed.
+export function unsatisfiedDependentAttrs(type: string, node: Record<string, unknown>): string[] {
+  const requires = elementAttrRequires.get(type);
+  if (requires === undefined) {
+    return [];
+  }
+
+  const unsatisfied: string[] = [];
+  for (const dependent of Object.keys(requires)) {
+    if (!(dependent in node)) {
+      continue;
+    }
+
+    const required = requires[dependent];
+    if (required === undefined) {
+      continue;
+    }
+
+    if (!(required in node) || !isAllowedElementAttrValue(type, required, node[required])) {
+      unsatisfied.push(dependent);
+    }
+  }
+
+  return unsatisfied;
 }
 
 export function allowedElementAttrValues(
@@ -455,10 +511,12 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  EDITOR_ELEMENT_RULES,
   allowedElementAttrs,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 
 export type Issue = {
@@ -577,6 +635,18 @@ function markValueLabel(value: unknown): string {
   return "value";
 }
 
+function requiredAttr(type: string, dependent: string): string | undefined {
+  for (const rule of EDITOR_ELEMENT_RULES) {
+    if (rule.type !== type || !("attrRequires" in rule) || rule.attrRequires === undefined) {
+      continue;
+    }
+
+    return Object.entries(rule.attrRequires).find(([key]) => key === dependent)?.[1];
+  }
+
+  return undefined;
+}
+
 function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
@@ -618,6 +688,8 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+
   for (const key of Object.keys(value)) {
     if (key === "type" || key === "children" || key === "id") {
       continue;
@@ -639,14 +711,21 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     }
 
     if (allowed !== undefined && allowed.has(key)) {
-      if (isAllowedElementAttrValue(type, key, attr)) {
+      if (!isAllowedElementAttrValue(type, key, attr)) {
+        state.unsupported.push({
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
+        });
         continue;
       }
 
-      state.unsupported.push({
-        path,
-        message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
-      });
+      const required = requiredAttr(type, key);
+      if (required !== undefined && unsatisfied.has(key)) {
+        state.unsupported.push({
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported ${key} without ${required}. Restore from a backup or remove the attribute.`,
+        });
+      }
       continue;
     }
 
@@ -795,6 +874,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
@@ -886,6 +966,10 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
     }
 
     props[key] = node[key];
+  }
+
+  for (const dependent of unsatisfiedDependentAttrs(props.type, props)) {
+    Reflect.deleteProperty(props, dependent);
   }
 }
 
@@ -1144,6 +1228,9 @@ import {
   LineHeightPlugin,
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
+import { indent, setIndent } from "@platejs/indent";
+import { IndentPlugin } from "@platejs/indent/react";
+import { ListPlugin } from "@platejs/list/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -1152,8 +1239,9 @@ import {
   type AnyPluginConfig,
   type SlateEditor,
 } from "platejs";
-import { Key } from "platejs/react";
+import { Key, ParagraphPlugin } from "platejs/react";
 
+import { BlockList, ListParagraph } from "./block-list";
 import {
   clearFormatting,
   formatBold,
@@ -1164,6 +1252,7 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
+  toggleBulletedList,
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
@@ -1171,6 +1260,14 @@ import {
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
+
+const LIST_INDENT_MAX = 6;
+
+const paragraphPlugin = ParagraphPlugin.configure({
+  render: {
+    node: ListParagraph,
+  },
+});
 
 type TextDecorationRule = {
   validNodeName?: string[];
@@ -1500,6 +1597,115 @@ const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
+function isListParagraph(node: unknown): boolean {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    node.type === KEYS.p &&
+    "listStyleType" in node &&
+    typeof node.listStyleType === "string"
+  );
+}
+
+function listIndentOf(node: unknown): number {
+  if (typeof node !== "object" || node === null || !("indent" in node)) {
+    return 1;
+  }
+
+  return typeof node.indent === "number" ? node.indent : 1;
+}
+
+// Targets stay on paragraphs. Headings are not list items in this milestone.
+// offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
+const indentPlugin = IndentPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p],
+  },
+  options: {
+    indentMax: LIST_INDENT_MAX,
+    offset: 0,
+    unit: "px",
+  },
+});
+
+const bulletedListPlugin = ListPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p],
+  },
+  render: {
+    belowNodes: BlockList,
+  },
+  shortcuts: {
+    toggle: {
+      keys: [[Key.Mod, Key.Shift, "8"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleBulletedList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
+// IndentPlugin's Tab indents every paragraph. Outside a list, Tab must leave the editor.
+// At the depth cap, Tab is handled and changes nothing.
+const listKeyboardPlugin = createSlatePlugin({
+  key: "listKeyboard",
+}).overrideEditor(({ editor, tf: { deleteBackward } }) => ({
+  transforms: {
+    tab(options?: { reverse?: boolean }) {
+      const items = [
+        ...editor.api.nodes({
+          block: true,
+          match: (node) => isListParagraph(node),
+        }),
+      ];
+      if (items.length === 0) {
+        return false;
+      }
+
+      const match = (node: unknown) => isListParagraph(node);
+      if (options?.reverse) {
+        // Same unset as outdentList: indent 1 drops listStyleType and indent together.
+        setIndent(editor, {
+          offset: -1,
+          unsetNodesProps: [KEYS.listType, KEYS.listChecked],
+          getNodesOptions: { match },
+        });
+        return true;
+      }
+
+      if (!items.some(([node]) => listIndentOf(node) < LIST_INDENT_MAX)) {
+        return true;
+      }
+
+      indent(editor, {
+        getNodesOptions: {
+          match: (node) => isListParagraph(node) && listIndentOf(node) < LIST_INDENT_MAX,
+        },
+      });
+      return true;
+    },
+    deleteBackward(unit) {
+      const selection = editor.selection;
+      const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        isListParagraph(block[0]) &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true }) &&
+        !editor.api.isEmpty(selection, { block: true })
+      ) {
+        editor.tf.unsetNodes([KEYS.listType, KEYS.indent], { at: block[1] });
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+  },
+}));
+
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
@@ -1551,7 +1757,8 @@ const clearFormattingPlugin = createSlatePlugin({
 });
 
 // Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before heading splitReset.
+// A non-empty block keeps its identity and an empty block is inserted above. A list item copies its list
+// attrs onto that block. Registered last so this runs before heading splitReset.
 const breakAbovePlugin = createSlatePlugin({
   key: "breakAbove",
 }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
@@ -1565,7 +1772,18 @@ const breakAbovePlugin = createSlatePlugin({
         editor.api.isAt({ start: true }) &&
         !editor.api.isEmpty(selection, { block: true })
       ) {
-        editor.tf.insertNodes(editor.api.create.block(), { at: block[1], select: false });
+        const source = block[0];
+        const above = editor.api.create.block();
+        if (
+          "listStyleType" in source &&
+          typeof source.listStyleType === "string" &&
+          "indent" in source &&
+          typeof source.indent === "number"
+        ) {
+          above.listStyleType = source.listStyleType;
+          above.indent = source.indent;
+        }
+        editor.tf.insertNodes(above, { at: block[1], select: false });
         return;
       }
 
@@ -1579,6 +1797,7 @@ const breakAbovePlugin = createSlatePlugin({
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
     NodeIdPlugin,
+    paragraphPlugin,
     boldPlugin,
     italicPlugin,
     underlinePlugin,
@@ -1596,6 +1815,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
+    indentPlugin,
+    bulletedListPlugin,
+    listKeyboardPlugin,
     PasteFallbackPlugin,
     breakAbovePlugin,
   ];
@@ -1657,6 +1879,89 @@ export function HeadingElement({ attributes, element, ...props }: PlateElementPr
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/block-list.tsx
+```tsx
+import { isOrderedList } from "@platejs/list";
+import { PlateElement, type PlateElementProps, type RenderNodeWrapper } from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+// Rendering only. The stored listStyleType stays "disc" at every depth.
+const BULLET_MARKERS = ["disc", "circle", "square"] as const;
+
+const LIST_INDENT_CLASS = {
+  1: "pl-6",
+  2: "pl-12",
+  3: "pl-18",
+  4: "pl-24",
+  5: "pl-30",
+  6: "pl-36",
+} as const;
+
+type BulletMarker = (typeof BULLET_MARKERS)[number];
+type ListIndentLevel = keyof typeof LIST_INDENT_CLASS;
+
+export function bulletMarker(indent: number): BulletMarker {
+  const level = indent >= 1 ? indent : 1;
+  const marker = BULLET_MARKERS[(level - 1) % BULLET_MARKERS.length];
+  return marker ?? "disc";
+}
+
+function isListIndent(indent: number): indent is ListIndentLevel {
+  return Object.hasOwn(LIST_INDENT_CLASS, indent);
+}
+
+function listIndentClass(indent: number): string {
+  if (isListIndent(indent)) {
+    return LIST_INDENT_CLASS[indent];
+  }
+
+  return LIST_INDENT_CLASS[1];
+}
+
+function listIndent(element: PlateElementProps["element"]): number {
+  return typeof element.indent === "number" ? element.indent : 1;
+}
+
+function storedListStyle(element: PlateElementProps["element"]): string {
+  return typeof element.listStyleType === "string" ? element.listStyleType : "disc";
+}
+
+// The gap between items is a sibling rule on the editor surface. This render reads only its own element.
+export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
+  const listStyleType = element.listStyleType;
+  const listAttributes =
+    typeof listStyleType === "string"
+      ? { ...attributes, "data-list-item": listStyleType }
+      : attributes;
+
+  return <PlateElement {...props} attributes={listAttributes} element={element} />;
+}
+
+// Plate wraps each flat list item on its own. Grouping consecutive items is not a Plate API.
+export const BlockList: RenderNodeWrapper = (props) => {
+  if (typeof props.element.listStyleType !== "string") {
+    return;
+  }
+
+  return function List(nodeProps: PlateElementProps) {
+    const element = nodeProps.element;
+    const stored = storedListStyle(element);
+    const indent = listIndent(element);
+    const Tag = isOrderedList(element) ? "ol" : "ul";
+
+    return (
+      <Tag
+        className={cn("relative m-0 list-outside py-0 pr-0", listIndentClass(indent))}
+        style={{ listStyleType: stored === "disc" ? bulletMarker(indent) : stored }}
+      >
+        <li>{nodeProps.children}</li>
+      </Tag>
+    );
+  };
+};
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
@@ -1677,12 +1982,14 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
+import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
   RangeApi,
   TextApi,
   type SlateEditor,
+  type TElement,
   type TRange,
   type TText,
 } from "platejs";
@@ -2125,6 +2432,16 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
   return false;
 }
 
+export const BULLETED_LIST_TYPE = "bulleted-list";
+
+function reportedBlockType(node: TElement): string {
+  if (node.type === KEYS.p && node.listStyleType === ListStyleType.Disc) {
+    return BULLETED_LIST_TYPE;
+  }
+
+  return node.type;
+}
+
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
   const selection = editor.selection;
   if (!selection) {
@@ -2140,12 +2457,13 @@ export function getBlockType(editor: SlateEditor): string | "mixed" | null {
       continue;
     }
 
+    const next = reportedBlockType(node);
     if (type === undefined) {
-      type = node.type;
+      type = next;
       continue;
     }
 
-    if (type !== node.type) {
+    if (type !== next) {
       return "mixed";
     }
   }
@@ -2194,6 +2512,54 @@ export const TURN_INTO_HEADING = {
   2: turnIntoHeading2,
   3: turnIntoHeading3,
 } as const satisfies Record<HeadingLevel, EditorCommand>;
+
+// toggleList outdents a nested bullet by one level and can leave indent behind.
+// A full toggle removes that indent so the paragraph does not keep a list offset.
+export const toggleBulletedList: EditorCommand = {
+  id: "block.turn-into.bulleted-list",
+  label: "Bulleted list",
+  group: "turn-into",
+  run: (editor) => {
+    const selection = editor.selection;
+    if (!selection) {
+      return;
+    }
+
+    const paragraphs = [
+      ...editor.api.nodes({
+        at: selection,
+        block: true,
+        match: (node) => ElementApi.isElement(node) && node.type === KEYS.p,
+      }),
+    ];
+    if (paragraphs.length === 0) {
+      return;
+    }
+
+    const allBullets = paragraphs.every(
+      ([node]) => ElementApi.isElement(node) && node.listStyleType === ListStyleType.Disc,
+    );
+
+    toggleList(editor, { listStyleType: ListStyleType.Disc });
+
+    if (!allBullets) {
+      return;
+    }
+
+    for (const [, path] of paragraphs) {
+      const current = editor.api.node(path)?.[0];
+      if (!ElementApi.isElement(current) || typeof current.listStyleType === "string") {
+        continue;
+      }
+
+      if (typeof current.indent !== "number") {
+        continue;
+      }
+
+      editor.tf.unsetNodes(KEYS.indent, { at: path });
+    }
+  },
+};
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
@@ -3894,7 +4260,9 @@ export function EditorSurface({
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-        className={cn(className, "space-y-4")}
+        // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+        // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+        className={cn(className, "space-y-4 [&>[data-list-item]:has(+[data-list-item])]:mb-1")}
         renderPlaceholder={(placeholderProps) => (
           <span
             {...placeholderProps.attributes}
@@ -4454,6 +4822,32 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-lists",
+    children: [{ text: "Lists" }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-1",
+    indent: 1,
+    listStyleType: "disc",
+    children: [{ text: "Bulleted lists use Tab and Shift+Tab to nest." }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-2",
+    indent: 2,
+    listStyleType: "disc",
+    children: [{ text: "Nested items show a different marker." }],
+  },
+  {
+    type: "p",
+    id: "demo-bullet-3",
+    indent: 1,
+    listStyleType: "disc",
+    children: [{ text: "Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet." }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -4576,6 +4970,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/heading-element.tsx",
     code: readSource(`${BLOCK_DIR}/heading-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/block-list.tsx",
+    code: readSource(`${BLOCK_DIR}/block-list.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

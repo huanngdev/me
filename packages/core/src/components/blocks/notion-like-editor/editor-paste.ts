@@ -11,6 +11,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
 
@@ -102,6 +103,10 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
     }
 
     props[key] = node[key];
+  }
+
+  for (const dependent of unsatisfiedDependentAttrs(props.type, props)) {
+    Reflect.deleteProperty(props, dependent);
   }
 }
 
