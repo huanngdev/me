@@ -66,6 +66,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-code",
+    children: [
+      { text: "This is " },
+      { text: "inline code", code: true },
+      { text: ". Press Cmd+E or Ctrl+E." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

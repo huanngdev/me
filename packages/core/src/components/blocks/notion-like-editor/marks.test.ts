@@ -5,6 +5,7 @@ import { serializeHtml } from "platejs/static";
 import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import {
   formatBold,
+  formatCode,
   formatItalic,
   formatStrikethrough,
   formatUnderline,
@@ -16,7 +17,7 @@ import { isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { caret, createEditor, expectOk, field, plainText, textRange } from "./test-utils";
 
-type MarkKey = "bold" | "italic" | "underline" | "strikethrough";
+type MarkKey = "bold" | "italic" | "underline" | "strikethrough" | "code";
 
 type MarkCase = {
   key: MarkKey;
@@ -34,6 +35,7 @@ type Leaf = {
   italic?: true;
   underline?: true;
   strikethrough?: true;
+  code?: true;
 };
 
 function shortcutName(keys: readonly string[]): string {
@@ -89,6 +91,18 @@ const MARKS: Array<[string, MarkCase]> = [
       sample: "strikethrough text",
     },
   ],
+  [
+    "code",
+    {
+      key: KEYS.code,
+      label: "code",
+      command: formatCode,
+      keys: ["Mod", "e"],
+      demoId: "demo-code",
+      sentence: "This is inline code. Press Cmd+E or Ctrl+E.",
+      sample: "inline code",
+    },
+  ],
 ];
 
 function paragraph(text: string) {
@@ -119,6 +133,10 @@ function withMark(text: string, key: MarkKey): Leaf {
 
   if (key === KEYS.strikethrough) {
     return { text, strikethrough: true };
+  }
+
+  if (key === KEYS.code) {
+    return { text, code: true };
   }
 
   const unreachable: never = key;
@@ -388,7 +406,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
       .map((child) => child.text);
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(11);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(12);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual([mark.sample]);
   });
@@ -585,5 +603,211 @@ describe("marks", () => {
     expect(em?.[1]).toContain("Hi");
     expect(underline?.[1]).toContain("Hi");
     expect(strikethrough?.[1]).toContain("Hi");
+  });
+
+  test("adding code keeps strikethrough on the same text", () => {
+    const editor = createEditor([
+      { type: "p", children: [{ text: "Hello", strikethrough: true }] },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      strikethrough: true,
+      code: true,
+    });
+    expect(editor.children[0]?.type).toBe("p");
+  });
+
+  test("removing code keeps strikethrough on the same text", () => {
+    const editor = createEditor([
+      { type: "p", children: [{ text: "Hello", strikethrough: true, code: true }] },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", strikethrough: true });
+  });
+
+  test("removing strikethrough keeps code on the same text", () => {
+    const editor = createEditor([
+      { type: "p", children: [{ text: "Hello", strikethrough: true, code: true }] },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatStrikethrough, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", code: true });
+  });
+
+  test("removing code keeps bold, italic, underline, and strikethrough", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hello",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+          },
+        ],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      bold: true,
+      italic: true,
+      underline: true,
+      strikethrough: true,
+    });
+  });
+
+  test("removing bold keeps code, italic, underline, and strikethrough", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hello",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+          },
+        ],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatBold, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      italic: true,
+      underline: true,
+      strikethrough: true,
+      code: true,
+    });
+  });
+
+  test("bold, italic, underline, strikethrough, and code on the same text round-trip together", () => {
+    const document = createEditorDocument("doc-five", [
+      {
+        type: "p",
+        id: "p",
+        children: [
+          {
+            text: "Hi",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+          },
+        ],
+      },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+  });
+
+  test("bold, italic, underline, strikethrough, and code on the same text render as strong, em, u, s, and code", async () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hi",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+          },
+        ],
+      },
+    ]);
+
+    const html = await serializeHtml(editor);
+    const strong = html.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/);
+    const em = html.match(/<em\b[^>]*>([\s\S]*?)<\/em>/);
+    const underline = html.match(/<u\b[^>]*>([\s\S]*?)<\/u>/);
+    const strikethrough = html.match(/<s\b[^>]*>([\s\S]*?)<\/s>/);
+    const code = html.match(/<code\b[^>]*>([\s\S]*?)<\/code>/);
+
+    const props = editor.getPlugin({ key: KEYS.code })?.node.props;
+    const className =
+      typeof props === "object" &&
+      props !== null &&
+      "className" in props &&
+      typeof props.className === "string"
+        ? props.className
+        : "";
+
+    expect(strong?.[1]).toContain("Hi");
+    expect(em?.[1]).toContain("Hi");
+    expect(underline?.[1]).toContain("Hi");
+    expect(strikethrough?.[1]).toContain("Hi");
+    expect(code?.[1]).toContain("Hi");
+    expect(className).toContain("font-mono");
+    expect(className).toContain("bg-muted");
+    expect(className).toContain("text-base");
+  });
+
+  test("text with backticks, angle brackets, an ampersand, and surrounding spaces stays exact when code is toggled and parsed", () => {
+    const sample = " `a<b>&` ";
+    const editor = createEditor([paragraph(sample)]);
+    editor.tf.select(textRange([0, 0], 0, sample.length));
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children).toEqual([{ text: sample, code: true }]);
+    expect(editor.children[0]?.type).toBe("p");
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children).toEqual([{ text: sample }]);
+
+    const document = createEditorDocument("doc-code-chars", [
+      { type: "p", id: "p", children: [{ text: sample, code: true }] },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+  });
+
+  test("inserting Tiếng Việt at a caret inside code keeps code on that text", () => {
+    const editor = createEditor([{ type: "p", children: [{ text: "ab", code: true }] }]);
+    editor.tf.select(caret([0, 0], 1));
+
+    editor.tf.insertText("Tiếng Việt");
+
+    expect(editor.children[0]?.children).toEqual([{ text: "aTiếng Việtb", code: true }]);
+  });
+
+  test("toggling code on a whitespace-only selection marks those spaces", () => {
+    const editor = createEditor([paragraph("   ")]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+
+    runEditorCommand(editor, formatCode, undefined);
+
+    expect(editor.children[0]?.children).toEqual([{ text: "   ", code: true }]);
+    expect(editor.children[0]?.type).toBe("p");
   });
 });

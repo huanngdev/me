@@ -1,5 +1,6 @@
 import {
   BoldPlugin,
+  CodePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
   UnderlinePlugin,
@@ -9,6 +10,7 @@ import { Key } from "platejs/react";
 
 import {
   formatBold,
+  formatCode,
   formatItalic,
   formatStrikethrough,
   formatUnderline,
@@ -40,12 +42,22 @@ type MarkPluginConfig = {
       };
     };
   };
+  node?: {
+    props: {
+      className: string;
+    };
+  };
 };
 
 type MarkPluginOptions = {
   keys?: string[][];
   rules?: TextDecorationRule[];
+  className?: string;
 };
+
+// The paragraph is text-base (16px). 0.9em would be 14.4px, under the body-text floor.
+const codeLeafClassName =
+  "border-border bg-muted text-foreground rounded-md border px-1.5 py-0.5 font-mono text-base";
 
 const underlineDecorations = ["underline", "underline line-through", "line-through underline"];
 
@@ -107,6 +119,10 @@ export function configureMarkPlugin<
     };
   }
 
+  if (options?.className) {
+    config.node = { props: { className: options.className } };
+  }
+
   return plugin.configure(config);
 }
 
@@ -119,6 +135,10 @@ const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrik
   keys: [[Key.Mod, Key.Shift, "x"]],
   rules: strikethroughRules,
 });
+const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
+  keys: [[Key.Mod, "e"]],
+  className: codeLeafClassName,
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
@@ -129,6 +149,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     italicPlugin,
     underlinePlugin,
     strikethroughPlugin,
+    codePlugin,
     PasteFallbackPlugin,
   ];
 }

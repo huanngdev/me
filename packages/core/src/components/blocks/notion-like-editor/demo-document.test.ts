@@ -114,6 +114,20 @@ describe("demo document", () => {
     expect(marked).toEqual(["strikethrough text"]);
   });
 
+  test("the code paragraph marks only inline code", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code");
+    if (!block) {
+      throw new Error("Missing code paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "code") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe("This is inline code. Press Cmd+E or Ctrl+E.");
+    expect(marked).toEqual(["inline code"]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

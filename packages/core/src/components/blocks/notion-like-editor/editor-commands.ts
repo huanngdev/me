@@ -101,6 +101,11 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
   label: "Strikethrough",
 });
 
+export const formatCode: EditorCommand = createMarkCommand({
+  key: KEYS.code,
+  label: "Inline code",
+});
+
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
     id: "history.undo",

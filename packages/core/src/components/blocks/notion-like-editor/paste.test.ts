@@ -365,6 +365,48 @@ describe("paste", () => {
     expect(markedText(editor, "strikethrough")).toEqual([]);
   });
 
+  test("pasting code makes only that text code", () => {
+    const editor = pasteHtml("<p>a <code>b&lt;c</code> d</p>");
+
+    expect(plainText(editor)).toBe("a b<c d");
+    expect(markedText(editor, "code")).toEqual(["b<c"]);
+    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+  });
+
+  test("pasting font-family Consolas makes only that text code", () => {
+    const editor = pasteHtml('<p>a <span style="font-family: Consolas">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "code")).toEqual(["b"]);
+  });
+
+  test("pasting font-family monospace stays plain", () => {
+    const editor = pasteHtml('<p>a <span style="font-family: monospace">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "code")).toEqual([]);
+  });
+
+  test("pasting a pre code block with two lines becomes one paragraph without a code mark", () => {
+    const editor = pasteHtml("<pre><code>one<br>two</code></pre>");
+    const serialized = JSON.stringify(editor.children);
+
+    expect(texts(editor)).toEqual(["one\ntwo"]);
+    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+    expect(markedText(editor, "code")).toEqual([]);
+    expect(serialized).not.toContain("code_block");
+  });
+
+  test("pasting kbd stays plain text", () => {
+    const editor = pasteHtml("<p>a <kbd>b</kbd> c</p>");
+    const serialized = JSON.stringify(editor.children);
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "code")).toEqual([]);
+    expect(serialized).not.toContain('"kbd"');
+    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+  });
+
   test("an s with text-decoration-line none stays plain", () => {
     const editor = pasteHtml('<p>a <s style="text-decoration-line: none">b</s> c</p>');
 

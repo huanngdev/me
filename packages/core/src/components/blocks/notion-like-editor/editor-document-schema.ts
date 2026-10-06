@@ -18,6 +18,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.italic },
   { type: KEYS.underline },
   { type: KEYS.strikethrough },
+  { type: KEYS.code },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
