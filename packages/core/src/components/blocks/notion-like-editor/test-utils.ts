@@ -1,5 +1,6 @@
 import { expect } from "bun:test";
-import { createSlateEditor, type SlateEditor, type TRange } from "platejs";
+import { Window } from "happy-dom";
+import { createSlateEditor, type Descendant, type SlateEditor, type TRange } from "platejs";
 
 import type { AssetRecord, AssetStore } from "./editor-assets";
 import type { AutosaveTimers } from "./editor-autosave";
@@ -12,6 +13,42 @@ export function createEditor(value: EditorValue = EMPTY_EDITOR_VALUE): SlateEdit
     plugins: createEditorPlugins(),
     value,
   });
+}
+
+function isHtmlElement(value: unknown): value is HTMLElement {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "nodeType" in value &&
+    value.nodeType === 1 &&
+    "childNodes" in value &&
+    "style" in value
+  );
+}
+
+// Plate compares nodeType to the global Node constants while it walks the element.
+export function deserializeHtmlInDom(editor: SlateEditor, html: string): Descendant[] {
+  const dom = new Window();
+  const hadNode = Object.hasOwn(globalThis, "Node");
+  const previousNode = hadNode ? Reflect.get(globalThis, "Node") : undefined;
+
+  try {
+    Reflect.set(globalThis, "Node", dom.Node);
+    const body: unknown = new dom.DOMParser().parseFromString(html, "text/html").body;
+    if (!isHtmlElement(body)) {
+      throw new Error("The HTML parser did not return a body element.");
+    }
+
+    return editor.api.html.deserialize({ element: body });
+  } finally {
+    if (hadNode) {
+      Reflect.set(globalThis, "Node", previousNode);
+    } else {
+      Reflect.deleteProperty(globalThis, "Node");
+    }
+
+    dom.close();
+  }
 }
 
 export function texts(editor: SlateEditor): string[] {

@@ -30,6 +30,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-bold",
+    children: [
+      { text: "This is " },
+      { text: "bold text", bold: true },
+      { text: ". Select words and press Cmd+B or Ctrl+B." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

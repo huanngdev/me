@@ -11,7 +11,7 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
 ] as const satisfies readonly EditorElementRule[];
 
-export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [];
+export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [{ type: "bold" }];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),

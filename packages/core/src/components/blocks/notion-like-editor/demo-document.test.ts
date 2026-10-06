@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createEditorDocument } from "./editor-document";
-import { EDITOR_ELEMENT_RULES } from "./editor-document-schema";
+import { EDITOR_ELEMENT_RULES, EDITOR_MARK_RULES, isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { expectOk, isRecord } from "./test-utils";
 
@@ -16,8 +16,8 @@ function allowlistProblems(value: unknown): string[] {
   }
 
   if (typeof value.text === "string" && !("children" in value)) {
-    const keys = Object.keys(value);
-    return keys.length === 1 && keys[0] === "text" ? [] : ["text leaf has extra keys"];
+    const extra = Object.keys(value).filter((key) => key !== "text" && !isAllowedMark(key));
+    return extra.length === 0 ? [] : ["text leaf has extra keys"];
   }
 
   const problems: string[] = [];
@@ -52,14 +52,13 @@ describe("demo document", () => {
     expect(problems).toEqual([]);
   });
 
-  test("demo text leaves contain only text", () => {
-    const keys = DEMO_DOCUMENT_VALUE.flatMap((block) =>
-      block.children.map((child) => Object.keys(child)),
+  test("demo text leaves contain only text and allowlisted marks", () => {
+    const allowed = new Set<string>(["text", ...EDITOR_MARK_RULES.map((rule) => rule.type)]);
+    const extra = DEMO_DOCUMENT_VALUE.flatMap((block) =>
+      block.children.flatMap((child) => Object.keys(child).filter((key) => !allowed.has(key))),
     );
 
-    expect(keys).toEqual(
-      DEMO_DOCUMENT_VALUE.map((block) => block.children.map(() => ["text"])).flat(),
-    );
+    expect(extra).toEqual([]);
   });
 
   test("demo paragraph ids are unique", () => {

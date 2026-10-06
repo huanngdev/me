@@ -5,16 +5,29 @@ import { createEditorDocument } from "./editor-document";
 import { allowedElementAttrs, isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { sanitizePastedFragment } from "./editor-paste";
-import { PASTE_GOOGLE_DOCS } from "./fixtures/paste-google-docs";
 import { PASTE_SLATE_FRAGMENT } from "./fixtures/paste-slate-fragment";
-import { PASTE_WEBPAGE } from "./fixtures/paste-webpage";
 import { PASTE_WORD_NOTION } from "./fixtures/paste-word-notion";
-import { blockIds, caret, createEditor, texts } from "./test-utils";
+import {
+  blockIds,
+  caret,
+  createEditor,
+  deserializeHtmlInDom,
+  field,
+  plainText,
+  texts,
+} from "./test-utils";
 
 function paste(fragment: TElement[]): SlateEditor {
   const editor = createEditor();
   editor.tf.select(caret([0, 0], 0));
   editor.tf.insertFragment(fragment);
+  return editor;
+}
+
+function pasteHtml(html: string): SlateEditor {
+  const editor = createEditor();
+  editor.tf.select(caret([0, 0], 0));
+  editor.tf.insertFragment(deserializeHtmlInDom(editor, html));
   return editor;
 }
 
@@ -56,6 +69,38 @@ function allowlisted(value: unknown): boolean {
   return value.children.every((child) => allowlisted(child));
 }
 
+function markedText(editor: SlateEditor, mark: string): string[] {
+  const pieces: string[] = [];
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        visit(child);
+      }
+      return;
+    }
+
+    if (typeof node !== "object" || node === null) {
+      return;
+    }
+
+    if ("text" in node && typeof node.text === "string" && !("children" in node)) {
+      if (field(node, mark) === true) {
+        pieces.push(node.text);
+      }
+      return;
+    }
+
+    if ("children" in node && Array.isArray(node.children)) {
+      for (const child of node.children) {
+        visit(child);
+      }
+    }
+  };
+
+  visit(editor.children);
+  return pieces;
+}
+
 function expectOpenable(editor: SlateEditor): void {
   const parsed = parseEditorDocument(createEditorDocument("demo", editor.children));
   const ids = blockIds(editor);
@@ -68,29 +113,64 @@ function expectOpenable(editor: SlateEditor): void {
   expect(present).toBe(true);
 }
 
-describe("paste", () => {
-  test("pasting Google Docs HTML keeps both paragraphs and drops unsupported bold", () => {
-    const [first, ...rest] = structuredClone(PASTE_GOOGLE_DOCS);
-    const marked = {
-      ...first,
-      children: first.children.map((child, index) =>
-        index === 0 ? { ...child, bold: true } : child,
-      ),
-    };
+const GOOGLE_DOCS_HTML =
+  '<b style="font-weight:normal" id="docs-internal-guid-abc"><p><span style="font-weight:700">Bold</span><span style="font-weight:400"> and </span><span style="font-style:italic">italic</span></p><p>Second line</p></b>';
 
-    const editor = paste([marked, ...rest]);
+const WEBPAGE_HTML =
+  '<h1>Title</h1><p>Para with <strong>bold</strong> and <a href="https://example.com">link</a></p><ul><li>One</li><li>Two</li></ul>';
+
+describe("paste", () => {
+  test("pasting Google Docs HTML keeps the bold word and leaves the rest plain", () => {
+    const editor = pasteHtml(GOOGLE_DOCS_HTML);
 
     expect(texts(editor)).toEqual(["Bold and italic", "Second line"]);
-    expect(JSON.stringify(editor.children)).not.toContain("bold");
+    expect(markedText(editor, "bold")).toEqual(["Bold"]);
+    expect(markedText(editor, "italic")).toEqual([]);
     expectOpenable(editor);
   });
 
   test("pasting a web page keeps the heading, paragraph, and each list item", () => {
-    const editor = paste(structuredClone(PASTE_WEBPAGE));
+    const editor = pasteHtml(WEBPAGE_HTML);
 
     expect(texts(editor)).toEqual(["Title", "Para with bold and link", "One", "Two"]);
+    expect(markedText(editor, "bold")).toEqual(["bold"]);
     expect(editor.children.every((block) => block.type === "p")).toBe(true);
     expectOpenable(editor);
+  });
+
+  test("pasting strong makes only that text bold", () => {
+    const editor = pasteHtml("<p>a <strong>b</strong> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "bold")).toEqual(["b"]);
+  });
+
+  test("pasting b makes only that text bold", () => {
+    const editor = pasteHtml("<p>a <b>b</b> c</p>");
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "bold")).toEqual(["b"]);
+  });
+
+  test("pasting font-weight 700 makes only that text bold", () => {
+    const editor = pasteHtml('<p>a <span style="font-weight:700">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "bold")).toEqual(["b"]);
+  });
+
+  test("pasting font-weight bold makes only that text bold", () => {
+    const editor = pasteHtml('<p>a <span style="font-weight:bold">b</span> c</p>');
+
+    expect(plainText(editor)).toBe("a b c");
+    expect(markedText(editor, "bold")).toEqual(["b"]);
+  });
+
+  test("a Google Docs font-weight normal wrapper does not bold the clipboard", () => {
+    const editor = pasteHtml(GOOGLE_DOCS_HTML);
+
+    expect(plainText(editor)).toBe("Bold and italicSecond line");
+    expect(markedText(editor, "bold")).toEqual(["Bold"]);
   });
 
   test("pasting Word or Notion HTML keeps each div and turns br into a newline", () => {
@@ -179,7 +259,7 @@ describe("paste", () => {
     expect(value).toEqual([{ type: "p", id: "p", children: [{ text: "ok" }] }]);
   });
 
-  test("an inline link is unwrapped to its text and its bold mark is dropped", () => {
+  test("an inline link is unwrapped to its text and keeps its bold mark", () => {
     const value = sanitizePastedFragment(
       [
         {
@@ -190,7 +270,7 @@ describe("paste", () => {
       { isInline: (node) => node.type === "a" },
     );
 
-    expect(value).toEqual([{ type: "p", children: [{ text: "link" }] }]);
+    expect(value).toEqual([{ type: "p", children: [{ text: "link", bold: true }] }]);
   });
 
   test("a block nested in an unwrapped inline is dropped and the sibling text remains", () => {

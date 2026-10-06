@@ -1,4 +1,4 @@
-import type { SlateEditor, TRange } from "platejs";
+import { RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -16,9 +16,65 @@ export type RunEditorCommandOptions = {
   readOnly?: boolean;
 };
 
+const BOLD_MARK = "bold";
+
 function hasHistory(editor: SlateEditor, stack: "undos" | "redos"): boolean {
   return editor.history[stack].length > 0;
 }
+
+function textIsBold(node: TText): boolean {
+  return node[BOLD_MARK] === true;
+}
+
+function boldState(editor: SlateEditor): "on" | "off" | "mixed" {
+  const selection = editor.selection;
+  if (!selection) {
+    return "off";
+  }
+
+  if (RangeApi.isCollapsed(selection)) {
+    const marks = editor.api.marks();
+    return marks?.[BOLD_MARK] === true ? "on" : "off";
+  }
+
+  let sawBold = false;
+  let sawPlain = false;
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => TextApi.isText(candidate),
+  })) {
+    if (!TextApi.isText(node)) {
+      continue;
+    }
+
+    if (textIsBold(node)) {
+      sawBold = true;
+    } else {
+      sawPlain = true;
+    }
+  }
+
+  if (sawBold && sawPlain) {
+    return "mixed";
+  }
+
+  return sawBold ? "on" : "off";
+}
+
+export const formatBold: EditorCommand = {
+  id: "format.bold",
+  label: "Bold",
+  group: "format",
+  getState: boldState,
+  run: (editor) => {
+    if (boldState(editor) === "on") {
+      editor.tf.removeMark(BOLD_MARK);
+      return;
+    }
+
+    editor.tf.addMark(BOLD_MARK, true);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
