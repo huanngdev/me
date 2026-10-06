@@ -119,6 +119,19 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-font-size",
+    children: [
+      { text: "Text comes in sizes from " },
+      { text: "small", fontSize: "14px" },
+      { text: " to " },
+      { text: "large", fontSize: "24px" },
+      { text: " and " },
+      { text: "extra large", fontSize: "32px" },
+      { text: "." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

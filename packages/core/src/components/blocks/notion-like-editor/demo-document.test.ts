@@ -195,6 +195,24 @@ describe("demo document", () => {
     ]);
   });
 
+  test("the font size paragraph marks small, large, and extra large", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-font-size");
+    if (!block) {
+      throw new Error("Missing font size paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "fontSize") !== undefined)
+      .map((child) => [child.text, field(child, "fontSize")]);
+
+    expect(textOf(block)).toBe("Text comes in sizes from small to large and extra large.");
+    expect(marked).toEqual([
+      ["small", "14px"],
+      ["large", "24px"],
+      ["extra large", "32px"],
+    ]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

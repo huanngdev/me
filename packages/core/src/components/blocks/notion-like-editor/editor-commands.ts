@@ -1,9 +1,11 @@
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
+  FONT_SIZES,
   HIGHLIGHT_TOKENS,
   TEXT_COLOR_TOKENS,
-  isPaletteToken,
+  isAllowedValue,
+  type FontSize,
   type HighlightToken,
   type TextColorToken,
 } from "./editor-document-schema";
@@ -154,7 +156,7 @@ export function getValueMark<T extends string>(
 
   if (RangeApi.isCollapsed(selection)) {
     const value = editor.api.marks()?.[key];
-    return isPaletteToken(value, values) ? value : null;
+    return isAllowedValue(value, values) ? value : null;
   }
 
   let token: T | null = null;
@@ -169,7 +171,7 @@ export function getValueMark<T extends string>(
     }
 
     const value = node[key];
-    if (!isPaletteToken(value, values)) {
+    if (!isAllowedValue(value, values)) {
       sawPlain = true;
       continue;
     }
@@ -209,7 +211,7 @@ export function createValueMarkCommand<T extends string>(options: {
         return;
       }
 
-      if (!isPaletteToken(value, values)) {
+      if (!isAllowedValue(value, values)) {
         return;
       }
 
@@ -238,6 +240,19 @@ export const setHighlight: EditorCommand<HighlightToken | null> = createValueMar
   label: "Highlight",
   id: "format.highlight",
   values: HIGHLIGHT_TOKENS,
+});
+
+export type FontSizeState = FontSize | null | "mixed";
+
+export function getFontSize(editor: SlateEditor): FontSizeState {
+  return getValueMark(editor, KEYS.fontSize, FONT_SIZES);
+}
+
+export const setFontSize: EditorCommand<FontSize | null> = createValueMarkCommand({
+  key: KEYS.fontSize,
+  label: "Font size",
+  id: "format.font-size",
+  values: FONT_SIZES,
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [

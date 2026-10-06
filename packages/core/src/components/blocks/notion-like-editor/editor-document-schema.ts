@@ -31,6 +31,11 @@ export type TextColorToken = PaletteToken;
 export const HIGHLIGHT_TOKENS = PALETTE_TOKENS;
 export type HighlightToken = PaletteToken;
 
+// Proposed sizes. The stored mark is the CSS length; clearing it inherits the paragraph size.
+export const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"] as const;
+
+export type FontSize = (typeof FONT_SIZES)[number];
+
 export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
 ] as const satisfies readonly EditorElementRule[];
@@ -45,6 +50,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.sub },
   { type: KEYS.color, values: PALETTE_TOKENS },
   { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
+  { type: KEYS.fontSize, values: FONT_SIZES },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -77,14 +83,13 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
     return true;
   }
 
+  return isAllowedValue(value, values);
+}
+
+export function isAllowedValue<T extends string>(value: unknown, values: readonly T[]): value is T {
   return typeof value === "string" && values.some((allowed) => allowed === value);
 }
 
-export function isPaletteToken(value: unknown): value is PaletteToken;
-export function isPaletteToken<T extends string>(value: unknown, values: readonly T[]): value is T;
-export function isPaletteToken(
-  value: unknown,
-  values: readonly string[] = PALETTE_TOKENS,
-): boolean {
-  return typeof value === "string" && values.some((token) => token === value);
+export function isPaletteToken(value: unknown): value is PaletteToken {
+  return isAllowedValue(value, PALETTE_TOKENS);
 }

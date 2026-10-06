@@ -7,7 +7,11 @@ import {
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
-import { FontBackgroundColorPlugin, FontColorPlugin } from "@platejs/basic-styles/react";
+import {
+  FontBackgroundColorPlugin,
+  FontColorPlugin,
+  FontSizePlugin,
+} from "@platejs/basic-styles/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -192,6 +196,42 @@ const textColorPlugin = FontColorPlugin.configure({
   inject: { nodeProps: paletteNodeProps(KEYS.color, "color", "--editor-text") },
 });
 
+// 1pt is 4/3 px. A length that is not an exact preset is left for the mark allowlist to drop.
+const FONT_SIZE_LENGTH = /^(-?(?:\d+|\d*\.\d+))(px|pt)$/i;
+
+function fontSizeFromCss(value: string): string {
+  const match = FONT_SIZE_LENGTH.exec(value.trim());
+  if (!match || match[2].toLowerCase() === "px") {
+    return value.trim();
+  }
+
+  const px = (Number(match[1]) * 4) / 3;
+  const whole = Math.round(px);
+  if (Math.abs(px - whole) < 1e-6) {
+    return `${whole}px`;
+  }
+
+  return `${px}px`;
+}
+
+// The stored value is already a CSS length, so Plate's default style injection renders it.
+const fontSizePlugin = FontSizePlugin.configure({
+  parsers: {
+    html: {
+      deserializer: {
+        parse: ({ element, type }) => {
+          const size = element.style.fontSize;
+          if (!size) {
+            return;
+          }
+
+          return { [type]: fontSizeFromCss(size) };
+        },
+      },
+    },
+  },
+});
+
 const highlightPlugin = FontBackgroundColorPlugin.configure({
   inject: {
     nodeProps: paletteNodeProps(KEYS.backgroundColor, "backgroundColor", "--editor-bg"),
@@ -230,6 +270,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     subscriptPlugin,
     textColorPlugin,
     highlightPlugin,
+    fontSizePlugin,
     PasteFallbackPlugin,
   ];
 }
