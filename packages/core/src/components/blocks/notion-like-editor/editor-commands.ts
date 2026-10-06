@@ -1,5 +1,13 @@
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
-import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
+import {
+  ElementApi,
+  KEYS,
+  RangeApi,
+  TextApi,
+  type SlateEditor,
+  type TRange,
+  type TText,
+} from "platejs";
 
 import {
   CLEARABLE_MARK_KEYS,
@@ -438,6 +446,54 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
 
   return false;
 }
+
+export function getBlockType(editor: SlateEditor): string | "mixed" | null {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  let type: string | undefined;
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => editor.api.isBlock(candidate),
+  })) {
+    if (!ElementApi.isElement(node) || typeof node.type !== "string") {
+      continue;
+    }
+
+    if (type === undefined) {
+      type = node.type;
+      continue;
+    }
+
+    if (type !== node.type) {
+      return "mixed";
+    }
+  }
+
+  return type ?? null;
+}
+
+// toggleBlock only changes the block type. A heading has no lineHeight, so turning
+// a paragraph into one unsets that attribute in the same command batch.
+export const turnIntoHeading1: EditorCommand = {
+  id: "block.turn-into.h1",
+  label: "Heading 1",
+  group: "turn-into",
+  run: (editor) => {
+    const becomesHeading = !editor.api.some({ match: { type: KEYS.h1 } });
+    editor.tf.toggleBlock(KEYS.h1);
+    if (!becomesHeading || !editor.selection) {
+      return;
+    }
+
+    editor.tf.unsetNodes(KEYS.lineHeight, {
+      at: editor.selection,
+      match: (node) => ElementApi.isElement(node) && node.type === KEYS.h1,
+    });
+  },
+};
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",

@@ -58,6 +58,12 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "align", "lineHeight"],
     attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
   },
+  // Headings do not take lineHeight. Their leading is fixed by the heading component.
+  {
+    type: "h1",
+    attrs: ["id", "align"],
+    attrValues: { align: TEXT_ALIGNS },
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [

@@ -188,13 +188,13 @@ describe("text align", () => {
     expect(editor.history.undos.length).toBe(undos);
   });
 
-  test("setTextAlign is a format command, targets paragraphs, and has no shortcut", () => {
+  test("setTextAlign is a format command, targets paragraphs and heading 1, and has no shortcut", () => {
     const editor = createEditor();
     const plugin = editor.getPlugin({ key: KEYS.textAlign });
 
     expect(KEYS.textAlign).toBe("textAlign");
     expect(editor.getType(KEYS.textAlign)).toBe("align");
-    expect(plugin.inject.targetPlugins).toEqual([KEYS.p]);
+    expect(plugin.inject.targetPlugins).toEqual([KEYS.p, KEYS.h1]);
     expect(setTextAlign.id).toBe("format.align");
     expect(setTextAlign.group).toBe("format");
     expect(setTextAlign.label).toBe("Text align");

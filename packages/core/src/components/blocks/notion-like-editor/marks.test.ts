@@ -447,7 +447,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
     const expected = mark.samples === undefined ? [mark.sample] : [...mark.samples];
 
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(21);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(22);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });

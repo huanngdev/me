@@ -2,6 +2,11 @@ import type { EditorValue } from "./editor-value";
 
 export const DEMO_DOCUMENT_VALUE = [
   {
+    type: "h1",
+    id: "demo-heading",
+    children: [{ text: "Notion-like editor" }],
+  },
+  {
     type: "p",
     id: "demo-intro",
     children: [{ text: "This is a paragraph. Click anywhere in it and start typing." }],

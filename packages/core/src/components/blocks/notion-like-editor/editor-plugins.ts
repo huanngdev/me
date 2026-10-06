@@ -1,6 +1,7 @@
 import {
   BoldPlugin,
   CodePlugin,
+  H1Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -35,10 +36,12 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
+  turnIntoHeading1,
   type EditorCommand,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
+import { HeadingElement } from "./heading-element";
 
 type TextDecorationRule = {
   validNodeName?: string[];
@@ -320,10 +323,40 @@ function lineHeightFromCss(value: string): number | string {
   return Number(trimmed);
 }
 
+// Plate's H1 rule resets on any Backspace at the block start, including a non-empty heading.
+// "default" lets that Backspace merge. An empty heading still resets to a paragraph.
+// H1Plugin ships no hotkey. "1" is KeyboardEvent.code Digit1, the Mod+Alt+1 key.
+const heading1Plugin = H1Plugin.configure({
+  render: { node: HeadingElement },
+  rules: {
+    delete: {
+      empty: "reset",
+      start: "default",
+    },
+  },
+  shortcuts: {
+    toggle: {
+      keys: [[Key.Mod, Key.Alt, "1"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, turnIntoHeading1, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
+const textAlignPlugin = TextAlignPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p, KEYS.h1],
+  },
+});
+
 const lineHeightPlugin = LineHeightPlugin.configure({
   inject: {
     // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
     // and the injector skips only that sentinel, so 1.5 still renders.
+    // Headings are not targets. Their leading stays on the heading component.
     nodeProps: {
       nodeKey: "lineHeight",
       defaultNodeValue: 0,
@@ -363,6 +396,30 @@ const clearFormattingPlugin = createSlatePlugin({
   },
 });
 
+// Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
+// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before H1's splitReset.
+const breakAbovePlugin = createSlatePlugin({
+  key: "breakAbove",
+}).overrideEditor(({ editor, tf: { insertBreak } }) => ({
+  transforms: {
+    insertBreak() {
+      const selection = editor.selection;
+      const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true }) &&
+        !editor.api.isEmpty(selection, { block: true })
+      ) {
+        editor.tf.insertNodes(editor.api.create.block(), { at: block[1], select: false });
+        return;
+      }
+
+      insertBreak();
+    },
+  },
+}));
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -379,9 +436,11 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     highlightPlugin,
     fontSizePlugin,
     fontFamilyPlugin,
-    TextAlignPlugin,
+    heading1Plugin,
+    textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     PasteFallbackPlugin,
+    breakAbovePlugin,
   ];
 }

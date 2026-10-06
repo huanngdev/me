@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SlateEditor } from "platejs";
 
-import { blockIds, caret, createEditor, texts } from "./test-utils";
+import { blockIds, caret, createEditor, field, texts } from "./test-utils";
 
 function leafMark(editor: SlateEditor, path: number[], key: string): unknown {
   const block = editor.children[path[0] ?? -1];
@@ -36,6 +36,59 @@ describe("paragraph", () => {
     expect(texts(editor)).toEqual([""]);
     expect(ids).toHaveLength(1);
     expect(ids[0]).not.toBe("");
+  });
+
+  test("Enter at the start of a paragraph inserts an empty paragraph above it and keeps the original id", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        id: "block-a",
+        align: "right",
+        lineHeight: 2,
+        children: [{ text: "Hello", bold: true }],
+      },
+    ]);
+    editor.tf.select(caret([0, 0], 0));
+    const before = editor.history.undos.length;
+
+    editor.tf.insertBreak();
+    const ids = blockIds(editor);
+
+    expect(texts(editor)).toEqual(["", "Hello"]);
+    expect(ids[0]).not.toBe("block-a");
+    expect(ids[0]).not.toBe("");
+    expect(ids[1]).toBe("block-a");
+    expect(field(editor.children[1], "align")).toBe("right");
+    expect(field(editor.children[1], "lineHeight")).toBe(2);
+    expect(leafMark(editor, [1, 0], "bold")).toBe(true);
+    expect(field(editor.children[0], "align")).toBeUndefined();
+    expect(field(editor.children[0], "lineHeight")).toBeUndefined();
+    expect(editor.selection).toEqual(caret([1, 0], 0));
+    expect(editor.history.undos.length - before).toBe(1);
+
+    editor.tf.undo();
+
+    expect(texts(editor)).toEqual(["Hello"]);
+    expect(blockIds(editor)).toEqual(["block-a"]);
+    expect(field(editor.children[0], "align")).toBe("right");
+    expect(field(editor.children[0], "lineHeight")).toBe(2);
+    expect(leafMark(editor, [0, 0], "bold")).toBe(true);
+  });
+
+  test("Enter at the start of an empty paragraph keeps the original id on the first block", () => {
+    const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
+    editor.tf.select(caret([0, 0], 0));
+
+    editor.tf.insertBreak();
+    const ids = blockIds(editor);
+
+    expect(texts(editor)).toEqual(["", ""]);
+    expect(field(editor.children[0], "type")).toBe("p");
+    expect(field(editor.children[1], "type")).toBe("p");
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).toBe("block-a");
+    expect(ids[1]).not.toBe("block-a");
+    expect(ids[1]).not.toBe("");
   });
 
   test("Enter in the middle of a paragraph splits it and gives the new paragraph a new id", () => {

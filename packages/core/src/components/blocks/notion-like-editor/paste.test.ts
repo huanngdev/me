@@ -138,7 +138,7 @@ describe("paste", () => {
 
     expect(texts(editor)).toEqual(["Title", "Para with bold and link", "One", "Two"]);
     expect(markedText(editor, "bold")).toEqual(["bold"]);
-    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+    expect(editor.children.map((block) => block.type)).toEqual(["h1", "p", "p", "p"]);
     expectOpenable(editor);
   });
 
@@ -485,7 +485,7 @@ describe("paste", () => {
     expectOpenable(editor);
   });
 
-  test("a pasted block outside the allowlist becomes a paragraph without its extra keys", () => {
+  test("a pasted heading stays a heading and a block outside the allowlist becomes a paragraph", () => {
     const editor = paste([
       {
         type: "h1",
@@ -501,7 +501,8 @@ describe("paste", () => {
     const serialized = JSON.stringify(editor.children);
 
     expect(texts(editor)).toEqual(["Title", "Quoted"]);
-    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+    expect(editor.children.map((block) => block.type)).toEqual(["h1", "p"]);
+    expect(blockIds(editor)[0]).toBe("heading-1");
     expect(serialized).not.toContain("sparkle");
     expect(serialized).not.toContain("example.com");
     expectOpenable(editor);
@@ -657,9 +658,9 @@ describe("paste", () => {
     ]);
   });
 
-  test("an empty heading becomes an empty paragraph", () => {
+  test("an empty heading stays an empty heading", () => {
     const value = sanitizePastedFragment([{ type: "h1", children: [] }]);
 
-    expect(value).toEqual([{ type: "p", children: [{ text: "" }] }]);
+    expect(value).toEqual([{ type: "h1", children: [{ text: "" }] }]);
   });
 });

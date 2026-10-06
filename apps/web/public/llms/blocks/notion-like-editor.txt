@@ -16,29 +16,30 @@
 6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
 7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
 8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-9. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-10. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-11. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-12. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-13. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-14. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-15. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-16. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-17. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-18. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-19. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-20. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-21. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-22. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-24. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-25. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-26. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-27. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-28. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-29. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-30. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-31. apps/web/src/app/blocks/notion-like-editor/page.tsx
+9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
+10. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+11. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+12. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+13. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+14. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+15. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+16. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+17. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+18. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+19. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+20. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+21. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+22. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+24. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+25. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+26. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+27. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+28. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+29. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+30. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+31. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+32. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -115,6 +116,12 @@ export const EDITOR_ELEMENT_RULES = [
     type: "p",
     attrs: ["id", "align", "lineHeight"],
     attrValues: { align: TEXT_ALIGNS, lineHeight: LINE_HEIGHTS },
+  },
+  // Headings do not take lineHeight. Their leading is fixed by the heading component.
+  {
+    type: "h1",
+    attrs: ["id", "align"],
+    attrValues: { align: TEXT_ALIGNS },
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -1117,6 +1124,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
 import {
   BoldPlugin,
   CodePlugin,
+  H1Plugin,
   ItalicPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
@@ -1151,10 +1159,12 @@ import {
   formatSuperscript,
   formatUnderline,
   runEditorCommand,
+  turnIntoHeading1,
   type EditorCommand,
 } from "./editor-commands";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
+import { HeadingElement } from "./heading-element";
 
 type TextDecorationRule = {
   validNodeName?: string[];
@@ -1436,10 +1446,40 @@ function lineHeightFromCss(value: string): number | string {
   return Number(trimmed);
 }
 
+// Plate's H1 rule resets on any Backspace at the block start, including a non-empty heading.
+// "default" lets that Backspace merge. An empty heading still resets to a paragraph.
+// H1Plugin ships no hotkey. "1" is KeyboardEvent.code Digit1, the Mod+Alt+1 key.
+const heading1Plugin = H1Plugin.configure({
+  render: { node: HeadingElement },
+  rules: {
+    delete: {
+      empty: "reset",
+      start: "default",
+    },
+  },
+  shortcuts: {
+    toggle: {
+      keys: [[Key.Mod, Key.Alt, "1"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, turnIntoHeading1, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
+const textAlignPlugin = TextAlignPlugin.configure({
+  inject: {
+    targetPlugins: [KEYS.p, KEYS.h1],
+  },
+});
+
 const lineHeightPlugin = LineHeightPlugin.configure({
   inject: {
     // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
     // and the injector skips only that sentinel, so 1.5 still renders.
+    // Headings are not targets. Their leading stays on the heading component.
     nodeProps: {
       nodeKey: "lineHeight",
       defaultNodeValue: 0,
@@ -1479,6 +1519,30 @@ const clearFormattingPlugin = createSlatePlugin({
   },
 });
 
+// Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
+// A non-empty block keeps its identity and an empty paragraph is inserted above; registered last so this runs before H1's splitReset.
+const breakAbovePlugin = createSlatePlugin({
+  key: "breakAbove",
+}).overrideEditor(({ editor, tf: { insertBreak } }) => ({
+  transforms: {
+    insertBreak() {
+      const selection = editor.selection;
+      const block = selection ? editor.api.block() : undefined;
+      if (
+        block &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true }) &&
+        !editor.api.isEmpty(selection, { block: true })
+      ) {
+        editor.tf.insertNodes(editor.api.create.block(), { at: block[1], select: false });
+        return;
+      }
+
+      insertBreak();
+    },
+  },
+}));
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -1495,11 +1559,49 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     highlightPlugin,
     fontSizePlugin,
     fontFamilyPlugin,
-    TextAlignPlugin,
+    heading1Plugin,
+    textAlignPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     PasteFallbackPlugin,
+    breakAbovePlugin,
   ];
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
+```tsx
+import { PlateElement, type PlateElementProps } from "platejs/react";
+
+// A plugin className cannot derive a DOM id from the block id.
+const HEADING_CLASS_NAME = "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0";
+
+// The DOM id is derived from the block id. It is not stored on the node.
+export function headingAnchorId(blockId: string): string {
+  return `heading-${blockId}`;
+}
+
+function blockAnchor(element: PlateElementProps["element"]): string | undefined {
+  if (!("id" in element)) {
+    return undefined;
+  }
+
+  const id = element.id;
+  return typeof id === "string" && id.length > 0 ? headingAnchorId(id) : undefined;
+}
+
+export function HeadingElement({ attributes, element, ...props }: PlateElementProps) {
+  const anchorId = blockAnchor(element);
+
+  return (
+    <PlateElement
+      {...props}
+      element={element}
+      attributes={anchorId === undefined ? attributes : { ...attributes, id: anchorId }}
+      as="h1"
+      className={HEADING_CLASS_NAME}
+    />
+  );
 }
 ```
 
@@ -1523,7 +1625,15 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
-import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
+import {
+  ElementApi,
+  KEYS,
+  RangeApi,
+  TextApi,
+  type SlateEditor,
+  type TRange,
+  type TText,
+} from "platejs";
 
 import {
   CLEARABLE_MARK_KEYS,
@@ -1962,6 +2072,54 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
 
   return false;
 }
+
+export function getBlockType(editor: SlateEditor): string | "mixed" | null {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+
+  let type: string | undefined;
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => editor.api.isBlock(candidate),
+  })) {
+    if (!ElementApi.isElement(node) || typeof node.type !== "string") {
+      continue;
+    }
+
+    if (type === undefined) {
+      type = node.type;
+      continue;
+    }
+
+    if (type !== node.type) {
+      return "mixed";
+    }
+  }
+
+  return type ?? null;
+}
+
+// toggleBlock only changes the block type. A heading has no lineHeight, so turning
+// a paragraph into one unsets that attribute in the same command batch.
+export const turnIntoHeading1: EditorCommand = {
+  id: "block.turn-into.h1",
+  label: "Heading 1",
+  group: "turn-into",
+  run: (editor) => {
+    const becomesHeading = !editor.api.some({ match: { type: KEYS.h1 } });
+    editor.tf.toggleBlock(KEYS.h1);
+    if (!becomesHeading || !editor.selection) {
+      return;
+    }
+
+    editor.tf.unsetNodes(KEYS.lineHeight, {
+      at: editor.selection,
+      match: (node) => ElementApi.isElement(node) && node.type === KEYS.h1,
+    });
+  },
+};
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
@@ -4036,6 +4194,11 @@ import type { EditorValue } from "./editor-value";
 
 export const DEMO_DOCUMENT_VALUE = [
   {
+    type: "h1",
+    id: "demo-heading",
+    children: [{ text: "Notion-like editor" }],
+  },
+  {
     type: "p",
     id: "demo-intro",
     children: [{ text: "This is a paragraph. Click anywhere in it and start typing." }],
@@ -4325,6 +4488,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/heading-element.tsx",
+    code: readSource(`${BLOCK_DIR}/heading-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

@@ -46,7 +46,7 @@ describe("demo document", () => {
     expect(parsed.repairs).toEqual([]);
   });
 
-  test("every demo block is an allowlisted paragraph", () => {
+  test("every demo block is allowlisted", () => {
     const problems = DEMO_DOCUMENT_VALUE.flatMap((block) => allowlistProblems(block));
 
     expect(problems).toEqual([]);
@@ -68,6 +68,18 @@ describe("demo document", () => {
 
     expect(unique).toBe(true);
     expect(present).toBe(true);
+  });
+
+  test("the first block is the heading", () => {
+    const block = DEMO_DOCUMENT_VALUE[0];
+    if (!block) {
+      throw new Error("Missing heading.");
+    }
+
+    expect(block.type).toBe("h1");
+    expect(block.id).toBe("demo-heading");
+    expect(textOf(block)).toBe("Notion-like editor");
+    expect(field(block, "lineHeight")).toBeUndefined();
   });
 
   test("the italic paragraph marks only italic text", () => {
