@@ -10,6 +10,7 @@ import {
 import {
   FontBackgroundColorPlugin,
   FontColorPlugin,
+  FontFamilyPlugin,
   FontSizePlugin,
 } from "@platejs/basic-styles/react";
 import {
@@ -32,7 +33,7 @@ import {
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
-import { isPaletteToken } from "./editor-document-schema";
+import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type TextDecorationRule = {
@@ -164,23 +165,24 @@ const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
 
-// The stored value is a palette token. transformProps writes the theme variable so the
-// leaf never receives the token string as a CSS color.
-function paletteNodeProps(
+type TokenNodePropsOptions = {
+  nodeValue?: unknown;
+  props: Record<string, unknown>;
+  text?: unknown;
+};
+
+// The stored value is a token. transformProps writes the theme variable so the
+// leaf never receives the token string as a CSS value.
+function tokenNodeProps(
   nodeKey: string,
-  cssProperty: "color" | "backgroundColor",
-  variablePrefix: "--editor-text" | "--editor-bg",
+  cssProperty: "color" | "backgroundColor" | "fontFamily",
+  variablePrefix: "--editor-text" | "--editor-bg" | "--editor-font",
+  isToken: (value: unknown) => boolean,
 ) {
   return {
     nodeKey,
-    transformProps: ({
-      nodeValue,
-      props,
-    }: {
-      nodeValue?: unknown;
-      props: Record<string, unknown>;
-    }) => {
-      if (!isPaletteToken(nodeValue)) {
+    transformProps: ({ nodeValue, props }: TokenNodePropsOptions) => {
+      if (!isToken(nodeValue)) {
         return {};
       }
 
@@ -192,8 +194,45 @@ function paletteNodeProps(
   };
 }
 
+function isFontFamilyToken(value: unknown): boolean {
+  return isAllowedValue(value, FONT_FAMILIES);
+}
+
+function hasCodeMark(text: unknown): boolean {
+  return (
+    typeof text === "object" &&
+    text !== null &&
+    KEYS.code in text &&
+    Reflect.get(text, KEYS.code) === true
+  );
+}
+
+function fontFamilyNodeProps() {
+  const tokenProps = tokenNodeProps(
+    KEYS.fontFamily,
+    "fontFamily",
+    "--editor-font",
+    isFontFamilyToken,
+  );
+
+  return {
+    nodeKey: tokenProps.nodeKey,
+    transformProps: (options: TokenNodePropsOptions) => {
+      // Inline style beats the code class, so a code leaf always gets the mono stack.
+      if (isFontFamilyToken(options.nodeValue) && hasCodeMark(options.text)) {
+        return {
+          ...options.props,
+          style: { fontFamily: "var(--editor-font-mono)" },
+        };
+      }
+
+      return tokenProps.transformProps(options);
+    },
+  };
+}
+
 const textColorPlugin = FontColorPlugin.configure({
-  inject: { nodeProps: paletteNodeProps(KEYS.color, "color", "--editor-text") },
+  inject: { nodeProps: tokenNodeProps(KEYS.color, "color", "--editor-text", isPaletteToken) },
 });
 
 // 1pt is 4/3 px. A length that is not an exact preset is left for the mark allowlist to drop.
@@ -234,7 +273,12 @@ const fontSizePlugin = FontSizePlugin.configure({
 
 const highlightPlugin = FontBackgroundColorPlugin.configure({
   inject: {
-    nodeProps: paletteNodeProps(KEYS.backgroundColor, "backgroundColor", "--editor-bg"),
+    nodeProps: tokenNodeProps(
+      KEYS.backgroundColor,
+      "backgroundColor",
+      "--editor-bg",
+      isPaletteToken,
+    ),
   },
   parsers: {
     html: {
@@ -256,6 +300,10 @@ const highlightPlugin = FontBackgroundColorPlugin.configure({
   },
 });
 
+const fontFamilyPlugin = FontFamilyPlugin.configure({
+  inject: { nodeProps: fontFamilyNodeProps() },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -271,6 +319,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     textColorPlugin,
     highlightPlugin,
     fontSizePlugin,
+    fontFamilyPlugin,
     PasteFallbackPlugin,
   ];
 }

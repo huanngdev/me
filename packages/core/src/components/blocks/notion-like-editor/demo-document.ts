@@ -132,6 +132,19 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-font-family",
+    children: [
+      { text: "Text can switch between " },
+      { text: "sans", fontFamily: "sans" },
+      { text: ", " },
+      { text: "serif", fontFamily: "serif" },
+      { text: ", and " },
+      { text: "mono", fontFamily: "mono" },
+      { text: "." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

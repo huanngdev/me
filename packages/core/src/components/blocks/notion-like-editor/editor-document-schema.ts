@@ -36,6 +36,11 @@ export const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"] as co
 
 export type FontSize = (typeof FONT_SIZES)[number];
 
+// Proposed families. The stored mark is the token; clearing it inherits the page font.
+export const FONT_FAMILIES = ["sans", "serif", "mono"] as const;
+
+export type FontFamily = (typeof FONT_FAMILIES)[number];
+
 export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
 ] as const satisfies readonly EditorElementRule[];
@@ -51,6 +56,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.color, values: PALETTE_TOKENS },
   { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
   { type: KEYS.fontSize, values: FONT_SIZES },
+  { type: KEYS.fontFamily, values: FONT_FAMILIES },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(

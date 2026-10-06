@@ -138,6 +138,9 @@
   --editor-bg-purple: oklch(0.955 0.025 305);
   --editor-bg-pink: oklch(0.96 0.02 5);
   --editor-bg-red: oklch(0.955 0.02 25);
+  --editor-font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --editor-font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --editor-font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
 }
 
 .dark {

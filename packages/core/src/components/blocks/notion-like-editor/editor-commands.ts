@@ -1,10 +1,12 @@
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
+  FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
   TEXT_COLOR_TOKENS,
   isAllowedValue,
+  type FontFamily,
   type FontSize,
   type HighlightToken,
   type TextColorToken,
@@ -253,6 +255,19 @@ export const setFontSize: EditorCommand<FontSize | null> = createValueMarkComman
   label: "Font size",
   id: "format.font-size",
   values: FONT_SIZES,
+});
+
+export type FontFamilyState = FontFamily | null | "mixed";
+
+export function getFontFamily(editor: SlateEditor): FontFamilyState {
+  return getValueMark(editor, KEYS.fontFamily, FONT_FAMILIES);
+}
+
+export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCommand({
+  key: KEYS.fontFamily,
+  label: "Font family",
+  id: "format.font-family",
+  values: FONT_FAMILIES,
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [

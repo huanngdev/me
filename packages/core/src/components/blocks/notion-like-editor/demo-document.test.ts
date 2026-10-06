@@ -213,6 +213,24 @@ describe("demo document", () => {
     ]);
   });
 
+  test("the font family paragraph marks sans, serif, and mono", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-font-family");
+    if (!block) {
+      throw new Error("Missing font family paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "fontFamily") !== undefined)
+      .map((child) => [child.text, field(child, "fontFamily")]);
+
+    expect(textOf(block)).toBe("Text can switch between sans, serif, and mono.");
+    expect(marked).toEqual([
+      ["sans", "sans"],
+      ["serif", "serif"],
+      ["mono", "mono"],
+    ]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);
