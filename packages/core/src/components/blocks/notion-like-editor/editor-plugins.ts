@@ -46,6 +46,8 @@ import {
   runEditorCommand,
   toggleBulletedList,
   toggleNumberedList,
+  toggleTodoChecked,
+  toggleTodoList,
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
@@ -464,6 +466,21 @@ function storedListStyle(style: string | undefined): "disc" | "decimal" | undefi
   return undefined;
 }
 
+// Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
+// The input has no text, and the HTML deserializer drops it, so this only reads.
+export function pastedTodoChecked(element: HTMLElement): boolean | undefined {
+  const input = element.querySelector('input[type="checkbox"]');
+  if (input) {
+    return input.hasAttribute("checked");
+  }
+
+  if (element.getAttribute("role") === "checkbox" || element.hasAttribute("aria-checked")) {
+    return element.getAttribute("aria-checked") === "true";
+  }
+
+  return undefined;
+}
+
 // Plate's LI parser ignores ol start. The first item stores listRestart so normalizeListStart
 // can derive listStart. start="1" is omitted; that is Plate's default.
 function listRestartFromStart(element: HTMLElement): number | undefined {
@@ -493,8 +510,12 @@ const listPlugin = ListPlugin.configure({
   options: {
     // Plate's normalizer passes breakOnEqIndentNeqListStyleType: false, then spreads these
     // options, so a bullet at the same depth ends the numbered run.
+    // normalizeListStart treats every non-bullet style, including "todo", as ordered and
+    // would write listStart on the next to-do. A to-do is not a numbered run, so that search stops.
     getSiblingListOptions: {
       breakOnEqIndentNeqListStyleType: true,
+      breakQuery: (_sibling, current) =>
+        "listStyleType" in current && current.listStyleType === KEYS.listTodo,
     },
   },
   parsers: {
@@ -504,6 +525,16 @@ const listPlugin = ListPlugin.configure({
           const dataIndent = element.dataset.indent;
           const ariaLevel = element.getAttribute("aria-level");
           const indent = dataIndent ? Number(dataIndent) : Number(ariaLevel);
+          const checked = pastedTodoChecked(element);
+          if (checked !== undefined) {
+            return {
+              checked,
+              indent: indent || undefined,
+              listStyleType: KEYS.listTodo,
+              type: editor.getType(KEYS.p),
+            };
+          }
+
           const listStyleType = storedListStyle(element.dataset.listStyleType);
           const listRestart = listRestartFromStart(element);
 
@@ -533,6 +564,22 @@ const listPlugin = ListPlugin.configure({
       keys: [[Key.Mod, Key.Shift, "7"]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleNumberedList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+    toggleTodo: {
+      keys: [[Key.Mod, Key.Shift, "9"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleTodoList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+    toggleChecked: {
+      keys: [[Key.Mod, "Enter"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleTodoChecked, undefined, {
           readOnly: editor.dom.readOnly,
         });
       },
@@ -677,6 +724,7 @@ function listBreakAbove(source: object): {
     indent?: number;
     listRestart?: number;
     listRestartPolite?: number;
+    checked?: boolean;
   };
   unset: string[];
 } {
@@ -685,6 +733,7 @@ function listBreakAbove(source: object): {
     indent?: number;
     listRestart?: number;
     listRestartPolite?: number;
+    checked?: boolean;
   } = {};
   const unset: string[] = [];
   if (
@@ -698,6 +747,11 @@ function listBreakAbove(source: object): {
 
   attrs.listStyleType = source.listStyleType;
   attrs.indent = source.indent;
+  // The new first item is a fresh todo. Plate writes checked: false for that, and the
+  // original item keeps the checked value it already has.
+  if (source.listStyleType === KEYS.listTodo) {
+    attrs.checked = false;
+  }
   if ("listRestart" in source && typeof source.listRestart === "number") {
     attrs.listRestart = source.listRestart;
     unset.push(KEYS.listRestart);

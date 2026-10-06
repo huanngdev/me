@@ -454,10 +454,12 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
 
 export const BULLETED_LIST_TYPE = "bulleted-list";
 export const NUMBERED_LIST_TYPE = "numbered-list";
+export const TODO_LIST_TYPE = "todo-list";
 
 const LIST_BLOCK_TYPE = {
   disc: BULLETED_LIST_TYPE,
   decimal: NUMBERED_LIST_TYPE,
+  todo: TODO_LIST_TYPE,
 } as const;
 
 function isReportedListStyle(style: string): style is keyof typeof LIST_BLOCK_TYPE {
@@ -547,6 +549,7 @@ export const TURN_INTO_HEADING = {
 const TOGGLE_LIST_COMMAND = {
   disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },
   decimal: { id: "block.turn-into.numbered-list", label: "Numbered list" },
+  todo: { id: "block.turn-into.todo-list", label: "To-do list" },
 } as const satisfies Record<ListStyle, { id: string; label: string }>;
 
 function paragraphEntries(editor: SlateEditor) {
@@ -584,6 +587,64 @@ export function createToggleList(style: ListStyle): EditorCommand {
 
 export const toggleBulletedList = createToggleList("disc");
 export const toggleNumberedList = createToggleList("decimal");
+export const toggleTodoList = createToggleList("todo");
+
+function isTodoItem(node: TElement): boolean {
+  return node.type === KEYS.p && node.listStyleType === KEYS.listTodo;
+}
+
+function todoEntries(editor: SlateEditor) {
+  const selection = editor.selection;
+  if (!selection) {
+    return [];
+  }
+
+  return [
+    ...editor.api.nodes({
+      at: selection,
+      block: true,
+      match: (node) => ElementApi.isElement(node) && isTodoItem(node),
+    }),
+  ];
+}
+
+function isCheckedTodo(node: TElement): boolean {
+  return "checked" in node && node.checked === true;
+}
+
+// Plate's setIndentTodoNode writes checked: false (src-D073vI9-.js). There is no
+// toggle-checked transform; useTodoListElement sets { checked } on one path.
+export function writeChecked(
+  editor: SlateEditor,
+  paths: readonly (readonly number[])[],
+  checked: boolean,
+): void {
+  editor.tf.withoutNormalizing(() => {
+    for (const path of paths) {
+      editor.tf.setNodes({ [KEYS.listChecked]: checked }, { at: [...path] });
+    }
+  });
+}
+
+export const toggleTodoChecked: EditorCommand = {
+  id: "format.todo-checked",
+  label: "Check to-do",
+  group: "format",
+  isEnabled: (editor) => todoEntries(editor).length > 0,
+  run: (editor) => {
+    const entries = todoEntries(editor);
+    if (entries.length === 0) {
+      return;
+    }
+
+    const checkAll = entries.some(([node]) => ElementApi.isElement(node) && !isCheckedTodo(node));
+    writeChecked(
+      editor,
+      entries.map((entry) => entry[1]),
+      checkAll,
+    );
+  },
+};
 
 function decimalItemAtCaret(editor: SlateEditor): boolean {
   const block = editor.api.block()?.[0];

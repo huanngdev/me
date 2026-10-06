@@ -14,7 +14,7 @@ export type AttrRequirement = {
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
-  attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
+  attrValues?: Readonly<Record<string, readonly (string | number | boolean)[]>>;
   /** Inclusive integer range. Literal lists cannot express one. */
   attrRanges?: Readonly<Record<string, IntegerAttrRange>>;
   /** A dependent attribute is stored only when `attr` is present, allowed, and in `values`. */
@@ -73,7 +73,7 @@ export const LIST_INDENTS = [1, 2, 3, 4, 5, 6] as const;
 export type ListIndent = (typeof LIST_INDENTS)[number];
 
 // Stored list styles. Marker cycles (circle, lower-alpha, …) are rendering only.
-export const LIST_STYLES = ["disc", "decimal"] as const;
+export const LIST_STYLES = ["disc", "decimal", "todo"] as const;
 
 export type ListStyle = (typeof LIST_STYLES)[number];
 
@@ -98,12 +98,14 @@ export const EDITOR_ELEMENT_RULES = [
       "listStart",
       "listRestart",
       "listRestartPolite",
+      "checked",
     ],
     attrValues: {
       align: TEXT_ALIGNS,
       lineHeight: LINE_HEIGHTS,
       indent: LIST_INDENTS,
       listStyleType: LIST_STYLES,
+      checked: [true, false],
     },
     attrRanges: {
       listStart: LIST_NUMBER_RANGE,
@@ -111,13 +113,15 @@ export const EDITOR_ELEMENT_RULES = [
       listRestartPolite: LIST_NUMBER_RANGE,
     },
     // Standalone block indent is a later task. Indent is kept only with a list style.
-    // Numbering attrs are kept only on decimal items. Plate deletes listStart on disc
-    // and leaves listRestart, so a disc item would not round-trip those attrs.
+    // Numbering attrs are kept only on decimal items. checked is kept only on todo items.
+    // Plate deletes listStart on disc and leaves listRestart, so a disc item would not
+    // round-trip those attrs.
     attrRequires: {
       indent: { attr: "listStyleType" },
       listStart: { attr: "listStyleType", values: ["decimal"] },
       listRestart: { attr: "listStyleType", values: ["decimal"] },
       listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
+      checked: { attr: "listStyleType", values: ["todo"] },
     },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
@@ -146,7 +150,9 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = ruleMaps<readonly (string | number)[]>((rule) => rule.attrValues);
+const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>(
+  (rule) => rule.attrValues,
+);
 
 const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
   "attrRanges" in rule ? rule.attrRanges : undefined,
@@ -236,7 +242,7 @@ export function unsatisfiedDependentAttrs(type: string, node: Record<string, unk
 export function allowedElementAttrValues(
   type: string,
   attr: string,
-): readonly (string | number)[] | undefined {
+): readonly (string | number | boolean)[] | undefined {
   return elementAttrValues.get(type)?.get(attr);
 }
 
@@ -271,12 +277,12 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return isAllowedValue(value, values);
 }
 
-export function isAllowedValue<T extends string | number>(
+export function isAllowedValue<T extends string | number | boolean>(
   value: unknown,
   values: readonly T[],
 ): value is T {
   return (
-    (typeof value === "string" || typeof value === "number") &&
+    (typeof value === "string" || typeof value === "number" || typeof value === "boolean") &&
     values.some((allowed) => allowed === value)
   );
 }

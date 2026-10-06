@@ -1,8 +1,16 @@
 import { isOrderedList } from "@platejs/list";
-import { PlateElement, type PlateElementProps, type RenderNodeWrapper } from "platejs/react";
+import { KEYS } from "platejs";
+import {
+  PlateElement,
+  useReadOnly,
+  type PlateElementProps,
+  type RenderNodeWrapper,
+} from "platejs/react";
 
+import { Checkbox } from "@/components/checkbox";
 import { cn } from "@/lib/utils";
 
+import { writeChecked } from "./editor-commands";
 import { LIST_INDENTS, type ListIndent } from "./editor-document-schema";
 
 // Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
@@ -70,6 +78,63 @@ function storedListStyle(element: PlateElementProps["element"]): string {
   return typeof element.listStyleType === "string" ? element.listStyleType : "disc";
 }
 
+export function todoTextId(blockId: string): string {
+  return `todo-text-${blockId}`;
+}
+
+function blockIdOf(element: PlateElementProps["element"]): string | undefined {
+  if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
+    return undefined;
+  }
+
+  return element.id;
+}
+
+function isChecked(element: PlateElementProps["element"]): boolean {
+  return "checked" in element && element.checked === true;
+}
+
+// useTodoListElement prevents mousedown so the editor selection stays put
+// (react/index.js). The checkbox stays focusable for Space and Enter.
+function TodoCheck({
+  checked,
+  editor,
+  element,
+}: {
+  checked: boolean;
+  editor: PlateElementProps["editor"];
+  element: PlateElementProps["element"];
+}) {
+  const readOnly = useReadOnly();
+  const blockId = blockIdOf(element);
+
+  return (
+    <span contentEditable={false} className="absolute top-1 -left-5 flex">
+      <Checkbox
+        checked={checked}
+        disabled={readOnly}
+        aria-labelledby={blockId ? todoTextId(blockId) : undefined}
+        aria-label={blockId ? undefined : "To-do"}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onCheckedChange={(value) => {
+          if (readOnly || value === "indeterminate") {
+            return;
+          }
+
+          const path = editor.api.findPath(element);
+          if (!path) {
+            return;
+          }
+
+          writeChecked(editor, [path], value);
+        }}
+      />
+    </span>
+  );
+}
+
 // The gap between items is a sibling rule on the editor surface. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
   const listStyleType = element.listStyleType;
@@ -91,6 +156,26 @@ export const BlockList: RenderNodeWrapper = (props) => {
     const element = nodeProps.element;
     const stored = storedListStyle(element);
     const indent = listIndent(element);
+    if (stored === KEYS.listTodo) {
+      const checked = isChecked(element);
+      const blockId = blockIdOf(element);
+
+      return (
+        <ul className={cn("relative m-0 list-none py-0 pr-0", listIndentClass(stored, indent))}>
+          <li className="relative">
+            <TodoCheck checked={checked} editor={nodeProps.editor} element={element} />
+            <span
+              id={blockId ? todoTextId(blockId) : undefined}
+              data-checked={checked ? "" : undefined}
+              className="data-checked:text-muted-foreground data-checked:line-through"
+            >
+              {nodeProps.children}
+            </span>
+          </li>
+        </ul>
+      );
+    }
+
     const ordered = isOrderedList(element);
     const Tag = ordered ? "ol" : "ul";
     const listStart = element.listStart;

@@ -237,6 +237,42 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-todo-1",
+    indent: 1,
+    listStyleType: "todo",
+    checked: true,
+    children: [{ text: "Write the spec." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-2",
+    indent: 1,
+    listStyleType: "todo",
+    checked: false,
+    children: [{ text: "Ship the to-do list." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-3",
+    indent: 2,
+    listStyleType: "todo",
+    checked: false,
+    children: [{ text: "Nested tasks keep their own state." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-4",
+    indent: 1,
+    listStyleType: "todo",
+    checked: false,
+    children: [
+      {
+        text: "Press Cmd+Shift+9 or Ctrl+Shift+9 to make a to-do, and Cmd+Enter or Ctrl+Enter to check it.",
+      },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

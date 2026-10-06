@@ -155,6 +155,32 @@ describe("demo document", () => {
     expect(field(numberedTail, "indent")).toBe(1);
     expect(field(numberedTail, "listStart")).toBe(2);
     expect(textOf(numberedTail)).toBe("Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering.");
+
+    const todo = DEMO_DOCUMENT_VALUE[clear + 8];
+    const openTodo = DEMO_DOCUMENT_VALUE[clear + 9];
+    const nestedTodo = DEMO_DOCUMENT_VALUE[clear + 10];
+    const todoHint = DEMO_DOCUMENT_VALUE[clear + 11];
+    if (!todo || !openTodo || !nestedTodo || !todoHint) {
+      throw new Error("Missing to-do lists.");
+    }
+
+    expect(todo.id).toBe("demo-todo-1");
+    expect(field(todo, "listStyleType")).toBe("todo");
+    expect(field(todo, "indent")).toBe(1);
+    expect(field(todo, "checked")).toBe(true);
+    expect(textOf(todo)).toBe("Write the spec.");
+    expect(openTodo.id).toBe("demo-todo-2");
+    expect(field(openTodo, "checked")).toBe(false);
+    expect(textOf(openTodo)).toBe("Ship the to-do list.");
+    expect(nestedTodo.id).toBe("demo-todo-3");
+    expect(field(nestedTodo, "indent")).toBe(2);
+    expect(field(nestedTodo, "checked")).toBe(false);
+    expect(textOf(nestedTodo)).toBe("Nested tasks keep their own state.");
+    expect(todoHint.id).toBe("demo-todo-4");
+    expect(field(todoHint, "checked")).toBe(false);
+    expect(textOf(todoHint)).toBe(
+      "Press Cmd+Shift+9 or Ctrl+Shift+9 to make a to-do, and Cmd+Enter or Ctrl+Enter to check it.",
+    );
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {

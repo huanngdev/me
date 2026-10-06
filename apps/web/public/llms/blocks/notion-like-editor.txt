@@ -74,7 +74,7 @@ export type AttrRequirement = {
 export type EditorElementRule = {
   type: string;
   attrs: readonly string[];
-  attrValues?: Readonly<Record<string, readonly (string | number)[]>>;
+  attrValues?: Readonly<Record<string, readonly (string | number | boolean)[]>>;
   /** Inclusive integer range. Literal lists cannot express one. */
   attrRanges?: Readonly<Record<string, IntegerAttrRange>>;
   /** A dependent attribute is stored only when `attr` is present, allowed, and in `values`. */
@@ -133,7 +133,7 @@ export const LIST_INDENTS = [1, 2, 3, 4, 5, 6] as const;
 export type ListIndent = (typeof LIST_INDENTS)[number];
 
 // Stored list styles. Marker cycles (circle, lower-alpha, …) are rendering only.
-export const LIST_STYLES = ["disc", "decimal"] as const;
+export const LIST_STYLES = ["disc", "decimal", "todo"] as const;
 
 export type ListStyle = (typeof LIST_STYLES)[number];
 
@@ -158,12 +158,14 @@ export const EDITOR_ELEMENT_RULES = [
       "listStart",
       "listRestart",
       "listRestartPolite",
+      "checked",
     ],
     attrValues: {
       align: TEXT_ALIGNS,
       lineHeight: LINE_HEIGHTS,
       indent: LIST_INDENTS,
       listStyleType: LIST_STYLES,
+      checked: [true, false],
     },
     attrRanges: {
       listStart: LIST_NUMBER_RANGE,
@@ -171,13 +173,15 @@ export const EDITOR_ELEMENT_RULES = [
       listRestartPolite: LIST_NUMBER_RANGE,
     },
     // Standalone block indent is a later task. Indent is kept only with a list style.
-    // Numbering attrs are kept only on decimal items. Plate deletes listStart on disc
-    // and leaves listRestart, so a disc item would not round-trip those attrs.
+    // Numbering attrs are kept only on decimal items. checked is kept only on todo items.
+    // Plate deletes listStart on disc and leaves listRestart, so a disc item would not
+    // round-trip those attrs.
     attrRequires: {
       indent: { attr: "listStyleType" },
       listStart: { attr: "listStyleType", values: ["decimal"] },
       listRestart: { attr: "listStyleType", values: ["decimal"] },
       listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
+      checked: { attr: "listStyleType", values: ["todo"] },
     },
   },
   // Headings do not take lineHeight. Their leading is fixed by the heading component.
@@ -206,7 +210,9 @@ const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
 
-const elementAttrValues = ruleMaps<readonly (string | number)[]>((rule) => rule.attrValues);
+const elementAttrValues = ruleMaps<readonly (string | number | boolean)[]>(
+  (rule) => rule.attrValues,
+);
 
 const elementAttrRanges = ruleMaps<IntegerAttrRange>((rule) =>
   "attrRanges" in rule ? rule.attrRanges : undefined,
@@ -296,7 +302,7 @@ export function unsatisfiedDependentAttrs(type: string, node: Record<string, unk
 export function allowedElementAttrValues(
   type: string,
   attr: string,
-): readonly (string | number)[] | undefined {
+): readonly (string | number | boolean)[] | undefined {
   return elementAttrValues.get(type)?.get(attr);
 }
 
@@ -331,12 +337,12 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return isAllowedValue(value, values);
 }
 
-export function isAllowedValue<T extends string | number>(
+export function isAllowedValue<T extends string | number | boolean>(
   value: unknown,
   values: readonly T[],
 ): value is T {
   return (
-    (typeof value === "string" || typeof value === "number") &&
+    (typeof value === "string" || typeof value === "number" || typeof value === "boolean") &&
     values.some((allowed) => allowed === value)
   );
 }
@@ -1310,6 +1316,8 @@ import {
   runEditorCommand,
   toggleBulletedList,
   toggleNumberedList,
+  toggleTodoChecked,
+  toggleTodoList,
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
@@ -1728,6 +1736,21 @@ function storedListStyle(style: string | undefined): "disc" | "decimal" | undefi
   return undefined;
 }
 
+// Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
+// The input has no text, and the HTML deserializer drops it, so this only reads.
+export function pastedTodoChecked(element: HTMLElement): boolean | undefined {
+  const input = element.querySelector('input[type="checkbox"]');
+  if (input) {
+    return input.hasAttribute("checked");
+  }
+
+  if (element.getAttribute("role") === "checkbox" || element.hasAttribute("aria-checked")) {
+    return element.getAttribute("aria-checked") === "true";
+  }
+
+  return undefined;
+}
+
 // Plate's LI parser ignores ol start. The first item stores listRestart so normalizeListStart
 // can derive listStart. start="1" is omitted; that is Plate's default.
 function listRestartFromStart(element: HTMLElement): number | undefined {
@@ -1757,8 +1780,12 @@ const listPlugin = ListPlugin.configure({
   options: {
     // Plate's normalizer passes breakOnEqIndentNeqListStyleType: false, then spreads these
     // options, so a bullet at the same depth ends the numbered run.
+    // normalizeListStart treats every non-bullet style, including "todo", as ordered and
+    // would write listStart on the next to-do. A to-do is not a numbered run, so that search stops.
     getSiblingListOptions: {
       breakOnEqIndentNeqListStyleType: true,
+      breakQuery: (_sibling, current) =>
+        "listStyleType" in current && current.listStyleType === KEYS.listTodo,
     },
   },
   parsers: {
@@ -1768,6 +1795,16 @@ const listPlugin = ListPlugin.configure({
           const dataIndent = element.dataset.indent;
           const ariaLevel = element.getAttribute("aria-level");
           const indent = dataIndent ? Number(dataIndent) : Number(ariaLevel);
+          const checked = pastedTodoChecked(element);
+          if (checked !== undefined) {
+            return {
+              checked,
+              indent: indent || undefined,
+              listStyleType: KEYS.listTodo,
+              type: editor.getType(KEYS.p),
+            };
+          }
+
           const listStyleType = storedListStyle(element.dataset.listStyleType);
           const listRestart = listRestartFromStart(element);
 
@@ -1797,6 +1834,22 @@ const listPlugin = ListPlugin.configure({
       keys: [[Key.Mod, Key.Shift, "7"]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleNumberedList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+    toggleTodo: {
+      keys: [[Key.Mod, Key.Shift, "9"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleTodoList, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+    toggleChecked: {
+      keys: [[Key.Mod, "Enter"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, toggleTodoChecked, undefined, {
           readOnly: editor.dom.readOnly,
         });
       },
@@ -1941,6 +1994,7 @@ function listBreakAbove(source: object): {
     indent?: number;
     listRestart?: number;
     listRestartPolite?: number;
+    checked?: boolean;
   };
   unset: string[];
 } {
@@ -1949,6 +2003,7 @@ function listBreakAbove(source: object): {
     indent?: number;
     listRestart?: number;
     listRestartPolite?: number;
+    checked?: boolean;
   } = {};
   const unset: string[] = [];
   if (
@@ -1962,6 +2017,11 @@ function listBreakAbove(source: object): {
 
   attrs.listStyleType = source.listStyleType;
   attrs.indent = source.indent;
+  // The new first item is a fresh todo. Plate writes checked: false for that, and the
+  // original item keeps the checked value it already has.
+  if (source.listStyleType === KEYS.listTodo) {
+    attrs.checked = false;
+  }
   if ("listRestart" in source && typeof source.listRestart === "number") {
     attrs.listRestart = source.listRestart;
     unset.push(KEYS.listRestart);
@@ -2098,10 +2158,18 @@ export function HeadingElement({ attributes, element, ...props }: PlateElementPr
 ## packages/core/src/components/blocks/notion-like-editor/block-list.tsx
 ```tsx
 import { isOrderedList } from "@platejs/list";
-import { PlateElement, type PlateElementProps, type RenderNodeWrapper } from "platejs/react";
+import { KEYS } from "platejs";
+import {
+  PlateElement,
+  useReadOnly,
+  type PlateElementProps,
+  type RenderNodeWrapper,
+} from "platejs/react";
 
+import { Checkbox } from "@/components/checkbox";
 import { cn } from "@/lib/utils";
 
+import { writeChecked } from "./editor-commands";
 import { LIST_INDENTS, type ListIndent } from "./editor-document-schema";
 
 // Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
@@ -2169,6 +2237,63 @@ function storedListStyle(element: PlateElementProps["element"]): string {
   return typeof element.listStyleType === "string" ? element.listStyleType : "disc";
 }
 
+export function todoTextId(blockId: string): string {
+  return `todo-text-${blockId}`;
+}
+
+function blockIdOf(element: PlateElementProps["element"]): string | undefined {
+  if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
+    return undefined;
+  }
+
+  return element.id;
+}
+
+function isChecked(element: PlateElementProps["element"]): boolean {
+  return "checked" in element && element.checked === true;
+}
+
+// useTodoListElement prevents mousedown so the editor selection stays put
+// (react/index.js). The checkbox stays focusable for Space and Enter.
+function TodoCheck({
+  checked,
+  editor,
+  element,
+}: {
+  checked: boolean;
+  editor: PlateElementProps["editor"];
+  element: PlateElementProps["element"];
+}) {
+  const readOnly = useReadOnly();
+  const blockId = blockIdOf(element);
+
+  return (
+    <span contentEditable={false} className="absolute top-1 -left-5 flex">
+      <Checkbox
+        checked={checked}
+        disabled={readOnly}
+        aria-labelledby={blockId ? todoTextId(blockId) : undefined}
+        aria-label={blockId ? undefined : "To-do"}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onCheckedChange={(value) => {
+          if (readOnly || value === "indeterminate") {
+            return;
+          }
+
+          const path = editor.api.findPath(element);
+          if (!path) {
+            return;
+          }
+
+          writeChecked(editor, [path], value);
+        }}
+      />
+    </span>
+  );
+}
+
 // The gap between items is a sibling rule on the editor surface. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
   const listStyleType = element.listStyleType;
@@ -2190,6 +2315,26 @@ export const BlockList: RenderNodeWrapper = (props) => {
     const element = nodeProps.element;
     const stored = storedListStyle(element);
     const indent = listIndent(element);
+    if (stored === KEYS.listTodo) {
+      const checked = isChecked(element);
+      const blockId = blockIdOf(element);
+
+      return (
+        <ul className={cn("relative m-0 list-none py-0 pr-0", listIndentClass(stored, indent))}>
+          <li className="relative">
+            <TodoCheck checked={checked} editor={nodeProps.editor} element={element} />
+            <span
+              id={blockId ? todoTextId(blockId) : undefined}
+              data-checked={checked ? "" : undefined}
+              className="data-checked:text-muted-foreground data-checked:line-through"
+            >
+              {nodeProps.children}
+            </span>
+          </li>
+        </ul>
+      );
+    }
+
     const ordered = isOrderedList(element);
     const Tag = ordered ? "ol" : "ul";
     const listStart = element.listStart;
@@ -2683,10 +2828,12 @@ function selectionHasClearableMark(editor: SlateEditor): boolean {
 
 export const BULLETED_LIST_TYPE = "bulleted-list";
 export const NUMBERED_LIST_TYPE = "numbered-list";
+export const TODO_LIST_TYPE = "todo-list";
 
 const LIST_BLOCK_TYPE = {
   disc: BULLETED_LIST_TYPE,
   decimal: NUMBERED_LIST_TYPE,
+  todo: TODO_LIST_TYPE,
 } as const;
 
 function isReportedListStyle(style: string): style is keyof typeof LIST_BLOCK_TYPE {
@@ -2776,6 +2923,7 @@ export const TURN_INTO_HEADING = {
 const TOGGLE_LIST_COMMAND = {
   disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },
   decimal: { id: "block.turn-into.numbered-list", label: "Numbered list" },
+  todo: { id: "block.turn-into.todo-list", label: "To-do list" },
 } as const satisfies Record<ListStyle, { id: string; label: string }>;
 
 function paragraphEntries(editor: SlateEditor) {
@@ -2813,6 +2961,64 @@ export function createToggleList(style: ListStyle): EditorCommand {
 
 export const toggleBulletedList = createToggleList("disc");
 export const toggleNumberedList = createToggleList("decimal");
+export const toggleTodoList = createToggleList("todo");
+
+function isTodoItem(node: TElement): boolean {
+  return node.type === KEYS.p && node.listStyleType === KEYS.listTodo;
+}
+
+function todoEntries(editor: SlateEditor) {
+  const selection = editor.selection;
+  if (!selection) {
+    return [];
+  }
+
+  return [
+    ...editor.api.nodes({
+      at: selection,
+      block: true,
+      match: (node) => ElementApi.isElement(node) && isTodoItem(node),
+    }),
+  ];
+}
+
+function isCheckedTodo(node: TElement): boolean {
+  return "checked" in node && node.checked === true;
+}
+
+// Plate's setIndentTodoNode writes checked: false (src-D073vI9-.js). There is no
+// toggle-checked transform; useTodoListElement sets { checked } on one path.
+export function writeChecked(
+  editor: SlateEditor,
+  paths: readonly (readonly number[])[],
+  checked: boolean,
+): void {
+  editor.tf.withoutNormalizing(() => {
+    for (const path of paths) {
+      editor.tf.setNodes({ [KEYS.listChecked]: checked }, { at: [...path] });
+    }
+  });
+}
+
+export const toggleTodoChecked: EditorCommand = {
+  id: "format.todo-checked",
+  label: "Check to-do",
+  group: "format",
+  isEnabled: (editor) => todoEntries(editor).length > 0,
+  run: (editor) => {
+    const entries = todoEntries(editor);
+    if (entries.length === 0) {
+      return;
+    }
+
+    const checkAll = entries.some(([node]) => ElementApi.isElement(node) && !isCheckedTodo(node));
+    writeChecked(
+      editor,
+      entries.map((entry) => entry[1]),
+      checkAll,
+    );
+  },
+};
 
 function decimalItemAtCaret(editor: SlateEditor): boolean {
   const block = editor.api.block()?.[0];
@@ -5158,6 +5364,42 @@ export const DEMO_DOCUMENT_VALUE = [
     listStyleType: "decimal",
     listStart: 2,
     children: [{ text: "Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-1",
+    indent: 1,
+    listStyleType: "todo",
+    checked: true,
+    children: [{ text: "Write the spec." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-2",
+    indent: 1,
+    listStyleType: "todo",
+    checked: false,
+    children: [{ text: "Ship the to-do list." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-3",
+    indent: 2,
+    listStyleType: "todo",
+    checked: false,
+    children: [{ text: "Nested tasks keep their own state." }],
+  },
+  {
+    type: "p",
+    id: "demo-todo-4",
+    indent: 1,
+    listStyleType: "todo",
+    checked: false,
+    children: [
+      {
+        text: "Press Cmd+Shift+9 or Ctrl+Shift+9 to make a to-do, and Cmd+Enter or Ctrl+Enter to check it.",
+      },
+    ],
   },
   {
     type: "p",
