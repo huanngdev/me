@@ -18,6 +18,7 @@ import {
 import {
   KEYS,
   NodeIdPlugin,
+  createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
   type SlateEditor,
@@ -25,6 +26,7 @@ import {
 import { Key } from "platejs/react";
 
 import {
+  clearFormatting,
   formatBold,
   formatCode,
   formatItalic,
@@ -346,6 +348,21 @@ const lineHeightPlugin = LineHeightPlugin.configure({
   },
 });
 
+// "Backslash" is KeyboardEvent.code Backslash, the Mod+\ key. Plate has no clear-formatting plugin.
+const clearFormattingPlugin = createSlatePlugin({
+  key: "clearFormatting",
+  shortcuts: {
+    clear: {
+      keys: [[Key.Mod, "Backslash"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, clearFormatting, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -364,6 +381,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontFamilyPlugin,
     TextAlignPlugin,
     lineHeightPlugin,
+    clearFormattingPlugin,
     PasteFallbackPlugin,
   ];
 }

@@ -2,6 +2,7 @@ import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-st
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
+  CLEARABLE_MARK_KEYS,
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
@@ -405,6 +406,48 @@ export const setLineHeight: EditorCommand<LineHeight | null> = createBlockAttrCo
     setPlateLineHeight(editor, value === null ? PLATE_DEFAULT_LINE_HEIGHT : value);
   },
 });
+
+function isSetMark(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== false && value !== "";
+}
+
+function hasClearableMark(marks: object): boolean {
+  return CLEARABLE_MARK_KEYS.some((key) => key in marks && isSetMark(Reflect.get(marks, key)));
+}
+
+// An expanded selection's marks() result is only the first leaf.
+function selectionHasClearableMark(editor: SlateEditor): boolean {
+  const selection = editor.selection;
+  if (!selection) {
+    return false;
+  }
+
+  if (RangeApi.isCollapsed(selection)) {
+    const marks = editor.api.marks();
+    return marks !== null && hasClearableMark(marks);
+  }
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => TextApi.isText(candidate),
+  })) {
+    if (TextApi.isText(node) && hasClearableMark(node)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export const clearFormatting: EditorCommand = {
+  id: "format.clear",
+  label: "Clear formatting",
+  group: "format",
+  isEnabled: selectionHasClearableMark,
+  run: (editor) => {
+    editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

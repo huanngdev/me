@@ -255,6 +255,20 @@ describe("demo document", () => {
     expect(field(block, "lineHeight")).toBe(2);
   });
 
+  test("the clear formatting paragraph marks formatted text", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-clear");
+    if (!block) {
+      throw new Error("Missing clear formatting paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "bold") === true)
+      .map((child) => [child.text, field(child, "italic"), field(child, "color")]);
+
+    expect(textOf(block)).toBe("Select formatted text and press Cmd+\\ or Ctrl+\\ to clear it.");
+    expect(marked).toEqual([["formatted text", true, "red"]]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

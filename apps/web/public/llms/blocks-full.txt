@@ -2516,6 +2516,8 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.fontFamily, values: FONT_FAMILIES },
 ];
 
+export const CLEARABLE_MARK_KEYS: readonly string[] = EDITOR_MARK_RULES.map((rule) => rule.type);
+
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
@@ -2539,7 +2541,7 @@ function attrValueMap(
   return values;
 }
 
-const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
+const allowedMarks = new Set<string>(CLEARABLE_MARK_KEYS);
 
 const markValues = new Map<string, readonly string[]>(
   EDITOR_MARK_RULES.flatMap((rule) =>
@@ -3516,6 +3518,7 @@ import {
 import {
   KEYS,
   NodeIdPlugin,
+  createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
   type SlateEditor,
@@ -3523,6 +3526,7 @@ import {
 import { Key } from "platejs/react";
 
 import {
+  clearFormatting,
   formatBold,
   formatCode,
   formatItalic,
@@ -3844,6 +3848,21 @@ const lineHeightPlugin = LineHeightPlugin.configure({
   },
 });
 
+// "Backslash" is KeyboardEvent.code Backslash, the Mod+\ key. Plate has no clear-formatting plugin.
+const clearFormattingPlugin = createSlatePlugin({
+  key: "clearFormatting",
+  shortcuts: {
+    clear: {
+      keys: [[Key.Mod, "Backslash"]],
+      handler: ({ editor }) => {
+        runEditorCommand(editor, clearFormatting, undefined, {
+          readOnly: editor.dom.readOnly,
+        });
+      },
+    },
+  },
+});
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
 export function createEditorPlugins(): AnyPluginConfig[] {
@@ -3862,6 +3881,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     fontFamilyPlugin,
     TextAlignPlugin,
     lineHeightPlugin,
+    clearFormattingPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -3890,6 +3910,7 @@ import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-st
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
 import {
+  CLEARABLE_MARK_KEYS,
   FONT_FAMILIES,
   FONT_SIZES,
   HIGHLIGHT_TOKENS,
@@ -4293,6 +4314,48 @@ export const setLineHeight: EditorCommand<LineHeight | null> = createBlockAttrCo
     setPlateLineHeight(editor, value === null ? PLATE_DEFAULT_LINE_HEIGHT : value);
   },
 });
+
+function isSetMark(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== false && value !== "";
+}
+
+function hasClearableMark(marks: object): boolean {
+  return CLEARABLE_MARK_KEYS.some((key) => key in marks && isSetMark(Reflect.get(marks, key)));
+}
+
+// An expanded selection's marks() result is only the first leaf.
+function selectionHasClearableMark(editor: SlateEditor): boolean {
+  const selection = editor.selection;
+  if (!selection) {
+    return false;
+  }
+
+  if (RangeApi.isCollapsed(selection)) {
+    const marks = editor.api.marks();
+    return marks !== null && hasClearableMark(marks);
+  }
+
+  for (const [node] of editor.api.nodes({
+    at: selection,
+    match: (candidate) => TextApi.isText(candidate),
+  })) {
+    if (TextApi.isText(node) && hasClearableMark(node)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export const clearFormatting: EditorCommand = {
+  id: "format.clear",
+  label: "Clear formatting",
+  group: "format",
+  isEnabled: selectionHasClearableMark,
+  run: (editor) => {
+    editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
+  },
+};
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -6516,6 +6579,15 @@ export const DEMO_DOCUMENT_VALUE = [
       {
         text: "This paragraph uses double line height, so its wrapped lines sit further apart than the others. A second line stays in this same block.",
       },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-clear",
+    children: [
+      { text: "Select " },
+      { text: "formatted text", bold: true, italic: true, color: "red" },
+      { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
     ],
   },
   {

@@ -74,6 +74,8 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.fontFamily, values: FONT_FAMILIES },
 ];
 
+export const CLEARABLE_MARK_KEYS: readonly string[] = EDITOR_MARK_RULES.map((rule) => rule.type);
+
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
@@ -97,7 +99,7 @@ function attrValueMap(
   return values;
 }
 
-const allowedMarks = new Set<string>(EDITOR_MARK_RULES.map((rule) => rule.type));
+const allowedMarks = new Set<string>(CLEARABLE_MARK_KEYS);
 
 const markValues = new Map<string, readonly string[]>(
   EDITOR_MARK_RULES.flatMap((rule) =>

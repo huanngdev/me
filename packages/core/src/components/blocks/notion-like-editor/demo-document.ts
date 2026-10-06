@@ -165,6 +165,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-clear",
+    children: [
+      { text: "Select " },
+      { text: "formatted text", bold: true, italic: true, color: "red" },
+      { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {
