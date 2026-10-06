@@ -77,6 +77,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.underline },
   { type: KEYS.strikethrough },
   { type: KEYS.code },
+  { type: KEYS.sup },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -958,6 +959,7 @@ import {
   CodePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
+  SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
 import { NodeIdPlugin, someHtmlElement, type AnyPluginConfig, type SlateEditor } from "platejs";
@@ -968,6 +970,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSuperscript,
   formatUnderline,
   runEditorCommand,
   type EditorCommand,
@@ -1094,6 +1097,10 @@ const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
   keys: [[Key.Mod, "e"]],
   className: codeLeafClassName,
 });
+// SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
+const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
+  keys: [[Key.Mod, "period"]],
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
@@ -1105,6 +1112,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     underlinePlugin,
     strikethroughPlugin,
     codePlugin,
+    superscriptPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -1192,8 +1200,12 @@ function markState(editor: SlateEditor, key: string): MarkState {
   return sawMarked ? "on" : "off";
 }
 
-export function createMarkCommand(options: { key: string; label: string }): EditorCommand {
-  const { key, label } = options;
+export function createMarkCommand(options: {
+  key: string;
+  label: string;
+  excludes?: readonly string[];
+}): EditorCommand {
+  const { key, label, excludes } = options;
   const state = (editor: SlateEditor): MarkState => markState(editor, key);
 
   return {
@@ -1204,6 +1216,15 @@ export function createMarkCommand(options: { key: string; label: string }): Edit
     run: (editor) => {
       if (state(editor) === "on") {
         editor.tf.removeMark(key);
+        return;
+      }
+
+      // Plate's toggleMark applies `remove` only while adding the mark.
+      if (excludes !== undefined && excludes.length > 0) {
+        editor.tf.withoutNormalizing(() => {
+          editor.tf.removeMarks([...excludes]);
+          editor.tf.addMark(key, true);
+        });
         return;
       }
 
@@ -1235,6 +1256,12 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
 export const formatCode: EditorCommand = createMarkCommand({
   key: KEYS.code,
   label: "Inline code",
+});
+
+export const formatSuperscript: EditorCommand = createMarkCommand({
+  key: KEYS.sup,
+  label: "Superscript",
+  excludes: [KEYS.sub],
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
@@ -3369,6 +3396,17 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "This is " },
       { text: "inline code", code: true },
       { text: ". Press Cmd+E or Ctrl+E." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-superscript",
+    children: [
+      { text: "This is superscript: x" },
+      { text: "2", superscript: true },
+      { text: " and E = mc" },
+      { text: "2", superscript: true },
+      { text: ". Press Cmd+. or Ctrl+." },
     ],
   },
   {

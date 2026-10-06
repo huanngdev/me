@@ -61,8 +61,12 @@ function markState(editor: SlateEditor, key: string): MarkState {
   return sawMarked ? "on" : "off";
 }
 
-export function createMarkCommand(options: { key: string; label: string }): EditorCommand {
-  const { key, label } = options;
+export function createMarkCommand(options: {
+  key: string;
+  label: string;
+  excludes?: readonly string[];
+}): EditorCommand {
+  const { key, label, excludes } = options;
   const state = (editor: SlateEditor): MarkState => markState(editor, key);
 
   return {
@@ -73,6 +77,15 @@ export function createMarkCommand(options: { key: string; label: string }): Edit
     run: (editor) => {
       if (state(editor) === "on") {
         editor.tf.removeMark(key);
+        return;
+      }
+
+      // Plate's toggleMark applies `remove` only while adding the mark.
+      if (excludes !== undefined && excludes.length > 0) {
+        editor.tf.withoutNormalizing(() => {
+          editor.tf.removeMarks([...excludes]);
+          editor.tf.addMark(key, true);
+        });
         return;
       }
 
@@ -104,6 +117,12 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
 export const formatCode: EditorCommand = createMarkCommand({
   key: KEYS.code,
   label: "Inline code",
+});
+
+export const formatSuperscript: EditorCommand = createMarkCommand({
+  key: KEYS.sup,
+  label: "Superscript",
+  excludes: [KEYS.sub],
 });
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [

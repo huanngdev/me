@@ -3,6 +3,7 @@ import {
   CodePlugin,
   ItalicPlugin,
   StrikethroughPlugin,
+  SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
 import { NodeIdPlugin, someHtmlElement, type AnyPluginConfig, type SlateEditor } from "platejs";
@@ -13,6 +14,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSuperscript,
   formatUnderline,
   runEditorCommand,
   type EditorCommand,
@@ -139,6 +141,10 @@ const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
   keys: [[Key.Mod, "e"]],
   className: codeLeafClassName,
 });
+// SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
+const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
+  keys: [[Key.Mod, "period"]],
+});
 
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
@@ -150,6 +156,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     underlinePlugin,
     strikethroughPlugin,
     codePlugin,
+    superscriptPlugin,
     PasteFallbackPlugin,
   ];
 }

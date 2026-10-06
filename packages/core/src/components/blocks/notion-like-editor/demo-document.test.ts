@@ -128,6 +128,20 @@ describe("demo document", () => {
     expect(marked).toEqual(["inline code"]);
   });
 
+  test("the superscript paragraph marks only the two 2 characters", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-superscript");
+    if (!block) {
+      throw new Error("Missing superscript paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "superscript") === true)
+      .map((child) => child.text);
+
+    expect(textOf(block)).toBe("This is superscript: x2 and E = mc2. Press Cmd+. or Ctrl+.");
+    expect(marked).toEqual(["2", "2"]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);

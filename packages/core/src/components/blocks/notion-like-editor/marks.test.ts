@@ -8,6 +8,7 @@ import {
   formatCode,
   formatItalic,
   formatStrikethrough,
+  formatSuperscript,
   formatUnderline,
   runEditorCommand,
   type EditorCommand,
@@ -17,7 +18,7 @@ import { isAllowedMark } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { caret, createEditor, expectOk, field, plainText, textRange } from "./test-utils";
 
-type MarkKey = "bold" | "italic" | "underline" | "strikethrough" | "code";
+type MarkKey = "bold" | "italic" | "underline" | "strikethrough" | "code" | "superscript";
 
 type MarkCase = {
   key: MarkKey;
@@ -27,6 +28,7 @@ type MarkCase = {
   demoId: string;
   sentence: string;
   sample: string;
+  samples?: readonly string[];
 };
 
 type Leaf = {
@@ -36,6 +38,7 @@ type Leaf = {
   underline?: true;
   strikethrough?: true;
   code?: true;
+  superscript?: true;
 };
 
 function shortcutName(keys: readonly string[]): string {
@@ -103,6 +106,19 @@ const MARKS: Array<[string, MarkCase]> = [
       sample: "inline code",
     },
   ],
+  [
+    "superscript",
+    {
+      key: KEYS.sup,
+      label: "superscript",
+      command: formatSuperscript,
+      keys: ["Mod", "period"],
+      demoId: "demo-superscript",
+      sentence: "This is superscript: x2 and E = mc2. Press Cmd+. or Ctrl+.",
+      sample: "2",
+      samples: ["2", "2"],
+    },
+  ],
 ];
 
 function paragraph(text: string) {
@@ -137,6 +153,10 @@ function withMark(text: string, key: MarkKey): Leaf {
 
   if (key === KEYS.code) {
     return { text, code: true };
+  }
+
+  if (key === KEYS.sup) {
+    return { text, superscript: true };
   }
 
   const unreachable: never = key;
@@ -405,10 +425,12 @@ describe.each(MARKS)("%s", (_name, mark) => {
       .filter((child) => field(child, mark.key) === true)
       .map((child) => child.text);
 
+    const expected = mark.samples === undefined ? [mark.sample] : [...mark.samples];
+
     expect(parsed.repairs).toEqual([]);
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(12);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(13);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
-    expect(markedLeaves).toEqual([mark.sample]);
+    expect(markedLeaves).toEqual(expected);
   });
 });
 
@@ -809,5 +831,204 @@ describe("marks", () => {
 
     expect(editor.children[0]?.children).toEqual([{ text: "   ", code: true }]);
     expect(editor.children[0]?.type).toBe("p");
+  });
+
+  test("adding superscript keeps bold and italic on the same text", () => {
+    const editor = createEditor([
+      { type: "p", children: [{ text: "Hello", bold: true, italic: true }] },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      bold: true,
+      italic: true,
+      superscript: true,
+    });
+  });
+
+  test("removing superscript keeps bold and italic on the same text", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [{ text: "Hello", bold: true, italic: true, superscript: true }],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({ text: "Hello", bold: true, italic: true });
+  });
+
+  test("removing superscript keeps bold, italic, underline, strikethrough, and code", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hello",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+            superscript: true,
+          },
+        ],
+      },
+    ]);
+    editor.tf.select(textRange([0, 0], 0, 5));
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(editor.children[0]?.children[0]).toEqual({
+      text: "Hello",
+      bold: true,
+      italic: true,
+      underline: true,
+      strikethrough: true,
+      code: true,
+    });
+  });
+
+  test("bold, italic, underline, strikethrough, code, and superscript on the same text round-trip together", () => {
+    const document = createEditorDocument("doc-six", [
+      {
+        type: "p",
+        id: "p",
+        children: [
+          {
+            text: "Hi",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+            superscript: true,
+          },
+        ],
+      },
+    ]);
+    const serialized: unknown = JSON.parse(serializeEditorDocument(document));
+    const parsed = expectOk(parseEditorDocument(serialized));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(document.content);
+  });
+
+  test("bold, italic, underline, strikethrough, code, and superscript on the same text render as strong, em, u, s, code, and sup", async () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [
+          {
+            text: "Hi",
+            bold: true,
+            italic: true,
+            underline: true,
+            strikethrough: true,
+            code: true,
+            superscript: true,
+          },
+        ],
+      },
+    ]);
+
+    const html = await serializeHtml(editor);
+    const strong = html.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/);
+    const em = html.match(/<em\b[^>]*>([\s\S]*?)<\/em>/);
+    const underline = html.match(/<u\b[^>]*>([\s\S]*?)<\/u>/);
+    const strikethrough = html.match(/<s\b[^>]*>([\s\S]*?)<\/s>/);
+    const code = html.match(/<code\b[^>]*>([\s\S]*?)<\/code>/);
+    const superscript = html.match(/<sup\b[^>]*>([\s\S]*?)<\/sup>/);
+
+    expect(strong?.[1]).toContain("Hi");
+    expect(em?.[1]).toContain("Hi");
+    expect(underline?.[1]).toContain("Hi");
+    expect(strikethrough?.[1]).toContain("Hi");
+    expect(code?.[1]).toContain("Hi");
+    expect(superscript?.[1]).toContain("Hi");
+  });
+});
+
+describe("superscript and subscript", () => {
+  test("superscript and subscript use the plate mark keys, and subscript stays unregistered", () => {
+    const editor = createEditor([paragraph("Hello")]);
+
+    expect(KEYS.sup).toBe("superscript");
+    expect(KEYS.sub).toBe("subscript");
+    expect(isAllowedMark(KEYS.sup)).toBe(true);
+    expect(isAllowedMark(KEYS.sub)).toBe(false);
+    expect(editor.meta.shortcuts[`${KEYS.sub}.toggle`]).toBeUndefined();
+  });
+
+  test("applying superscript to a subscript range removes subscript and sets superscript in one undo step", () => {
+    const editor = createEditor([{ type: "p", children: [{ text: "H2O", [KEYS.sub]: true }] }]);
+    editor.tf.select(textRange([0, 0], 0, 3));
+    const undos = editor.history.undos.length;
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(editor.history.undos.length - undos).toBe(1);
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
+
+    editor.tf.undo();
+
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", subscript: true }]);
+  });
+
+  test("applying superscript to a mixed subscript range marks the whole range and leaves no subscript", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        children: [{ text: "H", [KEYS.sub]: true }, { text: "2O" }],
+      },
+    ]);
+    editor.tf.select({
+      anchor: { path: [0, 0], offset: 0 },
+      focus: { path: [0, 1], offset: 2 },
+    });
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+
+    expect(plainText(editor)).toBe("H2O");
+    expect(editor.children[0]?.children).toEqual([{ text: "H2O", superscript: true }]);
+  });
+
+  test("a caret inside subscript text makes the next typed text superscript and not subscript", () => {
+    const editor = createEditor([{ type: "p", children: [{ text: "H2O", [KEYS.sub]: true }] }]);
+    editor.tf.select(caret([0, 0], 1));
+
+    expect(markState(editor, formatSuperscript)).toBe("off");
+
+    runEditorCommand(editor, formatSuperscript, undefined);
+    editor.tf.insertText("x");
+
+    expect(editor.children[0]?.children).toEqual([
+      { text: "H", subscript: true },
+      { text: "x", superscript: true },
+      { text: "2O", subscript: true },
+    ]);
+  });
+
+  test("removing superscript never adds or removes subscript", () => {
+    const both = createEditor([
+      { type: "p", children: [{ text: "Hi", superscript: true, [KEYS.sub]: true }] },
+    ]);
+    both.tf.select(textRange([0, 0], 0, 2));
+
+    runEditorCommand(both, formatSuperscript, undefined);
+
+    expect(both.children[0]?.children).toEqual([{ text: "Hi", subscript: true }]);
+
+    const only = createEditor([{ type: "p", children: [{ text: "Hi", superscript: true }] }]);
+    only.tf.select(textRange([0, 0], 0, 2));
+
+    runEditorCommand(only, formatSuperscript, undefined);
+
+    expect(only.children[0]?.children).toEqual([{ text: "Hi" }]);
   });
 });

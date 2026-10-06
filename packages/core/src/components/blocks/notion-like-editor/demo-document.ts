@@ -75,6 +75,17 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-superscript",
+    children: [
+      { text: "This is superscript: x" },
+      { text: "2", superscript: true },
+      { text: " and E = mc" },
+      { text: "2", superscript: true },
+      { text: ". Press Cmd+. or Ctrl+." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

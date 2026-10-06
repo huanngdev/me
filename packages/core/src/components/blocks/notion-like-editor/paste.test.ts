@@ -397,6 +397,36 @@ describe("paste", () => {
     expect(serialized).not.toContain("code_block");
   });
 
+  test("pasting sup makes only that text superscript", () => {
+    const editor = pasteHtml("<p>x<sup>2</sup></p>");
+
+    expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "superscript")).toEqual(["2"]);
+  });
+
+  test("pasting vertical-align super makes only that text superscript", () => {
+    const editor = pasteHtml('<p>x<span style="vertical-align: super">2</span></p>');
+
+    expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "superscript")).toEqual(["2"]);
+  });
+
+  test("pasting vertical-align sub stays plain", () => {
+    const editor = pasteHtml('<p>x<span style="vertical-align: sub">2</span></p>');
+
+    expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "superscript")).toEqual([]);
+    expect(markedText(editor, "subscript")).toEqual([]);
+  });
+
+  test("pasting sub stays plain text", () => {
+    const editor = pasteHtml("<p>x<sub>2</sub></p>");
+
+    expect(plainText(editor)).toBe("x2");
+    expect(markedText(editor, "superscript")).toEqual([]);
+    expect(markedText(editor, "subscript")).toEqual([]);
+  });
+
   test("pasting kbd stays plain text", () => {
     const editor = pasteHtml("<p>a <kbd>b</kbd> c</p>");
     const serialized = JSON.stringify(editor.children);
