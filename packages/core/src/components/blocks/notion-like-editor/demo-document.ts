@@ -108,6 +108,17 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-highlight",
+    children: [
+      { text: "This is " },
+      { text: "highlighted text", backgroundColor: "yellow" },
+      { text: ". Highlights and text colors combine and stay " },
+      { text: "readable", color: "blue", backgroundColor: "blue" },
+      { text: " in both themes." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-paste",
     children: [
       {

@@ -7,7 +7,7 @@ import {
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
-import { FontColorPlugin } from "@platejs/basic-styles/react";
+import { FontBackgroundColorPlugin, FontColorPlugin } from "@platejs/basic-styles/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -28,7 +28,7 @@ import {
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
-import { isTextColorToken } from "./editor-document-schema";
+import { isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type TextDecorationRule = {
@@ -160,22 +160,57 @@ const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
 
-// The stored value is a palette token. Plate's default inject would copy that token
-// into style.color. transformStyle is typed as CSSStyleDeclaration, which the leaf
-// does not use, so transformProps replaces the injected style with the theme variable.
-const textColorPlugin = FontColorPlugin.configure({
-  inject: {
-    nodeProps: {
-      nodeKey: KEYS.color,
-      transformProps: ({ nodeValue, props }) => {
-        if (!isTextColorToken(nodeValue)) {
-          return {};
-        }
+// The stored value is a palette token. transformProps writes the theme variable so the
+// leaf never receives the token string as a CSS color.
+function paletteNodeProps(
+  nodeKey: string,
+  cssProperty: "color" | "backgroundColor",
+  variablePrefix: "--editor-text" | "--editor-bg",
+) {
+  return {
+    nodeKey,
+    transformProps: ({
+      nodeValue,
+      props,
+    }: {
+      nodeValue?: unknown;
+      props: Record<string, unknown>;
+    }) => {
+      if (!isPaletteToken(nodeValue)) {
+        return {};
+      }
 
-        return {
-          ...props,
-          style: { color: `var(--editor-text-${nodeValue})` },
-        };
+      return {
+        ...props,
+        style: { [cssProperty]: `var(${variablePrefix}-${nodeValue})` },
+      };
+    },
+  };
+}
+
+const textColorPlugin = FontColorPlugin.configure({
+  inject: { nodeProps: paletteNodeProps(KEYS.color, "color", "--editor-text") },
+});
+
+const highlightPlugin = FontBackgroundColorPlugin.configure({
+  inject: {
+    nodeProps: paletteNodeProps(KEYS.backgroundColor, "backgroundColor", "--editor-bg"),
+  },
+  parsers: {
+    html: {
+      deserializer: {
+        isLeaf: true,
+        rules: [{ validStyle: { backgroundColor: "*" } }, { validNodeName: ["MARK"] }],
+        parse: ({ element, type }) => {
+          if (element.nodeName === "MARK") {
+            return { [type]: "yellow" };
+          }
+
+          const background = element.style.backgroundColor;
+          if (background) {
+            return { [type]: background };
+          }
+        },
       },
     },
   },
@@ -194,6 +229,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     superscriptPlugin,
     subscriptPlugin,
     textColorPlugin,
+    highlightPlugin,
     PasteFallbackPlugin,
   ];
 }

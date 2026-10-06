@@ -8,7 +8,7 @@ import {
   allowedMarkValues,
   isAllowedMark,
   isAllowedMarkValue,
-  isTextColorToken,
+  isPaletteToken,
   TEXT_COLOR_TOKENS,
 } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
@@ -249,7 +249,7 @@ describe("text color", () => {
 
     expect(parsed.repairs).toEqual([]);
     expect(parsed.document.content).toEqual(document.content);
-    expect(isTextColorToken(token)).toBe(true);
+    expect(isPaletteToken(token)).toBe(true);
   });
 
   test("a color outside the palette is unsupported and the raw input is kept", () => {
@@ -271,8 +271,8 @@ describe("text color", () => {
     expect(isAllowedMarkValue(KEYS.color, "blue")).toBe(true);
     expect(isAllowedMarkValue(KEYS.color, "lime")).toBe(false);
     expect(isAllowedMarkValue(KEYS.color, null)).toBe(false);
-    expect(isTextColorToken("red")).toBe(true);
-    expect(isTextColorToken("#ff0000")).toBe(false);
+    expect(isPaletteToken("red")).toBe(true);
+    expect(isPaletteToken("#ff0000")).toBe(false);
   });
 
   test("pasting a hex color drops the color and keeps the text", () => {

@@ -11,7 +11,7 @@ export type EditorMarkRule = {
 };
 
 // Proposed Notion-like palette. The stored mark is the token name, not a CSS color.
-export const TEXT_COLOR_TOKENS = [
+export const PALETTE_TOKENS = [
   "gray",
   "brown",
   "orange",
@@ -23,7 +23,13 @@ export const TEXT_COLOR_TOKENS = [
   "red",
 ] as const;
 
-export type TextColorToken = (typeof TEXT_COLOR_TOKENS)[number];
+export type PaletteToken = (typeof PALETTE_TOKENS)[number];
+
+export const TEXT_COLOR_TOKENS = PALETTE_TOKENS;
+export type TextColorToken = PaletteToken;
+
+export const HIGHLIGHT_TOKENS = PALETTE_TOKENS;
+export type HighlightToken = PaletteToken;
 
 export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
@@ -37,7 +43,8 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
-  { type: KEYS.color, values: TEXT_COLOR_TOKENS },
+  { type: KEYS.color, values: PALETTE_TOKENS },
+  { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -73,6 +80,11 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return typeof value === "string" && values.some((allowed) => allowed === value);
 }
 
-export function isTextColorToken(value: unknown): value is TextColorToken {
-  return typeof value === "string" && TEXT_COLOR_TOKENS.some((token) => token === value);
+export function isPaletteToken(value: unknown): value is PaletteToken;
+export function isPaletteToken<T extends string>(value: unknown, values: readonly T[]): value is T;
+export function isPaletteToken(
+  value: unknown,
+  values: readonly string[] = PALETTE_TOKENS,
+): boolean {
+  return typeof value === "string" && values.some((token) => token === value);
 }

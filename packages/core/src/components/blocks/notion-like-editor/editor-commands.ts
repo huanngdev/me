@@ -1,6 +1,12 @@
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
-import { isTextColorToken, type TextColorToken } from "./editor-document-schema";
+import {
+  HIGHLIGHT_TOKENS,
+  TEXT_COLOR_TOKENS,
+  isPaletteToken,
+  type HighlightToken,
+  type TextColorToken,
+} from "./editor-document-schema";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -134,19 +140,24 @@ export const formatSubscript: EditorCommand = createMarkCommand({
 });
 
 export type TextColorState = TextColorToken | null | "mixed";
+export type HighlightState = HighlightToken | null | "mixed";
 
-export function getTextColor(editor: SlateEditor): TextColorState {
+export function getValueMark<T extends string>(
+  editor: SlateEditor,
+  key: string,
+  values: readonly T[],
+): T | null | "mixed" {
   const selection = editor.selection;
   if (!selection) {
     return null;
   }
 
   if (RangeApi.isCollapsed(selection)) {
-    const value = editor.api.marks()?.[KEYS.color];
-    return isTextColorToken(value) ? value : null;
+    const value = editor.api.marks()?.[key];
+    return isPaletteToken(value, values) ? value : null;
   }
 
-  let token: TextColorToken | null = null;
+  let token: T | null = null;
   let sawPlain = false;
 
   for (const [node] of editor.api.nodes({
@@ -157,8 +168,8 @@ export function getTextColor(editor: SlateEditor): TextColorState {
       continue;
     }
 
-    const value = node[KEYS.color];
-    if (!isTextColorToken(value)) {
+    const value = node[key];
+    if (!isPaletteToken(value, values)) {
       sawPlain = true;
       continue;
     }
@@ -180,19 +191,54 @@ export function getTextColor(editor: SlateEditor): TextColorState {
   return token;
 }
 
-export const setTextColor: EditorCommand<TextColorToken | null> = {
-  id: "format.text-color",
-  label: "Text color",
-  group: "format",
-  run: (editor, color) => {
-    if (color === null) {
-      editor.tf.removeMark(KEYS.color);
-      return;
-    }
+export function createValueMarkCommand<T extends string>(options: {
+  key: string;
+  label: string;
+  id: string;
+  values: readonly T[];
+}): EditorCommand<T | null> {
+  const { key, label, id, values } = options;
 
-    editor.tf.addMark(KEYS.color, color);
-  },
-};
+  return {
+    id,
+    label,
+    group: "format",
+    run: (editor, value) => {
+      if (value === null) {
+        editor.tf.removeMark(key);
+        return;
+      }
+
+      if (!isPaletteToken(value, values)) {
+        return;
+      }
+
+      editor.tf.addMark(key, value);
+    },
+  };
+}
+
+export function getTextColor(editor: SlateEditor): TextColorState {
+  return getValueMark(editor, KEYS.color, TEXT_COLOR_TOKENS);
+}
+
+export const setTextColor: EditorCommand<TextColorToken | null> = createValueMarkCommand({
+  key: KEYS.color,
+  label: "Text color",
+  id: "format.text-color",
+  values: TEXT_COLOR_TOKENS,
+});
+
+export function getHighlight(editor: SlateEditor): HighlightState {
+  return getValueMark(editor, KEYS.backgroundColor, HIGHLIGHT_TOKENS);
+}
+
+export const setHighlight: EditorCommand<HighlightToken | null> = createValueMarkCommand({
+  key: KEYS.backgroundColor,
+  label: "Highlight",
+  id: "format.highlight",
+  values: HIGHLIGHT_TOKENS,
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {

@@ -55,6 +55,15 @@
   --color-editor-text-purple: var(--editor-text-purple);
   --color-editor-text-pink: var(--editor-text-pink);
   --color-editor-text-red: var(--editor-text-red);
+  --color-editor-bg-gray: var(--editor-bg-gray);
+  --color-editor-bg-brown: var(--editor-bg-brown);
+  --color-editor-bg-orange: var(--editor-bg-orange);
+  --color-editor-bg-yellow: var(--editor-bg-yellow);
+  --color-editor-bg-green: var(--editor-bg-green);
+  --color-editor-bg-blue: var(--editor-bg-blue);
+  --color-editor-bg-purple: var(--editor-bg-purple);
+  --color-editor-bg-pink: var(--editor-bg-pink);
+  --color-editor-bg-red: var(--editor-bg-red);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -120,6 +129,15 @@
   --editor-text-purple: oklch(0.5 0.13 305);
   --editor-text-pink: oklch(0.5 0.13 5);
   --editor-text-red: oklch(0.5 0.15 25);
+  --editor-bg-gray: oklch(0.955 0 0);
+  --editor-bg-brown: oklch(0.955 0.02 40);
+  --editor-bg-orange: oklch(0.955 0.03 65);
+  --editor-bg-yellow: oklch(0.955 0.07 95);
+  --editor-bg-green: oklch(0.945 0.08 155);
+  --editor-bg-blue: oklch(0.955 0.02 255);
+  --editor-bg-purple: oklch(0.955 0.025 305);
+  --editor-bg-pink: oklch(0.96 0.02 5);
+  --editor-bg-red: oklch(0.955 0.02 25);
 }
 
 .dark {
@@ -166,6 +184,15 @@
   --editor-text-purple: oklch(0.79 0.13 305);
   --editor-text-pink: oklch(0.785 0.13 5);
   --editor-text-red: oklch(0.75 0.15 25);
+  --editor-bg-gray: oklch(0.355 0 0);
+  --editor-bg-brown: oklch(0.365 0.085 40);
+  --editor-bg-orange: oklch(0.36 0.08 65);
+  --editor-bg-yellow: oklch(0.355 0.075 95);
+  --editor-bg-green: oklch(0.345 0.085 155);
+  --editor-bg-blue: oklch(0.355 0.085 255);
+  --editor-bg-purple: oklch(0.365 0.085 305);
+  --editor-bg-pink: oklch(0.365 0.085 5);
+  --editor-bg-red: oklch(0.365 0.085 25);
 }
 
 [data-palette="violet"]:not(.dark) {

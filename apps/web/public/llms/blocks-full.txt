@@ -2453,7 +2453,7 @@ export type EditorMarkRule = {
 };
 
 // Proposed Notion-like palette. The stored mark is the token name, not a CSS color.
-export const TEXT_COLOR_TOKENS = [
+export const PALETTE_TOKENS = [
   "gray",
   "brown",
   "orange",
@@ -2465,7 +2465,13 @@ export const TEXT_COLOR_TOKENS = [
   "red",
 ] as const;
 
-export type TextColorToken = (typeof TEXT_COLOR_TOKENS)[number];
+export type PaletteToken = (typeof PALETTE_TOKENS)[number];
+
+export const TEXT_COLOR_TOKENS = PALETTE_TOKENS;
+export type TextColorToken = PaletteToken;
+
+export const HIGHLIGHT_TOKENS = PALETTE_TOKENS;
+export type HighlightToken = PaletteToken;
 
 export const EDITOR_ELEMENT_RULES = [
   { type: "p", attrs: ["id"] },
@@ -2479,7 +2485,8 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
-  { type: KEYS.color, values: TEXT_COLOR_TOKENS },
+  { type: KEYS.color, values: PALETTE_TOKENS },
+  { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
 ];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
@@ -2515,8 +2522,13 @@ export function isAllowedMarkValue(mark: string, value: unknown): boolean {
   return typeof value === "string" && values.some((allowed) => allowed === value);
 }
 
-export function isTextColorToken(value: unknown): value is TextColorToken {
-  return typeof value === "string" && TEXT_COLOR_TOKENS.some((token) => token === value);
+export function isPaletteToken(value: unknown): value is PaletteToken;
+export function isPaletteToken<T extends string>(value: unknown, values: readonly T[]): value is T;
+export function isPaletteToken(
+  value: unknown,
+  values: readonly string[] = PALETTE_TOKENS,
+): boolean {
+  return typeof value === "string" && values.some((token) => token === value);
 }
 ```
 
@@ -3408,7 +3420,7 @@ import {
   SuperscriptPlugin,
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
-import { FontColorPlugin } from "@platejs/basic-styles/react";
+import { FontBackgroundColorPlugin, FontColorPlugin } from "@platejs/basic-styles/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -3429,7 +3441,7 @@ import {
   runEditorCommand,
   type EditorCommand,
 } from "./editor-commands";
-import { isTextColorToken } from "./editor-document-schema";
+import { isPaletteToken } from "./editor-document-schema";
 import { PasteFallbackPlugin } from "./editor-paste";
 
 type TextDecorationRule = {
@@ -3561,22 +3573,57 @@ const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
 
-// The stored value is a palette token. Plate's default inject would copy that token
-// into style.color. transformStyle is typed as CSSStyleDeclaration, which the leaf
-// does not use, so transformProps replaces the injected style with the theme variable.
-const textColorPlugin = FontColorPlugin.configure({
-  inject: {
-    nodeProps: {
-      nodeKey: KEYS.color,
-      transformProps: ({ nodeValue, props }) => {
-        if (!isTextColorToken(nodeValue)) {
-          return {};
-        }
+// The stored value is a palette token. transformProps writes the theme variable so the
+// leaf never receives the token string as a CSS color.
+function paletteNodeProps(
+  nodeKey: string,
+  cssProperty: "color" | "backgroundColor",
+  variablePrefix: "--editor-text" | "--editor-bg",
+) {
+  return {
+    nodeKey,
+    transformProps: ({
+      nodeValue,
+      props,
+    }: {
+      nodeValue?: unknown;
+      props: Record<string, unknown>;
+    }) => {
+      if (!isPaletteToken(nodeValue)) {
+        return {};
+      }
 
-        return {
-          ...props,
-          style: { color: `var(--editor-text-${nodeValue})` },
-        };
+      return {
+        ...props,
+        style: { [cssProperty]: `var(${variablePrefix}-${nodeValue})` },
+      };
+    },
+  };
+}
+
+const textColorPlugin = FontColorPlugin.configure({
+  inject: { nodeProps: paletteNodeProps(KEYS.color, "color", "--editor-text") },
+});
+
+const highlightPlugin = FontBackgroundColorPlugin.configure({
+  inject: {
+    nodeProps: paletteNodeProps(KEYS.backgroundColor, "backgroundColor", "--editor-bg"),
+  },
+  parsers: {
+    html: {
+      deserializer: {
+        isLeaf: true,
+        rules: [{ validStyle: { backgroundColor: "*" } }, { validNodeName: ["MARK"] }],
+        parse: ({ element, type }) => {
+          if (element.nodeName === "MARK") {
+            return { [type]: "yellow" };
+          }
+
+          const background = element.style.backgroundColor;
+          if (background) {
+            return { [type]: background };
+          }
+        },
       },
     },
   },
@@ -3595,6 +3642,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     superscriptPlugin,
     subscriptPlugin,
     textColorPlugin,
+    highlightPlugin,
     PasteFallbackPlugin,
   ];
 }
@@ -3621,7 +3669,13 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ```ts
 import { KEYS, RangeApi, TextApi, type SlateEditor, type TRange, type TText } from "platejs";
 
-import { isTextColorToken, type TextColorToken } from "./editor-document-schema";
+import {
+  HIGHLIGHT_TOKENS,
+  TEXT_COLOR_TOKENS,
+  isPaletteToken,
+  type HighlightToken,
+  type TextColorToken,
+} from "./editor-document-schema";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -3755,19 +3809,24 @@ export const formatSubscript: EditorCommand = createMarkCommand({
 });
 
 export type TextColorState = TextColorToken | null | "mixed";
+export type HighlightState = HighlightToken | null | "mixed";
 
-export function getTextColor(editor: SlateEditor): TextColorState {
+export function getValueMark<T extends string>(
+  editor: SlateEditor,
+  key: string,
+  values: readonly T[],
+): T | null | "mixed" {
   const selection = editor.selection;
   if (!selection) {
     return null;
   }
 
   if (RangeApi.isCollapsed(selection)) {
-    const value = editor.api.marks()?.[KEYS.color];
-    return isTextColorToken(value) ? value : null;
+    const value = editor.api.marks()?.[key];
+    return isPaletteToken(value, values) ? value : null;
   }
 
-  let token: TextColorToken | null = null;
+  let token: T | null = null;
   let sawPlain = false;
 
   for (const [node] of editor.api.nodes({
@@ -3778,8 +3837,8 @@ export function getTextColor(editor: SlateEditor): TextColorState {
       continue;
     }
 
-    const value = node[KEYS.color];
-    if (!isTextColorToken(value)) {
+    const value = node[key];
+    if (!isPaletteToken(value, values)) {
       sawPlain = true;
       continue;
     }
@@ -3801,19 +3860,54 @@ export function getTextColor(editor: SlateEditor): TextColorState {
   return token;
 }
 
-export const setTextColor: EditorCommand<TextColorToken | null> = {
-  id: "format.text-color",
-  label: "Text color",
-  group: "format",
-  run: (editor, color) => {
-    if (color === null) {
-      editor.tf.removeMark(KEYS.color);
-      return;
-    }
+export function createValueMarkCommand<T extends string>(options: {
+  key: string;
+  label: string;
+  id: string;
+  values: readonly T[];
+}): EditorCommand<T | null> {
+  const { key, label, id, values } = options;
 
-    editor.tf.addMark(KEYS.color, color);
-  },
-};
+  return {
+    id,
+    label,
+    group: "format",
+    run: (editor, value) => {
+      if (value === null) {
+        editor.tf.removeMark(key);
+        return;
+      }
+
+      if (!isPaletteToken(value, values)) {
+        return;
+      }
+
+      editor.tf.addMark(key, value);
+    },
+  };
+}
+
+export function getTextColor(editor: SlateEditor): TextColorState {
+  return getValueMark(editor, KEYS.color, TEXT_COLOR_TOKENS);
+}
+
+export const setTextColor: EditorCommand<TextColorToken | null> = createValueMarkCommand({
+  key: KEYS.color,
+  label: "Text color",
+  id: "format.text-color",
+  values: TEXT_COLOR_TOKENS,
+});
+
+export function getHighlight(editor: SlateEditor): HighlightState {
+  return getValueMark(editor, KEYS.backgroundColor, HIGHLIGHT_TOKENS);
+}
+
+export const setHighlight: EditorCommand<HighlightToken | null> = createValueMarkCommand({
+  key: KEYS.backgroundColor,
+  label: "Highlight",
+  id: "format.highlight",
+  values: HIGHLIGHT_TOKENS,
+});
 
 export const HISTORY_COMMANDS: readonly EditorCommand[] = [
   {
@@ -5980,6 +6074,17 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: ", or " },
       { text: "green", color: "green" },
       { text: ". Colors come from a preset palette that adapts to light and dark mode." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-highlight",
+    children: [
+      { text: "This is " },
+      { text: "highlighted text", backgroundColor: "yellow" },
+      { text: ". Highlights and text colors combine and stay " },
+      { text: "readable", color: "blue", backgroundColor: "blue" },
+      { text: " in both themes." },
     ],
   },
   {

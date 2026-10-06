@@ -176,6 +176,25 @@ describe("demo document", () => {
     ]);
   });
 
+  test("the highlight paragraph marks highlighted text and a combined word", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-highlight");
+    if (!block) {
+      throw new Error("Missing highlight paragraph.");
+    }
+
+    const marked = block.children
+      .filter((child) => field(child, "backgroundColor") !== undefined)
+      .map((child) => [child.text, field(child, "backgroundColor"), field(child, "color") ?? null]);
+
+    expect(textOf(block)).toBe(
+      "This is highlighted text. Highlights and text colors combine and stay readable in both themes.",
+    );
+    expect(marked).toEqual([
+      ["highlighted text", "yellow", null],
+      ["readable", "blue", "blue"],
+    ]);
+  });
+
   test("the line-break paragraph contains exactly one newline", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-break");
     const text = block === undefined ? "" : textOf(block);
