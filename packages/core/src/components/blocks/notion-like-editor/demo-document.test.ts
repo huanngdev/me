@@ -15,6 +15,7 @@ import {
   LINE_HEIGHTS,
   LIST_STYLES,
   PALETTE_TOKENS,
+  CODE_LANGS,
   TEXT_ALIGNS,
   isAllowedMark,
 } from "./editor-document-schema";
@@ -90,6 +91,30 @@ describe("demo document", () => {
     const parsed = expectOk(parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE)));
 
     expect(parsed.repairs).toEqual([]);
+  });
+
+  test("demo code languages are stored members of the allowlist", () => {
+    const langs: string[] = [];
+    const visit = (value: unknown): void => {
+      if (!isRecord(value)) {
+        return;
+      }
+
+      if (value.type === "code_block" && typeof value.lang === "string") {
+        langs.push(value.lang);
+      }
+
+      for (const child of elementChildren(value)) {
+        visit(child);
+      }
+    };
+
+    for (const block of DEMO_DOCUMENT_VALUE) {
+      visit(block);
+    }
+
+    expect(langs.some((lang) => lang !== "plaintext")).toBe(true);
+    expect(langs.every((lang) => CODE_LANGS.some((allowed) => allowed === lang))).toBe(true);
   });
 
   test("every demo block is allowlisted", () => {
@@ -404,6 +429,9 @@ describe("demo document", () => {
     const nestedToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-nest");
     const quoteToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-quote");
     const headingToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-heading");
+    const codeHeading = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-heading");
+    const codeTs = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-ts");
+    const codeJson = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-json");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -416,6 +444,9 @@ describe("demo document", () => {
       quoteToggle.type !== "toggle" ||
       !headingToggle ||
       headingToggle.type !== "toggle" ||
+      !codeHeading ||
+      !codeTs ||
+      !codeJson ||
       !paste
     ) {
       throw new Error("Missing the toggles demo.");
@@ -432,7 +463,13 @@ describe("demo document", () => {
     expect(DEMO_DOCUMENT_VALUE.indexOf(headingToggle)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(quoteToggle) + 1,
     );
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(headingToggle) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(codeHeading)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(headingToggle) + 1,
+    );
+    expect(codeHeading.type).toBe("h3");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(codeTs)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeHeading) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(codeJson)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeTs) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeJson) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

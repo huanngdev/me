@@ -72,6 +72,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-code.ts",
+    code: readSource(`${BLOCK_DIR}/editor-code.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/code-block-element.tsx",
+    code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/toggle-element.tsx",
     code: readSource(`${BLOCK_DIR}/toggle-element.tsx`),
   },

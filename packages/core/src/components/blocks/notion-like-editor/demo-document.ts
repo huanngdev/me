@@ -760,6 +760,75 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-code-heading",
+    children: [{ text: "Code" }],
+  },
+  {
+    type: "code_block",
+    id: "demo-code-ts",
+    lang: "typescript",
+    children: [
+      {
+        type: "code_line",
+        id: "demo-code-ts-1",
+        children: [{ text: "const note = {" }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-2",
+        children: [{ text: '  id: "note-1",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-3",
+        children: [{ text: '  title: "Editor",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-4",
+        children: [{ text: '  tags: ["typescript"],' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-5",
+        children: [{ text: "  published: true," }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-6",
+        children: [{ text: "};" }],
+      },
+    ],
+  },
+  {
+    type: "code_block",
+    id: "demo-code-json",
+    lang: "json",
+    children: [
+      {
+        type: "code_line",
+        id: "demo-code-json-1",
+        children: [{ text: "{" }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-2",
+        children: [{ text: '  "id": "note-1",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-3",
+        children: [{ text: '  "title": "Editor"' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-4",
+        children: [{ text: "}" }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

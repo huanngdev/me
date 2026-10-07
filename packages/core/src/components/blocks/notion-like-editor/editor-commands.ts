@@ -1,11 +1,14 @@
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
+import { unwrapCodeBlock } from "@platejs/code-block";
 import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
+  NodeApi,
   PathApi,
   RangeApi,
   TextApi,
+  nanoid,
   type SlateEditor,
   type TElement,
   type TRange,
@@ -22,6 +25,7 @@ import {
   HIGHLIGHT_TOKENS,
   LINE_HEIGHTS,
   LIST_NUMBER_RANGE,
+  CODE_LANGS,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
   allowedChildTypes,
@@ -31,7 +35,9 @@ import {
   isWithinAttrRange,
   reportedFirstChild,
   reportedFirstChildNames,
+  reportsContainer,
   reportsParentFromFirstChild,
+  type CodeLang,
   type FontFamily,
   type FontSize,
   type HighlightToken,
@@ -531,6 +537,16 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
     return labelReport;
   }
 
+  if (reportsContainer(node.type)) {
+    const parent = editor.api.parent(path);
+    if (parent && ElementApi.isElement(parent[0]) && typeof parent[0].type === "string") {
+      const childTypes = allowedChildTypes(parent[0].type);
+      if (childTypes !== undefined && childTypes.some((type) => type === node.type)) {
+        return parent[0].type;
+      }
+    }
+  }
+
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
@@ -777,6 +793,134 @@ export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
   id: "block.turn-into.callout",
   label: "Callout",
 });
+
+function blockId(node: TElement): string | undefined {
+  if (!("id" in node) || typeof node.id !== "string" || node.id.length === 0) {
+    return undefined;
+  }
+
+  return node.id;
+}
+
+function codeLineFromBlock(node: TElement): TElement {
+  const line: TElement = {
+    type: KEYS.codeLine,
+    children: [{ text: NodeApi.string(node) }],
+  };
+  const id = blockId(node);
+  if (id !== undefined) {
+    line.id = id;
+  }
+
+  return line;
+}
+
+// Selected paragraphs become one code block, one line each, marks dropped.
+// The same command on a code block unwraps it back into paragraphs.
+export const turnIntoCodeBlock: EditorCommand = {
+  id: "block.turn-into.code-block",
+  label: "Code",
+  group: "turn-into",
+  run: (editor) => {
+    if (!editor.selection) {
+      return;
+    }
+
+    if (editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } })) {
+      unwrapCodeBlock(editor);
+      return;
+    }
+
+    const blocks: { node: TElement; path: number[] }[] = [];
+    for (const [node, path] of lowestBlocks(editor)) {
+      if (ElementApi.isElement(node)) {
+        blocks.push({ node, path });
+      }
+    }
+
+    const first = blocks[0];
+    if (first === undefined) {
+      return;
+    }
+
+    const lines = blocks.map((block) => codeLineFromBlock(block.node));
+    const codeBlock: TElement = {
+      type: editor.getType(KEYS.codeBlock),
+      id: nanoid(10),
+      children: lines.length > 0 ? lines : [{ type: KEYS.codeLine, children: [{ text: "" }] }],
+    };
+
+    editor.tf.withoutNormalizing(() => {
+      for (const block of blocks.reverse()) {
+        editor.tf.removeNodes({ at: block.path });
+      }
+
+      editor.tf.insertNodes(codeBlock, { at: first.path, select: true });
+    });
+  },
+};
+
+export type CodeLanguagePayload = {
+  lang: CodeLang | null;
+  at?: number[];
+};
+
+function codeBlockPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
+  if (at !== undefined) {
+    const entry = editor.api.node(at);
+    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.codeBlock) {
+      return undefined;
+    }
+
+    return entry[1];
+  }
+
+  const above = editor.api.above({ match: { type: KEYS.codeBlock } });
+  return above?.[1];
+}
+
+export const setCodeLanguage: EditorCommand<CodeLanguagePayload> = {
+  id: "format.code-language",
+  label: "Code language",
+  group: "format",
+  run: (editor, payload) => {
+    const path = codeBlockPath(editor, payload.at);
+    if (path === undefined) {
+      return;
+    }
+
+    if (payload.lang === null) {
+      editor.tf.unsetNodes("lang", { at: path });
+      return;
+    }
+
+    if (!isAllowedValue(payload.lang, CODE_LANGS)) {
+      return;
+    }
+
+    editor.tf.setNodes({ lang: payload.lang }, { at: path });
+  },
+};
+
+// Mod+Enter inside a code block. The list shortcut picks this or the to-do check.
+export const exitCodeBlock: EditorCommand = {
+  id: "block.exit.code-block",
+  label: "Exit code block",
+  group: "action",
+  run: (editor) => {
+    const codeBlock = editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } });
+    if (!codeBlock) {
+      return;
+    }
+
+    const at = PathApi.next(codeBlock[1]);
+    if (!at) {
+      return;
+    }
+
+    editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
+  },
+};
 
 export const turnIntoToggle = createTurnIntoContainer(
   KEYS.toggle,

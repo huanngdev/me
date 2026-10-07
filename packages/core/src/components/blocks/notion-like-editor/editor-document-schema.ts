@@ -48,6 +48,12 @@ export type EditorElementRule = {
    * It is not a container, so childTypes stays absent.
    */
   isVoid?: true;
+  /** When false, text under this element cannot store marks. */
+  marks?: false;
+  /** A disallowed value of these attrs is removed and reported as a repair. */
+  repairAttrs?: readonly string[];
+  /** getBlockType reports the container that allows this element, not the element. */
+  reportContainer?: true;
 };
 
 export type EditorMarkRule = {
@@ -135,6 +141,83 @@ export type CalloutIcon = (typeof CALLOUT_ICONS)[number];
 
 export const CALLOUT_DEFAULT_ICON: CalloutIcon = "lightbulb";
 
+// Stored languages. Absence means plaintext, so plaintext is not a stored value.
+export const CODE_LANGS = [
+  "typescript",
+  "tsx",
+  "javascript",
+  "jsx",
+  "json",
+  "html",
+  "css",
+  "bash",
+  "python",
+  "go",
+  "rust",
+  "sql",
+  "markdown",
+  "yaml",
+  "diff",
+] as const;
+
+export type CodeLang = (typeof CODE_LANGS)[number];
+
+export const CODE_LANG_LABELS = {
+  plaintext: "Plain text",
+  typescript: "TypeScript",
+  tsx: "TSX",
+  javascript: "JavaScript",
+  jsx: "JSX",
+  json: "JSON",
+  html: "HTML",
+  css: "CSS",
+  bash: "Bash",
+  python: "Python",
+  go: "Go",
+  rust: "Rust",
+  sql: "SQL",
+  markdown: "Markdown",
+  yaml: "YAML",
+  diff: "Diff",
+} as const satisfies Record<CodeLang | "plaintext", string>;
+
+// Paste and insert class tokens. Stored names that are not listed here stay themselves.
+export const CODE_LANG_ALIASES = {
+  ts: "typescript",
+  js: "javascript",
+  sh: "bash",
+  shell: "bash",
+  py: "python",
+  yml: "yaml",
+  xml: "html",
+  html: "html",
+} as const satisfies Record<string, CodeLang>;
+
+function aliasCodeLang(token: string): CodeLang | undefined {
+  for (const [alias, lang] of Object.entries(CODE_LANG_ALIASES)) {
+    if (alias === token) {
+      return lang;
+    }
+  }
+
+  return undefined;
+}
+
+export function codeLangFromToken(token: string): CodeLang | null {
+  const normalized = token.trim().toLowerCase();
+  if (normalized.length === 0 || normalized === "plaintext") {
+    return null;
+  }
+
+  const alias = aliasCodeLang(normalized);
+  if (alias !== undefined) {
+    return alias;
+  }
+
+  const stored = CODE_LANGS.find((lang) => lang === normalized);
+  return stored ?? null;
+}
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -210,7 +293,7 @@ export const EDITOR_ELEMENT_RULES = [
   {
     type: KEYS.toggle,
     attrs: ["id"],
-    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
+    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr, KEYS.codeBlock],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
@@ -220,6 +303,21 @@ export const EDITOR_ELEMENT_RULES = [
       [KEYS.h2]: "toggle-h2",
       [KEYS.h3]: "toggle-h3",
     },
+  },
+  // Plate's code block. lang is absent for plaintext. Tokens are decorations, not children.
+  // The ``` trigger is DEV-126, so this block has no markdown rule.
+  {
+    type: KEYS.codeBlock,
+    attrs: ["id", "lang"],
+    attrValues: { lang: CODE_LANGS },
+    repairAttrs: ["lang"],
+    childTypes: [KEYS.codeLine],
+  },
+  {
+    type: KEYS.codeLine,
+    attrs: ["id"],
+    marks: false,
+    reportContainer: true,
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -305,6 +403,24 @@ const voidElementTypes = new Set<string>(
   EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
 );
 
+const elementsWithoutMarks = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "marks" in rule && rule.marks === false ? [rule.type] : [],
+  ),
+);
+
+const elementRepairAttrs = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "repairAttrs" in rule && rule.repairAttrs !== undefined ? [[rule.type, rule.repairAttrs]] : [],
+  ),
+);
+
+const containerReportingElements = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportContainer" in rule && rule.reportContainer ? [rule.type] : [],
+  ),
+);
+
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
 }
@@ -346,6 +462,18 @@ export function reportsParentFromFirstChild(type: string): boolean {
 
 export function isVoidElementType(type: string): boolean {
   return voidElementTypes.has(type);
+}
+
+export function elementAllowsMarks(type: string): boolean {
+  return !elementsWithoutMarks.has(type);
+}
+
+export function repairAttrKeys(type: string): readonly string[] {
+  return elementRepairAttrs.get(type) ?? noForbiddenAttrs;
+}
+
+export function reportsContainer(type: string): boolean {
+  return containerReportingElements.has(type);
 }
 
 // The child type a container stores text in. That type is not itself a container.

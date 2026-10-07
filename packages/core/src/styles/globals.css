@@ -161,6 +161,21 @@
   --editor-callout-warning-border: oklch(0.86 0.06 95);
   --editor-callout-danger-bg: oklch(0.955 0.025 25);
   --editor-callout-danger-border: oklch(0.86 0.04 25);
+  --editor-code-bg: oklch(0.955 0.004 300);
+  --editor-code-border: oklch(0.48 0.16 292);
+  --editor-code-fg: oklch(0.28 0.02 300);
+  --editor-code-comment: oklch(0.42 0.03 260);
+  --editor-code-keyword: oklch(0.4 0.16 292);
+  --editor-code-string: oklch(0.4 0.11 155);
+  --editor-code-number: oklch(0.42 0.12 55);
+  --editor-code-title: oklch(0.4 0.13 250);
+  --editor-code-type: oklch(0.42 0.12 200);
+  --editor-code-attr: oklch(0.4 0.08 40);
+  --editor-code-variable: oklch(0.36 0.04 300);
+  --editor-code-meta: oklch(0.42 0.08 320);
+  --editor-code-addition: oklch(0.38 0.12 150);
+  --editor-code-deletion: oklch(0.42 0.15 25);
+  --editor-code-punctuation: oklch(0.38 0.02 300);
 }
 
 .dark {
@@ -226,6 +241,21 @@
   --editor-callout-warning-border: oklch(0.48 0.07 95);
   --editor-callout-danger-bg: oklch(0.32 0.05 25);
   --editor-callout-danger-border: oklch(0.45 0.07 25);
+  --editor-code-bg: oklch(0.13 0.008 300);
+  --editor-code-border: oklch(0.72 0.12 292);
+  --editor-code-fg: oklch(0.92 0.01 300);
+  --editor-code-comment: oklch(0.78 0.03 260);
+  --editor-code-keyword: oklch(0.8 0.12 292);
+  --editor-code-string: oklch(0.86 0.12 155);
+  --editor-code-number: oklch(0.86 0.12 70);
+  --editor-code-title: oklch(0.82 0.11 250);
+  --editor-code-type: oklch(0.84 0.1 200);
+  --editor-code-attr: oklch(0.86 0.08 55);
+  --editor-code-variable: oklch(0.9 0.02 300);
+  --editor-code-meta: oklch(0.82 0.08 320);
+  --editor-code-addition: oklch(0.86 0.13 150);
+  --editor-code-deletion: oklch(0.8 0.14 25);
+  --editor-code-punctuation: oklch(0.84 0.02 300);
 }
 
 [data-palette="violet"]:not(.dark) {
@@ -656,4 +686,69 @@
 
 .doc-file-tree code {
   color: color-mix(in oklch, var(--foreground) 78%, transparent);
+}
+
+.editor-code .hljs-comment,
+.editor-code .hljs-quote,
+.editor-code .hljs-doctag {
+  color: var(--editor-code-comment);
+}
+
+.editor-code .hljs-keyword,
+.editor-code .hljs-selector-tag {
+  color: var(--editor-code-keyword);
+}
+
+.editor-code .hljs-string,
+.editor-code .hljs-regexp,
+.editor-code .hljs-template-variable {
+  color: var(--editor-code-string);
+}
+
+.editor-code .hljs-number,
+.editor-code .hljs-literal {
+  color: var(--editor-code-number);
+}
+
+.editor-code .hljs-title,
+.editor-code .hljs-section,
+.editor-code .hljs-name,
+.editor-code .hljs-selector-class,
+.editor-code .hljs-selector-id {
+  color: var(--editor-code-title);
+}
+
+.editor-code .hljs-built_in,
+.editor-code .hljs-type,
+.editor-code .hljs-class {
+  color: var(--editor-code-type);
+}
+
+.editor-code .hljs-attr,
+.editor-code .hljs-attribute,
+.editor-code .hljs-property,
+.editor-code .hljs-params {
+  color: var(--editor-code-attr);
+}
+
+.editor-code .hljs-variable {
+  color: var(--editor-code-variable);
+}
+
+.editor-code .hljs-meta {
+  color: var(--editor-code-meta);
+}
+
+.editor-code .hljs-addition {
+  color: var(--editor-code-addition);
+}
+
+.editor-code .hljs-deletion {
+  color: var(--editor-code-deletion);
+}
+
+.editor-code .hljs-punctuation,
+.editor-code .hljs-operator,
+.editor-code .hljs-subst {
+  color: var(--editor-code-punctuation);
 }

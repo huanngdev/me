@@ -10,6 +10,7 @@ import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  elementAllowsMarks,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
@@ -55,8 +56,12 @@ function isElementNode(node: Record<string, unknown>): node is TElement {
   return typeof node.type === "string" && Array.isArray(node.children);
 }
 
-function sanitizeText(node: Record<string, unknown>): TText {
+function sanitizeText(node: Record<string, unknown>, allowMarks: boolean): TText {
   const text = typeof node.text === "string" ? node.text : "";
+  if (!allowMarks) {
+    return { text };
+  }
+
   const next: TText = { text };
 
   for (const key of Object.keys(node)) {
@@ -70,7 +75,11 @@ function sanitizeText(node: Record<string, unknown>): TText {
   return next;
 }
 
-function classifyPasteChild(child: unknown, isInline: IsInline): PasteChild | undefined {
+function classifyPasteChild(
+  child: unknown,
+  isInline: IsInline,
+  allowMarks = true,
+): PasteChild | undefined {
   if (typeof child === "string") {
     return { kind: "text", node: { text: child } };
   }
@@ -80,7 +89,7 @@ function classifyPasteChild(child: unknown, isInline: IsInline): PasteChild | un
   }
 
   if (isTextNode(child)) {
-    return { kind: "text", node: sanitizeText(child) };
+    return { kind: "text", node: sanitizeText(child, allowMarks) };
   }
 
   if (!isElementNode(child)) {
@@ -257,7 +266,30 @@ function placeInParent(
     return expandBlock(node, isInline, seen, nesting);
   }
 
-  return expandBlock({ ...node, type: target }, isInline, seen, nesting);
+  // The new type may allow marks. Strip first when the node being retyped does not.
+  return expandBlock({ ...plainTextElement(node), type: target }, isInline, seen, nesting);
+}
+
+function plainTextElement(node: TElement): TElement {
+  if (elementAllowsMarks(node.type)) {
+    return node;
+  }
+
+  let changed = false;
+  const children = node.children.map((child) => {
+    if (!isRecord(child) || typeof child.text !== "string" || "children" in child) {
+      return child;
+    }
+
+    if (Object.keys(child).length === 1) {
+      return child;
+    }
+
+    changed = true;
+    return { text: child.text };
+  });
+
+  return changed ? { ...node, children } : node;
 }
 
 // One container, or several pieces when a disallowed void splits it:
@@ -322,6 +354,7 @@ function containerPieces(
   }
 
   const contentType = containerContentType(node.type);
+  const contentAllowsMarks = contentType === undefined || elementAllowsMarks(contentType);
   const pieces: TElement[] = [];
   let blocks: TElement[] = [];
   let inlines: Descendant[] = [];
@@ -352,7 +385,7 @@ function containerPieces(
   };
 
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, contentAllowsMarks);
     if (classified === undefined) {
       continue;
     }
@@ -363,7 +396,7 @@ function containerPieces(
     }
 
     if (classified.kind === "inline") {
-      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      inlines.push(...inlineNodes(classified.node, isInline, seen, contentAllowsMarks));
       continue;
     }
 
@@ -416,6 +449,7 @@ function expandBlock(
   }
 
   const allowed = allowedElementAttrs(node.type) !== undefined;
+  const allowMarks = elementAllowsMarks(node.type);
   const paragraphs: TElement[] = [];
   let inlines: Descendant[] = [];
   let usedOwnId = false;
@@ -439,7 +473,7 @@ function expandBlock(
   };
 
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined) {
       continue;
     }
@@ -450,7 +484,7 @@ function expandBlock(
     }
 
     if (classified.kind === "inline") {
-      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      inlines.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
       continue;
     }
 
@@ -473,14 +507,19 @@ function expandBlock(
   return [paragraph([])];
 }
 
-function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Descendant[] {
+function inlineNodes(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  allowMarks = true,
+): Descendant[] {
   if (allowedElementAttrs(node.type) === undefined) {
-    return unwrapInline(node.children, isInline, seen);
+    return unwrapInline(node.children, isInline, seen, allowMarks);
   }
 
   const children: Descendant[] = [];
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined || classified.kind === "block") {
       continue;
     }
@@ -490,7 +529,7 @@ function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Des
       continue;
     }
 
-    children.push(...inlineNodes(classified.node, isInline, seen));
+    children.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
   }
 
   const props = elementNode(
@@ -502,10 +541,15 @@ function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Des
   return [props];
 }
 
-function unwrapInline(children: unknown[], isInline: IsInline, seen: Set<string>): Descendant[] {
+function unwrapInline(
+  children: unknown[],
+  isInline: IsInline,
+  seen: Set<string>,
+  allowMarks = true,
+): Descendant[] {
   const nodes: Descendant[] = [];
   for (const child of children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined || classified.kind === "block") {
       continue;
     }
@@ -515,7 +559,7 @@ function unwrapInline(children: unknown[], isInline: IsInline, seen: Set<string>
       continue;
     }
 
-    nodes.push(...inlineNodes(classified.node, isInline, seen));
+    nodes.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
   }
 
   return nodes;

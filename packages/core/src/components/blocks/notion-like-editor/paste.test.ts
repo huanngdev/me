@@ -397,14 +397,26 @@ describe("paste", () => {
     expect(markedText(editor, "code")).toEqual([]);
   });
 
-  test("pasting a pre code block with two lines becomes one paragraph without a code mark", () => {
+  test("pasting a pre code block with two lines becomes a plaintext code block", () => {
     const editor = pasteHtml("<pre><code>one<br>two</code></pre>");
-    const serialized = JSON.stringify(editor.children);
+    const block = editor.children.find((node) => node.type === "code_block");
+    if (!block) {
+      throw new Error("Missing code block.");
+    }
 
-    expect(texts(editor)).toEqual(["one\ntwo"]);
-    expect(editor.children.every((block) => block.type === "p")).toBe(true);
+    const lines = block.children.map((child) => {
+      if (!("children" in child) || !Array.isArray(child.children)) {
+        return "";
+      }
+
+      return child.children
+        .map((leaf) => (isRecord(leaf) && typeof leaf.text === "string" ? leaf.text : ""))
+        .join("");
+    });
+
+    expect(lines).toEqual(["one", "two"]);
+    expect(field(block, "lang")).toBeUndefined();
     expect(markedText(editor, "code")).toEqual([]);
-    expect(serialized).not.toContain("code_block");
   });
 
   test("pasting sup makes only that text superscript", () => {

@@ -219,7 +219,14 @@ function storedToggle(): TElement {
 
 describe("toggle schema", () => {
   test("childTypes, the label type, and the depth cap are the toggle rule", () => {
-    expect(allowedChildTypes("toggle")).toEqual(["p", "toggle", "blockquote", "callout", "hr"]);
+    expect(allowedChildTypes("toggle")).toEqual([
+      "p",
+      "toggle",
+      "blockquote",
+      "callout",
+      "hr",
+      "code_block",
+    ]);
     expect(firstChildType("toggle")).toBe("p");
     expect(maxNesting("toggle")).toBe(3);
     expect(firstChildType("blockquote")).toBeUndefined();

@@ -21,31 +21,33 @@
 11. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
 12. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
 13. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
-14. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
-15. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-17. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-18. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-19. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-20. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-21. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-22. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-23. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-24. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-25. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-26. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-27. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-28. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-29. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-30. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-31. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-32. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-33. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-34. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-35. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-36. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-37. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-38. apps/web/src/app/blocks/notion-like-editor/page.tsx
+14. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
+15. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
+16. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+18. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+19. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+20. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+21. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+22. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+23. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+24. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+25. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+26. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+27. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+28. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+29. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+30. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+31. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+32. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+33. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+34. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+35. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+36. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+37. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+38. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+39. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+40. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -62,7 +64,7 @@ export const EMPTY_EDITOR_VALUE = [
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
-```ts
+````ts
 import { KEYS } from "platejs";
 
 export type IntegerAttrRange = {
@@ -113,6 +115,12 @@ export type EditorElementRule = {
    * It is not a container, so childTypes stays absent.
    */
   isVoid?: true;
+  /** When false, text under this element cannot store marks. */
+  marks?: false;
+  /** A disallowed value of these attrs is removed and reported as a repair. */
+  repairAttrs?: readonly string[];
+  /** getBlockType reports the container that allows this element, not the element. */
+  reportContainer?: true;
 };
 
 export type EditorMarkRule = {
@@ -200,6 +208,83 @@ export type CalloutIcon = (typeof CALLOUT_ICONS)[number];
 
 export const CALLOUT_DEFAULT_ICON: CalloutIcon = "lightbulb";
 
+// Stored languages. Absence means plaintext, so plaintext is not a stored value.
+export const CODE_LANGS = [
+  "typescript",
+  "tsx",
+  "javascript",
+  "jsx",
+  "json",
+  "html",
+  "css",
+  "bash",
+  "python",
+  "go",
+  "rust",
+  "sql",
+  "markdown",
+  "yaml",
+  "diff",
+] as const;
+
+export type CodeLang = (typeof CODE_LANGS)[number];
+
+export const CODE_LANG_LABELS = {
+  plaintext: "Plain text",
+  typescript: "TypeScript",
+  tsx: "TSX",
+  javascript: "JavaScript",
+  jsx: "JSX",
+  json: "JSON",
+  html: "HTML",
+  css: "CSS",
+  bash: "Bash",
+  python: "Python",
+  go: "Go",
+  rust: "Rust",
+  sql: "SQL",
+  markdown: "Markdown",
+  yaml: "YAML",
+  diff: "Diff",
+} as const satisfies Record<CodeLang | "plaintext", string>;
+
+// Paste and insert class tokens. Stored names that are not listed here stay themselves.
+export const CODE_LANG_ALIASES = {
+  ts: "typescript",
+  js: "javascript",
+  sh: "bash",
+  shell: "bash",
+  py: "python",
+  yml: "yaml",
+  xml: "html",
+  html: "html",
+} as const satisfies Record<string, CodeLang>;
+
+function aliasCodeLang(token: string): CodeLang | undefined {
+  for (const [alias, lang] of Object.entries(CODE_LANG_ALIASES)) {
+    if (alias === token) {
+      return lang;
+    }
+  }
+
+  return undefined;
+}
+
+export function codeLangFromToken(token: string): CodeLang | null {
+  const normalized = token.trim().toLowerCase();
+  if (normalized.length === 0 || normalized === "plaintext") {
+    return null;
+  }
+
+  const alias = aliasCodeLang(normalized);
+  if (alias !== undefined) {
+    return alias;
+  }
+
+  const stored = CODE_LANGS.find((lang) => lang === normalized);
+  return stored ?? null;
+}
+
 const headingElementRule = {
   attrs: ["id", "align"],
   attrValues: { align: TEXT_ALIGNS },
@@ -275,7 +360,7 @@ export const EDITOR_ELEMENT_RULES = [
   {
     type: KEYS.toggle,
     attrs: ["id"],
-    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
+    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr, KEYS.codeBlock],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
@@ -285,6 +370,21 @@ export const EDITOR_ELEMENT_RULES = [
       [KEYS.h2]: "toggle-h2",
       [KEYS.h3]: "toggle-h3",
     },
+  },
+  // Plate's code block. lang is absent for plaintext. Tokens are decorations, not children.
+  // The ``` trigger is DEV-126, so this block has no markdown rule.
+  {
+    type: KEYS.codeBlock,
+    attrs: ["id", "lang"],
+    attrValues: { lang: CODE_LANGS },
+    repairAttrs: ["lang"],
+    childTypes: [KEYS.codeLine],
+  },
+  {
+    type: KEYS.codeLine,
+    attrs: ["id"],
+    marks: false,
+    reportContainer: true,
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -370,6 +470,24 @@ const voidElementTypes = new Set<string>(
   EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
 );
 
+const elementsWithoutMarks = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "marks" in rule && rule.marks === false ? [rule.type] : [],
+  ),
+);
+
+const elementRepairAttrs = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "repairAttrs" in rule && rule.repairAttrs !== undefined ? [[rule.type, rule.repairAttrs]] : [],
+  ),
+);
+
+const containerReportingElements = new Set<string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportContainer" in rule && rule.reportContainer ? [rule.type] : [],
+  ),
+);
+
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
 }
@@ -411,6 +529,18 @@ export function reportsParentFromFirstChild(type: string): boolean {
 
 export function isVoidElementType(type: string): boolean {
   return voidElementTypes.has(type);
+}
+
+export function elementAllowsMarks(type: string): boolean {
+  return !elementsWithoutMarks.has(type);
+}
+
+export function repairAttrKeys(type: string): readonly string[] {
+  return elementRepairAttrs.get(type) ?? noForbiddenAttrs;
+}
+
+export function reportsContainer(type: string): boolean {
+  return containerReportingElements.has(type);
 }
 
 // The child type a container stores text in. That type is not itself a container.
@@ -547,7 +677,7 @@ export function isAllowedValue<T extends string | number | boolean>(
 export function isPaletteToken(value: unknown): value is PaletteToken {
   return isAllowedValue(value, PALETTE_TOKENS);
 }
-```
+````
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-document.ts
 ```ts
@@ -782,14 +912,17 @@ import {
   allowsFirstChild,
   firstChildForbiddenAttrs,
   firstChildTypes,
+  elementAllowsMarks,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
   maxNesting,
+  repairAttrKeys,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import type { EditorValue } from "./editor-value";
 
 export type Issue = {
   path: number[];
@@ -806,6 +939,7 @@ type WalkState = {
   nodes: number;
   invalid: Issue | undefined;
   unsupported: Issue[];
+  repairs: Repair[];
 };
 
 const textEncoder = new TextEncoder();
@@ -861,7 +995,12 @@ function countNode(state: WalkState, path: number[]): boolean {
   return true;
 }
 
-function walkText(value: Record<string, unknown>, path: number[], state: WalkState): void {
+function walkText(
+  value: Record<string, unknown>,
+  path: number[],
+  state: WalkState,
+  parentType: string | undefined,
+): void {
   if (!countNode(state, path)) {
     return;
   }
@@ -877,6 +1016,14 @@ function walkText(value: Record<string, unknown>, path: number[], state: WalkSta
 
   for (const key of Object.keys(value)) {
     if (key === "text") {
+      continue;
+    }
+
+    if (parentType !== undefined && !elementAllowsMarks(parentType)) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      });
       continue;
     }
 
@@ -1018,6 +1165,14 @@ function walkElement(
 
     if (allowed !== undefined && allowed.has(key)) {
       if (!isAllowedElementAttrValue(type, key, attr)) {
+        if (repairAttrKeys(type).some((name) => name === key)) {
+          state.repairs.push({
+            path,
+            message: repairAttrMessage(path, key, attr),
+          });
+          continue;
+        }
+
         state.unsupported.push({
           path,
           message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
@@ -1108,11 +1263,64 @@ function walkElement(
       });
     }
 
-    walkDescendant(child, [...path, index], state, childNesting);
+    walkDescendant(child, [...path, index], state, childNesting, type);
     if (state.invalid) {
       return;
     }
   }
+}
+
+function repairAttrMessage(path: number[], key: string, value: unknown): string {
+  const label = markValueLabel(value);
+  if (key === "lang" && value === "plaintext") {
+    return `${formatBlockLabel(path)} stores lang "plaintext". Plaintext is the default, so the language was cleared.`;
+  }
+
+  if (key === "lang") {
+    return `${formatBlockLabel(path)} has an unsupported lang "${label}". Invalid/unknown language fallback plaintext.`;
+  }
+
+  return `${formatBlockLabel(path)} has an unsupported ${key} "${label}". The value was removed.`;
+}
+
+function nodeAt(content: unknown, path: readonly number[]): Record<string, unknown> | undefined {
+  let current: unknown = content;
+  for (const index of path) {
+    if (Array.isArray(current)) {
+      current = current[index];
+      continue;
+    }
+
+    if (!isRecord(current) || !Array.isArray(current.children)) {
+      return undefined;
+    }
+
+    current = current.children[index];
+  }
+
+  return isRecord(current) ? current : undefined;
+}
+
+function dropRepairedAttrs(content: EditorValue, repairs: readonly Repair[]): EditorValue {
+  if (repairs.length === 0) {
+    return content;
+  }
+
+  const copy = structuredClone(content);
+  for (const repair of repairs) {
+    const node = nodeAt(copy, repair.path);
+    if (node === undefined || typeof node.type !== "string") {
+      continue;
+    }
+
+    for (const key of repairAttrKeys(node.type)) {
+      if (key in node && !isAllowedElementAttrValue(node.type, key, node[key])) {
+        Reflect.deleteProperty(node, key);
+      }
+    }
+  }
+
+  return copy;
 }
 
 function walkDescendant(
@@ -1120,6 +1328,7 @@ function walkDescendant(
   path: number[],
   state: WalkState,
   nesting: ReadonlyMap<string, number> = emptyNesting,
+  parentType?: string,
 ): void {
   if (!isRecord(value)) {
     reject(
@@ -1136,7 +1345,7 @@ function walkDescendant(
   }
 
   if ("text" in value) {
-    walkText(value, path, state);
+    walkText(value, path, state, parentType);
     return;
   }
 
@@ -1205,6 +1414,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     nodes: 0,
     invalid: undefined,
     unsupported: [],
+    repairs: [],
   };
 
   for (let index = 0; index < envelope.data.content.length; index += 1) {
@@ -1226,7 +1436,10 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     };
   }
 
-  const normalized = normalizeBlockIds(envelope.data.content, createPlateId);
+  const normalized = normalizeBlockIds(
+    dropRepairedAttrs(envelope.data.content, state.repairs),
+    createPlateId,
+  );
 
   return {
     status: "ok",
@@ -1236,7 +1449,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       revision: envelope.data.revision,
       content: normalized.content,
     },
-    repairs: normalized.repairs,
+    repairs: [...state.repairs, ...normalized.repairs],
   };
 }
 ```
@@ -1255,6 +1468,7 @@ import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  elementAllowsMarks,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
@@ -1300,8 +1514,12 @@ function isElementNode(node: Record<string, unknown>): node is TElement {
   return typeof node.type === "string" && Array.isArray(node.children);
 }
 
-function sanitizeText(node: Record<string, unknown>): TText {
+function sanitizeText(node: Record<string, unknown>, allowMarks: boolean): TText {
   const text = typeof node.text === "string" ? node.text : "";
+  if (!allowMarks) {
+    return { text };
+  }
+
   const next: TText = { text };
 
   for (const key of Object.keys(node)) {
@@ -1315,7 +1533,11 @@ function sanitizeText(node: Record<string, unknown>): TText {
   return next;
 }
 
-function classifyPasteChild(child: unknown, isInline: IsInline): PasteChild | undefined {
+function classifyPasteChild(
+  child: unknown,
+  isInline: IsInline,
+  allowMarks = true,
+): PasteChild | undefined {
   if (typeof child === "string") {
     return { kind: "text", node: { text: child } };
   }
@@ -1325,7 +1547,7 @@ function classifyPasteChild(child: unknown, isInline: IsInline): PasteChild | un
   }
 
   if (isTextNode(child)) {
-    return { kind: "text", node: sanitizeText(child) };
+    return { kind: "text", node: sanitizeText(child, allowMarks) };
   }
 
   if (!isElementNode(child)) {
@@ -1502,7 +1724,30 @@ function placeInParent(
     return expandBlock(node, isInline, seen, nesting);
   }
 
-  return expandBlock({ ...node, type: target }, isInline, seen, nesting);
+  // The new type may allow marks. Strip first when the node being retyped does not.
+  return expandBlock({ ...plainTextElement(node), type: target }, isInline, seen, nesting);
+}
+
+function plainTextElement(node: TElement): TElement {
+  if (elementAllowsMarks(node.type)) {
+    return node;
+  }
+
+  let changed = false;
+  const children = node.children.map((child) => {
+    if (!isRecord(child) || typeof child.text !== "string" || "children" in child) {
+      return child;
+    }
+
+    if (Object.keys(child).length === 1) {
+      return child;
+    }
+
+    changed = true;
+    return { text: child.text };
+  });
+
+  return changed ? { ...node, children } : node;
 }
 
 // One container, or several pieces when a disallowed void splits it:
@@ -1567,6 +1812,7 @@ function containerPieces(
   }
 
   const contentType = containerContentType(node.type);
+  const contentAllowsMarks = contentType === undefined || elementAllowsMarks(contentType);
   const pieces: TElement[] = [];
   let blocks: TElement[] = [];
   let inlines: Descendant[] = [];
@@ -1597,7 +1843,7 @@ function containerPieces(
   };
 
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, contentAllowsMarks);
     if (classified === undefined) {
       continue;
     }
@@ -1608,7 +1854,7 @@ function containerPieces(
     }
 
     if (classified.kind === "inline") {
-      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      inlines.push(...inlineNodes(classified.node, isInline, seen, contentAllowsMarks));
       continue;
     }
 
@@ -1661,6 +1907,7 @@ function expandBlock(
   }
 
   const allowed = allowedElementAttrs(node.type) !== undefined;
+  const allowMarks = elementAllowsMarks(node.type);
   const paragraphs: TElement[] = [];
   let inlines: Descendant[] = [];
   let usedOwnId = false;
@@ -1684,7 +1931,7 @@ function expandBlock(
   };
 
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined) {
       continue;
     }
@@ -1695,7 +1942,7 @@ function expandBlock(
     }
 
     if (classified.kind === "inline") {
-      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      inlines.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
       continue;
     }
 
@@ -1718,14 +1965,19 @@ function expandBlock(
   return [paragraph([])];
 }
 
-function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Descendant[] {
+function inlineNodes(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  allowMarks = true,
+): Descendant[] {
   if (allowedElementAttrs(node.type) === undefined) {
-    return unwrapInline(node.children, isInline, seen);
+    return unwrapInline(node.children, isInline, seen, allowMarks);
   }
 
   const children: Descendant[] = [];
   for (const child of node.children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined || classified.kind === "block") {
       continue;
     }
@@ -1735,7 +1987,7 @@ function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Des
       continue;
     }
 
-    children.push(...inlineNodes(classified.node, isInline, seen));
+    children.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
   }
 
   const props = elementNode(
@@ -1747,10 +1999,15 @@ function inlineNodes(node: TElement, isInline: IsInline, seen: Set<string>): Des
   return [props];
 }
 
-function unwrapInline(children: unknown[], isInline: IsInline, seen: Set<string>): Descendant[] {
+function unwrapInline(
+  children: unknown[],
+  isInline: IsInline,
+  seen: Set<string>,
+  allowMarks = true,
+): Descendant[] {
   const nodes: Descendant[] = [];
   for (const child of children) {
-    const classified = classifyPasteChild(child, isInline);
+    const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined || classified.kind === "block") {
       continue;
     }
@@ -1760,7 +2017,7 @@ function unwrapInline(children: unknown[], isInline: IsInline, seen: Set<string>
       continue;
     }
 
-    nodes.push(...inlineNodes(classified.node, isInline, seen));
+    nodes.push(...inlineNodes(classified.node, isInline, seen, allowMarks));
   }
 
   return nodes;
@@ -1848,7 +2105,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-```ts
+````ts
 import {
   BlockquotePlugin,
   BoldPlugin,
@@ -1872,6 +2129,7 @@ import {
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import { CalloutPlugin } from "@platejs/callout/react";
+import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -1892,6 +2150,7 @@ import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
+import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { ToggleElement } from "./toggle-element";
 import {
@@ -1905,6 +2164,7 @@ import {
 import {
   clearFormatting,
   containerParentType,
+  exitCodeBlock,
   formatBold,
   formatCode,
   formatItalic,
@@ -1927,7 +2187,11 @@ import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  elementAllowsMarks,
   allowedElementAttrs,
+  isAllowedElementAttrValue,
+  repairAttrKeys,
+  reportsContainer,
   firstChildForbiddenAttrs,
   firstChildType,
   firstChildTypes,
@@ -1938,6 +2202,13 @@ import {
   isWithinAttrRange,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import {
+  codeBlockHtmlDeserializer,
+  codeClipboardText,
+  codeLowlight,
+  insertCodeText,
+  selectionInCodeBlock,
+} from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
 
@@ -2498,6 +2769,10 @@ function normalizeDisallowedChild(
       (key) => key !== "type" && key !== "children" && allowed?.has(key) !== true,
     );
     editor.tf.withoutNormalizing(() => {
+      // The parent runs before the child's own pass, so marks leave with the retype.
+      if (!elementAllowsMarks(child.type)) {
+        stripTextMarks(editor, child.children, childPath);
+      }
       editor.tf.setNodes({ type: target }, { at: childPath });
       if (drop.length > 0) {
         editor.tf.unsetNodes(drop, { at: childPath });
@@ -2509,6 +2784,69 @@ function normalizeDisallowedChild(
   return false;
 }
 
+function textMarkKeys(node: unknown): string[] {
+  if (typeof node !== "object" || node === null || !("text" in node)) {
+    return [];
+  }
+
+  if (typeof node.text !== "string" || "children" in node) {
+    return [];
+  }
+
+  return Object.keys(node).filter((key) => key !== "text");
+}
+
+function stripTextMarks(editor: SlateEditor, children: unknown, path: number[]): void {
+  if (!Array.isArray(children)) {
+    return;
+  }
+
+  for (let index = 0; index < children.length; index += 1) {
+    const keys = textMarkKeys(children[index]);
+    if (keys.length > 0) {
+      editor.tf.unsetNodes(keys, { at: path.concat(index) });
+    }
+  }
+}
+
+function normalizeDisallowedMarks(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  if (elementAllowsMarks(node.type) || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  for (let index = 0; index < node.children.length; index += 1) {
+    const keys = textMarkKeys(node.children[index]);
+    if (keys.length === 0) {
+      continue;
+    }
+
+    editor.tf.unsetNodes(keys, { at: path.concat(index) });
+    return true;
+  }
+
+  return false;
+}
+
+function normalizeRepairAttrs(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const drop = repairAttrKeys(node.type).filter(
+    (key) => key in node && !isAllowedElementAttrValue(node.type, key, node[key]),
+  );
+  if (drop.length === 0) {
+    return false;
+  }
+
+  editor.tf.unsetNodes(drop, { at: path });
+  return true;
+}
+
 const childTypesPlugin = createSlatePlugin({
   key: "childTypes",
 }).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
@@ -2517,7 +2855,9 @@ const childTypesPlugin = createSlatePlugin({
       const [node, path] = entry;
       if (
         isElementRecord(node) &&
-        (normalizeContainerShape(editor, node, path) ||
+        (normalizeRepairAttrs(editor, node, path) ||
+          normalizeDisallowedMarks(editor, node, path) ||
+          normalizeContainerShape(editor, node, path) ||
           normalizeDisallowedChild(editor, node, path))
       ) {
         return;
@@ -2679,7 +3019,9 @@ const listPlugin = ListPlugin.configure({
     toggleChecked: {
       keys: [[Key.Mod, "Enter"]],
       handler: ({ editor }) => {
-        runEditorCommand(editor, toggleTodoChecked, undefined, {
+        // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
+        const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
+        runEditorCommand(editor, command, undefined, {
           readOnly: editor.dom.readOnly,
         });
       },
@@ -3062,6 +3404,12 @@ const breakAbovePlugin = createSlatePlugin({
         return;
       }
 
+      // A code line reports its container. Enter stays a code break, including at offset 0.
+      if (block && isElementRecord(block[0]) && reportsContainer(block[0].type)) {
+        insertBreak();
+        return;
+      }
+
       if (
         block &&
         editor.api.isCollapsed() &&
@@ -3095,6 +3443,46 @@ const breakAbovePlugin = createSlatePlugin({
     },
   },
 }));
+
+// The ``` trigger is DEV-126. CodeBlockRules stays unregistered, so ``` inside a block is text.
+// Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
+// Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
+// Tab inside code returns before the list handler, and Tab outside still reaches it.
+const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
+  render: { node: CodeSyntaxLeaf },
+})
+  .configure({
+    options: {
+      defaultLanguage: null,
+      lowlight: codeLowlight,
+    },
+    render: { node: CodeBlockElement },
+    parsers: {
+      html: {
+        deserializer: codeBlockHtmlDeserializer,
+      },
+    },
+  })
+  .overrideEditor(({ editor, tf: { insertBreak, insertData, insertSoftBreak } }) => ({
+    transforms: {
+      insertSoftBreak() {
+        if (selectionInCodeBlock(editor)) {
+          insertBreak();
+          return;
+        }
+
+        insertSoftBreak();
+      },
+      insertData(data: DataTransfer) {
+        if (!selectionInCodeBlock(editor)) {
+          insertData(data);
+          return;
+        }
+
+        insertCodeText(editor, codeClipboardText(data));
+      },
+    },
+  }));
 
 const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
@@ -3132,6 +3520,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listPlugin,
     dependentAttrsPlugin,
     listKeyboardPlugin,
+    codeBlockPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,
@@ -3139,7 +3528,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     voidPropsPlugin,
   ];
 }
-```
+````
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
 ```ts
@@ -4189,6 +4578,403 @@ export function CalloutElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-code.ts
+```ts
+import type { LanguageFn } from "highlight.js";
+import plaintext from "highlight.js/lib/languages/plaintext";
+import { createLowlight } from "lowlight";
+import { KEYS, type SlateEditor, type TElement } from "platejs";
+
+import { CODE_LANGS, codeLangFromToken, type CodeLang } from "./editor-document-schema";
+
+// Empty lowlight. plaintext is the only grammar in this module. Every other
+// grammar is a dynamic import the first time a block uses that language.
+const codeLowlight = createLowlight();
+codeLowlight.register("plaintext", plaintext);
+
+const LANGUAGE_LOADERS = {
+  typescript: () => import("highlight.js/lib/languages/typescript"),
+  tsx: () => import("highlight.js/lib/languages/typescript"),
+  javascript: () => import("highlight.js/lib/languages/javascript"),
+  jsx: () => import("highlight.js/lib/languages/javascript"),
+  json: () => import("highlight.js/lib/languages/json"),
+  html: () => import("highlight.js/lib/languages/xml"),
+  css: () => import("highlight.js/lib/languages/css"),
+  bash: () => import("highlight.js/lib/languages/bash"),
+  python: () => import("highlight.js/lib/languages/python"),
+  go: () => import("highlight.js/lib/languages/go"),
+  rust: () => import("highlight.js/lib/languages/rust"),
+  sql: () => import("highlight.js/lib/languages/sql"),
+  markdown: () => import("highlight.js/lib/languages/markdown"),
+  yaml: () => import("highlight.js/lib/languages/yaml"),
+  diff: () => import("highlight.js/lib/languages/diff"),
+} as const satisfies Record<CodeLang, () => Promise<{ default: LanguageFn }>>;
+
+const loadingLanguages = new Map<CodeLang, Promise<void>>();
+
+export { codeLowlight };
+
+export function ensureCodeLanguage(lang: string): Promise<void> {
+  const stored = CODE_LANGS.find((item) => item === lang);
+  if (stored === undefined || codeLowlight.registered(stored)) {
+    return Promise.resolve();
+  }
+
+  const pending = loadingLanguages.get(stored);
+  if (pending !== undefined) {
+    return pending;
+  }
+
+  const task = LANGUAGE_LOADERS[stored]().then((loaded) => {
+    if (!codeLowlight.registered(stored)) {
+      codeLowlight.register(stored, loaded.default);
+    }
+  });
+  loadingLanguages.set(stored, task);
+  return task;
+}
+
+function isHtmlElement(node: unknown): node is HTMLElement {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "nodeType" in node &&
+    node.nodeType === Node.ELEMENT_NODE &&
+    "tagName" in node &&
+    typeof node.tagName === "string" &&
+    "childNodes" in node
+  );
+}
+
+function codeClassToken(element: HTMLElement): string | undefined {
+  const nested = element.querySelector("code");
+  const source = nested ?? element;
+  const className = source.getAttribute("class") ?? "";
+  const match = /(?:^|\s)(?:language|lang)-(\S+)/.exec(className);
+  return match?.[1];
+}
+
+// textContent drops <br>, so a walked tree keeps one newline per break.
+function codeElementText(element: HTMLElement): string {
+  let text = "";
+  for (const child of Array.from(element.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      text += child.textContent ?? "";
+      continue;
+    }
+
+    if (!isHtmlElement(child)) {
+      continue;
+    }
+
+    if (child.tagName === "BR") {
+      text += "\n";
+      continue;
+    }
+
+    text += codeElementText(child);
+  }
+
+  return text;
+}
+
+// Plate's PRE parser does not read language-*. This one maps the class, then
+// omits lang for plaintext and for any token outside the allowlist.
+export const codeBlockHtmlDeserializer = {
+  rules: [{ validNodeName: "PRE" }],
+  parse({ element }: { element: HTMLElement }) {
+    const text = codeElementText(element);
+    const lines = text.split("\n");
+    const token = codeClassToken(element);
+    const lang = token === undefined ? null : codeLangFromToken(token);
+    const node: TElement = {
+      type: KEYS.codeBlock,
+      children: (lines.length > 0 ? lines : [""]).map((line) => ({
+        type: KEYS.codeLine,
+        children: [{ text: line }],
+      })),
+    };
+    if (lang !== null) {
+      node.lang = lang;
+    }
+
+    return node;
+  },
+};
+
+// Inside a code block the clipboard is literal text. text/plain wins. A
+// text/html-only payload is inserted as the raw string, so "&amp;" stays "&amp;".
+export function codeClipboardText(data: DataTransfer): string {
+  const plain = data.getData("text/plain");
+  if (plain.length > 0) {
+    return plain;
+  }
+
+  return data.getData("text/html");
+}
+
+export function insertCodeText(editor: SlateEditor, text: string): void {
+  const lines = text.split("\n");
+  const first = lines[0] ?? "";
+  if (first.length > 0) {
+    editor.tf.insertText(first);
+  }
+
+  const rest = lines.slice(1);
+  if (rest.length === 0) {
+    return;
+  }
+
+  const codeLine = editor.getType(KEYS.codeLine);
+  editor.tf.insertNodes(
+    rest.map((line) => ({
+      type: codeLine,
+      children: [{ text: line }],
+    })),
+  );
+}
+
+export function selectionInCodeBlock(editor: SlateEditor): boolean {
+  return editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } }) !== undefined;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { resetCodeBlockDecorations, setCodeBlockToDecorations } from "@platejs/code-block";
+import { Check, Copy } from "lucide-react";
+import {
+  ElementApi,
+  KEYS,
+  NodeApi,
+  type NodeEntry,
+  type TCodeBlockElement,
+  type TElement,
+} from "platejs";
+import {
+  PlateElement,
+  PlateLeaf,
+  useEditorRef,
+  useElement,
+  useReadOnly,
+  type PlateElementProps,
+  type PlateLeafProps,
+} from "platejs/react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import { runEditorCommand, setCodeLanguage } from "./editor-commands";
+import { ensureCodeLanguage } from "./editor-code";
+import { CODE_LANGS, CODE_LANG_LABELS, type CodeLang } from "./editor-document-schema";
+
+const CODE_BLOCK_CLASS_NAME =
+  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border border-l-2 border-l-[var(--editor-code-border)] bg-[var(--editor-code-bg)] text-[var(--editor-code-fg)] [font-family:var(--editor-font-mono)] [tab-size:2]";
+
+const CODE_SCROLL_CLASS_NAME =
+  "block overflow-x-auto px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
+
+const TOOLBAR_CLASS_NAME =
+  "absolute top-1.5 right-1.5 z-10 flex items-center gap-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+function elementLang(element: object): CodeLang | null {
+  if (!("lang" in element)) {
+    return null;
+  }
+
+  const value = Reflect.get(element, "lang");
+  const stored = CODE_LANGS.find((lang) => lang === value);
+  return stored ?? null;
+}
+
+function codeText(element: TElement): string {
+  return element.children.map((line) => NodeApi.string(line)).join("\n");
+}
+
+function keepEditorSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+function languageLabel(lang: CodeLang | null): string {
+  return lang === null ? CODE_LANG_LABELS.plaintext : CODE_LANG_LABELS[lang];
+}
+
+export function CodeBlockElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const lang = elementLang(element);
+  const path = editor.api.findPath(element);
+  const savedSelection = useRef(editor.selection);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCopied(false);
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [copied]);
+
+  useEffect(() => {
+    if (lang === null) {
+      return;
+    }
+
+    let cancelled = false;
+    // The first decorate runs before the grammar chunk arrives and caches an
+    // empty token list on each line. Line listeners then treat that empty list
+    // as unchanged, so fill the real tokens before asking them to read again.
+    void ensureCodeLanguage(lang).then(() => {
+      if (cancelled) {
+        return;
+      }
+
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
+
+        for (const entry of editor.api.nodes({
+          at: [],
+          match: { type: KEYS.codeBlock },
+        })) {
+          if (!isCodeBlockEntry(entry)) {
+            continue;
+          }
+
+          resetCodeBlockDecorations(entry[0]);
+          setCodeBlockToDecorations(editor, entry);
+        }
+
+        editor.api.redecorate();
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editor, lang]);
+
+  async function copyCode(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(codeText(element));
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <PlateElement {...props} as="pre" className={CODE_BLOCK_CLASS_NAME}>
+      <div className={TOOLBAR_CLASS_NAME} contentEditable={false}>
+        {readOnly || path === undefined ? (
+          <span className="text-muted-foreground px-1.5 py-1 text-xs">{languageLabel(lang)}</span>
+        ) : (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
+              aria-label="Change code language"
+              className="text-muted-foreground hover:bg-foreground/5 rounded-md px-1.5 py-1 text-xs"
+              onMouseDown={keepEditorSelection}
+              onPointerDown={() => {
+                savedSelection.current = editor.selection;
+              }}
+            >
+              {languageLabel(lang)}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="max-h-80 w-44 overflow-y-auto"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                const selection = savedSelection.current;
+                editor.tf.withoutSaving(() => {
+                  editor.tf.focus();
+                  if (selection) {
+                    editor.tf.select(selection);
+                  }
+                });
+              }}
+            >
+              <DropdownMenuItem
+                onMouseDown={keepEditorSelection}
+                onSelect={() => {
+                  runEditorCommand(editor, setCodeLanguage, { lang: null, at: path });
+                }}
+              >
+                {CODE_LANG_LABELS.plaintext}
+              </DropdownMenuItem>
+              {CODE_LANGS.map((choice) => (
+                <DropdownMenuItem
+                  key={choice}
+                  onMouseDown={keepEditorSelection}
+                  onSelect={() => {
+                    runEditorCommand(editor, setCodeLanguage, { lang: choice, at: path });
+                  }}
+                >
+                  {CODE_LANG_LABELS[choice]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        <button
+          type="button"
+          aria-label={copied ? "Copied" : "Copy code"}
+          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+          onMouseDown={keepEditorSelection}
+          onClick={() => {
+            void copyCode();
+          }}
+        >
+          {copied ? (
+            <Check aria-hidden="true" className="size-3.5" />
+          ) : (
+            <Copy aria-hidden="true" className="size-3.5" />
+          )}
+        </button>
+      </div>
+      <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
+    </PlateElement>
+  );
+}
+
+function isDecoratedCodeBlock(node: unknown): node is TElement & { type: typeof KEYS.codeBlock } {
+  return ElementApi.isElement(node) && node.type === KEYS.codeBlock;
+}
+
+function isCodeBlockEntry(entry: NodeEntry): entry is NodeEntry<TCodeBlockElement> {
+  return isDecoratedCodeBlock(entry[0]);
+}
+
+function syntaxClassName(leaf: object): string | undefined {
+  if (!("className" in leaf)) {
+    return undefined;
+  }
+
+  const value = Reflect.get(leaf, "className");
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+// Plate's default syntax leaf renders slate-code_syntax and drops the token
+// class. The decoration keeps that class on the leaf.
+export function CodeSyntaxLeaf(props: PlateLeafProps) {
+  return <PlateLeaf {...props} className={syntaxClassName(props.leaf)} />;
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
 ```tsx
 import { ChevronRight } from "lucide-react";
@@ -4385,13 +5171,16 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
+import { unwrapCodeBlock } from "@platejs/code-block";
 import { ListStyleType, toggleList } from "@platejs/list";
 import {
   ElementApi,
   KEYS,
+  NodeApi,
   PathApi,
   RangeApi,
   TextApi,
+  nanoid,
   type SlateEditor,
   type TElement,
   type TRange,
@@ -4408,6 +5197,7 @@ import {
   HIGHLIGHT_TOKENS,
   LINE_HEIGHTS,
   LIST_NUMBER_RANGE,
+  CODE_LANGS,
   TEXT_ALIGNS,
   TEXT_COLOR_TOKENS,
   allowedChildTypes,
@@ -4417,7 +5207,9 @@ import {
   isWithinAttrRange,
   reportedFirstChild,
   reportedFirstChildNames,
+  reportsContainer,
   reportsParentFromFirstChild,
+  type CodeLang,
   type FontFamily,
   type FontSize,
   type HighlightToken,
@@ -4917,6 +5709,16 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
     return labelReport;
   }
 
+  if (reportsContainer(node.type)) {
+    const parent = editor.api.parent(path);
+    if (parent && ElementApi.isElement(parent[0]) && typeof parent[0].type === "string") {
+      const childTypes = allowedChildTypes(parent[0].type);
+      if (childTypes !== undefined && childTypes.some((type) => type === node.type)) {
+        return parent[0].type;
+      }
+    }
+  }
+
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
@@ -5163,6 +5965,134 @@ export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
   id: "block.turn-into.callout",
   label: "Callout",
 });
+
+function blockId(node: TElement): string | undefined {
+  if (!("id" in node) || typeof node.id !== "string" || node.id.length === 0) {
+    return undefined;
+  }
+
+  return node.id;
+}
+
+function codeLineFromBlock(node: TElement): TElement {
+  const line: TElement = {
+    type: KEYS.codeLine,
+    children: [{ text: NodeApi.string(node) }],
+  };
+  const id = blockId(node);
+  if (id !== undefined) {
+    line.id = id;
+  }
+
+  return line;
+}
+
+// Selected paragraphs become one code block, one line each, marks dropped.
+// The same command on a code block unwraps it back into paragraphs.
+export const turnIntoCodeBlock: EditorCommand = {
+  id: "block.turn-into.code-block",
+  label: "Code",
+  group: "turn-into",
+  run: (editor) => {
+    if (!editor.selection) {
+      return;
+    }
+
+    if (editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } })) {
+      unwrapCodeBlock(editor);
+      return;
+    }
+
+    const blocks: { node: TElement; path: number[] }[] = [];
+    for (const [node, path] of lowestBlocks(editor)) {
+      if (ElementApi.isElement(node)) {
+        blocks.push({ node, path });
+      }
+    }
+
+    const first = blocks[0];
+    if (first === undefined) {
+      return;
+    }
+
+    const lines = blocks.map((block) => codeLineFromBlock(block.node));
+    const codeBlock: TElement = {
+      type: editor.getType(KEYS.codeBlock),
+      id: nanoid(10),
+      children: lines.length > 0 ? lines : [{ type: KEYS.codeLine, children: [{ text: "" }] }],
+    };
+
+    editor.tf.withoutNormalizing(() => {
+      for (const block of blocks.reverse()) {
+        editor.tf.removeNodes({ at: block.path });
+      }
+
+      editor.tf.insertNodes(codeBlock, { at: first.path, select: true });
+    });
+  },
+};
+
+export type CodeLanguagePayload = {
+  lang: CodeLang | null;
+  at?: number[];
+};
+
+function codeBlockPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
+  if (at !== undefined) {
+    const entry = editor.api.node(at);
+    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.codeBlock) {
+      return undefined;
+    }
+
+    return entry[1];
+  }
+
+  const above = editor.api.above({ match: { type: KEYS.codeBlock } });
+  return above?.[1];
+}
+
+export const setCodeLanguage: EditorCommand<CodeLanguagePayload> = {
+  id: "format.code-language",
+  label: "Code language",
+  group: "format",
+  run: (editor, payload) => {
+    const path = codeBlockPath(editor, payload.at);
+    if (path === undefined) {
+      return;
+    }
+
+    if (payload.lang === null) {
+      editor.tf.unsetNodes("lang", { at: path });
+      return;
+    }
+
+    if (!isAllowedValue(payload.lang, CODE_LANGS)) {
+      return;
+    }
+
+    editor.tf.setNodes({ lang: payload.lang }, { at: path });
+  },
+};
+
+// Mod+Enter inside a code block. The list shortcut picks this or the to-do check.
+export const exitCodeBlock: EditorCommand = {
+  id: "block.exit.code-block",
+  label: "Exit code block",
+  group: "action",
+  run: (editor) => {
+    const codeBlock = editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } });
+    if (!codeBlock) {
+      return;
+    }
+
+    const at = PathApi.next(codeBlock[1]);
+    if (!at) {
+      return;
+    }
+
+    editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
+  },
+};
 
 export const turnIntoToggle = createTurnIntoContainer(
   KEYS.toggle,
@@ -8360,6 +9290,75 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-code-heading",
+    children: [{ text: "Code" }],
+  },
+  {
+    type: "code_block",
+    id: "demo-code-ts",
+    lang: "typescript",
+    children: [
+      {
+        type: "code_line",
+        id: "demo-code-ts-1",
+        children: [{ text: "const note = {" }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-2",
+        children: [{ text: '  id: "note-1",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-3",
+        children: [{ text: '  title: "Editor",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-4",
+        children: [{ text: '  tags: ["typescript"],' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-5",
+        children: [{ text: "  published: true," }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-ts-6",
+        children: [{ text: "};" }],
+      },
+    ],
+  },
+  {
+    type: "code_block",
+    id: "demo-code-json",
+    lang: "json",
+    children: [
+      {
+        type: "code_line",
+        id: "demo-code-json-1",
+        children: [{ text: "{" }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-2",
+        children: [{ text: '  "id": "note-1",' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-3",
+        children: [{ text: '  "title": "Editor"' }],
+      },
+      {
+        type: "code_line",
+        id: "demo-code-json-4",
+        children: [{ text: "}" }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -8530,6 +9529,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/callout-element.tsx",
     code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-code.ts",
+    code: readSource(`${BLOCK_DIR}/editor-code.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/code-block-element.tsx",
+    code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/toggle-element.tsx",

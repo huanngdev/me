@@ -21,6 +21,7 @@ import {
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import { CalloutPlugin } from "@platejs/callout/react";
+import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -41,6 +42,7 @@ import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
+import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { ToggleElement } from "./toggle-element";
 import {
@@ -54,6 +56,7 @@ import {
 import {
   clearFormatting,
   containerParentType,
+  exitCodeBlock,
   formatBold,
   formatCode,
   formatItalic,
@@ -76,7 +79,11 @@ import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  elementAllowsMarks,
   allowedElementAttrs,
+  isAllowedElementAttrValue,
+  repairAttrKeys,
+  reportsContainer,
   firstChildForbiddenAttrs,
   firstChildType,
   firstChildTypes,
@@ -87,6 +94,13 @@ import {
   isWithinAttrRange,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import {
+  codeBlockHtmlDeserializer,
+  codeClipboardText,
+  codeLowlight,
+  insertCodeText,
+  selectionInCodeBlock,
+} from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
 
@@ -647,6 +661,10 @@ function normalizeDisallowedChild(
       (key) => key !== "type" && key !== "children" && allowed?.has(key) !== true,
     );
     editor.tf.withoutNormalizing(() => {
+      // The parent runs before the child's own pass, so marks leave with the retype.
+      if (!elementAllowsMarks(child.type)) {
+        stripTextMarks(editor, child.children, childPath);
+      }
       editor.tf.setNodes({ type: target }, { at: childPath });
       if (drop.length > 0) {
         editor.tf.unsetNodes(drop, { at: childPath });
@@ -658,6 +676,69 @@ function normalizeDisallowedChild(
   return false;
 }
 
+function textMarkKeys(node: unknown): string[] {
+  if (typeof node !== "object" || node === null || !("text" in node)) {
+    return [];
+  }
+
+  if (typeof node.text !== "string" || "children" in node) {
+    return [];
+  }
+
+  return Object.keys(node).filter((key) => key !== "text");
+}
+
+function stripTextMarks(editor: SlateEditor, children: unknown, path: number[]): void {
+  if (!Array.isArray(children)) {
+    return;
+  }
+
+  for (let index = 0; index < children.length; index += 1) {
+    const keys = textMarkKeys(children[index]);
+    if (keys.length > 0) {
+      editor.tf.unsetNodes(keys, { at: path.concat(index) });
+    }
+  }
+}
+
+function normalizeDisallowedMarks(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  if (elementAllowsMarks(node.type) || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  for (let index = 0; index < node.children.length; index += 1) {
+    const keys = textMarkKeys(node.children[index]);
+    if (keys.length === 0) {
+      continue;
+    }
+
+    editor.tf.unsetNodes(keys, { at: path.concat(index) });
+    return true;
+  }
+
+  return false;
+}
+
+function normalizeRepairAttrs(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const drop = repairAttrKeys(node.type).filter(
+    (key) => key in node && !isAllowedElementAttrValue(node.type, key, node[key]),
+  );
+  if (drop.length === 0) {
+    return false;
+  }
+
+  editor.tf.unsetNodes(drop, { at: path });
+  return true;
+}
+
 const childTypesPlugin = createSlatePlugin({
   key: "childTypes",
 }).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
@@ -666,7 +747,9 @@ const childTypesPlugin = createSlatePlugin({
       const [node, path] = entry;
       if (
         isElementRecord(node) &&
-        (normalizeContainerShape(editor, node, path) ||
+        (normalizeRepairAttrs(editor, node, path) ||
+          normalizeDisallowedMarks(editor, node, path) ||
+          normalizeContainerShape(editor, node, path) ||
           normalizeDisallowedChild(editor, node, path))
       ) {
         return;
@@ -828,7 +911,9 @@ const listPlugin = ListPlugin.configure({
     toggleChecked: {
       keys: [[Key.Mod, "Enter"]],
       handler: ({ editor }) => {
-        runEditorCommand(editor, toggleTodoChecked, undefined, {
+        // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
+        const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
+        runEditorCommand(editor, command, undefined, {
           readOnly: editor.dom.readOnly,
         });
       },
@@ -1211,6 +1296,12 @@ const breakAbovePlugin = createSlatePlugin({
         return;
       }
 
+      // A code line reports its container. Enter stays a code break, including at offset 0.
+      if (block && isElementRecord(block[0]) && reportsContainer(block[0].type)) {
+        insertBreak();
+        return;
+      }
+
       if (
         block &&
         editor.api.isCollapsed() &&
@@ -1244,6 +1335,46 @@ const breakAbovePlugin = createSlatePlugin({
     },
   },
 }));
+
+// The ``` trigger is DEV-126. CodeBlockRules stays unregistered, so ``` inside a block is text.
+// Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
+// Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
+// Tab inside code returns before the list handler, and Tab outside still reaches it.
+const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
+  render: { node: CodeSyntaxLeaf },
+})
+  .configure({
+    options: {
+      defaultLanguage: null,
+      lowlight: codeLowlight,
+    },
+    render: { node: CodeBlockElement },
+    parsers: {
+      html: {
+        deserializer: codeBlockHtmlDeserializer,
+      },
+    },
+  })
+  .overrideEditor(({ editor, tf: { insertBreak, insertData, insertSoftBreak } }) => ({
+    transforms: {
+      insertSoftBreak() {
+        if (selectionInCodeBlock(editor)) {
+          insertBreak();
+          return;
+        }
+
+        insertSoftBreak();
+      },
+      insertData(data: DataTransfer) {
+        if (!selectionInCodeBlock(editor)) {
+          insertData(data);
+          return;
+        }
+
+        insertCodeText(editor, codeClipboardText(data));
+      },
+    },
+  }));
 
 const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
@@ -1281,6 +1412,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listPlugin,
     dependentAttrsPlugin,
     listKeyboardPlugin,
+    codeBlockPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,

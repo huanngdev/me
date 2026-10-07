@@ -14,14 +14,17 @@ import {
   allowsFirstChild,
   firstChildForbiddenAttrs,
   firstChildTypes,
+  elementAllowsMarks,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
   maxNesting,
+  repairAttrKeys,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import type { EditorValue } from "./editor-value";
 
 export type Issue = {
   path: number[];
@@ -38,6 +41,7 @@ type WalkState = {
   nodes: number;
   invalid: Issue | undefined;
   unsupported: Issue[];
+  repairs: Repair[];
 };
 
 const textEncoder = new TextEncoder();
@@ -93,7 +97,12 @@ function countNode(state: WalkState, path: number[]): boolean {
   return true;
 }
 
-function walkText(value: Record<string, unknown>, path: number[], state: WalkState): void {
+function walkText(
+  value: Record<string, unknown>,
+  path: number[],
+  state: WalkState,
+  parentType: string | undefined,
+): void {
   if (!countNode(state, path)) {
     return;
   }
@@ -109,6 +118,14 @@ function walkText(value: Record<string, unknown>, path: number[], state: WalkSta
 
   for (const key of Object.keys(value)) {
     if (key === "text") {
+      continue;
+    }
+
+    if (parentType !== undefined && !elementAllowsMarks(parentType)) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported mark "${key}". Restore from a backup or remove the mark.`,
+      });
       continue;
     }
 
@@ -250,6 +267,14 @@ function walkElement(
 
     if (allowed !== undefined && allowed.has(key)) {
       if (!isAllowedElementAttrValue(type, key, attr)) {
+        if (repairAttrKeys(type).some((name) => name === key)) {
+          state.repairs.push({
+            path,
+            message: repairAttrMessage(path, key, attr),
+          });
+          continue;
+        }
+
         state.unsupported.push({
           path,
           message: `${formatBlockLabel(path)} has an unsupported ${key} "${markValueLabel(attr)}". Restore from a backup or remove the attribute.`,
@@ -340,11 +365,64 @@ function walkElement(
       });
     }
 
-    walkDescendant(child, [...path, index], state, childNesting);
+    walkDescendant(child, [...path, index], state, childNesting, type);
     if (state.invalid) {
       return;
     }
   }
+}
+
+function repairAttrMessage(path: number[], key: string, value: unknown): string {
+  const label = markValueLabel(value);
+  if (key === "lang" && value === "plaintext") {
+    return `${formatBlockLabel(path)} stores lang "plaintext". Plaintext is the default, so the language was cleared.`;
+  }
+
+  if (key === "lang") {
+    return `${formatBlockLabel(path)} has an unsupported lang "${label}". Invalid/unknown language fallback plaintext.`;
+  }
+
+  return `${formatBlockLabel(path)} has an unsupported ${key} "${label}". The value was removed.`;
+}
+
+function nodeAt(content: unknown, path: readonly number[]): Record<string, unknown> | undefined {
+  let current: unknown = content;
+  for (const index of path) {
+    if (Array.isArray(current)) {
+      current = current[index];
+      continue;
+    }
+
+    if (!isRecord(current) || !Array.isArray(current.children)) {
+      return undefined;
+    }
+
+    current = current.children[index];
+  }
+
+  return isRecord(current) ? current : undefined;
+}
+
+function dropRepairedAttrs(content: EditorValue, repairs: readonly Repair[]): EditorValue {
+  if (repairs.length === 0) {
+    return content;
+  }
+
+  const copy = structuredClone(content);
+  for (const repair of repairs) {
+    const node = nodeAt(copy, repair.path);
+    if (node === undefined || typeof node.type !== "string") {
+      continue;
+    }
+
+    for (const key of repairAttrKeys(node.type)) {
+      if (key in node && !isAllowedElementAttrValue(node.type, key, node[key])) {
+        Reflect.deleteProperty(node, key);
+      }
+    }
+  }
+
+  return copy;
 }
 
 function walkDescendant(
@@ -352,6 +430,7 @@ function walkDescendant(
   path: number[],
   state: WalkState,
   nesting: ReadonlyMap<string, number> = emptyNesting,
+  parentType?: string,
 ): void {
   if (!isRecord(value)) {
     reject(
@@ -368,7 +447,7 @@ function walkDescendant(
   }
 
   if ("text" in value) {
-    walkText(value, path, state);
+    walkText(value, path, state, parentType);
     return;
   }
 
@@ -437,6 +516,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     nodes: 0,
     invalid: undefined,
     unsupported: [],
+    repairs: [],
   };
 
   for (let index = 0; index < envelope.data.content.length; index += 1) {
@@ -458,7 +538,10 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     };
   }
 
-  const normalized = normalizeBlockIds(envelope.data.content, createPlateId);
+  const normalized = normalizeBlockIds(
+    dropRepairedAttrs(envelope.data.content, state.repairs),
+    createPlateId,
+  );
 
   return {
     status: "ok",
@@ -468,6 +551,6 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       revision: envelope.data.revision,
       content: normalized.content,
     },
-    repairs: normalized.repairs,
+    repairs: [...state.repairs, ...normalized.repairs],
   };
 }
