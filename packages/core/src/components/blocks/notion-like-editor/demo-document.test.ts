@@ -403,6 +403,7 @@ describe("demo document", () => {
     const message = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callout-message");
     const nestedToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-nest");
     const quoteToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-quote");
+    const headingToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-heading");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -413,6 +414,8 @@ describe("demo document", () => {
       nestedToggle.type !== "toggle" ||
       !quoteToggle ||
       quoteToggle.type !== "toggle" ||
+      !headingToggle ||
+      headingToggle.type !== "toggle" ||
       !paste
     ) {
       throw new Error("Missing the toggles demo.");
@@ -426,7 +429,10 @@ describe("demo document", () => {
     expect(DEMO_DOCUMENT_VALUE.indexOf(quoteToggle)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(nestedToggle) + 1,
     );
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(quoteToggle) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(headingToggle)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(quoteToggle) + 1,
+    );
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(headingToggle) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",
@@ -469,6 +475,18 @@ describe("demo document", () => {
       "demo-toggle-quote-body",
     ]);
     expect(field(elementChildren(quoteToggle)[1], "type")).toBe("blockquote");
+    const headingChildren = elementChildren(headingToggle);
+    expect(headingChildren.map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-heading-label",
+      "demo-toggle-heading-body",
+      "demo-toggle-heading-item",
+    ]);
+    expect(field(headingChildren[0], "type")).toBe("h2");
+    expect(elementChildren(headingChildren[0])).toEqual([
+      { text: "A toggle heading folds a whole section." },
+    ]);
+    expect(field(headingChildren[2], "listStyleType")).toBe("disc");
+    expect(field(headingChildren[2], "indent")).toBe(1);
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {

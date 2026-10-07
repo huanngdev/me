@@ -26,8 +26,11 @@ import {
   TEXT_COLOR_TOKENS,
   allowedChildTypes,
   allowedElementAttrs,
+  allowsFirstChild,
   isAllowedValue,
   isWithinAttrRange,
+  reportedFirstChild,
+  reportedFirstChildNames,
   reportsParentFromFirstChild,
   type FontFamily,
   type FontSize,
@@ -505,7 +508,29 @@ export function containerParentType(
   return parent[0].type;
 }
 
+function reportedLabelBlockType(
+  editor: SlateEditor,
+  node: TElement,
+  path: number[],
+): string | undefined {
+  if (path[path.length - 1] !== 0 || typeof node.type !== "string") {
+    return undefined;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+    return undefined;
+  }
+
+  return reportedFirstChild(parent[0].type, node.type);
+}
+
 function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
+  const labelReport = reportedLabelBlockType(editor, node, path);
+  if (labelReport !== undefined) {
+    return labelReport;
+  }
+
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
@@ -589,8 +614,13 @@ function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): 
         continue;
       }
 
+      const childIndex = blockPath[blockPath.length - 1];
       const childTypes = allowedChildTypes(parent[0].type);
-      if (childTypes === undefined || childTypes.some((type) => type === targetType)) {
+      if (
+        (childIndex === 0 && allowsFirstChild(parent[0].type, targetType)) ||
+        childTypes === undefined ||
+        childTypes.some((type) => type === targetType)
+      ) {
         continue;
       }
 
@@ -831,6 +861,44 @@ export const TURN_INTO_HEADING = {
   2: turnIntoHeading2,
   3: turnIntoHeading3,
 } as const satisfies Record<HeadingLevel, EditorCommand>;
+
+function isToggleLabelReport(blockType: string): boolean {
+  if (blockType === KEYS.toggle) {
+    return true;
+  }
+
+  return reportedFirstChildNames(KEYS.toggle).some((name) => name === blockType);
+}
+
+// One undo: runEditorCommand batches this. A same-level heading label reverts to a
+// paragraph before turnIntoToggle can unwrap the container.
+export function createTurnIntoToggleHeading(level: HeadingLevel): EditorCommand {
+  const heading = TURN_INTO_HEADING[level];
+  const target = reportedFirstChild(KEYS.toggle, HEADING_TYPE[level]);
+
+  return {
+    id: `block.turn-into.toggle-h${level}`,
+    label: `Toggle heading ${level}`,
+    group: "turn-into",
+    run: (editor) => {
+      const current = getBlockType(editor);
+      if (target !== undefined && current === target) {
+        heading.run(editor);
+        return;
+      }
+
+      if (current === null || !isToggleLabelReport(current)) {
+        turnIntoToggle.run(editor);
+      }
+
+      if (target === undefined || getBlockType(editor) === target) {
+        return;
+      }
+
+      heading.run(editor);
+    },
+  };
+}
 
 const TOGGLE_LIST_COMMAND = {
   disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },

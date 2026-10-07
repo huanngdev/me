@@ -89,8 +89,11 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
-  /** When set, children[0] must be this type. Later children still use childTypes. */
-  firstChildType?: string;
+  /**
+   * When set, children[0] must be one of these types. The first entry is the
+   * default label. Later children still use childTypes.
+   */
+  firstChildTypes?: readonly string[];
   /** Attrs childTypes allows that are still illegal on children[0]. */
   firstChildForbiddenAttrs?: readonly string[];
   /** How many times this type may nest, counting the outermost node. */
@@ -100,6 +103,11 @@ export type EditorElementRule = {
    * Absent means every plain paragraph child. "first" means only children[0].
    */
   reportParent?: "all" | "first";
+  /**
+   * getBlockType name for a label of this type. A label type absent from the
+   * map reports the container when reportParent is "first".
+   */
+  reportedFirstChild?: Readonly<Record<string, string>>;
   /**
    * A void stores exactly one empty text leaf and no marks.
    * It is not a container, so childTypes stays absent.
@@ -268,10 +276,15 @@ export const EDITOR_ELEMENT_RULES = [
     type: KEYS.toggle,
     attrs: ["id"],
     childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
-    firstChildType: KEYS.p,
+    firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
     reportParent: "first",
+    reportedFirstChild: {
+      [KEYS.h1]: "toggle-h1",
+      [KEYS.h2]: "toggle-h2",
+      [KEYS.h3]: "toggle-h3",
+    },
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -313,10 +326,18 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
-const elementFirstChildType = new Map<string, string>(
+const elementFirstChildTypes = new Map<string, readonly string[]>(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
-    "firstChildType" in rule && rule.firstChildType !== undefined
-      ? [[rule.type, rule.firstChildType]]
+    "firstChildTypes" in rule && rule.firstChildTypes !== undefined
+      ? [[rule.type, rule.firstChildTypes]]
+      : [],
+  ),
+);
+
+const elementReportedFirstChild = new Map<string, Readonly<Record<string, string>>>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportedFirstChild" in rule && rule.reportedFirstChild !== undefined
+      ? [[rule.type, rule.reportedFirstChild]]
       : [],
   ),
 );
@@ -353,8 +374,27 @@ export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
 }
 
+export function firstChildTypes(type: string): readonly string[] | undefined {
+  return elementFirstChildTypes.get(type);
+}
+
+/** The default label type. Existing callers use this when a label must be inserted. */
 export function firstChildType(type: string): string | undefined {
-  return elementFirstChildType.get(type);
+  return firstChildTypes(type)?.[0];
+}
+
+export function allowsFirstChild(parentType: string, childType: string): boolean {
+  const labels = firstChildTypes(parentType);
+  return labels !== undefined && labels.some((type) => type === childType);
+}
+
+export function reportedFirstChild(parentType: string, childType: string): string | undefined {
+  return elementReportedFirstChild.get(parentType)?.[childType];
+}
+
+export function reportedFirstChildNames(parentType: string): readonly string[] {
+  const reported = elementReportedFirstChild.get(parentType);
+  return reported === undefined ? [] : Object.values(reported);
 }
 
 export function firstChildForbiddenAttrs(type: string): readonly string[] {
@@ -739,8 +779,9 @@ import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowedElementAttrs,
+  allowsFirstChild,
   firstChildForbiddenAttrs,
-  firstChildType,
+  firstChildTypes,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
@@ -1027,16 +1068,20 @@ function walkElement(
     childNesting = nextNesting;
   }
 
-  const labelType = allowed === undefined ? undefined : firstChildType(type);
-  if (labelType !== undefined) {
+  const labelTypes = allowed === undefined ? undefined : firstChildTypes(type);
+  if (labelTypes !== undefined) {
     const first = value.children[0];
     const firstStructuralType = structuralChildType(first);
-    if (firstStructuralType !== undefined && firstStructuralType !== labelType) {
+    if (firstStructuralType !== undefined && !allowsFirstChild(type, firstStructuralType)) {
       state.unsupported.push({
         path,
         message: `${formatBlockLabel(path)} has an unsupported first child type "${firstStructuralType}". Restore from a backup or remove the block.`,
       });
-    } else if (firstStructuralType === labelType && isRecord(first)) {
+    } else if (
+      firstStructuralType !== undefined &&
+      allowsFirstChild(type, firstStructuralType) &&
+      isRecord(first)
+    ) {
       for (const key of firstChildForbiddenAttrs(type)) {
         if (key in first) {
           state.unsupported.push({
@@ -1050,7 +1095,10 @@ function walkElement(
 
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
-    if (!voidBlock && !childIsAllowed(type, child)) {
+    const structuralType = structuralChildType(child);
+    const allowedLabel =
+      index === 0 && structuralType !== undefined && allowsFirstChild(type, structuralType);
+    if (!voidBlock && !allowedLabel && !childIsAllowed(type, child)) {
       const childType = structuralChildType(child);
       const detail =
         childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;
@@ -1205,10 +1253,12 @@ import {
 
 import {
   allowedChildTypes,
+  allowsFirstChild,
   containerContentType,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
+  firstChildTypes,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
@@ -1380,13 +1430,14 @@ function stripForbiddenAttrs(node: TElement, forbidden: readonly string[]): TEle
 }
 
 function withFirstChild(type: string, blocks: TElement[]): TElement[] {
+  const labels = firstChildTypes(type);
   const expected = firstChildType(type);
-  if (expected === undefined) {
+  if (labels === undefined || expected === undefined) {
     return blocks;
   }
 
   const first = blocks[0];
-  if (first === undefined || first.type !== expected) {
+  if (first === undefined || !allowsFirstChild(type, first.type)) {
     return [elementNode(expected, [{ text: "" }], undefined), ...blocks];
   }
 
@@ -1413,6 +1464,7 @@ function placeInParent(
   isInline: IsInline,
   seen: Set<string>,
   nesting: Nesting = emptyNesting,
+  asLabel = false,
 ): TElement[] {
   // A void is never retyped. A container that cannot hold it splits around the void.
   if (isVoidElementType(node.type)) {
@@ -1420,7 +1472,10 @@ function placeInParent(
   }
 
   const parentTypes = allowedChildTypes(parentType) ?? [];
-  if (parentTypes.some((type) => type === node.type)) {
+  if (
+    parentTypes.some((type) => type === node.type) ||
+    (asLabel && allowsFirstChild(parentType, node.type))
+  ) {
     return expandBlock(node, isInline, seen, nesting);
   }
 
@@ -1558,7 +1613,14 @@ function containerPieces(
     }
 
     flushInlines();
-    for (const part of placeInParent(classified.node, node.type, isInline, seen, nextNesting)) {
+    for (const part of placeInParent(
+      classified.node,
+      node.type,
+      isInline,
+      seen,
+      nextNesting,
+      blocks.length === 0,
+    )) {
       if (disallowedVoid(part, node.type)) {
         flushContainer();
         pieces.push(part);
@@ -1863,10 +1925,12 @@ import {
   FONT_FAMILIES,
   LIST_NUMBER_RANGE,
   allowedChildTypes,
+  allowsFirstChild,
   containerContentType,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
+  firstChildTypes,
   isVoidElementType,
   maxNesting,
   isAllowedValue,
@@ -2367,14 +2431,15 @@ function normalizeContainerShape(
     return true;
   }
 
+  const labels = firstChildTypes(node.type);
   const expected = firstChildType(node.type);
-  if (expected === undefined || !Array.isArray(node.children)) {
+  if (labels === undefined || expected === undefined || !Array.isArray(node.children)) {
     return false;
   }
 
   const first = node.children[0];
   const childPath = path.concat(0);
-  if (!isElementRecord(first) || first.type !== expected) {
+  if (!isElementRecord(first) || !allowsFirstChild(node.type, first.type)) {
     editor.tf.insertNodes({ type: expected, children: [{ text: "" }] }, { at: childPath });
     return true;
   }
@@ -2401,6 +2466,10 @@ function normalizeDisallowedChild(
   for (let index = 0; index < node.children.length; index += 1) {
     const child = node.children[index];
     if (!isElementRecord(child) || childTypes.some((type) => type === child.type)) {
+      continue;
+    }
+
+    if (index === 0 && allowsFirstChild(node.type, child.type)) {
       continue;
     }
 
@@ -3003,7 +3072,7 @@ const breakAbovePlugin = createSlatePlugin({
         const copied = listBreakAbove(block[0]);
         Object.assign(above, copied.attrs);
         const sourcePath = block[1];
-        // A container label (firstChildType) breaks above the container, not inside it.
+        // A container label (firstChildTypes) breaks above the container, not inside it.
         const parentPath = sourcePath.slice(0, -1);
         const parent = parentPath.length > 0 ? editor.api.node(parentPath) : undefined;
         const aboveContainer =
@@ -3083,8 +3152,9 @@ import {
   type Descendant,
   type SlateEditor,
   type TElement,
-  type TText,
 } from "platejs";
+
+import { allowsFirstChild } from "./editor-document-schema";
 
 // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
 // No shortcut. The "> " trigger is DEV-126.
@@ -3154,6 +3224,81 @@ function deserializedNodes(editor: SlateEditor, element: HTMLElement): Descendan
   return parsed.filter(isDescendant);
 }
 
+function isToggleHeading(type: string): boolean {
+  return type !== KEYS.p && allowsFirstChild(KEYS.toggle, type);
+}
+
+// Plate may wrap <summary><h2> in a paragraph. A summary is a heading label only
+// when that heading is the only content.
+function summaryHeading(nodes: readonly Descendant[]): TElement | undefined {
+  let heading: TElement | undefined;
+  let extra = false;
+
+  const visit = (node: Descendant): void => {
+    if (extra) {
+      return;
+    }
+
+    if (TextApi.isText(node)) {
+      if (node.text.trim().length > 0) {
+        extra = true;
+      }
+      return;
+    }
+
+    if (!ElementApi.isElement(node)) {
+      return;
+    }
+
+    if (isToggleHeading(node.type)) {
+      if (heading !== undefined) {
+        extra = true;
+        return;
+      }
+
+      heading = node;
+      return;
+    }
+
+    for (const child of node.children) {
+      if (TextApi.isText(child) || ElementApi.isElement(child)) {
+        visit(child);
+      }
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return extra ? undefined : heading;
+}
+
+function summaryLabel(editor: SlateEditor, summary: HTMLElement): TElement {
+  const heading = summaryHeading(deserializedNodes(editor, summary));
+  if (heading !== undefined) {
+    return heading;
+  }
+
+  return { type: KEYS.p, children: labelInlines(editor, summary) };
+}
+
+function textLeaves(node: TElement): Descendant[] {
+  const leaves: Descendant[] = [];
+  for (const child of node.children) {
+    if (TextApi.isText(child)) {
+      leaves.push(child);
+      continue;
+    }
+
+    if (ElementApi.isElement(child)) {
+      leaves.push(...textLeaves(child));
+    }
+  }
+
+  return leaves;
+}
+
 function labelInlines(editor: SlateEditor, summary: HTMLElement): Descendant[] {
   const inlines: Descendant[] = [];
   for (const node of deserializedNodes(editor, summary)) {
@@ -3167,7 +3312,17 @@ function labelInlines(editor: SlateEditor, summary: HTMLElement): Descendant[] {
     }
 
     if (node.type === KEYS.p) {
-      inlines.push(...node.children);
+      for (const child of node.children) {
+        if (
+          ElementApi.isElement(child) &&
+          (child.type === KEYS.p || allowsFirstChild(KEYS.toggle, child.type))
+        ) {
+          inlines.push(...textLeaves(child));
+          continue;
+        }
+
+        inlines.push(child);
+      }
       continue;
     }
 
@@ -3223,12 +3378,14 @@ function parseDetails(editor: SlateEditor, element: HTMLElement, type: string): 
     rest.push(child);
   }
 
-  const label: TText[] | Descendant[] = summary ? labelInlines(editor, summary) : [{ text: "" }];
+  const label = summary
+    ? summaryLabel(editor, summary)
+    : { type: KEYS.p, children: [{ text: "" }] };
   const content = rest.flatMap((child) => contentBlocks(editor, child));
 
   return {
     type,
-    children: [{ type: KEYS.p, children: label }, ...content],
+    children: [label, ...content],
   };
 }
 
@@ -3398,11 +3555,14 @@ function labelContext(editor: SlateEditor): LabelContext | undefined {
   }
 
   const block = editor.api.block();
-  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== KEYS.p) {
-    return undefined;
-  }
-
-  if (typeof block[0].listStyleType === "string" || block[1][block[1].length - 1] !== 0) {
+  if (
+    !block ||
+    !ElementApi.isElement(block[0]) ||
+    typeof block[0].type !== "string" ||
+    !allowsFirstChild(KEYS.toggle, block[0].type) ||
+    typeof block[0].listStyleType === "string" ||
+    block[1][block[1].length - 1] !== 0
+  ) {
     return undefined;
   }
 
@@ -3507,11 +3667,36 @@ export function openNewToggles(editor: SlateEditor, before: ReadonlySet<string>)
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
-export const HEADING_STYLES = {
-  h1: "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0",
-  h2: "mt-6 text-2xl font-medium leading-tight text-foreground first:mt-0",
-  h3: "mt-4 text-xl font-medium leading-tight text-foreground first:mt-0",
+const HEADING_SIZE = {
+  h1: "text-3xl",
+  h2: "text-2xl",
+  h3: "text-xl",
 } as const;
+
+const HEADING_MARGIN = {
+  h1: "mt-8",
+  h2: "mt-6",
+  h3: "mt-4",
+} as const;
+
+export const HEADING_STYLES = {
+  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0`,
+  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0`,
+  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0`,
+} as const;
+
+function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
+  return Object.hasOwn(HEADING_SIZE, type);
+}
+
+/** Font size and line height shared with a toggle chevron centered on the first line. */
+export function headingLineClass(type: string): string | undefined {
+  if (!isHeadingSize(type)) {
+    return undefined;
+  }
+
+  return `${HEADING_SIZE[type]} leading-tight`;
+}
 
 type HeadingTag = keyof typeof HEADING_STYLES;
 
@@ -4007,13 +4192,13 @@ export function CalloutElement(props: PlateElementProps) {
 ## packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
 ```tsx
 import { ChevronRight } from "lucide-react";
-import { KEYS } from "platejs";
 import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } from "platejs/react";
 
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { toggleOpen, togglePlugin } from "./editor-toggle";
+import { headingLineClass } from "./heading-element";
 
 // Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
 // The label is the first child. The gutter is contenteditable="false", so closing hides
@@ -4022,10 +4207,15 @@ export const TOGGLE_HIDDEN_CONTENT_CLASS =
   "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
 
 // pl-6 is the same gutter step as a depth-1 bullet. Content lines up under the label text.
+// The heading's first:mt-0 misses when a text node precedes the label. The child
+// combinator still matches the label, so only that heading loses its top margin.
+export const TOGGLE_LABEL_MARGIN_CLASS = "[&>:is(h1,h2,h3)]:mt-0";
+
 export const TOGGLE_CLASS_NAME = cn(
   "relative space-y-2 pl-6",
   LIST_SIBLING_GAP_CLASS,
   TOGGLE_HIDDEN_CONTENT_CLASS,
+  TOGGLE_LABEL_MARGIN_CLASS,
 );
 
 function elementId(element: PlateElementProps["element"]): string | undefined {
@@ -4052,13 +4242,32 @@ function plainText(node: unknown): string {
   return node.children.map((child: unknown) => plainText(child)).join("");
 }
 
+function labelBlockType(element: PlateElementProps["element"]): string | undefined {
+  const first = element.children[0];
+  if (!first || typeof first !== "object" || !("type" in first) || typeof first.type !== "string") {
+    return undefined;
+  }
+
+  return first.type;
+}
+
 function labelText(element: PlateElementProps["element"]): string {
   const first = element.children[0];
-  if (!first || typeof first !== "object" || !("type" in first) || first.type !== KEYS.p) {
+  if (!first || typeof first !== "object") {
     return "";
   }
 
   return plainText(first);
+}
+
+function chevronClass(labelType: string | undefined): string {
+  const line = labelType === undefined ? undefined : headingLineClass(labelType);
+  if (line === undefined) {
+    return "top-0.5";
+  }
+
+  // 1lh is the heading's own first line, so one box covers h1, h2, and h3.
+  return cn("top-0 flex h-[1lh] items-center", line);
 }
 
 function keepCaret(event: { preventDefault: () => void }): void {
@@ -4072,6 +4281,7 @@ export function ToggleElement(props: PlateElementProps) {
   const open = id !== undefined && openIds instanceof Set && openIds.has(id);
   const text = labelText(props.element);
   const action = open ? "Collapse" : "Expand";
+  const chevron = chevronClass(labelBlockType(props.element));
 
   return (
     <PlateElement
@@ -4083,7 +4293,7 @@ export function ToggleElement(props: PlateElementProps) {
       className={cn(TOGGLE_CLASS_NAME, props.className)}
     >
       {props.children}
-      <div className="absolute top-0.5 left-0" contentEditable={false}>
+      <div className={cn("absolute left-0", chevron)} contentEditable={false}>
         <button
           type="button"
           aria-expanded={open}
@@ -4202,8 +4412,11 @@ import {
   TEXT_COLOR_TOKENS,
   allowedChildTypes,
   allowedElementAttrs,
+  allowsFirstChild,
   isAllowedValue,
   isWithinAttrRange,
+  reportedFirstChild,
+  reportedFirstChildNames,
   reportsParentFromFirstChild,
   type FontFamily,
   type FontSize,
@@ -4681,7 +4894,29 @@ export function containerParentType(
   return parent[0].type;
 }
 
+function reportedLabelBlockType(
+  editor: SlateEditor,
+  node: TElement,
+  path: number[],
+): string | undefined {
+  if (path[path.length - 1] !== 0 || typeof node.type !== "string") {
+    return undefined;
+  }
+
+  const parent = editor.api.parent(path);
+  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+    return undefined;
+  }
+
+  return reportedFirstChild(parent[0].type, node.type);
+}
+
 function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
+  const labelReport = reportedLabelBlockType(editor, node, path);
+  if (labelReport !== undefined) {
+    return labelReport;
+  }
+
   const reported = reportedBlockType(node);
   if (reported !== node.type || node.type !== KEYS.p) {
     return reported;
@@ -4765,8 +5000,13 @@ function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): 
         continue;
       }
 
+      const childIndex = blockPath[blockPath.length - 1];
       const childTypes = allowedChildTypes(parent[0].type);
-      if (childTypes === undefined || childTypes.some((type) => type === targetType)) {
+      if (
+        (childIndex === 0 && allowsFirstChild(parent[0].type, targetType)) ||
+        childTypes === undefined ||
+        childTypes.some((type) => type === targetType)
+      ) {
         continue;
       }
 
@@ -5007,6 +5247,44 @@ export const TURN_INTO_HEADING = {
   2: turnIntoHeading2,
   3: turnIntoHeading3,
 } as const satisfies Record<HeadingLevel, EditorCommand>;
+
+function isToggleLabelReport(blockType: string): boolean {
+  if (blockType === KEYS.toggle) {
+    return true;
+  }
+
+  return reportedFirstChildNames(KEYS.toggle).some((name) => name === blockType);
+}
+
+// One undo: runEditorCommand batches this. A same-level heading label reverts to a
+// paragraph before turnIntoToggle can unwrap the container.
+export function createTurnIntoToggleHeading(level: HeadingLevel): EditorCommand {
+  const heading = TURN_INTO_HEADING[level];
+  const target = reportedFirstChild(KEYS.toggle, HEADING_TYPE[level]);
+
+  return {
+    id: `block.turn-into.toggle-h${level}`,
+    label: `Toggle heading ${level}`,
+    group: "turn-into",
+    run: (editor) => {
+      const current = getBlockType(editor);
+      if (target !== undefined && current === target) {
+        heading.run(editor);
+        return;
+      }
+
+      if (current === null || !isToggleLabelReport(current)) {
+        turnIntoToggle.run(editor);
+      }
+
+      if (target === undefined || getBlockType(editor) === target) {
+        return;
+      }
+
+      heading.run(editor);
+    },
+  };
+}
 
 const TOGGLE_LIST_COMMAND = {
   disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },
@@ -8055,6 +8333,29 @@ export const DEMO_DOCUMENT_VALUE = [
             children: [{ text: "This quote sits inside the toggle." }],
           },
         ],
+      },
+    ],
+  },
+  {
+    type: "toggle",
+    id: "demo-toggle-heading",
+    children: [
+      {
+        type: "h2",
+        id: "demo-toggle-heading-label",
+        children: [{ text: "A toggle heading folds a whole section." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-heading-body",
+        children: [{ text: "The section stays in the document while the heading is closed." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-heading-item",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Open it to read the section." }],
       },
     ],
   },

@@ -1,11 +1,11 @@
 import { ChevronRight } from "lucide-react";
-import { KEYS } from "platejs";
 import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } from "platejs/react";
 
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { toggleOpen, togglePlugin } from "./editor-toggle";
+import { headingLineClass } from "./heading-element";
 
 // Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
 // The label is the first child. The gutter is contenteditable="false", so closing hides
@@ -14,10 +14,15 @@ export const TOGGLE_HIDDEN_CONTENT_CLASS =
   "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
 
 // pl-6 is the same gutter step as a depth-1 bullet. Content lines up under the label text.
+// The heading's first:mt-0 misses when a text node precedes the label. The child
+// combinator still matches the label, so only that heading loses its top margin.
+export const TOGGLE_LABEL_MARGIN_CLASS = "[&>:is(h1,h2,h3)]:mt-0";
+
 export const TOGGLE_CLASS_NAME = cn(
   "relative space-y-2 pl-6",
   LIST_SIBLING_GAP_CLASS,
   TOGGLE_HIDDEN_CONTENT_CLASS,
+  TOGGLE_LABEL_MARGIN_CLASS,
 );
 
 function elementId(element: PlateElementProps["element"]): string | undefined {
@@ -44,13 +49,32 @@ function plainText(node: unknown): string {
   return node.children.map((child: unknown) => plainText(child)).join("");
 }
 
+function labelBlockType(element: PlateElementProps["element"]): string | undefined {
+  const first = element.children[0];
+  if (!first || typeof first !== "object" || !("type" in first) || typeof first.type !== "string") {
+    return undefined;
+  }
+
+  return first.type;
+}
+
 function labelText(element: PlateElementProps["element"]): string {
   const first = element.children[0];
-  if (!first || typeof first !== "object" || !("type" in first) || first.type !== KEYS.p) {
+  if (!first || typeof first !== "object") {
     return "";
   }
 
   return plainText(first);
+}
+
+function chevronClass(labelType: string | undefined): string {
+  const line = labelType === undefined ? undefined : headingLineClass(labelType);
+  if (line === undefined) {
+    return "top-0.5";
+  }
+
+  // 1lh is the heading's own first line, so one box covers h1, h2, and h3.
+  return cn("top-0 flex h-[1lh] items-center", line);
 }
 
 function keepCaret(event: { preventDefault: () => void }): void {
@@ -64,6 +88,7 @@ export function ToggleElement(props: PlateElementProps) {
   const open = id !== undefined && openIds instanceof Set && openIds.has(id);
   const text = labelText(props.element);
   const action = open ? "Collapse" : "Expand";
+  const chevron = chevronClass(labelBlockType(props.element));
 
   return (
     <PlateElement
@@ -75,7 +100,7 @@ export function ToggleElement(props: PlateElementProps) {
       className={cn(TOGGLE_CLASS_NAME, props.className)}
     >
       {props.children}
-      <div className="absolute top-0.5 left-0" contentEditable={false}>
+      <div className={cn("absolute left-0", chevron)} contentEditable={false}>
         <button
           type="button"
           aria-expanded={open}

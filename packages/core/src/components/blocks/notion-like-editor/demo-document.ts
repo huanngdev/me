@@ -737,6 +737,29 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "toggle",
+    id: "demo-toggle-heading",
+    children: [
+      {
+        type: "h2",
+        id: "demo-toggle-heading-label",
+        children: [{ text: "A toggle heading folds a whole section." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-heading-body",
+        children: [{ text: "The section stays in the document while the heading is closed." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-heading-item",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Open it to read the section." }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

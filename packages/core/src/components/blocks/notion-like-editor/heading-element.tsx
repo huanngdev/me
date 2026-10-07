@@ -1,11 +1,36 @@
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
-export const HEADING_STYLES = {
-  h1: "mt-8 text-3xl font-medium leading-tight text-foreground first:mt-0",
-  h2: "mt-6 text-2xl font-medium leading-tight text-foreground first:mt-0",
-  h3: "mt-4 text-xl font-medium leading-tight text-foreground first:mt-0",
+const HEADING_SIZE = {
+  h1: "text-3xl",
+  h2: "text-2xl",
+  h3: "text-xl",
 } as const;
+
+const HEADING_MARGIN = {
+  h1: "mt-8",
+  h2: "mt-6",
+  h3: "mt-4",
+} as const;
+
+export const HEADING_STYLES = {
+  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0`,
+  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0`,
+  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0`,
+} as const;
+
+function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
+  return Object.hasOwn(HEADING_SIZE, type);
+}
+
+/** Font size and line height shared with a toggle chevron centered on the first line. */
+export function headingLineClass(type: string): string | undefined {
+  if (!isHeadingSize(type)) {
+    return undefined;
+  }
+
+  return `${HEADING_SIZE[type]} leading-tight`;
+}
 
 type HeadingTag = keyof typeof HEADING_STYLES;
 

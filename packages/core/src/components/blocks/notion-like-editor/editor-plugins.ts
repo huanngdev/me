@@ -74,10 +74,12 @@ import {
   FONT_FAMILIES,
   LIST_NUMBER_RANGE,
   allowedChildTypes,
+  allowsFirstChild,
   containerContentType,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
+  firstChildTypes,
   isVoidElementType,
   maxNesting,
   isAllowedValue,
@@ -578,14 +580,15 @@ function normalizeContainerShape(
     return true;
   }
 
+  const labels = firstChildTypes(node.type);
   const expected = firstChildType(node.type);
-  if (expected === undefined || !Array.isArray(node.children)) {
+  if (labels === undefined || expected === undefined || !Array.isArray(node.children)) {
     return false;
   }
 
   const first = node.children[0];
   const childPath = path.concat(0);
-  if (!isElementRecord(first) || first.type !== expected) {
+  if (!isElementRecord(first) || !allowsFirstChild(node.type, first.type)) {
     editor.tf.insertNodes({ type: expected, children: [{ text: "" }] }, { at: childPath });
     return true;
   }
@@ -612,6 +615,10 @@ function normalizeDisallowedChild(
   for (let index = 0; index < node.children.length; index += 1) {
     const child = node.children[index];
     if (!isElementRecord(child) || childTypes.some((type) => type === child.type)) {
+      continue;
+    }
+
+    if (index === 0 && allowsFirstChild(node.type, child.type)) {
       continue;
     }
 
@@ -1214,7 +1221,7 @@ const breakAbovePlugin = createSlatePlugin({
         const copied = listBreakAbove(block[0]);
         Object.assign(above, copied.attrs);
         const sourcePath = block[1];
-        // A container label (firstChildType) breaks above the container, not inside it.
+        // A container label (firstChildTypes) breaks above the container, not inside it.
         const parentPath = sourcePath.slice(0, -1);
         const parent = parentPath.length > 0 ? editor.api.node(parentPath) : undefined;
         const aboveContainer =

@@ -24,8 +24,11 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
-  /** When set, children[0] must be this type. Later children still use childTypes. */
-  firstChildType?: string;
+  /**
+   * When set, children[0] must be one of these types. The first entry is the
+   * default label. Later children still use childTypes.
+   */
+  firstChildTypes?: readonly string[];
   /** Attrs childTypes allows that are still illegal on children[0]. */
   firstChildForbiddenAttrs?: readonly string[];
   /** How many times this type may nest, counting the outermost node. */
@@ -35,6 +38,11 @@ export type EditorElementRule = {
    * Absent means every plain paragraph child. "first" means only children[0].
    */
   reportParent?: "all" | "first";
+  /**
+   * getBlockType name for a label of this type. A label type absent from the
+   * map reports the container when reportParent is "first".
+   */
+  reportedFirstChild?: Readonly<Record<string, string>>;
   /**
    * A void stores exactly one empty text leaf and no marks.
    * It is not a container, so childTypes stays absent.
@@ -203,10 +211,15 @@ export const EDITOR_ELEMENT_RULES = [
     type: KEYS.toggle,
     attrs: ["id"],
     childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
-    firstChildType: KEYS.p,
+    firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
     reportParent: "first",
+    reportedFirstChild: {
+      [KEYS.h1]: "toggle-h1",
+      [KEYS.h2]: "toggle-h2",
+      [KEYS.h3]: "toggle-h3",
+    },
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -248,10 +261,18 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
-const elementFirstChildType = new Map<string, string>(
+const elementFirstChildTypes = new Map<string, readonly string[]>(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
-    "firstChildType" in rule && rule.firstChildType !== undefined
-      ? [[rule.type, rule.firstChildType]]
+    "firstChildTypes" in rule && rule.firstChildTypes !== undefined
+      ? [[rule.type, rule.firstChildTypes]]
+      : [],
+  ),
+);
+
+const elementReportedFirstChild = new Map<string, Readonly<Record<string, string>>>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportedFirstChild" in rule && rule.reportedFirstChild !== undefined
+      ? [[rule.type, rule.reportedFirstChild]]
       : [],
   ),
 );
@@ -288,8 +309,27 @@ export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
 }
 
+export function firstChildTypes(type: string): readonly string[] | undefined {
+  return elementFirstChildTypes.get(type);
+}
+
+/** The default label type. Existing callers use this when a label must be inserted. */
 export function firstChildType(type: string): string | undefined {
-  return elementFirstChildType.get(type);
+  return firstChildTypes(type)?.[0];
+}
+
+export function allowsFirstChild(parentType: string, childType: string): boolean {
+  const labels = firstChildTypes(parentType);
+  return labels !== undefined && labels.some((type) => type === childType);
+}
+
+export function reportedFirstChild(parentType: string, childType: string): string | undefined {
+  return elementReportedFirstChild.get(parentType)?.[childType];
+}
+
+export function reportedFirstChildNames(parentType: string): readonly string[] {
+  const reported = elementReportedFirstChild.get(parentType);
+  return reported === undefined ? [] : Object.values(reported);
 }
 
 export function firstChildForbiddenAttrs(type: string): readonly string[] {

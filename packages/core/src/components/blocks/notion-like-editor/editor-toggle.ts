@@ -7,8 +7,9 @@ import {
   type Descendant,
   type SlateEditor,
   type TElement,
-  type TText,
 } from "platejs";
+
+import { allowsFirstChild } from "./editor-document-schema";
 
 // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
 // No shortcut. The "> " trigger is DEV-126.
@@ -78,6 +79,81 @@ function deserializedNodes(editor: SlateEditor, element: HTMLElement): Descendan
   return parsed.filter(isDescendant);
 }
 
+function isToggleHeading(type: string): boolean {
+  return type !== KEYS.p && allowsFirstChild(KEYS.toggle, type);
+}
+
+// Plate may wrap <summary><h2> in a paragraph. A summary is a heading label only
+// when that heading is the only content.
+function summaryHeading(nodes: readonly Descendant[]): TElement | undefined {
+  let heading: TElement | undefined;
+  let extra = false;
+
+  const visit = (node: Descendant): void => {
+    if (extra) {
+      return;
+    }
+
+    if (TextApi.isText(node)) {
+      if (node.text.trim().length > 0) {
+        extra = true;
+      }
+      return;
+    }
+
+    if (!ElementApi.isElement(node)) {
+      return;
+    }
+
+    if (isToggleHeading(node.type)) {
+      if (heading !== undefined) {
+        extra = true;
+        return;
+      }
+
+      heading = node;
+      return;
+    }
+
+    for (const child of node.children) {
+      if (TextApi.isText(child) || ElementApi.isElement(child)) {
+        visit(child);
+      }
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return extra ? undefined : heading;
+}
+
+function summaryLabel(editor: SlateEditor, summary: HTMLElement): TElement {
+  const heading = summaryHeading(deserializedNodes(editor, summary));
+  if (heading !== undefined) {
+    return heading;
+  }
+
+  return { type: KEYS.p, children: labelInlines(editor, summary) };
+}
+
+function textLeaves(node: TElement): Descendant[] {
+  const leaves: Descendant[] = [];
+  for (const child of node.children) {
+    if (TextApi.isText(child)) {
+      leaves.push(child);
+      continue;
+    }
+
+    if (ElementApi.isElement(child)) {
+      leaves.push(...textLeaves(child));
+    }
+  }
+
+  return leaves;
+}
+
 function labelInlines(editor: SlateEditor, summary: HTMLElement): Descendant[] {
   const inlines: Descendant[] = [];
   for (const node of deserializedNodes(editor, summary)) {
@@ -91,7 +167,17 @@ function labelInlines(editor: SlateEditor, summary: HTMLElement): Descendant[] {
     }
 
     if (node.type === KEYS.p) {
-      inlines.push(...node.children);
+      for (const child of node.children) {
+        if (
+          ElementApi.isElement(child) &&
+          (child.type === KEYS.p || allowsFirstChild(KEYS.toggle, child.type))
+        ) {
+          inlines.push(...textLeaves(child));
+          continue;
+        }
+
+        inlines.push(child);
+      }
       continue;
     }
 
@@ -147,12 +233,14 @@ function parseDetails(editor: SlateEditor, element: HTMLElement, type: string): 
     rest.push(child);
   }
 
-  const label: TText[] | Descendant[] = summary ? labelInlines(editor, summary) : [{ text: "" }];
+  const label = summary
+    ? summaryLabel(editor, summary)
+    : { type: KEYS.p, children: [{ text: "" }] };
   const content = rest.flatMap((child) => contentBlocks(editor, child));
 
   return {
     type,
-    children: [{ type: KEYS.p, children: label }, ...content],
+    children: [label, ...content],
   };
 }
 
@@ -322,11 +410,14 @@ function labelContext(editor: SlateEditor): LabelContext | undefined {
   }
 
   const block = editor.api.block();
-  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== KEYS.p) {
-    return undefined;
-  }
-
-  if (typeof block[0].listStyleType === "string" || block[1][block[1].length - 1] !== 0) {
+  if (
+    !block ||
+    !ElementApi.isElement(block[0]) ||
+    typeof block[0].type !== "string" ||
+    !allowsFirstChild(KEYS.toggle, block[0].type) ||
+    typeof block[0].listStyleType === "string" ||
+    block[1][block[1].length - 1] !== 0
+  ) {
     return undefined;
   }
 

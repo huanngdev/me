@@ -11,8 +11,9 @@ import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowedElementAttrs,
+  allowsFirstChild,
   firstChildForbiddenAttrs,
-  firstChildType,
+  firstChildTypes,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
@@ -299,16 +300,20 @@ function walkElement(
     childNesting = nextNesting;
   }
 
-  const labelType = allowed === undefined ? undefined : firstChildType(type);
-  if (labelType !== undefined) {
+  const labelTypes = allowed === undefined ? undefined : firstChildTypes(type);
+  if (labelTypes !== undefined) {
     const first = value.children[0];
     const firstStructuralType = structuralChildType(first);
-    if (firstStructuralType !== undefined && firstStructuralType !== labelType) {
+    if (firstStructuralType !== undefined && !allowsFirstChild(type, firstStructuralType)) {
       state.unsupported.push({
         path,
         message: `${formatBlockLabel(path)} has an unsupported first child type "${firstStructuralType}". Restore from a backup or remove the block.`,
       });
-    } else if (firstStructuralType === labelType && isRecord(first)) {
+    } else if (
+      firstStructuralType !== undefined &&
+      allowsFirstChild(type, firstStructuralType) &&
+      isRecord(first)
+    ) {
       for (const key of firstChildForbiddenAttrs(type)) {
         if (key in first) {
           state.unsupported.push({
@@ -322,7 +327,10 @@ function walkElement(
 
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
-    if (!voidBlock && !childIsAllowed(type, child)) {
+    const structuralType = structuralChildType(child);
+    const allowedLabel =
+      index === 0 && structuralType !== undefined && allowsFirstChild(type, structuralType);
+    if (!voidBlock && !allowedLabel && !childIsAllowed(type, child)) {
       const childType = structuralChildType(child);
       const detail =
         childType === undefined ? "inline children" : `an unsupported child type "${childType}"`;

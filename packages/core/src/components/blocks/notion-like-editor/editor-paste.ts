@@ -8,10 +8,12 @@ import {
 
 import {
   allowedChildTypes,
+  allowsFirstChild,
   containerContentType,
   allowedElementAttrs,
   firstChildForbiddenAttrs,
   firstChildType,
+  firstChildTypes,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
@@ -183,13 +185,14 @@ function stripForbiddenAttrs(node: TElement, forbidden: readonly string[]): TEle
 }
 
 function withFirstChild(type: string, blocks: TElement[]): TElement[] {
+  const labels = firstChildTypes(type);
   const expected = firstChildType(type);
-  if (expected === undefined) {
+  if (labels === undefined || expected === undefined) {
     return blocks;
   }
 
   const first = blocks[0];
-  if (first === undefined || first.type !== expected) {
+  if (first === undefined || !allowsFirstChild(type, first.type)) {
     return [elementNode(expected, [{ text: "" }], undefined), ...blocks];
   }
 
@@ -216,6 +219,7 @@ function placeInParent(
   isInline: IsInline,
   seen: Set<string>,
   nesting: Nesting = emptyNesting,
+  asLabel = false,
 ): TElement[] {
   // A void is never retyped. A container that cannot hold it splits around the void.
   if (isVoidElementType(node.type)) {
@@ -223,7 +227,10 @@ function placeInParent(
   }
 
   const parentTypes = allowedChildTypes(parentType) ?? [];
-  if (parentTypes.some((type) => type === node.type)) {
+  if (
+    parentTypes.some((type) => type === node.type) ||
+    (asLabel && allowsFirstChild(parentType, node.type))
+  ) {
     return expandBlock(node, isInline, seen, nesting);
   }
 
@@ -361,7 +368,14 @@ function containerPieces(
     }
 
     flushInlines();
-    for (const part of placeInParent(classified.node, node.type, isInline, seen, nextNesting)) {
+    for (const part of placeInParent(
+      classified.node,
+      node.type,
+      isInline,
+      seen,
+      nextNesting,
+      blocks.length === 0,
+    )) {
       if (disallowedVoid(part, node.type)) {
         flushContainer();
         pieces.push(part);
