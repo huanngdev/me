@@ -56,6 +56,20 @@ describe("upload validation", () => {
     });
   });
 
+  test("an AVIF image is accepted from its ftyp brand", async () => {
+    const avif = [0x00, 0x00, 0x00, 0x20, ...ascii("ftyp"), ...ascii("avif")];
+    const avis = [0x00, 0x00, 0x00, 0x20, ...ascii("ftyp"), ...ascii("avis")];
+
+    expect(await validateUpload(source(avif, "photo.png", "image/png"), "image")).toEqual({
+      ok: true,
+      mimeType: "image/avif",
+    });
+    expect(await validateUpload(source(avis, "anim.avif", ""), "image")).toEqual({
+      ok: true,
+      mimeType: "image/avif",
+    });
+  });
+
   test("a file at the image size limit is accepted", async () => {
     const result = await validateUpload(
       source(png, "ok.png", "image/png", ASSET_LIMITS.image),

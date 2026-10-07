@@ -133,6 +133,8 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/table-controls.tsx",
       "packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/hr-element.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/editor-image.ts",
+      "packages/core/src/components/blocks/notion-like-editor/image-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/editor-selection.ts",
       "packages/core/src/components/blocks/notion-like-editor/editor-commands.ts",
       "packages/core/src/components/blocks/notion-like-editor/editor-assets.ts",

@@ -17,6 +17,7 @@ export function PersistedEditor({
   placeholder = "Type something…",
   className,
   adapter,
+  assetStore = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -41,6 +42,7 @@ export function PersistedEditor({
           placeholder={placeholder}
           onChange={onChange}
           onContentChange={session.onContentChange}
+          assetStore={assetStore}
           status={session.status}
           message={session.message}
           onRetry={() => {

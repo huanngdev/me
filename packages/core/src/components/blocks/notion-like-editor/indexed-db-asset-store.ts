@@ -36,9 +36,10 @@ export function createIndexedDbAssetStore(options?: IndexedDbAssetStoreOptions):
     const tx = db.transaction(STORE, mode);
     const done = transactionDone(tx);
     try {
-      const result = await Promise.resolve(run(tx.objectStore(STORE))).then((value) =>
-        isRequest(value) ? requestResult(value) : value,
-      );
+      // Attach the request handler in this turn. A later microtask misses a
+      // success that the connection already has cached.
+      const produced = run(tx.objectStore(STORE));
+      const result = isRequest(produced) ? await requestResult(produced) : await produced;
       await done;
       return result;
     } catch (error) {
@@ -124,6 +125,16 @@ function openDatabase(factory: IDBFactory, dbName: string): Promise<IDBDatabase>
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
+    if (request.readyState === "done") {
+      if (request.error) {
+        reject(new Error(UNAVAILABLE));
+        return;
+      }
+
+      resolve(request.result);
+      return;
+    }
+
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error(UNAVAILABLE));
   });

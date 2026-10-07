@@ -61,6 +61,11 @@ function validateImage(bytes: Uint8Array): UploadValidation {
     return { ok: true, mimeType: "image/webp" };
   }
 
+  // ISO BMFF. The major brand sits at byte 8, inside the 16-byte sniff.
+  if (hasFtyp(bytes) && (majorBrand(bytes) === "avif" || majorBrand(bytes) === "avis")) {
+    return { ok: true, mimeType: "image/avif" };
+  }
+
   if (isSvg(bytes)) {
     return {
       ok: false,

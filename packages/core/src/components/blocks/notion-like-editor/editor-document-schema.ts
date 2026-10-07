@@ -1,5 +1,6 @@
 import { KEYS } from "platejs";
 
+import { formatBlockLabel } from "./editor-document";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -236,6 +237,159 @@ const headingElementRule = {
   attrValues: { align: TEXT_ALIGNS },
 } as const;
 
+// Display width in px. Absence means the image fits its container.
+export const IMAGE_MIN_WIDTH = 64;
+export const IMAGE_MAX_WIDTH = 1600;
+export const IMAGE_ALT_MAX = 1000;
+// Center is the default and is never stored. Paragraph align still includes center.
+export const IMAGE_ALIGNS = ["left", "right"] as const;
+
+export type ImageAlign = (typeof IMAGE_ALIGNS)[number];
+
+function hasUnsafePathChar(value: string): boolean {
+  if (value.includes("\\")) {
+    return true;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) <= 0x1f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isSafeImageUrl(value: string): boolean {
+  if (value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")) {
+    return !hasUnsafePathChar(value);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+
+  return url.protocol === "https:";
+}
+
+function positivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function captionIssues(caption: unknown, path: number[]): TableGridIssue[] {
+  if (!Array.isArray(caption) || caption.length === 0) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+      },
+    ];
+  }
+
+  for (const item of caption) {
+    if (typeof item !== "object" || item === null || Array.isArray(item) || !("text" in item)) {
+      return [
+        {
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+        },
+      ];
+    }
+
+    if (typeof item.text !== "string" || "children" in item) {
+      return [
+        {
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+        },
+      ];
+    }
+
+    for (const key of Object.keys(item)) {
+      if (key === "text") {
+        continue;
+      }
+
+      const mark: unknown = Reflect.get(item, key);
+      if (!isAllowedMark(key) || !isAllowedMarkValue(key, mark)) {
+        return [
+          {
+            path,
+            message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+          },
+        ];
+      }
+    }
+  }
+
+  return [];
+}
+
+// A sourceless image is an upload that has not finished. It loads as ok.
+export function checkImageNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const hasAsset = "assetId" in node;
+  const hasUrl = "url" in node;
+
+  if (hasAsset && hasUrl) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has both assetId and url. Restore from a backup or keep one source.`,
+    });
+  }
+
+  if (hasAsset && (typeof node.assetId !== "string" || node.assetId.length === 0)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported assetId. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if (hasUrl && (typeof node.url !== "string" || !isSafeImageUrl(node.url))) {
+    const scheme =
+      typeof node.url === "string" && (node.url.startsWith("blob:") || node.url.startsWith("data:"))
+        ? node.url.slice(0, node.url.indexOf(":") + 1)
+        : undefined;
+    const detail = scheme === undefined ? "an unsupported url" : `a url that starts with ${scheme}`;
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or replace that file.`,
+    });
+  }
+
+  const hasWidth = "naturalWidth" in node;
+  const hasHeight = "naturalHeight" in node;
+  if (
+    hasWidth !== hasHeight ||
+    (hasWidth && !positivePixel(node.naturalWidth)) ||
+    (hasHeight && !positivePixel(node.naturalHeight))
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
@@ -290,6 +444,27 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     isVoid: true,
   },
+  // Plate's image node (KEYS.img). The source is assetId or url, never both, and
+  // neither while an upload is still in plugin state. Center align is not stored.
+  // Caption is Plate's plain text shape: [{ text }]. Marks on that text follow the allowlist.
+  {
+    type: KEYS.img,
+    attrs: [
+      "id",
+      "assetId",
+      "url",
+      "naturalWidth",
+      "naturalHeight",
+      "width",
+      "align",
+      "alt",
+      "caption",
+    ],
+    isVoid: true,
+    attrValues: { align: IMAGE_ALIGNS },
+    attrRanges: { width: { min: IMAGE_MIN_WIDTH, max: IMAGE_MAX_WIDTH } },
+    validateChildren: (node, path) => checkImageNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -312,6 +487,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.blockquote,
       KEYS.callout,
       KEYS.hr,
+      KEYS.img,
       KEYS.codeBlock,
       KEYS.table,
     ],

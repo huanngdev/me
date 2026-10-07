@@ -1,4 +1,4 @@
-import { nanoid } from "platejs";
+import { KEYS, nanoid } from "platejs";
 
 import {
   EDITOR_DOCUMENT_LIMITS,
@@ -253,7 +253,9 @@ function walkElement(
     }
 
     const attr = value[key];
+    // An image reports blob and data urls as unsupported below. Other blocks stay invalid.
     if (
+      type !== KEYS.img &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))

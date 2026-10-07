@@ -435,6 +435,8 @@ describe("demo document", () => {
     const tables = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-tables");
     const table = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-table");
     const release = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-release");
+    const images = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-images");
+    const image = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-image");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -453,6 +455,9 @@ describe("demo document", () => {
       !tables ||
       !table ||
       table.type !== "table" ||
+      !images ||
+      !image ||
+      image.type !== "img" ||
       !release ||
       release.type !== "table" ||
       !paste
@@ -494,7 +499,18 @@ describe("demo document", () => {
     expect(leafText(elementChildren(elementChildren(releaseHeader[0])[0])[0])).toBe("Release plan");
     const releaseBody = elementChildren(elementChildren(release)[1]);
     expect(field(releaseBody[0], "rowSpan")).toBe(2);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(images)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
+    expect(images.type).toBe("h3");
+    expect(textOf(images)).toBe("Images");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(image)).toBe(DEMO_DOCUMENT_VALUE.indexOf(images) + 1);
+    expect(field(image, "url")).toBe("/blocks/notion-like-editor/image-demo.svg");
+    expect(field(image, "alt")).toBe("A small window looking onto a violet hill and a pale sun");
+    expect(field(image, "naturalWidth")).toBe(640);
+    expect(field(image, "naturalHeight")).toBe(400);
+    expect(field(image, "caption")).toEqual([
+      { text: "A drawing stored with the block, not an uploaded file." },
+    ]);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(image) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

@@ -6,7 +6,9 @@ import { Plate, PlateContent } from "platejs/react";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
+import { ImageRuntime } from "./image-element";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -14,6 +16,7 @@ type EditorSurfaceProps = {
   placeholder: string;
   onValueChange?: (value: EditorValue) => void;
   className: string;
+  assetStore?: AssetStore | null;
 };
 
 export function EditorSurface({
@@ -22,6 +25,7 @@ export function EditorSurface({
   placeholder,
   onValueChange,
   className,
+  assetStore = null,
 }: EditorSurfaceProps) {
   return (
     <Plate
@@ -31,6 +35,7 @@ export function EditorSurface({
         onValueChange?.(value);
       }}
     >
+      <ImageRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

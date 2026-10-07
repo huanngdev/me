@@ -1,5 +1,6 @@
 "use client";
 
+import type { AssetStore } from "./editor-assets";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import type { EditorValue } from "./editor-value";
 import { MemoryEditor } from "./memory-editor";
@@ -13,6 +14,7 @@ export type NotionLikeEditorBlockProps = {
   placeholder?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
+  assetStore?: AssetStore | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {

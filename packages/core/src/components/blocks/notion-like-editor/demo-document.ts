@@ -979,6 +979,21 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-images",
+    children: [{ text: "Images" }],
+  },
+  {
+    type: "img",
+    id: "demo-image",
+    url: "/blocks/notion-like-editor/image-demo.svg",
+    naturalWidth: 640,
+    naturalHeight: 400,
+    alt: "A small window looking onto a violet hill and a pale sun",
+    caption: [{ text: "A drawing stored with the block, not an uploaded file." }],
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

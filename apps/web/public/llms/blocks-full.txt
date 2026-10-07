@@ -2414,29 +2414,31 @@ export default function ErrorPageBlockPage() {
 20. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
 21. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
 22. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-24. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-25. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-26. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-27. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-28. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-29. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-30. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-31. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-32. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-33. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-34. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-35. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-36. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-37. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-38. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-39. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-40. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-41. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-42. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-43. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-44. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-45. apps/web/src/app/blocks/notion-like-editor/page.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+24. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+25. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+26. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+27. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+28. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+29. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+30. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+31. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+32. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+33. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+34. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+35. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+36. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+37. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+38. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+39. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+40. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+41. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+42. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+43. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+44. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+45. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+46. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+47. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2456,6 +2458,7 @@ export const EMPTY_EDITOR_VALUE = [
 ````ts
 import { KEYS } from "platejs";
 
+import { formatBlockLabel } from "./editor-document";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -2692,6 +2695,159 @@ const headingElementRule = {
   attrValues: { align: TEXT_ALIGNS },
 } as const;
 
+// Display width in px. Absence means the image fits its container.
+export const IMAGE_MIN_WIDTH = 64;
+export const IMAGE_MAX_WIDTH = 1600;
+export const IMAGE_ALT_MAX = 1000;
+// Center is the default and is never stored. Paragraph align still includes center.
+export const IMAGE_ALIGNS = ["left", "right"] as const;
+
+export type ImageAlign = (typeof IMAGE_ALIGNS)[number];
+
+function hasUnsafePathChar(value: string): boolean {
+  if (value.includes("\\")) {
+    return true;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) <= 0x1f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isSafeImageUrl(value: string): boolean {
+  if (value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")) {
+    return !hasUnsafePathChar(value);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+
+  return url.protocol === "https:";
+}
+
+function positivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function captionIssues(caption: unknown, path: number[]): TableGridIssue[] {
+  if (!Array.isArray(caption) || caption.length === 0) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+      },
+    ];
+  }
+
+  for (const item of caption) {
+    if (typeof item !== "object" || item === null || Array.isArray(item) || !("text" in item)) {
+      return [
+        {
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+        },
+      ];
+    }
+
+    if (typeof item.text !== "string" || "children" in item) {
+      return [
+        {
+          path,
+          message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+        },
+      ];
+    }
+
+    for (const key of Object.keys(item)) {
+      if (key === "text") {
+        continue;
+      }
+
+      const mark: unknown = Reflect.get(item, key);
+      if (!isAllowedMark(key) || !isAllowedMarkValue(key, mark)) {
+        return [
+          {
+            path,
+            message: `${formatBlockLabel(path)} has an unsupported caption. Restore from a backup or remove the caption.`,
+          },
+        ];
+      }
+    }
+  }
+
+  return [];
+}
+
+// A sourceless image is an upload that has not finished. It loads as ok.
+export function checkImageNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const hasAsset = "assetId" in node;
+  const hasUrl = "url" in node;
+
+  if (hasAsset && hasUrl) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has both assetId and url. Restore from a backup or keep one source.`,
+    });
+  }
+
+  if (hasAsset && (typeof node.assetId !== "string" || node.assetId.length === 0)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported assetId. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if (hasUrl && (typeof node.url !== "string" || !isSafeImageUrl(node.url))) {
+    const scheme =
+      typeof node.url === "string" && (node.url.startsWith("blob:") || node.url.startsWith("data:"))
+        ? node.url.slice(0, node.url.indexOf(":") + 1)
+        : undefined;
+    const detail = scheme === undefined ? "an unsupported url" : `a url that starts with ${scheme}`;
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or replace that file.`,
+    });
+  }
+
+  const hasWidth = "naturalWidth" in node;
+  const hasHeight = "naturalHeight" in node;
+  if (
+    hasWidth !== hasHeight ||
+    (hasWidth && !positivePixel(node.naturalWidth)) ||
+    (hasHeight && !positivePixel(node.naturalHeight))
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
 export const EDITOR_ELEMENT_RULES = [
   {
     type: "p",
@@ -2746,6 +2902,27 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     isVoid: true,
   },
+  // Plate's image node (KEYS.img). The source is assetId or url, never both, and
+  // neither while an upload is still in plugin state. Center align is not stored.
+  // Caption is Plate's plain text shape: [{ text }]. Marks on that text follow the allowlist.
+  {
+    type: KEYS.img,
+    attrs: [
+      "id",
+      "assetId",
+      "url",
+      "naturalWidth",
+      "naturalHeight",
+      "width",
+      "align",
+      "alt",
+      "caption",
+    ],
+    isVoid: true,
+    attrValues: { align: IMAGE_ALIGNS },
+    attrRanges: { width: { min: IMAGE_MIN_WIDTH, max: IMAGE_MAX_WIDTH } },
+    validateChildren: (node, path) => checkImageNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -2768,6 +2945,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.blockquote,
       KEYS.callout,
       KEYS.hr,
+      KEYS.img,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -3365,7 +3543,7 @@ export function migrateEditorDocument(raw: unknown, documentId: string): unknown
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
 ```ts
-import { nanoid } from "platejs";
+import { KEYS, nanoid } from "platejs";
 
 import {
   EDITOR_DOCUMENT_LIMITS,
@@ -3620,7 +3798,9 @@ function walkElement(
     }
 
     const attr = value[key];
+    // An image reports blob and data urls as unsupported below. Other blocks stay invalid.
     if (
+      type !== KEYS.img &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -3940,8 +4120,10 @@ export function parseEditorDocument(raw: unknown): ParseResult {
 ## packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
 ```ts
 import {
+  KEYS,
   createSlatePlugin,
   isHtmlBlockElement,
+  nanoid,
   type Descendant,
   type SlateEditor,
   type TElement,
@@ -3967,6 +4149,12 @@ import {
 } from "./editor-document-schema";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
+import {
+  IMAGE_BOTH_SOURCES,
+  planPastedImage,
+  pastedImageDroppedUrl,
+  queuePastedImageUpload,
+} from "./editor-image";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -3979,6 +4167,19 @@ export type PasteSanitizeOptions = {
 const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
 
 let activePasteRepairs: Repair[] | undefined;
+
+// The table override sanitizes the fragment again. An image that became a paragraph
+// on the first pass is gone on the second, so those repairs are kept until the outer insert finishes.
+let pendingImageRepairs: Repair[] = [];
+
+function rememberImageRepair(repair: Repair): void {
+  activePasteRepairs?.push(repair);
+  pendingImageRepairs.push(repair);
+}
+
+function clearPendingImageRepairs(): void {
+  pendingImageRepairs = [];
+}
 
 export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
   pasteRepairLog.set(editor, [...repairs]);
@@ -4134,6 +4335,35 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
   }
 
   return props;
+}
+
+function pastedImage(node: TElement, seen: Set<string>): TElement[] {
+  const plan = planPastedImage(node);
+  if (plan.kind === "text") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [paragraph([{ text: plan.text }])];
+  }
+
+  if (plan.kind === "drop") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [];
+  }
+
+  if (pastedImageDroppedUrl(node)) {
+    rememberImageRepair({ path: [], message: IMAGE_BOTH_SOURCES });
+  }
+
+  const id = takeId(node, seen) ?? nanoid();
+  if (plan.upload) {
+    queuePastedImageUpload(id, plan.upload);
+  }
+
+  const image = elementNode(KEYS.img, [{ text: "" }], id);
+  for (const [key, value] of Object.entries(plan.props)) {
+    image[key] = value;
+  }
+
+  return [image];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -4652,6 +4882,10 @@ function expandBlock(
   nesting: Nesting = emptyNesting,
 ): TElement[] {
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
+    if (node.type === KEYS.img) {
+      return pastedImage(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -4848,6 +5082,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of pendingImageRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }
@@ -4870,7 +5109,12 @@ export const PasteFallbackPlugin = createSlatePlugin({
     insertFragment(fragment, options) {
       // TablePlugin inserts a one-table fragment before this fallback, so the
       // table override sanitizes that path too. This still covers every other fragment.
-      insertFragment(preparePastedFragment(editor, fragment), options);
+      // Image repairs are remembered across the table override's second sanitize.
+      try {
+        insertFragment(preparePastedFragment(editor, fragment), options);
+      } finally {
+        clearPendingImageRepairs();
+      }
     },
   },
 }));
@@ -4901,7 +5145,9 @@ import {
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import { CalloutPlugin } from "@platejs/callout/react";
+import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
+import { ImagePlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -4931,6 +5177,14 @@ import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
+import { ImageElement } from "./image-element";
+import {
+  flushPastedImageUploads,
+  handleImageDrop,
+  handleImageInsertData,
+  imageHtmlDeserializer,
+  imageRuntimePlugin,
+} from "./editor-image";
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -4988,9 +5242,9 @@ import {
   insertCodeText,
   selectionInCodeBlock,
 } from "./editor-code";
-import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
 import {
+  PasteFallbackPlugin,
   clearHtmlTableWidths,
   preparePastedFragment,
   rememberHtmlTableWidths,
@@ -5542,6 +5796,14 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
+    // A table cell only stores paragraphs. Lifting an image one level would
+    // leave it inside the row, so move it to after the table and keep the cell.
+    if (child.type === KEYS.img && (node.type === KEYS.td || node.type === KEYS.th)) {
+      if (moveImageAfterTable(editor, path, childPath)) {
+        return true;
+      }
+    }
+
     if (isVoidElementType(child.type)) {
       editor.tf.liftNodes({ at: childPath, voids: true });
       return true;
@@ -6286,6 +6548,99 @@ const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
 });
 
+// Plate's own upload writes a data URL and its embed accepts any image URL.
+// Both are off. Insert, paste, and drop go through the asset pipeline.
+// Plate Plus placeholder, floating media, and preview UI are not registered.
+const imagePlugin = ImagePlugin.configure({
+  node: { isVoid: true },
+  options: {
+    disableUploadInsert: true,
+    disableEmbedInsert: true,
+  },
+  render: { node: ImageElement },
+  parsers: {
+    html: {
+      deserializer: imageHtmlDeserializer,
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertData, insertFragment } }) => ({
+  transforms: {
+    insertData(data: DataTransfer) {
+      handleImageInsertData(editor, data, insertData);
+    },
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedImageUploads(editor);
+      }
+    },
+  },
+  handlers: {
+    onDrop: ({
+      event,
+    }: {
+      event: {
+        clientX: number;
+        clientY: number;
+        preventDefault: () => void;
+        dataTransfer: DataTransfer | null;
+        view: Window | null;
+      };
+    }) => {
+      handleImageDrop(editor, {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        preventDefault: () => {
+          event.preventDefault();
+        },
+        dataTransfer: event.dataTransfer,
+        view: event.view,
+      });
+    },
+  },
+}));
+
+const captionPlugin = CaptionPlugin.configure({
+  options: {
+    query: {
+      allow: [KEYS.img],
+    },
+  },
+});
+
+function moveImageAfterTable(
+  editor: SlateEditor,
+  cellPath: number[],
+  childPath: number[],
+): boolean {
+  const tablePath = cellPath.slice(0, -2);
+  if (tablePath.length !== cellPath.length - 2) {
+    return false;
+  }
+
+  const table = editor.api.node(tablePath);
+  if (!table || !isElementRecord(table[0]) || table[0].type !== KEYS.table) {
+    return false;
+  }
+
+  const destination = PathApi.next(tablePath);
+  if (!destination) {
+    return false;
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.moveNodes({ at: childPath, to: destination, voids: true });
+    const cell = editor.api.node(cellPath);
+    const children =
+      cell && isElementRecord(cell[0]) && Array.isArray(cell[0].children) ? cell[0].children : [];
+    if (children.length === 0) {
+      editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: cellPath.concat(0) });
+    }
+  });
+  return true;
+}
+
 function htmlHasTable(html: string): boolean {
   return html.toLowerCase().includes("<table");
 }
@@ -6451,6 +6806,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     codeBlockPlugin,
+    imagePlugin,
+    captionPlugin,
+    imageRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -10839,6 +11197,1752 @@ export function HrElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  createSlatePlugin,
+  nanoid,
+  type SlateEditor,
+  type TElement,
+  type TRange,
+} from "platejs";
+
+export const imageHtmlDeserializer = {
+  rules: [{ validNodeName: "IMG" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const node: TElement = { type: KEYS.img, children: [{ text: "" }] };
+    const src = element.getAttribute("src");
+    if (src !== null && src.length > 0) {
+      node.url = src;
+    }
+
+    const alt = element.getAttribute("alt");
+    if (alt !== null) {
+      node.alt = alt;
+    }
+
+    const caption = figureCaption(element);
+    if (caption !== undefined) {
+      node.caption = [{ text: caption }];
+    }
+
+    return node;
+  },
+};
+
+function figureCaption(element: HTMLElement): string | undefined {
+  const parent = element.parentElement;
+  if (parent === null || parent.tagName !== "FIGURE") {
+    return undefined;
+  }
+
+  for (const child of parent.children) {
+    if (child.tagName !== "FIGCAPTION") {
+      continue;
+    }
+
+    const text = child.textContent?.trim() ?? "";
+    return text.length > 0 ? text : undefined;
+  }
+
+  return undefined;
+}
+
+import { applyUploadToBlock } from "./asset-references";
+import { createUploadController, type UploadController } from "./upload-controller";
+import {
+  directText,
+  isPlainParagraph,
+  runEditorCommand,
+  type EditorCommand,
+} from "./editor-commands";
+import type { AssetProbe, AssetStore, UploadSource, UploadState } from "./editor-assets";
+import {
+  IMAGE_ALT_MAX,
+  IMAGE_ALIGNS,
+  IMAGE_MAX_WIDTH,
+  IMAGE_MIN_WIDTH,
+  isSafeImageUrl,
+  type ImageAlign,
+} from "./editor-document-schema";
+import { pasteRepairsOf, setPasteRepairs } from "./editor-paste";
+
+// The slash menu that would also call these commands is DEV-125.
+// This task's picker is the toolbar Replace button and Insert image on an empty image.
+
+export const IMAGE_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
+export const IMAGE_UNSAFE_URL = "An image with an unsafe URL was removed.";
+export const IMAGE_DATA_URL = "An image stored as base64 could not be kept. It was removed.";
+export const IMAGE_BOTH_SOURCES =
+  "An image URL was removed because the image already has an asset.";
+export const IMAGE_UPLOAD_INTERRUPTED = "Upload didn't finish";
+export const IMAGE_NOT_FOUND = "Image not found";
+export const IMAGE_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+
+const RESIZE_STEP = 16;
+
+export const imageRuntimePlugin = createSlatePlugin({
+  key: "imageRuntime",
+  options: {
+    revision: 0,
+  },
+});
+
+type ImageRuntime = {
+  store: AssetStore | null;
+  controller: UploadController | null;
+  uploads: Map<string, UploadState>;
+  urls: Map<string, string>;
+  missing: Set<string>;
+  inflight: Set<string>;
+};
+
+type ImagePastePlan =
+  | { kind: "image"; props: Record<string, unknown>; upload?: UploadSource }
+  | { kind: "text"; text: string; repair: string }
+  | { kind: "drop"; repair: string };
+
+type AttachImageRuntimeOptions = {
+  probe?: AssetProbe;
+  createId?: () => string;
+  now?: () => string;
+};
+
+const runtimes = new WeakMap<SlateEditor, ImageRuntime>();
+const pastedUploads: { id: string; file: UploadSource }[] = [];
+
+export function attachImageRuntime(
+  editor: SlateEditor,
+  store: AssetStore | null,
+  options?: AttachImageRuntimeOptions,
+): () => void {
+  detachImageRuntime(editor);
+
+  const runtime: ImageRuntime = {
+    store,
+    controller: null,
+    uploads: new Map(),
+    urls: new Map(),
+    missing: new Set(),
+    inflight: new Set(),
+  };
+
+  if (store) {
+    runtime.controller = createUploadController({
+      store,
+      createId: options?.createId ?? nanoid,
+      now: options?.now ?? (() => new Date().toISOString()),
+      probe: options?.probe ?? probeImageSize,
+      onChange: (state) => {
+        acceptUploadState(editor, runtime, state);
+      },
+    });
+  }
+
+  runtimes.set(editor, runtime);
+  const restoreChange = watchImageRemoval(editor, runtime);
+  // A replaced runtime must re-run image effects. The new map is empty until they do.
+  bumpRuntime(editor);
+
+  return () => {
+    restoreChange();
+    detachImageRuntime(editor);
+  };
+}
+
+export function detachImageRuntime(editor: SlateEditor): void {
+  const runtime = runtimes.get(editor);
+  if (!runtime) {
+    return;
+  }
+
+  runtime.controller?.dispose();
+  for (const url of runtime.urls.values()) {
+    URL.revokeObjectURL(url);
+  }
+  runtime.urls.clear();
+  runtimes.delete(editor);
+}
+
+export async function probeImageSize(
+  blob: Blob,
+): Promise<{ width?: number; height?: number } | undefined> {
+  const create = globalThis.createImageBitmap;
+  if (typeof create !== "function") {
+    return undefined;
+  }
+
+  try {
+    const image = await create(blob);
+    const width = image.width;
+    const height = image.height;
+    image.close();
+    if (!isPositivePixel(width) || !isPositivePixel(height)) {
+      return undefined;
+    }
+
+    return { width, height };
+  } catch {
+    return undefined;
+  }
+}
+
+export function imageUploadState(editor: SlateEditor, blockId: string): UploadState | undefined {
+  const state = runtimes.get(editor)?.uploads.get(blockId);
+  return state ? { ...state } : undefined;
+}
+
+export function cachedAssetUrl(editor: SlateEditor, assetId: string): string | undefined {
+  return runtimes.get(editor)?.urls.get(assetId);
+}
+
+export function assetIsMissing(editor: SlateEditor, assetId: string): boolean {
+  return runtimes.get(editor)?.missing.has(assetId) === true;
+}
+
+// Resolves an asset id to an object URL for this editor. The URL is cached until the editor unmounts.
+export function resolveAssetURL(editor: SlateEditor, assetId: string): string | undefined {
+  const runtime = runtimes.get(editor);
+  if (!runtime) {
+    return undefined;
+  }
+
+  const cached = runtime.urls.get(assetId);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  if (runtime.missing.has(assetId) || runtime.inflight.has(assetId)) {
+    return undefined;
+  }
+
+  runtime.inflight.add(assetId);
+  void loadAssetUrl(editor, runtime, assetId);
+  return undefined;
+}
+
+export function queuePastedImageUpload(id: string, file: UploadSource): void {
+  pastedUploads.push({ id, file });
+}
+
+export function flushPastedImageUploads(editor: SlateEditor): void {
+  const batch = pastedUploads.splice(0, pastedUploads.length);
+  for (const item of batch) {
+    beginImageUpload(editor, item.id, item.file);
+  }
+}
+
+export function planPastedImage(node: Record<string, unknown>): ImagePastePlan {
+  const alt =
+    typeof node.alt === "string" && node.alt.length <= IMAGE_ALT_MAX ? node.alt : undefined;
+  const assetId =
+    typeof node.assetId === "string" && node.assetId.length > 0 ? node.assetId : undefined;
+  const url = typeof node.url === "string" ? node.url : undefined;
+  const props = optionalImageProps(node, alt);
+
+  if (url !== undefined && isDataImageUrl(url)) {
+    const file = fileFromDataUrl(url);
+    if (!file) {
+      return alt === undefined || alt.length === 0
+        ? { kind: "drop", repair: IMAGE_DATA_URL }
+        : { kind: "text", text: alt, repair: IMAGE_DATA_URL };
+    }
+
+    return { kind: "image", props, upload: file };
+  }
+
+  if (assetId !== undefined && url !== undefined) {
+    return { kind: "image", props: { ...props, assetId }, upload: undefined };
+  }
+
+  if (url !== undefined && !isSafeImageUrl(url)) {
+    return alt === undefined || alt.length === 0
+      ? { kind: "drop", repair: IMAGE_UNSAFE_URL }
+      : { kind: "text", text: alt, repair: IMAGE_UNSAFE_URL };
+  }
+
+  if (assetId !== undefined) {
+    props.assetId = assetId;
+  }
+
+  if (url !== undefined) {
+    props.url = url;
+  }
+
+  return { kind: "image", props };
+}
+
+export type ImageDropEvent = {
+  clientX: number;
+  clientY: number;
+  preventDefault: () => void;
+  dataTransfer: DataTransfer | null;
+  view: Window | null;
+};
+
+export function handleImageInsertData(
+  editor: SlateEditor,
+  data: DataTransfer,
+  insertData: (data: DataTransfer) => void,
+): boolean {
+  const html = data.getData("text/html");
+  const files = transferFiles(data);
+  const images = files.filter(isImageUpload);
+  const others = files.filter((file) => !isImageUpload(file));
+  const table = html.toLowerCase().includes("<table");
+
+  if (images.length > 0 && !table) {
+    runEditorCommand(editor, insertImageFromFiles, images);
+    // This path does not sanitize a fragment, so it replaces any earlier repair list.
+    noteSkippedFiles(editor, others.length > 0, true);
+    return others.length > 0;
+  }
+
+  insertData(data);
+  const skipped = others.length > 0 || (images.length > 0 && table);
+  noteSkippedFiles(editor, skipped, false);
+  return skipped;
+}
+
+export function handleImageDrop(editor: SlateEditor, event: ImageDropEvent): boolean {
+  const data = event.dataTransfer;
+  if (!data) {
+    return false;
+  }
+
+  const files = transferFiles(data);
+  const images = files.filter(isImageUpload);
+  const others = files.filter((file) => !isImageUpload(file));
+  if (images.length === 0 && others.length === 0) {
+    return false;
+  }
+
+  event.preventDefault();
+  if (images.length > 0 && editor.dom.readOnly !== true) {
+    editor.tf.withNewBatch(() => {
+      selectDropPoint(editor, event);
+      insertImageFiles(editor, images, "local");
+    });
+    editor.tf.setSplittingOnce(true);
+  }
+
+  noteSkippedFiles(editor, others.length > 0, true);
+  return others.length > 0;
+}
+
+function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolean): void {
+  if (!skipped) {
+    if (replace) {
+      setPasteRepairs(editor, []);
+    }
+    return;
+  }
+
+  const current = replace ? [] : pasteRepairsOf(editor);
+  setPasteRepairs(editor, [...current, { path: [], message: IMAGE_FILE_SKIPPED }]);
+}
+
+export function beginImageUpload(editor: SlateEditor, blockId: string, file: UploadSource): void {
+  const runtime = runtimes.get(editor);
+  if (!runtime) {
+    return;
+  }
+
+  const current = runtime.uploads.get(blockId);
+  if (
+    current &&
+    runtime.controller &&
+    current.status !== "ready" &&
+    current.status !== "canceled"
+  ) {
+    runtime.controller.cancel(current.uploadId);
+  }
+
+  if (!runtime.controller) {
+    runtime.uploads.set(blockId, {
+      uploadId: nanoid(),
+      blockId,
+      kind: "image",
+      name: file.name,
+      status: "failed",
+      error: IMAGE_STORAGE_UNAVAILABLE,
+    });
+    bumpRuntime(editor);
+    return;
+  }
+
+  runtime.controller.start(file, { blockId, kind: "image" });
+}
+
+export function retryImageUpload(editor: SlateEditor, blockId: string): void {
+  const runtime = runtimes.get(editor);
+  const state = runtime?.uploads.get(blockId);
+  if (!runtime?.controller || !state || editor.dom.readOnly === true) {
+    return;
+  }
+
+  void runtime.controller.retry(state.uploadId);
+}
+
+export const insertImageFromFiles: EditorCommand<readonly UploadSource[]> = {
+  id: "block.insert.image",
+  label: "Image",
+  group: "insert",
+  run: (editor, files) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    insertImageFiles(editor, files, "highest");
+  },
+};
+
+export const insertImageFromUrl: EditorCommand<string> = {
+  id: "block.insert.image-url",
+  label: "Image from URL",
+  group: "insert",
+  run: (editor, url) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    const trimmed = url.trim();
+    if (!isSafeImageUrl(trimmed)) {
+      return;
+    }
+
+    insertImageFiles(editor, [], "highest", { id: nanoid(), url: trimmed });
+  },
+};
+
+export const setImageAlign: EditorCommand<{ id: string; align: ImageAlign | null }> = {
+  id: "block.image.align",
+  label: "Align image",
+  group: "action",
+  run: (editor, payload) => {
+    const entry = writableImage(editor, payload.id);
+    if (!entry) {
+      return;
+    }
+
+    if (payload.align === null) {
+      editor.tf.unsetNodes("align", { at: entry[1] });
+      return;
+    }
+
+    if (!IMAGE_ALIGNS.some((align) => align === payload.align)) {
+      return;
+    }
+
+    editor.tf.setNodes({ align: payload.align }, { at: entry[1] });
+  },
+};
+
+export const setImageAlt: EditorCommand<{ id: string; alt: string | null }> = {
+  id: "block.image.alt",
+  label: "Alt text",
+  group: "action",
+  run: (editor, payload) => {
+    const entry = writableImage(editor, payload.id);
+    if (!entry) {
+      return;
+    }
+
+    if (payload.alt === null) {
+      editor.tf.unsetNodes("alt", { at: entry[1] });
+      return;
+    }
+
+    if (payload.alt.length > IMAGE_ALT_MAX) {
+      return;
+    }
+
+    editor.tf.setNodes({ alt: payload.alt }, { at: entry[1] });
+  },
+};
+
+export const setImageWidth: EditorCommand<{ id: string; width: number | null }> = {
+  id: "block.image.width",
+  label: "Image width",
+  group: "action",
+  run: (editor, payload) => {
+    const entry = writableImage(editor, payload.id);
+    if (!entry) {
+      return;
+    }
+
+    if (payload.width === null) {
+      editor.tf.unsetNodes("width", { at: entry[1] });
+      return;
+    }
+
+    if (!isPositivePixel(payload.width)) {
+      return;
+    }
+
+    editor.tf.setNodes(
+      { width: clampImageWidth(payload.width, IMAGE_MAX_WIDTH) },
+      { at: entry[1] },
+    );
+  },
+};
+
+export const removeImage: EditorCommand<string> = {
+  id: "block.image.remove",
+  label: "Remove image",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableImage(editor, id);
+    if (!entry) {
+      return;
+    }
+
+    cancelImageUpload(editor, id);
+    editor.tf.removeNodes({ at: entry[1], voids: true });
+  },
+};
+
+export const replaceImageFromFile: EditorCommand<{ id: string; file: UploadSource }> = {
+  id: "block.image.replace",
+  label: "Replace image",
+  group: "action",
+  run: (editor, payload) => {
+    const entry = writableImage(editor, payload.id);
+    if (!entry) {
+      return;
+    }
+
+    cancelImageUpload(editor, payload.id);
+    editor.tf.unsetNodes(["url", "assetId", "naturalWidth", "naturalHeight"], { at: entry[1] });
+    beginImageUpload(editor, payload.id, payload.file);
+  },
+};
+
+export function clampImageWidth(width: number, containerWidth: number): number {
+  const cap = Math.max(IMAGE_MIN_WIDTH, Math.min(IMAGE_MAX_WIDTH, Math.floor(containerWidth)));
+  return Math.min(cap, Math.max(IMAGE_MIN_WIDTH, Math.round(width)));
+}
+
+export function imageResizeStep(): number {
+  return RESIZE_STEP;
+}
+
+function insertImageFiles(
+  editor: SlateEditor,
+  files: readonly UploadSource[],
+  scope: "highest" | "local",
+  single?: Record<string, unknown>,
+): void {
+  if (single) {
+    const id = typeof single.id === "string" ? single.id : nanoid();
+    placeImage(editor, { ...single, id }, scope);
+    return;
+  }
+
+  for (const file of files) {
+    const id = nanoid();
+    placeImage(editor, { id }, scope);
+    beginImageUpload(editor, id, file);
+  }
+}
+
+function placeImage(
+  editor: SlateEditor,
+  props: Record<string, unknown>,
+  scope: "highest" | "local",
+): void {
+  const entry = scope === "highest" ? editor.api.block({ highest: true }) : editor.api.block();
+  if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+    return;
+  }
+
+  const [node, path] = entry;
+  let imagePath = path;
+  const replace =
+    isPlainParagraph(node) &&
+    directText(node).length === 0 &&
+    (scope === "local" || path.length === 1);
+  if (replace) {
+    const drop = Object.keys(node).filter(
+      (key) => key !== "type" && key !== "children" && key !== "id",
+    );
+    if (drop.length > 0) {
+      editor.tf.unsetNodes(drop, { at: path });
+    }
+    editor.tf.setNodes({ type: KEYS.img, ...props }, { at: path });
+  } else {
+    const at = PathApi.next(path);
+    if (!at) {
+      return;
+    }
+
+    editor.tf.insertNodes(imageElement(props), { at, select: false });
+    imagePath = at;
+  }
+
+  const after = PathApi.next(imagePath);
+  if (!after) {
+    return;
+  }
+
+  const next = editor.api.node(after);
+  const nextNode = next?.[0];
+  if (
+    next &&
+    next[1].length === imagePath.length &&
+    ElementApi.isElement(nextNode) &&
+    isPlainParagraph(nextNode)
+  ) {
+    const start = editor.api.start(after);
+    if (start) {
+      editor.tf.select(start);
+    }
+    return;
+  }
+
+  editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: after, select: true });
+}
+
+function imageElement(props: Record<string, unknown>): TElement {
+  return {
+    type: KEYS.img,
+    children: [{ text: "" }],
+    ...props,
+  };
+}
+
+function writableImage(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  if (editor.dom.readOnly === true) {
+    return undefined;
+  }
+
+  return imageEntry(editor, id);
+}
+
+function imageEntry(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) =>
+      ElementApi.isElement(candidate) && candidate.type === KEYS.img && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return [node, path];
+    }
+  }
+
+  return undefined;
+}
+
+function cancelImageUpload(editor: SlateEditor, blockId: string): void {
+  const runtime = runtimes.get(editor);
+  const state = runtime?.uploads.get(blockId);
+  if (!runtime?.controller || !state || state.status === "ready" || state.status === "canceled") {
+    runtime?.uploads.delete(blockId);
+    return;
+  }
+
+  runtime.controller.cancel(state.uploadId);
+  runtime.uploads.delete(blockId);
+  bumpRuntime(editor);
+}
+
+function acceptUploadState(editor: SlateEditor, runtime: ImageRuntime, state: UploadState): void {
+  if (state.status === "canceled") {
+    runtime.uploads.delete(state.blockId);
+    bumpRuntime(editor);
+    return;
+  }
+
+  runtime.uploads.set(state.blockId, state);
+  bumpRuntime(editor);
+  if (state.status !== "ready" || state.assetId === undefined || !runtime.store) {
+    return;
+  }
+
+  const assetId = state.assetId;
+  const blockId = state.blockId;
+  void runtime.store.get(assetId).then((stored) => {
+    if (!stored || runtimes.get(editor) !== runtime) {
+      return;
+    }
+
+    const props: Record<string, unknown> = { assetId };
+    if (isPositivePixel(stored.record.width) && isPositivePixel(stored.record.height)) {
+      props.naturalWidth = stored.record.width;
+      props.naturalHeight = stored.record.height;
+    }
+
+    const entry = imageEntry(editor, blockId);
+    if (!entry) {
+      return;
+    }
+
+    const node = entry[0];
+    if (typeof node.assetId === "string" || typeof node.url === "string") {
+      return;
+    }
+
+    if (applyUploadToBlock(editor, blockId, props)) {
+      // The write is not its own undo step. Fold it into the insert or replace
+      // so one undo restores the block that was there before the upload.
+      rememberAssetWrite(editor, blockId, props);
+    }
+    bumpRuntime(editor);
+  });
+}
+
+function isSetNodeOperation(value: unknown): value is {
+  type: "set_node";
+  path: number[];
+  properties: Record<string, unknown>;
+  newProperties: Record<string, unknown>;
+} {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("type" in value) ||
+    value.type !== "set_node"
+  ) {
+    return false;
+  }
+
+  if (
+    !("path" in value) ||
+    !Array.isArray(value.path) ||
+    !value.path.every((step) => typeof step === "number")
+  ) {
+    return false;
+  }
+
+  return (
+    "properties" in value &&
+    typeof value.properties === "object" &&
+    value.properties !== null &&
+    "newProperties" in value &&
+    typeof value.newProperties === "object" &&
+    value.newProperties !== null
+  );
+}
+
+// Slate deletes a property on undo when it is in newProperties and absent from properties.
+function rememberAssetWrite(
+  editor: SlateEditor,
+  blockId: string,
+  props: Record<string, unknown>,
+): void {
+  const entry = imageEntry(editor, blockId);
+  const undos: unknown = editor.history.undos;
+  if (!entry || !Array.isArray(undos) || undos.length === 0) {
+    return;
+  }
+
+  const batch: unknown = undos[undos.length - 1];
+  if (
+    typeof batch !== "object" ||
+    batch === null ||
+    !("operations" in batch) ||
+    !Array.isArray(batch.operations)
+  ) {
+    return;
+  }
+
+  for (let index = batch.operations.length - 1; index >= 0; index -= 1) {
+    const operation: unknown = batch.operations[index];
+    if (!isSetNodeOperation(operation) || !PathApi.equals(operation.path, entry[1])) {
+      continue;
+    }
+
+    for (const [key, value] of Object.entries(props)) {
+      operation.newProperties[key] = value;
+    }
+    return;
+  }
+}
+
+function watchImageRemoval(editor: SlateEditor, runtime: ImageRuntime): () => void {
+  const onChange = editor.onChange;
+  if (typeof onChange !== "function") {
+    return () => undefined;
+  }
+
+  const wrapped = (options?: { operation?: unknown }): void => {
+    onChange(options);
+    if (runtimes.get(editor) !== runtime) {
+      return;
+    }
+
+    for (const [blockId, state] of runtime.uploads) {
+      if (state.status === "ready" || state.status === "canceled") {
+        continue;
+      }
+
+      if (!imageEntry(editor, blockId)) {
+        runtime.controller?.cancel(state.uploadId);
+        runtime.uploads.delete(blockId);
+      }
+    }
+  };
+
+  editor.onChange = wrapped;
+  return () => {
+    if (editor.onChange === wrapped) {
+      editor.onChange = onChange;
+    }
+  };
+}
+
+async function loadAssetUrl(
+  editor: SlateEditor,
+  runtime: ImageRuntime,
+  assetId: string,
+): Promise<void> {
+  try {
+    if (!runtime.store) {
+      runtime.missing.add(assetId);
+      return;
+    }
+
+    const stored = await runtime.store.get(assetId);
+    if (runtimes.get(editor) !== runtime) {
+      return;
+    }
+
+    if (!stored) {
+      runtime.missing.add(assetId);
+      return;
+    }
+
+    runtime.urls.set(assetId, URL.createObjectURL(stored.blob));
+  } catch {
+    if (runtimes.get(editor) === runtime) {
+      runtime.missing.add(assetId);
+    }
+  } finally {
+    runtime.inflight.delete(assetId);
+    // A load that finishes after a new runtime is attached still has to wake that runtime.
+    if (runtimes.has(editor)) {
+      bumpRuntime(editor);
+    }
+  }
+}
+
+function bumpRuntime(editor: SlateEditor): void {
+  const current = editor.getOption(imageRuntimePlugin, "revision");
+  editor.setOption(imageRuntimePlugin, "revision", current + 1);
+}
+
+function optionalImageProps(
+  node: Record<string, unknown>,
+  alt: string | undefined,
+): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  if (alt !== undefined) {
+    props.alt = alt;
+  }
+
+  if (node.align === "left" || node.align === "right") {
+    props.align = node.align;
+  }
+
+  if (
+    typeof node.width === "number" &&
+    node.width >= IMAGE_MIN_WIDTH &&
+    node.width <= IMAGE_MAX_WIDTH &&
+    Number.isInteger(node.width)
+  ) {
+    props.width = node.width;
+  }
+
+  if (isPositivePixel(node.naturalWidth) && isPositivePixel(node.naturalHeight)) {
+    props.naturalWidth = node.naturalWidth;
+    props.naturalHeight = node.naturalHeight;
+  }
+
+  if (isCaption(node.caption)) {
+    props.caption = node.caption;
+  }
+
+  return props;
+}
+
+function isCaption(value: unknown): boolean {
+  if (!Array.isArray(value) || value.length === 0) {
+    return false;
+  }
+
+  return value.every((item) => {
+    if (typeof item !== "object" || item === null || !("text" in item)) {
+      return false;
+    }
+
+    return typeof item.text === "string" && !("children" in item);
+  });
+}
+
+function isDataImageUrl(value: string): boolean {
+  return value.trim().toLowerCase().startsWith("data:");
+}
+
+function fileFromDataUrl(url: string): UploadSource | undefined {
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i.exec(url.trim());
+  const mime = match?.[1]?.toLowerCase();
+  const payload = match?.[2];
+  if (!mime || !payload) {
+    return undefined;
+  }
+
+  let binary: string;
+  try {
+    binary = atob(payload.replace(/\s/g, ""));
+  } catch {
+    return undefined;
+  }
+
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index) & 0xff;
+  }
+
+  const extension = mime.slice("image/".length).replace("+xml", "").replace("jpeg", "jpg");
+  const blob = new Blob([bytes], { type: mime });
+  return {
+    name: `pasted.${extension}`,
+    type: mime,
+    size: bytes.byteLength,
+    slice: (start, end) => blob.slice(start, end),
+  };
+}
+
+function isImageUpload(file: UploadSource): boolean {
+  return file.type.toLowerCase().startsWith("image/");
+}
+
+function isUploadSource(value: unknown): value is UploadSource {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "type" in value &&
+    typeof value.type === "string" &&
+    "size" in value &&
+    typeof value.size === "number" &&
+    "slice" in value &&
+    typeof value.slice === "function"
+  );
+}
+
+function transferFiles(data: DataTransfer): UploadSource[] {
+  const files: UploadSource[] = [];
+  const list: unknown = data.files;
+  if (
+    typeof list !== "object" ||
+    list === null ||
+    !("length" in list) ||
+    typeof list.length !== "number"
+  ) {
+    return files;
+  }
+
+  for (let index = 0; index < list.length; index += 1) {
+    const file: unknown = Reflect.get(list, index);
+    if (isUploadSource(file)) {
+      files.push(file);
+    }
+  }
+
+  return files;
+}
+
+function selectDropPoint(editor: SlateEditor, event: ImageDropEvent): void {
+  const view = event.view;
+  if (view === null) {
+    return;
+  }
+
+  const domRange = view.document.caretRangeFromPoint(event.clientX, event.clientY);
+  if (domRange === null) {
+    return;
+  }
+
+  const range = slateRangeFromDom(editor, domRange);
+  if (range) {
+    editor.tf.select(range);
+  }
+}
+
+function slateRangeFromDom(editor: SlateEditor, domRange: Range): TRange | undefined {
+  const method: unknown = Reflect.get(editor.api, "toSlateRange");
+  if (typeof method !== "function") {
+    return undefined;
+  }
+
+  const result: unknown = Reflect.apply(method, editor.api, [
+    editor,
+    domRange,
+    { exactMatch: false },
+  ]);
+  return isSlateRange(result) ? result : undefined;
+}
+
+function isSlatePoint(value: unknown): value is { path: number[]; offset: number } {
+  if (typeof value !== "object" || value === null || !("path" in value) || !("offset" in value)) {
+    return false;
+  }
+
+  const path: unknown = value.path;
+  return (
+    Array.isArray(path) &&
+    path.every((step) => typeof step === "number") &&
+    typeof value.offset === "number"
+  );
+}
+
+function isSlateRange(value: unknown): value is TRange {
+  if (typeof value !== "object" || value === null || !("anchor" in value) || !("focus" in value)) {
+    return false;
+  }
+
+  return isSlatePoint(value.anchor) && isSlatePoint(value.focus);
+}
+
+function isPositivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+// planPastedImage records the both-sources repair at the call site when both keys were present.
+export function pastedImageDroppedUrl(node: Record<string, unknown>): boolean {
+  return (
+    typeof node.assetId === "string" && node.assetId.length > 0 && typeof node.url === "string"
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+```tsx
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Caption, CaptionTextarea, showCaption } from "@platejs/caption/react";
+import { AlignCenter, AlignLeft, AlignRight, Captions, ImagePlus, Trash2 } from "lucide-react";
+import type { TElement } from "platejs";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  usePluginOption,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import type { AssetStore } from "./editor-assets";
+import { runEditorCommand } from "./editor-commands";
+import { IMAGE_MAX_WIDTH, IMAGE_MIN_WIDTH, type ImageAlign } from "./editor-document-schema";
+import {
+  IMAGE_NOT_FOUND,
+  IMAGE_UPLOAD_INTERRUPTED,
+  assetIsMissing,
+  attachImageRuntime,
+  beginImageUpload,
+  cachedAssetUrl,
+  clampImageWidth,
+  imageResizeStep,
+  imageRuntimePlugin,
+  imageUploadState,
+  removeImage,
+  replaceImageFromFile,
+  resolveAssetURL,
+  retryImageUpload,
+  setImageAlign,
+  setImageAlt,
+  setImageWidth,
+} from "./editor-image";
+import { hrElementClassName } from "./hr-element";
+
+const TOOLBAR_CLASS =
+  "absolute top-1 right-1 z-10 flex max-w-full flex-wrap gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+export function ImageRuntime({ store }: { store: AssetStore | null }) {
+  const editor = useEditorRef();
+  useEffect(() => attachImageRuntime(editor, store), [editor, store]);
+  return null;
+}
+
+export function ImageElement(props: PlateElementProps) {
+  "use no memo";
+  // Asset URLs and upload progress live outside React. Memoizing the first read kept the skeleton up.
+
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const id = typeof element.id === "string" ? element.id : "";
+  const assetId = stringAttr(element, "assetId");
+  const url = stringAttr(element, "url");
+  const alt = stringAttr(element, "alt") ?? "";
+  const align = alignAttr(element);
+  const naturalWidth = pixelAttr(element, "naturalWidth");
+  const naturalHeight = pixelAttr(element, "naturalHeight");
+  const storedWidth = pixelAttr(element, "width");
+  const asset = useResolvedAsset(assetId);
+  const upload = useImageUpload(id);
+  const [failedUrl, setFailedUrl] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const frame = useRef<HTMLElement>(null);
+  const displayUrl = assetId !== undefined ? asset.url : url;
+  const missing = assetId !== undefined && asset.missing;
+  const resolving = assetId !== undefined && displayUrl === undefined && !missing;
+  const pending =
+    resolving ||
+    (assetId === undefined &&
+      url === undefined &&
+      (upload?.status === "pending" ||
+        upload?.status === "processing" ||
+        // Ready is recorded before the asset id is written onto the node.
+        upload?.status === "ready"));
+  const failed = upload?.status === "failed" ? upload.error : undefined;
+  const showImage = displayUrl !== undefined && !missing && !failedUrl && failed === undefined;
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const width = dragWidth ?? storedWidth;
+  const ratio =
+    naturalWidth !== undefined && naturalHeight !== undefined
+      ? `${String(naturalWidth)} / ${String(naturalHeight)}`
+      : undefined;
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn("group relative py-2", hrElementClassName(selected, focused, readOnly))}
+    >
+      <figure
+        ref={frame}
+        contentEditable={false}
+        data-image-state={imageState({
+          pending,
+          failed,
+          missing,
+          failedUrl,
+          showImage,
+          loaded,
+        })}
+        className={cn(
+          "relative max-w-full",
+          align === "left" && "mr-auto",
+          align === "right" && "ml-auto",
+          align === undefined && "mx-auto",
+        )}
+        style={{
+          width: width === undefined ? "100%" : `${String(width)}px`,
+          maxWidth: "100%",
+          aspectRatio: ratio,
+        }}
+      >
+        {showImage && displayUrl !== undefined ? (
+          // Object URLs and remote sources are not next/image candidates.
+          // eslint-disable-next-line @next/next/no-img-element -- resolved asset or remote image
+          <img
+            src={displayUrl}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            width={naturalWidth}
+            height={naturalHeight}
+            draggable={false}
+            className={cn("block h-auto max-w-full", loaded ? "opacity-100" : "opacity-0")}
+            onLoad={() => {
+              setLoaded(true);
+            }}
+            onError={() => {
+              setFailedUrl(true);
+            }}
+          />
+        ) : null}
+        {showImage && !loaded ? <Skeleton ratio={ratio} /> : null}
+        {pending ? <Skeleton ratio={ratio} /> : null}
+        {failed !== undefined ? (
+          <ImageNotice
+            id={id}
+            message={failed}
+            retry={failed !== "Choose the file again."}
+            insert={false}
+          />
+        ) : null}
+        {missing ? (
+          <ImageNotice id={id} message={IMAGE_NOT_FOUND} retry={false} insert={false} />
+        ) : null}
+        {failedUrl && url !== undefined ? (
+          <ImageNotice id={id} message={url} retry={false} insert={false} openUrl={url} />
+        ) : null}
+        {!showImage && !pending && failed === undefined && !missing && !failedUrl ? (
+          <ImageNotice
+            id={id}
+            message={IMAGE_UPLOAD_INTERRUPTED}
+            retry={false}
+            insert={!readOnly}
+          />
+        ) : null}
+        {showImage && !readOnly ? (
+          <ImageToolbar
+            id={id}
+            alt={alt}
+            align={align}
+            frame={frame}
+            storedWidth={storedWidth}
+            dragWidth={dragWidth}
+            setDragWidth={setDragWidth}
+          />
+        ) : null}
+        {showImage || captionText(element).length > 0 ? (
+          <Caption>
+            <CaptionTextarea placeholder="Write a caption…" />
+          </Caption>
+        ) : null}
+      </figure>
+      {props.children}
+    </PlateElement>
+  );
+}
+
+function ImageToolbar({
+  id,
+  alt,
+  align,
+  frame,
+  storedWidth,
+  dragWidth,
+  setDragWidth,
+}: {
+  id: string;
+  alt: string;
+  align: ImageAlign | undefined;
+  frame: { current: HTMLElement | null };
+  storedWidth: number | undefined;
+  dragWidth: number | null;
+  setDragWidth: (width: number | null) => void;
+}) {
+  const selected = useSelected();
+
+  return (
+    <>
+      <div className={cn(TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
+        <AlignMenu id={id} align={align} />
+        <AltTextControl id={id} alt={alt} />
+        <CaptionButton />
+        <FileButton id={id} label="Replace" mode="replace" />
+        <IconButton label="Remove" onClick={(editor) => runEditorCommand(editor, removeImage, id)}>
+          <Trash2 aria-hidden className="size-4" />
+        </IconButton>
+      </div>
+      <ResizeHandle
+        side="left"
+        id={id}
+        frame={frame}
+        storedWidth={storedWidth}
+        previewWidth={dragWidth}
+        setPreviewWidth={setDragWidth}
+      />
+      <ResizeHandle
+        side="right"
+        id={id}
+        frame={frame}
+        storedWidth={storedWidth}
+        previewWidth={dragWidth}
+        setPreviewWidth={setDragWidth}
+      />
+    </>
+  );
+}
+
+function AlignMenu({ id, align }: { id: string; align: ImageAlign | undefined }) {
+  const editor = useEditorRef();
+  const current = align ?? "center";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Align image"
+        onMouseDown={keepEditorSelection}
+        className={iconButtonClass}
+      >
+        <AlignIcon align={current} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <AlignItem id={id} align="left" editor={editor} />
+        <AlignItem id={id} align={null} editor={editor} />
+        <AlignItem id={id} align="right" editor={editor} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AlignItem({
+  id,
+  align,
+  editor,
+}: {
+  id: string;
+  align: ImageAlign | null;
+  editor: ReturnType<typeof useEditorRef>;
+}) {
+  const label =
+    align === "left" ? "Align left" : align === "right" ? "Align right" : "Align center";
+  return (
+    <DropdownMenuItem
+      onMouseDown={keepEditorSelection}
+      onSelect={() => {
+        runEditorCommand(editor, setImageAlign, { id, align });
+      }}
+    >
+      <AlignIcon align={align ?? "center"} />
+      <span>{label}</span>
+    </DropdownMenuItem>
+  );
+}
+
+function AlignIcon({ align }: { align: ImageAlign | "center" }) {
+  const className = "size-4";
+  if (align === "left") {
+    return <AlignLeft aria-hidden className={className} />;
+  }
+
+  if (align === "right") {
+    return <AlignRight aria-hidden className={className} />;
+  }
+
+  return <AlignCenter aria-hidden className={className} />;
+}
+
+function AltTextControl({ id, alt }: { id: string; alt: string }) {
+  const editor = useEditorRef();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(alt);
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className={iconButtonClass}
+        onMouseDown={keepEditorSelection}
+        onClick={() => {
+          setDraft(alt);
+          setOpen(true);
+        }}
+      >
+        Alt text…
+      </button>
+    );
+  }
+
+  return (
+    <form
+      className="flex items-center gap-1"
+      onSubmit={(event) => {
+        event.preventDefault();
+        runEditorCommand(editor, setImageAlt, { id, alt: draft });
+        setOpen(false);
+      }}
+    >
+      <input
+        aria-label="Alt text"
+        value={draft}
+        maxLength={1000}
+        className="border-border bg-background text-foreground w-40 rounded-md border px-2 py-1 text-sm"
+        onChange={(event) => {
+          setDraft(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setOpen(false);
+          }
+        }}
+      />
+    </form>
+  );
+}
+
+function CaptionButton() {
+  const editor = useEditorRef();
+  const element = useElement();
+  return (
+    <button
+      type="button"
+      aria-label="Caption"
+      className={iconButtonClass}
+      onMouseDown={keepEditorSelection}
+      onClick={() => {
+        showCaption(editor, element);
+      }}
+    >
+      <Captions aria-hidden className="size-4" />
+    </button>
+  );
+}
+
+function FileButton({
+  id,
+  label,
+  mode,
+}: {
+  id: string;
+  label: string;
+  mode: "replace" | "insert";
+}) {
+  const editor = useEditorRef();
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={label}
+        className={iconButtonClass}
+        onMouseDown={keepEditorSelection}
+        onClick={() => {
+          input.current?.click();
+        }}
+      >
+        {mode === "insert" ? <ImagePlus aria-hidden className="size-4" /> : null}
+        {label}
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.item(0);
+          event.target.value = "";
+          if (!file) {
+            return;
+          }
+
+          if (mode === "replace") {
+            runEditorCommand(editor, replaceImageFromFile, { id, file });
+            return;
+          }
+
+          beginImageUpload(editor, id, file);
+        }}
+      />
+    </>
+  );
+}
+
+function IconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: (editor: ReturnType<typeof useEditorRef>) => void;
+  children: React.ReactNode;
+}) {
+  const editor = useEditorRef();
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className={iconButtonClass}
+      onMouseDown={keepEditorSelection}
+      onClick={() => {
+        onClick(editor);
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ImageNotice({
+  id,
+  message,
+  retry,
+  insert,
+  openUrl,
+}: {
+  id: string;
+  message: string;
+  retry: boolean;
+  insert: boolean;
+  openUrl?: string;
+}) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  return (
+    <div className="border-border bg-muted text-foreground flex max-w-full flex-col gap-2 rounded-md border p-3 text-sm">
+      <p className="break-all">{message}</p>
+      {openUrl !== undefined ? (
+        <a href={openUrl} target="_blank" rel="noopener noreferrer" className="underline">
+          Open original
+        </a>
+      ) : null}
+      {readOnly ? null : (
+        <div className="flex flex-wrap gap-2">
+          {retry ? (
+            <button
+              type="button"
+              onMouseDown={keepEditorSelection}
+              onClick={() => {
+                retryImageUpload(editor, id);
+              }}
+            >
+              Retry
+            </button>
+          ) : null}
+          {insert ? <FileButton id={id} label="Insert image" mode="insert" /> : null}
+          <button
+            type="button"
+            onMouseDown={keepEditorSelection}
+            onClick={() => {
+              runEditorCommand(editor, removeImage, id);
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Skeleton({ ratio }: { ratio: string | undefined }) {
+  return (
+    <div
+      data-image-skeleton=""
+      className="bg-muted absolute inset-0"
+      style={{ aspectRatio: ratio }}
+    />
+  );
+}
+
+function ResizeHandle({
+  side,
+  id,
+  frame,
+  storedWidth,
+  previewWidth,
+  setPreviewWidth,
+}: {
+  side: "left" | "right";
+  id: string;
+  frame: { current: HTMLElement | null };
+  storedWidth: number | undefined;
+  previewWidth: number | null;
+  setPreviewWidth: (width: number | null) => void;
+}) {
+  const editor = useEditorRef();
+  const current = previewWidth ?? storedWidth;
+  const max = containerCap(frame.current);
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuemin={IMAGE_MIN_WIDTH}
+      aria-valuemax={max}
+      aria-valuenow={current ?? max}
+      aria-label={side === "left" ? "Resize image from the left" : "Resize image from the right"}
+      tabIndex={0}
+      contentEditable={false}
+      className={cn(
+        "absolute top-0 z-10 h-full w-2 cursor-col-resize",
+        side === "left" ? "left-0" : "right-0",
+      )}
+      onPointerDown={(event) => {
+        startResize(event, side, frame.current, storedWidth, setPreviewWidth, (next) => {
+          runEditorCommand(editor, setImageWidth, { id, width: next });
+        });
+      }}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        runEditorCommand(editor, setImageWidth, { id, width: null });
+      }}
+      onKeyDown={(event) => {
+        const delta = resizeDelta(event.key);
+        if (delta === undefined) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const start = measuredWidth(frame.current, storedWidth);
+        runEditorCommand(editor, setImageWidth, {
+          id,
+          width: clampImageWidth(start + delta, containerCap(frame.current)),
+        });
+      }}
+    />
+  );
+}
+
+function startResize(
+  event: ReactPointerEvent<HTMLDivElement>,
+  side: "left" | "right",
+  frame: HTMLElement | null,
+  storedWidth: number | undefined,
+  setPreviewWidth: (width: number | null) => void,
+  commit: (width: number) => void,
+): void {
+  if (event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  const handle = event.currentTarget;
+  const originX = event.clientX;
+  const initial = measuredWidth(frame, storedWidth);
+  const cap = containerCap(frame);
+  let latest = initial;
+  const move = (pointer: PointerEvent): void => {
+    const delta = side === "right" ? pointer.clientX - originX : originX - pointer.clientX;
+    latest = clampImageWidth(initial + delta, cap);
+    setPreviewWidth(latest);
+  };
+  const stop = (): void => {
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", stop);
+    handle.removeEventListener("pointercancel", stop);
+    setPreviewWidth(null);
+    if (latest !== initial) {
+      commit(latest);
+    }
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", stop);
+  handle.addEventListener("pointercancel", stop);
+  if (event.isTrusted) {
+    handle.setPointerCapture(event.pointerId);
+  }
+}
+
+function resizeDelta(key: string): number | undefined {
+  if (key === "ArrowRight" || key === "ArrowUp") {
+    return imageResizeStep();
+  }
+
+  if (key === "ArrowLeft" || key === "ArrowDown") {
+    return -imageResizeStep();
+  }
+
+  return undefined;
+}
+
+function measuredWidth(frame: HTMLElement | null, storedWidth: number | undefined): number {
+  if (storedWidth !== undefined) {
+    return storedWidth;
+  }
+
+  const measured = frame?.getBoundingClientRect().width ?? IMAGE_MIN_WIDTH;
+  return measured > 0 ? measured : IMAGE_MIN_WIDTH;
+}
+
+function containerCap(frame: HTMLElement | null): number {
+  const parent = frame?.parentElement?.getBoundingClientRect().width ?? IMAGE_MAX_WIDTH;
+  return parent > 0 ? parent : IMAGE_MAX_WIDTH;
+}
+
+function useResolvedAsset(assetId: string | undefined): { url?: string; missing: boolean } {
+  "use no memo";
+  // This hook is compiled on its own. The same external map has to be read on every revision.
+
+  const editor = useEditorRef();
+  const revision = usePluginOption(imageRuntimePlugin, "revision");
+  useEffect(() => {
+    if (assetId !== undefined) {
+      resolveAssetURL(editor, assetId);
+    }
+  }, [assetId, editor, revision]);
+
+  if (assetId === undefined) {
+    return { missing: false };
+  }
+
+  return { url: cachedAssetUrl(editor, assetId), missing: assetIsMissing(editor, assetId) };
+}
+
+function useImageUpload(blockId: string) {
+  "use no memo";
+  // Upload status is plugin state, not a document change. A memoized read would skip failed and ready.
+
+  const editor = useEditorRef();
+  const revision = usePluginOption(imageRuntimePlugin, "revision");
+  void revision;
+  return blockId.length === 0 ? undefined : imageUploadState(editor, blockId);
+}
+
+function imageState(state: {
+  pending: boolean;
+  failed: string | undefined;
+  missing: boolean;
+  failedUrl: boolean;
+  showImage: boolean;
+  loaded: boolean;
+}): string {
+  if (state.pending || (state.showImage && !state.loaded)) {
+    return "loading";
+  }
+
+  if (state.failed !== undefined || state.missing || state.failedUrl) {
+    return "error";
+  }
+
+  if (!state.showImage) {
+    return "empty";
+  }
+
+  return "ready";
+}
+
+function keepEditorSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+const iconButtonClass =
+  "text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs";
+
+function stringAttr(element: TElement, key: string): string | undefined {
+  const value: unknown = Reflect.get(element, key);
+  return typeof value === "string" ? value : undefined;
+}
+
+function pixelAttr(element: TElement, key: string): number | undefined {
+  const value: unknown = Reflect.get(element, key);
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
+}
+
+function alignAttr(element: TElement): ImageAlign | undefined {
+  const value = stringAttr(element, "align");
+  return value === "left" || value === "right" ? value : undefined;
+}
+
+function captionText(element: TElement): string {
+  const caption: unknown = Reflect.get(element, "caption");
+  if (!Array.isArray(caption)) {
+    return "";
+  }
+
+  const first: unknown = caption[0];
+  if (typeof first !== "object" || first === null || !("text" in first)) {
+    return "";
+  }
+
+  return typeof first.text === "string" ? first.text : "";
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
@@ -12293,6 +14397,11 @@ function validateImage(bytes: Uint8Array): UploadValidation {
     return { ok: true, mimeType: "image/webp" };
   }
 
+  // ISO BMFF. The major brand sits at byte 8, inside the 16-byte sniff.
+  if (hasFtyp(bytes) && (majorBrand(bytes) === "avif" || majorBrand(bytes) === "avis")) {
+    return { ok: true, mimeType: "image/avif" };
+  }
+
   if (isSvg(bytes)) {
     return {
       ok: false,
@@ -12794,9 +14903,10 @@ export function createIndexedDbAssetStore(options?: IndexedDbAssetStoreOptions):
     const tx = db.transaction(STORE, mode);
     const done = transactionDone(tx);
     try {
-      const result = await Promise.resolve(run(tx.objectStore(STORE))).then((value) =>
-        isRequest(value) ? requestResult(value) : value,
-      );
+      // Attach the request handler in this turn. A later microtask misses a
+      // success that the connection already has cached.
+      const produced = run(tx.objectStore(STORE));
+      const result = isRequest(produced) ? await requestResult(produced) : await produced;
       await done;
       return result;
     } catch (error) {
@@ -12882,6 +14992,16 @@ function openDatabase(factory: IDBFactory, dbName: string): Promise<IDBDatabase>
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
+    if (request.readyState === "done") {
+      if (request.error) {
+        reject(new Error(UNAVAILABLE));
+        return;
+      }
+
+      resolve(request.result);
+      return;
+    }
+
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error(UNAVAILABLE));
   });
@@ -13823,7 +15943,9 @@ import { Plate, PlateContent } from "platejs/react";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
+import { ImageRuntime } from "./image-element";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -13831,6 +15953,7 @@ type EditorSurfaceProps = {
   placeholder: string;
   onValueChange?: (value: EditorValue) => void;
   className: string;
+  assetStore?: AssetStore | null;
 };
 
 export function EditorSurface({
@@ -13839,6 +15962,7 @@ export function EditorSurface({
   placeholder,
   onValueChange,
   className,
+  assetStore = null,
 }: EditorSurfaceProps) {
   return (
     <Plate
@@ -13848,6 +15972,7 @@ export function EditorSurface({
         onValueChange?.(value);
       }}
     >
+      <ImageRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -14064,6 +16189,7 @@ export function MemoryEditor({
   readOnly = false,
   placeholder = "Type something…",
   className,
+  assetStore = null,
 }: NotionLikeEditorBlockProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -14074,6 +16200,7 @@ export function MemoryEditor({
         readOnly={readOnly}
         placeholder={placeholder}
         onValueChange={onChange}
+        assetStore={assetStore}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
@@ -14088,6 +16215,7 @@ export function MemoryEditor({
 import { EditorSaveStatus } from "./editor-save-status";
 import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "./editor-autosave";
+import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { useNotionLikeEditor } from "./use-notion-like-editor";
 
@@ -14101,6 +16229,7 @@ type ReadyEditorProps = {
   status: AutosaveStatus;
   message?: string;
   onRetry: () => void;
+  assetStore?: AssetStore | null;
 };
 
 export function ReadyEditor({
@@ -14113,6 +16242,7 @@ export function ReadyEditor({
   status,
   message,
   onRetry,
+  assetStore = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -14129,6 +16259,7 @@ export function ReadyEditor({
           onChange?.(value);
           onContentChange(value);
         }}
+        assetStore={assetStore}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
       />
     </div>
@@ -14157,6 +16288,7 @@ export function PersistedEditor({
   placeholder = "Type something…",
   className,
   adapter,
+  assetStore = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -14181,6 +16313,7 @@ export function PersistedEditor({
           placeholder={placeholder}
           onChange={onChange}
           onContentChange={session.onContentChange}
+          assetStore={assetStore}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -14197,6 +16330,7 @@ export function PersistedEditor({
 ```tsx
 "use client";
 
+import type { AssetStore } from "./editor-assets";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import type { EditorValue } from "./editor-value";
 import { MemoryEditor } from "./memory-editor";
@@ -14210,6 +16344,7 @@ export type NotionLikeEditorBlockProps = {
   placeholder?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
+  assetStore?: AssetStore | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -15204,6 +17339,21 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-images",
+    children: [{ text: "Images" }],
+  },
+  {
+    type: "img",
+    id: "demo-image",
+    url: "/blocks/notion-like-editor/image-demo.svg",
+    naturalWidth: 640,
+    naturalHeight: 400,
+    alt: "A small window looking onto a violet hill and a pale sun",
+    caption: [{ text: "A drawing stored with the block, not an uploaded file." }],
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -15248,13 +17398,37 @@ export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
 
 import { useSyncExternalStore } from "react";
 
+import type { AssetStore } from "./editor-assets";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
+import { createIndexedDbAssetStore } from "./indexed-db-asset-store";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 
 let demoAdapter: EditorPersistenceAdapter | undefined;
+let demoStore: AssetStore | null | undefined;
+
+function getDemoStore(): AssetStore | null {
+  if (demoStore !== undefined) {
+    return demoStore;
+  }
+
+  if (typeof indexedDB === "undefined") {
+    demoStore = null;
+    return demoStore;
+  }
+
+  try {
+    demoStore = createIndexedDbAssetStore({
+      dbName: `notion-like-editor-assets:${DEMO_DOCUMENT_ID}`,
+    });
+  } catch {
+    demoStore = null;
+  }
+
+  return demoStore;
+}
 
 function subscribe(): () => void {
   return () => undefined;
@@ -15295,6 +17469,7 @@ export function NotionLikeEditorDemo() {
       documentId={DEMO_DOCUMENT_ID}
       adapter={adapter}
       initialValue={DEMO_DOCUMENT_VALUE}
+      assetStore={getDemoStore()}
     />
   );
 }
@@ -15410,6 +17585,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/hr-element.tsx",
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-image.ts",
+    code: readSource(`${BLOCK_DIR}/editor-image.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/image-element.tsx",
+    code: readSource(`${BLOCK_DIR}/image-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

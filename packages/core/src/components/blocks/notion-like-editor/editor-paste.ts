@@ -1,6 +1,8 @@
 import {
+  KEYS,
   createSlatePlugin,
   isHtmlBlockElement,
+  nanoid,
   type Descendant,
   type SlateEditor,
   type TElement,
@@ -26,6 +28,12 @@ import {
 } from "./editor-document-schema";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
+import {
+  IMAGE_BOTH_SOURCES,
+  planPastedImage,
+  pastedImageDroppedUrl,
+  queuePastedImageUpload,
+} from "./editor-image";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -38,6 +46,19 @@ export type PasteSanitizeOptions = {
 const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
 
 let activePasteRepairs: Repair[] | undefined;
+
+// The table override sanitizes the fragment again. An image that became a paragraph
+// on the first pass is gone on the second, so those repairs are kept until the outer insert finishes.
+let pendingImageRepairs: Repair[] = [];
+
+function rememberImageRepair(repair: Repair): void {
+  activePasteRepairs?.push(repair);
+  pendingImageRepairs.push(repair);
+}
+
+function clearPendingImageRepairs(): void {
+  pendingImageRepairs = [];
+}
 
 export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
   pasteRepairLog.set(editor, [...repairs]);
@@ -193,6 +214,35 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
   }
 
   return props;
+}
+
+function pastedImage(node: TElement, seen: Set<string>): TElement[] {
+  const plan = planPastedImage(node);
+  if (plan.kind === "text") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [paragraph([{ text: plan.text }])];
+  }
+
+  if (plan.kind === "drop") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [];
+  }
+
+  if (pastedImageDroppedUrl(node)) {
+    rememberImageRepair({ path: [], message: IMAGE_BOTH_SOURCES });
+  }
+
+  const id = takeId(node, seen) ?? nanoid();
+  if (plan.upload) {
+    queuePastedImageUpload(id, plan.upload);
+  }
+
+  const image = elementNode(KEYS.img, [{ text: "" }], id);
+  for (const [key, value] of Object.entries(plan.props)) {
+    image[key] = value;
+  }
+
+  return [image];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -711,6 +761,10 @@ function expandBlock(
   nesting: Nesting = emptyNesting,
 ): TElement[] {
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
+    if (node.type === KEYS.img) {
+      return pastedImage(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -907,6 +961,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of pendingImageRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }
@@ -929,7 +988,12 @@ export const PasteFallbackPlugin = createSlatePlugin({
     insertFragment(fragment, options) {
       // TablePlugin inserts a one-table fragment before this fallback, so the
       // table override sanitizes that path too. This still covers every other fragment.
-      insertFragment(preparePastedFragment(editor, fragment), options);
+      // Image repairs are remembered across the table override's second sanitize.
+      try {
+        insertFragment(preparePastedFragment(editor, fragment), options);
+      } finally {
+        clearPendingImageRepairs();
+      }
     },
   },
 }));

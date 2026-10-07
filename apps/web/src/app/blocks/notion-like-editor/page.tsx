@@ -108,6 +108,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-image.ts",
+    code: readSource(`${BLOCK_DIR}/editor-image.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/image-element.tsx",
+    code: readSource(`${BLOCK_DIR}/image-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-selection.ts",
     code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
   },

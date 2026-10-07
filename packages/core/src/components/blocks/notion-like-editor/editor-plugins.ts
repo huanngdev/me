@@ -21,7 +21,9 @@ import {
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import { CalloutPlugin } from "@platejs/callout/react";
+import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
+import { ImagePlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -51,6 +53,14 @@ import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
+import { ImageElement } from "./image-element";
+import {
+  flushPastedImageUploads,
+  handleImageDrop,
+  handleImageInsertData,
+  imageHtmlDeserializer,
+  imageRuntimePlugin,
+} from "./editor-image";
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -108,9 +118,9 @@ import {
   insertCodeText,
   selectionInCodeBlock,
 } from "./editor-code";
-import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
 import {
+  PasteFallbackPlugin,
   clearHtmlTableWidths,
   preparePastedFragment,
   rememberHtmlTableWidths,
@@ -662,6 +672,14 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
+    // A table cell only stores paragraphs. Lifting an image one level would
+    // leave it inside the row, so move it to after the table and keep the cell.
+    if (child.type === KEYS.img && (node.type === KEYS.td || node.type === KEYS.th)) {
+      if (moveImageAfterTable(editor, path, childPath)) {
+        return true;
+      }
+    }
+
     if (isVoidElementType(child.type)) {
       editor.tf.liftNodes({ at: childPath, voids: true });
       return true;
@@ -1406,6 +1424,99 @@ const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
 });
 
+// Plate's own upload writes a data URL and its embed accepts any image URL.
+// Both are off. Insert, paste, and drop go through the asset pipeline.
+// Plate Plus placeholder, floating media, and preview UI are not registered.
+const imagePlugin = ImagePlugin.configure({
+  node: { isVoid: true },
+  options: {
+    disableUploadInsert: true,
+    disableEmbedInsert: true,
+  },
+  render: { node: ImageElement },
+  parsers: {
+    html: {
+      deserializer: imageHtmlDeserializer,
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertData, insertFragment } }) => ({
+  transforms: {
+    insertData(data: DataTransfer) {
+      handleImageInsertData(editor, data, insertData);
+    },
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedImageUploads(editor);
+      }
+    },
+  },
+  handlers: {
+    onDrop: ({
+      event,
+    }: {
+      event: {
+        clientX: number;
+        clientY: number;
+        preventDefault: () => void;
+        dataTransfer: DataTransfer | null;
+        view: Window | null;
+      };
+    }) => {
+      handleImageDrop(editor, {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        preventDefault: () => {
+          event.preventDefault();
+        },
+        dataTransfer: event.dataTransfer,
+        view: event.view,
+      });
+    },
+  },
+}));
+
+const captionPlugin = CaptionPlugin.configure({
+  options: {
+    query: {
+      allow: [KEYS.img],
+    },
+  },
+});
+
+function moveImageAfterTable(
+  editor: SlateEditor,
+  cellPath: number[],
+  childPath: number[],
+): boolean {
+  const tablePath = cellPath.slice(0, -2);
+  if (tablePath.length !== cellPath.length - 2) {
+    return false;
+  }
+
+  const table = editor.api.node(tablePath);
+  if (!table || !isElementRecord(table[0]) || table[0].type !== KEYS.table) {
+    return false;
+  }
+
+  const destination = PathApi.next(tablePath);
+  if (!destination) {
+    return false;
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.moveNodes({ at: childPath, to: destination, voids: true });
+    const cell = editor.api.node(cellPath);
+    const children =
+      cell && isElementRecord(cell[0]) && Array.isArray(cell[0].children) ? cell[0].children : [];
+    if (children.length === 0) {
+      editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: cellPath.concat(0) });
+    }
+  });
+  return true;
+}
+
 function htmlHasTable(html: string): boolean {
   return html.toLowerCase().includes("<table");
 }
@@ -1571,6 +1682,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     codeBlockPlugin,
+    imagePlugin,
+    captionPlugin,
+    imageRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,

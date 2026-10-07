@@ -3,6 +3,7 @@
 import { EditorSaveStatus } from "./editor-save-status";
 import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "./editor-autosave";
+import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { useNotionLikeEditor } from "./use-notion-like-editor";
 
@@ -16,6 +17,7 @@ type ReadyEditorProps = {
   status: AutosaveStatus;
   message?: string;
   onRetry: () => void;
+  assetStore?: AssetStore | null;
 };
 
 export function ReadyEditor({
@@ -28,6 +30,7 @@ export function ReadyEditor({
   status,
   message,
   onRetry,
+  assetStore = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -44,6 +47,7 @@ export function ReadyEditor({
           onChange?.(value);
           onContentChange(value);
         }}
+        assetStore={assetStore}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
       />
     </div>
