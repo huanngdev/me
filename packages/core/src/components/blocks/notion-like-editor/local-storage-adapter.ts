@@ -162,3 +162,37 @@ export function createLocalStorageAdapter(
     },
   };
 }
+
+// Demo documents used to share `notion-like-editor:demo`. Drop that key and
+// older `demo-*` copies so a new showcase is not hidden. Recovery snapshots
+// stay, and documents that are not demos stay.
+export function removeStaleDemoDocuments(storage: Storage, currentDocumentId: string): void {
+  const prefix = "notion-like-editor";
+  const currentKey = `${prefix}:${currentDocumentId}`;
+  const legacyKey = `${prefix}:demo`;
+  const versionedPrefix = `${prefix}:demo-`;
+
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key !== null) {
+        keys.push(key);
+      }
+    }
+
+    for (const key of keys) {
+      if (key.includes(":recovery:") || key === currentKey) {
+        continue;
+      }
+
+      const suffix = key.startsWith(versionedPrefix) ? key.slice(versionedPrefix.length) : null;
+      const outdatedDemo = suffix !== null && !suffix.includes(":");
+      if (key === legacyKey || outdatedDemo) {
+        storage.removeItem(key);
+      }
+    }
+  } catch {
+    // Storage can throw when it is blocked. The current demo still opens.
+  }
+}

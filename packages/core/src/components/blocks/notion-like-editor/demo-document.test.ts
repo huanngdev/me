@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { DEMO_DOCUMENT_VALUE } from "./demo-document";
+import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE, demoDocumentId } from "./demo-document";
+import type { EditorValue } from "./editor-value";
 import { createEditorDocument } from "./editor-document";
 import {
   CALLOUT_DEFAULT_ICON,
@@ -66,6 +67,25 @@ function allowlistProblems(value: unknown): string[] {
 }
 
 describe("demo document", () => {
+  test("the demo id follows the content and ignores a copied edit", () => {
+    const copy: unknown = JSON.parse(JSON.stringify(DEMO_DOCUMENT_VALUE));
+    if (!Array.isArray(copy) || !isRecord(copy[0]) || !Array.isArray(copy[0].children)) {
+      throw new Error("Demo copy is not a document.");
+    }
+
+    const title = copy[0].children[0];
+    if (!isRecord(title) || typeof title.text !== "string") {
+      throw new Error("Demo title is missing.");
+    }
+
+    title.text = `${title.text}!`;
+
+    expect(DEMO_DOCUMENT_ID).toBe(demoDocumentId(DEMO_DOCUMENT_VALUE));
+    expect(DEMO_DOCUMENT_ID).toMatch(/^demo-[0-9a-f]{8}$/);
+    expect(demoDocumentId(copy as EditorValue)).not.toBe(DEMO_DOCUMENT_ID);
+    expect(textOf(DEMO_DOCUMENT_VALUE[0] ?? { children: [] })).toBe("Notion-like editor");
+  });
+
   test("the demo document parses with no repairs", () => {
     const parsed = expectOk(parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE)));
 

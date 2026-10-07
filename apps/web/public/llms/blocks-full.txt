@@ -8657,6 +8657,40 @@ export function createLocalStorageAdapter(
     },
   };
 }
+
+// Demo documents used to share `notion-like-editor:demo`. Drop that key and
+// older `demo-*` copies so a new showcase is not hidden. Recovery snapshots
+// stay, and documents that are not demos stay.
+export function removeStaleDemoDocuments(storage: Storage, currentDocumentId: string): void {
+  const prefix = "notion-like-editor";
+  const currentKey = `${prefix}:${currentDocumentId}`;
+  const legacyKey = `${prefix}:demo`;
+  const versionedPrefix = `${prefix}:demo-`;
+
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key !== null) {
+        keys.push(key);
+      }
+    }
+
+    for (const key of keys) {
+      if (key.includes(":recovery:") || key === currentKey) {
+        continue;
+      }
+
+      const suffix = key.startsWith(versionedPrefix) ? key.slice(versionedPrefix.length) : null;
+      const outdatedDemo = suffix !== null && !suffix.includes(":");
+      if (key === legacyKey || outdatedDemo) {
+        storage.removeItem(key);
+      }
+    }
+  } catch {
+    // Storage can throw when it is blocked. The current demo still opens.
+  }
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
@@ -10427,6 +10461,24 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
 ] satisfies EditorValue;
+
+// The id is the content. A changed demo gets a new storage key, so an older
+// edit cannot hide the current showcase. Edits to this content keep this id.
+function fnv1a(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+export function demoDocumentId(value: EditorValue): string {
+  return `demo-${fnv1a(JSON.stringify(value))}`;
+}
+
+export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
@@ -10435,10 +10487,10 @@ export const DEMO_DOCUMENT_VALUE = [
 
 import { useSyncExternalStore } from "react";
 
-import { DEMO_DOCUMENT_VALUE } from "./demo-document";
+import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
-import { createLocalStorageAdapter } from "./local-storage-adapter";
+import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 
 let demoAdapter: EditorPersistenceAdapter | undefined;
@@ -10448,7 +10500,17 @@ function subscribe(): () => void {
 }
 
 function getDemoAdapter(): EditorPersistenceAdapter {
-  demoAdapter ??= createLocalStorageAdapter();
+  if (demoAdapter !== undefined) {
+    return demoAdapter;
+  }
+
+  demoAdapter = createLocalStorageAdapter();
+  try {
+    removeStaleDemoDocuments(window.localStorage, DEMO_DOCUMENT_ID);
+  } catch {
+    // Reading localStorage can throw. The editor still opens on the current id.
+  }
+
   return demoAdapter;
 }
 
@@ -10468,7 +10530,11 @@ export function NotionLikeEditorDemo() {
   }
 
   return (
-    <NotionLikeEditorBlock documentId="demo" adapter={adapter} initialValue={DEMO_DOCUMENT_VALUE} />
+    <NotionLikeEditorBlock
+      documentId={DEMO_DOCUMENT_ID}
+      adapter={adapter}
+      initialValue={DEMO_DOCUMENT_VALUE}
+    />
   );
 }
 ```

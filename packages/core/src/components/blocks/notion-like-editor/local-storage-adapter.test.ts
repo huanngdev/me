@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import { migrateEditorDocument } from "./editor-document-migrate";
 import { parseEditorDocument } from "./editor-document-validate";
-import { createLocalStorageAdapter } from "./local-storage-adapter";
+import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
+import { DEMO_DOCUMENT_ID } from "./demo-document";
 import type { EditorValue } from "./editor-value";
 import { createMemoryStorage, expectOk, isRecord } from "./test-utils";
 
@@ -377,5 +378,58 @@ describe("local storage", () => {
       message: UNAVAILABLE_MESSAGE,
     });
     await expect(adapter.load("demo")).rejects.toBeInstanceOf(DOMException);
+  });
+});
+
+describe("stale demo documents", () => {
+  test("cleanup drops old demo copies and keeps recovery and other documents", () => {
+    const storage = createMemoryStorage();
+    const currentKey = `notion-like-editor:${DEMO_DOCUMENT_ID}`;
+    const outdatedKey = "notion-like-editor:demo-ffffffff";
+
+    expect(outdatedKey).not.toBe(currentKey);
+
+    storage.setItem(currentKey, "current");
+    storage.setItem("notion-like-editor:demo", "legacy");
+    storage.setItem(outdatedKey, "outdated");
+    storage.setItem("notion-like-editor:demo:recovery:conflict", "legacy recovery");
+    storage.setItem(`${currentKey}:recovery:save-failed`, "current recovery");
+    storage.setItem(`${outdatedKey}:recovery:conflict`, "outdated recovery");
+    storage.setItem("notion-like-editor:other", "other");
+
+    removeStaleDemoDocuments(storage, DEMO_DOCUMENT_ID);
+
+    expect(storage.getItem(currentKey)).toBe("current");
+    expect(storage.getItem("notion-like-editor:demo")).toBeNull();
+    expect(storage.getItem(outdatedKey)).toBeNull();
+    expect(storage.getItem("notion-like-editor:demo:recovery:conflict")).toBe("legacy recovery");
+    expect(storage.getItem(`${currentKey}:recovery:save-failed`)).toBe("current recovery");
+    expect(storage.getItem(`${outdatedKey}:recovery:conflict`)).toBe("outdated recovery");
+    expect(storage.getItem("notion-like-editor:other")).toBe("other");
+  });
+
+  test("cleanup survives storage that throws", () => {
+    const storage: Storage = {
+      get length(): number {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      clear() {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      getItem() {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      key() {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      removeItem() {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      setItem() {
+        throw new DOMException("blocked", "SecurityError");
+      },
+    };
+
+    expect(() => removeStaleDemoDocuments(storage, DEMO_DOCUMENT_ID)).not.toThrow();
   });
 });

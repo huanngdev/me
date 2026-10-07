@@ -2,10 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 
-import { DEMO_DOCUMENT_VALUE } from "./demo-document";
+import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
-import { createLocalStorageAdapter } from "./local-storage-adapter";
+import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 
 let demoAdapter: EditorPersistenceAdapter | undefined;
@@ -15,7 +15,17 @@ function subscribe(): () => void {
 }
 
 function getDemoAdapter(): EditorPersistenceAdapter {
-  demoAdapter ??= createLocalStorageAdapter();
+  if (demoAdapter !== undefined) {
+    return demoAdapter;
+  }
+
+  demoAdapter = createLocalStorageAdapter();
+  try {
+    removeStaleDemoDocuments(window.localStorage, DEMO_DOCUMENT_ID);
+  } catch {
+    // Reading localStorage can throw. The editor still opens on the current id.
+  }
+
   return demoAdapter;
 }
 
@@ -35,6 +45,10 @@ export function NotionLikeEditorDemo() {
   }
 
   return (
-    <NotionLikeEditorBlock documentId="demo" adapter={adapter} initialValue={DEMO_DOCUMENT_VALUE} />
+    <NotionLikeEditorBlock
+      documentId={DEMO_DOCUMENT_ID}
+      adapter={adapter}
+      initialValue={DEMO_DOCUMENT_VALUE}
+    />
   );
 }

@@ -755,3 +755,21 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
 ] satisfies EditorValue;
+
+// The id is the content. A changed demo gets a new storage key, so an older
+// edit cannot hide the current showcase. Edits to this content keep this id.
+function fnv1a(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+export function demoDocumentId(value: EditorValue): string {
+  return `demo-${fnv1a(JSON.stringify(value))}`;
+}
+
+export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
