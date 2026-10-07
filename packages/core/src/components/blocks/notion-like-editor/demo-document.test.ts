@@ -2,7 +2,21 @@ import { describe, expect, test } from "bun:test";
 
 import { DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createEditorDocument } from "./editor-document";
-import { EDITOR_ELEMENT_RULES, EDITOR_MARK_RULES, isAllowedMark } from "./editor-document-schema";
+import {
+  CALLOUT_DEFAULT_ICON,
+  CALLOUT_ICONS,
+  CALLOUT_TONES,
+  EDITOR_ELEMENT_RULES,
+  EDITOR_MARK_RULES,
+  FONT_FAMILIES,
+  FONT_SIZES,
+  HIGHLIGHT_TOKENS,
+  LINE_HEIGHTS,
+  LIST_STYLES,
+  PALETTE_TOKENS,
+  TEXT_ALIGNS,
+  isAllowedMark,
+} from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { createEditor, expectOk, field, isRecord } from "./test-utils";
 
@@ -94,10 +108,30 @@ describe("demo document", () => {
   });
 
   test("demo paragraph ids are unique", () => {
-    const ids = DEMO_DOCUMENT_VALUE.map((block) => block.id);
+    const ids: string[] = [];
+    const visit = (value: unknown): void => {
+      if (!isRecord(value)) {
+        return;
+      }
+
+      const id = field(value, "id");
+      if (typeof id === "string") {
+        ids.push(id);
+      }
+
+      for (const child of elementChildren(value)) {
+        visit(child);
+      }
+    };
+
+    for (const block of DEMO_DOCUMENT_VALUE) {
+      visit(block);
+    }
+
     const unique = new Set(ids).size === ids.length;
     const present = ids.every((id) => id.length > 0);
 
+    expect(ids.length).toBeGreaterThan(DEMO_DOCUMENT_VALUE.length);
     expect(unique).toBe(true);
     expect(present).toBe(true);
   });
@@ -128,7 +162,7 @@ describe("demo document", () => {
     expect(next.id).toBe("demo-bold");
   });
 
-  test("the block styles heading sits directly before the centered paragraph", () => {
+  test("the block styles heading sits directly before the left-aligned paragraph", () => {
     const index = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-block-styles");
     const block = DEMO_DOCUMENT_VALUE[index];
     const next = DEMO_DOCUMENT_VALUE[index + 1];
@@ -139,15 +173,42 @@ describe("demo document", () => {
     expect(block.type).toBe("h3");
     expect(textOf(block)).toBe("Block styles");
     expect(field(block, "lineHeight")).toBeUndefined();
-    expect(next.id).toBe("demo-align");
+    expect(next.id).toBe("demo-align-left");
+    expect(field(next, "align")).toBe("left");
+  });
+
+  test("the headings section names the heading shortcuts", () => {
+    const index = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-headings");
+    const heading = DEMO_DOCUMENT_VALUE[index];
+    const note = DEMO_DOCUMENT_VALUE[index + 1];
+    const heading2 = DEMO_DOCUMENT_VALUE[index + 2];
+    const heading3 = DEMO_DOCUMENT_VALUE[index + 3];
+    const textStyles = DEMO_DOCUMENT_VALUE[index + 4];
+    if (!heading || !note || !heading2 || !heading3 || !textStyles) {
+      throw new Error("Missing headings section.");
+    }
+
+    expect(heading.type).toBe("h2");
+    expect(textOf(heading)).toBe("Headings");
+    expect(note.id).toBe("demo-heading-1");
+    expect(textOf(note)).toBe(
+      "The title above is a heading 1. Press Cmd+Alt+1 or Ctrl+Alt+1 to toggle it.",
+    );
+    expect(heading2.type).toBe("h2");
+    expect(heading2.id).toBe("demo-heading-2");
+    expect(textOf(heading2)).toBe("Heading 2. Press Cmd+Alt+2 or Ctrl+Alt+2.");
+    expect(heading3.type).toBe("h3");
+    expect(heading3.id).toBe("demo-heading-3");
+    expect(textOf(heading3)).toBe("Heading 3. Press Cmd+Alt+3 or Ctrl+Alt+3.");
+    expect(textStyles.id).toBe("demo-text-styles");
   });
 
   test("the lists heading follows the block styles section", () => {
-    const clear = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-clear");
-    const lists = DEMO_DOCUMENT_VALUE[clear + 1];
-    const first = DEMO_DOCUMENT_VALUE[clear + 2];
-    const nested = DEMO_DOCUMENT_VALUE[clear + 3];
-    const third = DEMO_DOCUMENT_VALUE[clear + 4];
+    const lineHeight = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-line-height");
+    const lists = DEMO_DOCUMENT_VALUE[lineHeight + 1];
+    const first = DEMO_DOCUMENT_VALUE[lineHeight + 2];
+    const nested = DEMO_DOCUMENT_VALUE[lineHeight + 3];
+    const third = DEMO_DOCUMENT_VALUE[lineHeight + 4];
     if (!lists || !first || !nested || !third) {
       throw new Error("Missing lists section.");
     }
@@ -163,13 +224,17 @@ describe("demo document", () => {
     expect(field(nested, "indent")).toBe(2);
     expect(textOf(nested)).toBe("Nested items show a different marker.");
     expect(third.id).toBe("demo-bullet-3");
-    expect(field(third, "indent")).toBe(1);
-    expect(textOf(third)).toBe("Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet.");
+    expect(field(third, "indent")).toBe(3);
+    expect(textOf(third)).toBe(
+      "The third level uses a square. Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet.",
+    );
 
-    const numbered = DEMO_DOCUMENT_VALUE[clear + 5];
-    const nestedNumber = DEMO_DOCUMENT_VALUE[clear + 6];
-    const numberedTail = DEMO_DOCUMENT_VALUE[clear + 7];
-    if (!numbered || !nestedNumber || !numberedTail) {
+    const numbered = DEMO_DOCUMENT_VALUE[lineHeight + 5];
+    const nestedNumber = DEMO_DOCUMENT_VALUE[lineHeight + 6];
+    const numberedTail = DEMO_DOCUMENT_VALUE[lineHeight + 7];
+    const restarted = DEMO_DOCUMENT_VALUE[lineHeight + 8];
+    const restartedNext = DEMO_DOCUMENT_VALUE[lineHeight + 9];
+    if (!numbered || !nestedNumber || !numberedTail || !restarted || !restartedNext) {
       throw new Error("Missing numbered lists.");
     }
 
@@ -184,15 +249,27 @@ describe("demo document", () => {
     expect(textOf(nestedNumber)).toBe("Nested steps use letters.");
     expect(numberedTail.id).toBe("demo-number-3");
     expect(field(numberedTail, "listStyleType")).toBe("decimal");
-    expect(field(numberedTail, "indent")).toBe(1);
-    expect(field(numberedTail, "listStart")).toBe(2);
-    expect(textOf(numberedTail)).toBe("Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering.");
+    expect(field(numberedTail, "indent")).toBe(3);
+    expect(field(numberedTail, "listStart")).toBeUndefined();
+    expect(textOf(numberedTail)).toBe(
+      "The third level uses roman numerals. Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering.",
+    );
+    expect(restarted.id).toBe("demo-number-restart");
+    expect(field(restarted, "listStyleType")).toBe("decimal");
+    expect(field(restarted, "indent")).toBe(1);
+    expect(field(restarted, "listRestart")).toBe(3);
+    expect(field(restarted, "listStart")).toBe(3);
+    expect(textOf(restarted)).toBe("This numbered run starts at 3.");
+    expect(restartedNext.id).toBe("demo-number-next");
+    expect(field(restartedNext, "listStart")).toBe(4);
+    expect(field(restartedNext, "listRestart")).toBeUndefined();
 
-    const todo = DEMO_DOCUMENT_VALUE[clear + 8];
-    const openTodo = DEMO_DOCUMENT_VALUE[clear + 9];
-    const nestedTodo = DEMO_DOCUMENT_VALUE[clear + 10];
-    const todoHint = DEMO_DOCUMENT_VALUE[clear + 11];
-    if (!todo || !openTodo || !nestedTodo || !todoHint) {
+    const todo = DEMO_DOCUMENT_VALUE[lineHeight + 10];
+    const openTodo = DEMO_DOCUMENT_VALUE[lineHeight + 11];
+    const nestedTodo = DEMO_DOCUMENT_VALUE[lineHeight + 12];
+    const todoHint = DEMO_DOCUMENT_VALUE[lineHeight + 13];
+    const markedBullet = DEMO_DOCUMENT_VALUE[lineHeight + 14];
+    if (!todo || !openTodo || !nestedTodo || !todoHint || !markedBullet) {
       throw new Error("Missing to-do lists.");
     }
 
@@ -221,15 +298,34 @@ describe("demo document", () => {
       throw new Error("Missing the quotes demo.");
     }
 
+    expect(markedBullet.id).toBe("demo-bullet-marks");
+    expect(field(markedBullet, "listStyleType")).toBe("disc");
+    expect(field(markedBullet, "indent")).toBe(1);
+    expect(elementChildren(markedBullet)).toEqual([
+      { text: "A bullet can mix " },
+      { text: "bold", bold: true },
+      { text: ", " },
+      { text: "italic", italic: true },
+      { text: ", and " },
+      { text: "color", color: "purple" },
+      { text: "." },
+    ]);
+
     expect(divider.type).toBe("hr");
     expect(divider.children).toEqual([{ text: "" }]);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(divider)).toBe(DEMO_DOCUMENT_VALUE.indexOf(todoHint) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(divider)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(markedBullet) + 1,
+    );
     expect(DEMO_DOCUMENT_VALUE.indexOf(quotes)).toBe(DEMO_DOCUMENT_VALUE.indexOf(divider) + 1);
 
     expect(quotes.type).toBe("h3");
     expect(textOf(quotes)).toBe("Quotes");
     const paragraphs = elementChildren(quote);
-    expect(paragraphs.map((child) => field(child, "id"))).toEqual(["demo-quote-1", "demo-quote-2"]);
+    expect(paragraphs.map((child) => field(child, "id"))).toEqual([
+      "demo-quote-1",
+      "demo-quote-2",
+      "demo-quote-3",
+    ]);
     expect(elementChildren(paragraphs[0])).toEqual([{ text: "Quotes hold a thought on its own." }]);
     expect(elementChildren(paragraphs[1])).toEqual([
       { text: "Press " },
@@ -238,18 +334,35 @@ describe("demo document", () => {
       { text: "Enter", bold: true },
       { text: " on an empty line to leave it." },
     ]);
+    expect(field(paragraphs[2], "listStyleType")).toBe("disc");
+    expect(field(paragraphs[2], "indent")).toBe(1);
+    expect(elementChildren(paragraphs[2])).toEqual([{ text: "A quote can hold a bullet." }]);
 
     const callouts = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callouts");
+    const defaultCallout = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callout-default");
     const callout = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callout");
-    if (!callouts || !callout || callout.type !== "callout") {
+    if (
+      !callouts ||
+      !defaultCallout ||
+      defaultCallout.type !== "callout" ||
+      !callout ||
+      callout.type !== "callout"
+    ) {
       throw new Error("Missing the callouts demo.");
     }
 
     expect(callouts.type).toBe("h3");
     expect(textOf(callouts)).toBe("Callouts");
     expect(DEMO_DOCUMENT_VALUE.indexOf(callouts)).toBe(DEMO_DOCUMENT_VALUE.indexOf(quote) + 1);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(callout)).toBe(DEMO_DOCUMENT_VALUE.indexOf(callouts) + 1);
-    expect(field(callout, "icon")).toBe("lightbulb");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(defaultCallout)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(callouts) + 1,
+    );
+    expect(field(defaultCallout, "icon")).toBe("lightbulb");
+    expect(field(defaultCallout, "variant")).toBeUndefined();
+    expect(DEMO_DOCUMENT_VALUE.indexOf(callout)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(defaultCallout) + 1,
+    );
+    expect(field(callout, "icon")).toBe("info");
     expect(field(callout, "variant")).toBe("info");
     const calloutChildren = elementChildren(callout);
     expect(calloutChildren.map((child) => field(child, "id"))).toEqual([
@@ -267,14 +380,33 @@ describe("demo document", () => {
 
     const toggles = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggles");
     const toggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle");
-    if (!toggles || !toggle || toggle.type !== "toggle") {
+    const message = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-callout-message");
+    const nestedToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-nest");
+    const quoteToggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle-quote");
+    const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
+    if (
+      !toggles ||
+      !toggle ||
+      toggle.type !== "toggle" ||
+      !message ||
+      !nestedToggle ||
+      nestedToggle.type !== "toggle" ||
+      !quoteToggle ||
+      quoteToggle.type !== "toggle" ||
+      !paste
+    ) {
       throw new Error("Missing the toggles demo.");
     }
 
     expect(toggles.type).toBe("h3");
     expect(textOf(toggles)).toBe("Toggles");
-    expect(DEMO_DOCUMENT_VALUE.indexOf(toggles)).toBe(DEMO_DOCUMENT_VALUE.indexOf(callout) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(toggles)).toBe(DEMO_DOCUMENT_VALUE.indexOf(message) + 1);
     expect(DEMO_DOCUMENT_VALUE.indexOf(toggle)).toBe(DEMO_DOCUMENT_VALUE.indexOf(toggles) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(nestedToggle)).toBe(DEMO_DOCUMENT_VALUE.indexOf(toggle) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(quoteToggle)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(nestedToggle) + 1,
+    );
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(quoteToggle) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",
@@ -293,6 +425,30 @@ describe("demo document", () => {
     expect(elementChildren(toggleChildren[2])).toEqual([
       { text: "Content stays in the document while hidden." },
     ]);
+
+    const middle = elementChildren(nestedToggle)[2];
+    const inner = elementChildren(middle)[2];
+    expect(elementChildren(nestedToggle).map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-nest-label",
+      "demo-toggle-nest-body",
+      "demo-toggle-nest-2",
+    ]);
+    expect(field(middle, "type")).toBe("toggle");
+    expect(elementChildren(middle).map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-nest-2-label",
+      "demo-toggle-nest-2-body",
+      "demo-toggle-nest-3",
+    ]);
+    expect(field(inner, "type")).toBe("toggle");
+    expect(elementChildren(inner).map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-nest-3-label",
+      "demo-toggle-nest-3-body",
+    ]);
+    expect(elementChildren(quoteToggle).map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-quote-label",
+      "demo-toggle-quote-body",
+    ]);
+    expect(field(elementChildren(quoteToggle)[1], "type")).toBe("blockquote");
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {
@@ -390,7 +546,7 @@ describe("demo document", () => {
     expect(marked).toEqual(["2"]);
   });
 
-  test("the color paragraph marks red, blue, and green", () => {
+  test("the color paragraph marks every palette token", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-color");
     if (!block) {
       throw new Error("Missing color paragraph.");
@@ -401,16 +557,35 @@ describe("demo document", () => {
       .map((child) => [leafText(child), field(child, "color")]);
 
     expect(textOf(block)).toBe(
-      "Text can be red, blue, or green. Colors come from a preset palette that adapts to light and dark mode.",
+      "Colors: gray, brown, orange, yellow, green, blue, purple, pink, and red.",
+    );
+    expect(marked).toEqual(PALETTE_TOKENS.map((token) => [token, token]));
+  });
+
+  test("the combined paragraph stacks bold, italic, underline, color, and highlight", () => {
+    const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-combined");
+    if (!block) {
+      throw new Error("Missing combined paragraph.");
+    }
+
+    const marked = block.children.filter((child) => field(child, "bold") === true);
+
+    expect(textOf(block)).toBe(
+      "One phrase can be bold, italic, underlined, colored, and highlighted at once.",
     );
     expect(marked).toEqual([
-      ["red", "red"],
-      ["blue", "blue"],
-      ["green", "green"],
+      {
+        text: "bold, italic, underlined, colored, and highlighted",
+        bold: true,
+        italic: true,
+        underline: true,
+        color: "red",
+        backgroundColor: "yellow",
+      },
     ]);
   });
 
-  test("the highlight paragraph marks highlighted text and a combined word", () => {
+  test("the highlight paragraph marks every highlight token", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-highlight");
     if (!block) {
       throw new Error("Missing highlight paragraph.");
@@ -418,22 +593,15 @@ describe("demo document", () => {
 
     const marked = block.children
       .filter((child) => field(child, "backgroundColor") !== undefined)
-      .map((child) => [
-        leafText(child),
-        field(child, "backgroundColor"),
-        field(child, "color") ?? null,
-      ]);
+      .map((child) => [leafText(child), field(child, "backgroundColor")]);
 
     expect(textOf(block)).toBe(
-      "This is highlighted text. Highlights and text colors combine and stay readable in both themes.",
+      "Highlights: gray, brown, orange, yellow, green, blue, purple, pink, and red.",
     );
-    expect(marked).toEqual([
-      ["highlighted text", "yellow", null],
-      ["readable", "blue", "blue"],
-    ]);
+    expect(marked).toEqual(HIGHLIGHT_TOKENS.map((token) => [token, token]));
   });
 
-  test("the font size paragraph marks small, large, and extra large", () => {
+  test("the font size paragraph marks every preset", () => {
     const block = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-font-size");
     if (!block) {
       throw new Error("Missing font size paragraph.");
@@ -443,12 +611,8 @@ describe("demo document", () => {
       .filter((child) => field(child, "fontSize") !== undefined)
       .map((child) => [leafText(child), field(child, "fontSize")]);
 
-    expect(textOf(block)).toBe("Text comes in sizes from small to large and extra large.");
-    expect(marked).toEqual([
-      ["small", "14px"],
-      ["large", "24px"],
-      ["extra large", "32px"],
-    ]);
+    expect(textOf(block)).toBe("Sizes: 12px, 14px, 16px, 18px, 24px, and 32px.");
+    expect(marked).toEqual(FONT_SIZES.map((size) => [size, size]));
   });
 
   test("the font family paragraph marks sans, serif, and mono", () => {
@@ -505,6 +669,75 @@ describe("demo document", () => {
 
     expect(textOf(block)).toBe("Select formatted text and press Cmd+\\ or Ctrl+\\ to clear it.");
     expect(marked).toEqual([["formatted text", true, "red"]]);
+  });
+
+  test("the demo uses every palette, highlight, font, align, line-height, list, callout tone, and callout icon", () => {
+    const colors: string[] = [];
+    const highlights: string[] = [];
+    const fontSizes: string[] = [];
+    const fontFamilies: string[] = [];
+    const aligns: string[] = [];
+    const lineHeights: number[] = [];
+    const listStyles: string[] = [];
+    const calloutTones: string[] = [];
+    const calloutIcons: string[] = [];
+
+    const visit = (value: unknown): void => {
+      if (!isRecord(value)) {
+        return;
+      }
+
+      if (typeof value.text === "string" && !("children" in value)) {
+        if (typeof value.color === "string") {
+          colors.push(value.color);
+        }
+        if (typeof value.backgroundColor === "string") {
+          highlights.push(value.backgroundColor);
+        }
+        if (typeof value.fontSize === "string") {
+          fontSizes.push(value.fontSize);
+        }
+        if (typeof value.fontFamily === "string") {
+          fontFamilies.push(value.fontFamily);
+        }
+        return;
+      }
+
+      if (value.type === "callout") {
+        calloutTones.push(typeof value.variant === "string" ? value.variant : "default");
+        calloutIcons.push(typeof value.icon === "string" ? value.icon : CALLOUT_DEFAULT_ICON);
+      }
+      if (typeof value.align === "string") {
+        aligns.push(value.align);
+      }
+      if (typeof value.lineHeight === "number") {
+        lineHeights.push(value.lineHeight);
+      }
+      if (typeof value.listStyleType === "string") {
+        listStyles.push(value.listStyleType);
+      }
+
+      for (const child of elementChildren(value)) {
+        visit(child);
+      }
+    };
+
+    for (const block of DEMO_DOCUMENT_VALUE) {
+      visit(block);
+    }
+
+    const members = (values: readonly (string | number)[]) =>
+      [...new Set(values)].map(String).sort();
+
+    expect(members(colors)).toEqual([...PALETTE_TOKENS].map(String).sort());
+    expect(members(highlights)).toEqual([...HIGHLIGHT_TOKENS].map(String).sort());
+    expect(members(fontSizes)).toEqual([...FONT_SIZES].map(String).sort());
+    expect(members(fontFamilies)).toEqual([...FONT_FAMILIES].map(String).sort());
+    expect(members(aligns)).toEqual([...TEXT_ALIGNS].map(String).sort());
+    expect(members(lineHeights)).toEqual([...LINE_HEIGHTS].map(String).sort());
+    expect(members(listStyles)).toEqual([...LIST_STYLES].map(String).sort());
+    expect(members(calloutTones)).toEqual(["default", ...CALLOUT_TONES].map(String).sort());
+    expect(members(calloutIcons)).toEqual([...CALLOUT_ICONS].map(String).sort());
   });
 
   test("the line-break paragraph contains exactly one newline", () => {

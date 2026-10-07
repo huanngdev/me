@@ -7288,6 +7288,9 @@ export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
 ```ts
 import type { EditorValue } from "./editor-value";
 
+const wrapped =
+  "The lines wrap on purpose, so the space between them is visible in this block. The gap between the lines is the line height.";
+
 export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h1",
@@ -7320,6 +7323,30 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "p",
     id: "demo-unicode",
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+  },
+  {
+    type: "h2",
+    id: "demo-headings",
+    children: [{ text: "Headings" }],
+  },
+  {
+    type: "p",
+    id: "demo-heading-1",
+    children: [
+      {
+        text: "The title above is a heading 1. Press Cmd+Alt+1 or Ctrl+Alt+1 to toggle it.",
+      },
+    ],
+  },
+  {
+    type: "h2",
+    id: "demo-heading-2",
+    children: [{ text: "Heading 2. Press Cmd+Alt+2 or Ctrl+Alt+2." }],
+  },
+  {
+    type: "h3",
+    id: "demo-heading-3",
+    children: [{ text: "Heading 3. Press Cmd+Alt+3 or Ctrl+Alt+3." }],
   },
   {
     type: "h2",
@@ -7393,38 +7420,86 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-combined",
+    children: [
+      { text: "One phrase can be " },
+      {
+        text: "bold, italic, underlined, colored, and highlighted",
+        bold: true,
+        italic: true,
+        underline: true,
+        color: "red",
+        backgroundColor: "yellow",
+      },
+      { text: " at once." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-color",
     children: [
-      { text: "Text can be " },
-      { text: "red", color: "red" },
+      { text: "Colors: " },
+      { text: "gray", color: "gray" },
+      { text: ", " },
+      { text: "brown", color: "brown" },
+      { text: ", " },
+      { text: "orange", color: "orange" },
+      { text: ", " },
+      { text: "yellow", color: "yellow" },
+      { text: ", " },
+      { text: "green", color: "green" },
       { text: ", " },
       { text: "blue", color: "blue" },
-      { text: ", or " },
-      { text: "green", color: "green" },
-      { text: ". Colors come from a preset palette that adapts to light and dark mode." },
+      { text: ", " },
+      { text: "purple", color: "purple" },
+      { text: ", " },
+      { text: "pink", color: "pink" },
+      { text: ", and " },
+      { text: "red", color: "red" },
+      { text: "." },
     ],
   },
   {
     type: "p",
     id: "demo-highlight",
     children: [
-      { text: "This is " },
-      { text: "highlighted text", backgroundColor: "yellow" },
-      { text: ". Highlights and text colors combine and stay " },
-      { text: "readable", color: "blue", backgroundColor: "blue" },
-      { text: " in both themes." },
+      { text: "Highlights: " },
+      { text: "gray", backgroundColor: "gray" },
+      { text: ", " },
+      { text: "brown", backgroundColor: "brown" },
+      { text: ", " },
+      { text: "orange", backgroundColor: "orange" },
+      { text: ", " },
+      { text: "yellow", backgroundColor: "yellow" },
+      { text: ", " },
+      { text: "green", backgroundColor: "green" },
+      { text: ", " },
+      { text: "blue", backgroundColor: "blue" },
+      { text: ", " },
+      { text: "purple", backgroundColor: "purple" },
+      { text: ", " },
+      { text: "pink", backgroundColor: "pink" },
+      { text: ", and " },
+      { text: "red", backgroundColor: "red" },
+      { text: "." },
     ],
   },
   {
     type: "p",
     id: "demo-font-size",
     children: [
-      { text: "Text comes in sizes from " },
-      { text: "small", fontSize: "14px" },
-      { text: " to " },
-      { text: "large", fontSize: "24px" },
-      { text: " and " },
-      { text: "extra large", fontSize: "32px" },
+      { text: "Sizes: " },
+      { text: "12px", fontSize: "12px" },
+      { text: ", " },
+      { text: "14px", fontSize: "14px" },
+      { text: ", " },
+      { text: "16px", fontSize: "16px" },
+      { text: ", " },
+      { text: "18px", fontSize: "18px" },
+      { text: ", " },
+      { text: "24px", fontSize: "24px" },
+      { text: ", and " },
+      { text: "32px", fontSize: "32px" },
       { text: "." },
     ],
   },
@@ -7442,9 +7517,24 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-clear",
+    children: [
+      { text: "Select " },
+      { text: "formatted text", bold: true, italic: true, color: "red" },
+      { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-block-styles",
     children: [{ text: "Block styles" }],
+  },
+  {
+    type: "p",
+    id: "demo-align-left",
+    align: "left",
+    children: [{ text: "This paragraph is aligned left." }],
   },
   {
     type: "p",
@@ -7458,21 +7548,52 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-align-right",
+    align: "right",
+    children: [{ text: "This paragraph is aligned right." }],
+  },
+  {
+    type: "p",
+    id: "demo-align-justify",
+    align: "justify",
+    children: [
+      {
+        text: "This paragraph is justified, so both edges of the wrapped lines line up. It is long enough to wrap: the block stores justify, and the other three alignments are the paragraphs above.",
+      },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-line-height-1",
+    lineHeight: 1,
+    children: [{ text: `Line height 1. ${wrapped}` }],
+  },
+  {
+    type: "p",
+    id: "demo-line-height-125",
+    lineHeight: 1.25,
+    children: [{ text: `Line height 1.25. ${wrapped}` }],
+  },
+  {
+    type: "p",
+    id: "demo-line-height-15",
+    lineHeight: 1.5,
+    children: [{ text: `Line height 1.5. ${wrapped}` }],
+  },
+  {
+    type: "p",
+    id: "demo-line-height-175",
+    lineHeight: 1.75,
+    children: [{ text: `Line height 1.75. ${wrapped}` }],
+  },
+  {
+    type: "p",
     id: "demo-line-height",
     lineHeight: 2,
     children: [
       {
         text: "This paragraph uses double line height, so its wrapped lines sit further apart than the others. A second line stays in this same block.",
       },
-    ],
-  },
-  {
-    type: "p",
-    id: "demo-clear",
-    children: [
-      { text: "Select " },
-      { text: "formatted text", bold: true, italic: true, color: "red" },
-      { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
     ],
   },
   {
@@ -7497,9 +7618,13 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-bullet-3",
-    indent: 1,
+    indent: 3,
     listStyleType: "disc",
-    children: [{ text: "Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet." }],
+    children: [
+      {
+        text: "The third level uses a square. Press Cmd+Shift+8 or Ctrl+Shift+8 to toggle a bullet.",
+      },
+    ],
   },
   {
     type: "p",
@@ -7518,10 +7643,30 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-number-3",
+    indent: 3,
+    listStyleType: "decimal",
+    children: [
+      {
+        text: "The third level uses roman numerals. Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering.",
+      },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-number-restart",
     indent: 1,
     listStyleType: "decimal",
-    listStart: 2,
-    children: [{ text: "Press Cmd+Shift+7 or Ctrl+Shift+7 to toggle numbering." }],
+    listRestart: 3,
+    listStart: 3,
+    children: [{ text: "This numbered run starts at 3." }],
+  },
+  {
+    type: "p",
+    id: "demo-number-next",
+    indent: 1,
+    listStyleType: "decimal",
+    listStart: 4,
+    children: [{ text: "The next item continues from that start." }],
   },
   {
     type: "p",
@@ -7560,6 +7705,21 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-bullet-marks",
+    indent: 1,
+    listStyleType: "disc",
+    children: [
+      { text: "A bullet can mix " },
+      { text: "bold", bold: true },
+      { text: ", " },
+      { text: "italic", italic: true },
+      { text: ", and " },
+      { text: "color", color: "purple" },
+      { text: "." },
+    ],
+  },
+  {
     type: "hr",
     id: "demo-divider",
     children: [{ text: "" }],
@@ -7589,6 +7749,13 @@ export const DEMO_DOCUMENT_VALUE = [
           { text: " on an empty line to leave it." },
         ],
       },
+      {
+        type: "p",
+        id: "demo-quote-3",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "A quote can hold a bullet." }],
+      },
     ],
   },
   {
@@ -7598,8 +7765,20 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "callout",
-    id: "demo-callout",
+    id: "demo-callout-default",
     icon: "lightbulb",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-default-text",
+        children: [{ text: "Default tone, with the lightbulb." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout",
+    icon: "info",
     variant: "info",
     children: [
       {
@@ -7613,6 +7792,137 @@ export const DEMO_DOCUMENT_VALUE = [
         indent: 1,
         listStyleType: "disc",
         children: [{ text: "Click the icon to change both." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-success",
+    icon: "circle-check",
+    variant: "success",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-success-text",
+        children: [{ text: "Success tone, with the circle check." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-warning",
+    icon: "triangle-alert",
+    variant: "warning",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-warning-text",
+        children: [{ text: "Warning tone, with the triangle alert." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-danger",
+    icon: "ban",
+    variant: "danger",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-danger-text",
+        children: [{ text: "Danger tone, with the ban icon." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-todo",
+    icon: "pin",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-todo-text",
+        children: [{ text: "A callout can hold a to-do." }],
+      },
+      {
+        type: "p",
+        id: "demo-callout-todo-item",
+        indent: 1,
+        listStyleType: "todo",
+        checked: false,
+        children: [{ text: "Check this inside the callout." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-note",
+    icon: "notebook-pen",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-note-text",
+        children: [{ text: "Take a note." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-flame",
+    icon: "flame",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-flame-text",
+        children: [{ text: "Mark this as urgent." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-help",
+    icon: "circle-help",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-help-text",
+        children: [{ text: "Ask a question." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-star",
+    icon: "star",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-star-text",
+        children: [{ text: "Save a favorite." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-target",
+    icon: "target",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-target-text",
+        children: [{ text: "Name the goal." }],
+      },
+    ],
+  },
+  {
+    type: "callout",
+    id: "demo-callout-message",
+    icon: "message-circle",
+    children: [
+      {
+        type: "p",
+        id: "demo-callout-message-text",
+        children: [{ text: "Leave a comment." }],
       },
     ],
   },
@@ -7641,6 +7951,76 @@ export const DEMO_DOCUMENT_VALUE = [
         indent: 1,
         listStyleType: "disc",
         children: [{ text: "Content stays in the document while hidden." }],
+      },
+    ],
+  },
+  {
+    type: "toggle",
+    id: "demo-toggle-nest",
+    children: [
+      {
+        type: "p",
+        id: "demo-toggle-nest-label",
+        children: [{ text: "Outer toggle. Three levels is the cap." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-nest-body",
+        children: [{ text: "This line sits in the outer toggle." }],
+      },
+      {
+        type: "toggle",
+        id: "demo-toggle-nest-2",
+        children: [
+          {
+            type: "p",
+            id: "demo-toggle-nest-2-label",
+            children: [{ text: "Middle toggle." }],
+          },
+          {
+            type: "p",
+            id: "demo-toggle-nest-2-body",
+            children: [{ text: "This line sits in the middle toggle." }],
+          },
+          {
+            type: "toggle",
+            id: "demo-toggle-nest-3",
+            children: [
+              {
+                type: "p",
+                id: "demo-toggle-nest-3-label",
+                children: [{ text: "Inner toggle." }],
+              },
+              {
+                type: "p",
+                id: "demo-toggle-nest-3-body",
+                children: [{ text: "This line sits in the inner toggle." }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    type: "toggle",
+    id: "demo-toggle-quote",
+    children: [
+      {
+        type: "p",
+        id: "demo-toggle-quote-label",
+        children: [{ text: "A toggle can hold a quote." }],
+      },
+      {
+        type: "blockquote",
+        id: "demo-toggle-quote-body",
+        children: [
+          {
+            type: "p",
+            id: "demo-toggle-quote-text",
+            children: [{ text: "This quote sits inside the toggle." }],
+          },
+        ],
       },
     ],
   },
