@@ -23,31 +23,33 @@
 13. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
 14. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
 15. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-18. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-19. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-20. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-21. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-22. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-23. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-24. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-25. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-26. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-27. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-28. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-29. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-30. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-31. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-32. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-33. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-34. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-35. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-36. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-37. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-38. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-39. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-40. apps/web/src/app/blocks/notion-like-editor/page.tsx
+16. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
+18. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+19. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+21. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+22. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+23. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+24. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+25. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+26. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+27. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+28. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+29. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+30. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+31. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+32. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+33. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+34. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+35. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+36. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+37. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+38. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+39. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+40. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+41. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+42. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -100,6 +102,8 @@ export type EditorElementRule = {
   firstChildForbiddenAttrs?: readonly string[];
   /** How many times this type may nest, counting the outermost node. */
   maxNesting?: number;
+  /** At most this many element children. */
+  maxChildren?: number;
   /**
    * Which plain paragraph children getBlockType reports as this container.
    * Absent means every plain paragraph child. "first" means only children[0].
@@ -228,6 +232,10 @@ export const CODE_LANGS = [
 ] as const;
 
 export type CodeLang = (typeof CODE_LANGS)[number];
+
+// A simple table, not a database. 50×20 is the stored cap shared by validate, normalize, and paste.
+export const TABLE_MAX_ROWS = 50;
+export const TABLE_MAX_COLUMNS = 20;
 
 export const CODE_LANG_LABELS = {
   plaintext: "Plain text",
@@ -360,7 +368,15 @@ export const EDITOR_ELEMENT_RULES = [
   {
     type: KEYS.toggle,
     attrs: ["id"],
-    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr, KEYS.codeBlock],
+    childTypes: [
+      KEYS.p,
+      KEYS.toggle,
+      KEYS.blockquote,
+      KEYS.callout,
+      KEYS.hr,
+      KEYS.codeBlock,
+      KEYS.table,
+    ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
@@ -385,6 +401,32 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     marks: false,
     reportContainer: true,
+  },
+  // Plate's table > tr > td|th > p. Insert writes no colSizes, marginLeft, or spans
+  // when initialTableWidth is unset. Those attrs stay unsupported until DEV-102.
+  // A table is not a list, indent, align, or line-height target. Paragraphs inside cells are.
+  {
+    type: KEYS.table,
+    attrs: ["id"],
+    childTypes: [KEYS.tr],
+    maxChildren: TABLE_MAX_ROWS,
+    maxNesting: 1,
+  },
+  {
+    type: KEYS.tr,
+    attrs: ["id"],
+    childTypes: [KEYS.td, KEYS.th],
+    maxChildren: TABLE_MAX_COLUMNS,
+  },
+  {
+    type: KEYS.td,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
+  },
+  {
+    type: KEYS.th,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -456,6 +498,12 @@ const elementMaxNesting = new Map<string, number>(
   ),
 );
 
+const elementMaxChildren = new Map<string, number>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "maxChildren" in rule && rule.maxChildren !== undefined ? [[rule.type, rule.maxChildren]] : [],
+  ),
+);
+
 const elementReportParent = new Map<string, "all" | "first">(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
     "reportParent" in rule && rule.reportParent !== undefined
@@ -521,6 +569,10 @@ export function firstChildForbiddenAttrs(type: string): readonly string[] {
 
 export function maxNesting(type: string): number | undefined {
   return elementMaxNesting.get(type);
+}
+
+export function maxChildren(type: string): number | undefined {
+  return elementMaxChildren.get(type);
 }
 
 export function reportsParentFromFirstChild(type: string): boolean {
@@ -917,6 +969,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxChildren,
   maxNesting,
   repairAttrKeys,
   requiredAttr,
@@ -1207,6 +1260,14 @@ function walkElement(
     });
   }
 
+  const childLimit = allowed === undefined ? undefined : maxChildren(type);
+  if (childLimit !== undefined && value.children.length > childLimit) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${value.children.length} children. At most ${childLimit} are supported. Restore from a backup or remove the extra blocks.`,
+    });
+  }
+
   const nestingLimit = allowed === undefined ? undefined : maxNesting(type);
   let childNesting: ReadonlyMap<string, number> = nesting;
   if (nestingLimit !== undefined) {
@@ -1460,10 +1521,12 @@ import {
   createSlatePlugin,
   isHtmlBlockElement,
   type Descendant,
+  type SlateEditor,
   type TElement,
   type TText,
 } from "platejs";
 
+import type { Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowsFirstChild,
@@ -1480,12 +1543,27 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import { capPastedTable } from "./editor-table";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
+  /** Truncation and other paste repairs. The same list is what the editor reports. */
+  repairs?: Repair[];
 };
+
+const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
+
+let activePasteRepairs: Repair[] | undefined;
+
+export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
+  pasteRepairLog.set(editor, [...repairs]);
+}
+
+export function pasteRepairsOf(editor: SlateEditor): readonly Repair[] {
+  return pasteRepairLog.get(editor) ?? [];
+}
 
 type IsInline = (node: Record<string, unknown>) => boolean;
 
@@ -1880,7 +1958,7 @@ function containerPieces(
   flushContainer();
 
   if (pieces.length > 0) {
-    return pieces;
+    return finishTable(node, pieces);
   }
 
   const props = elementNode(
@@ -1889,7 +1967,17 @@ function containerPieces(
     takeId(node, seen),
   );
   copyAllowedAttrs(node, props);
-  return [props];
+  return finishTable(node, [props]);
+}
+
+function finishTable(node: TElement, pieces: TElement[]): TElement[] {
+  if (node.type !== "table") {
+    return pieces;
+  }
+
+  return pieces.map((piece) =>
+    piece.type === "table" ? capPastedTable(piece, activePasteRepairs) : piece,
+  );
 }
 
 function expandBlock(
@@ -2029,6 +2117,8 @@ export function sanitizePastedFragment(
 ): EditorValue {
   const seen = options?.seenIds ?? new Set<string>();
   const isInline = options?.isInline ?? (() => false);
+  const previousRepairs = activePasteRepairs;
+  activePasteRepairs = options?.repairs;
   const paragraphs: EditorValue = [];
   let inlines: Descendant[] = [];
 
@@ -2064,6 +2154,7 @@ export function sanitizePastedFragment(
 
   flush();
 
+  activePasteRepairs = previousRepairs;
   return paragraphs;
 }
 
@@ -2074,6 +2165,20 @@ function collectEditorIds(value: readonly unknown[]): Set<string> {
   }
 
   return seen;
+}
+
+export function preparePastedFragment(
+  editor: SlateEditor,
+  fragment: readonly unknown[],
+): EditorValue {
+  const repairs: Repair[] = [];
+  const value = sanitizePastedFragment(fragment, {
+    isInline: (node) => isElementNode(node) && editor.api.isInline(node),
+    seenIds: collectEditorIds(editor.children),
+    repairs,
+  });
+  setPasteRepairs(editor, repairs);
+  return value;
 }
 
 export const PasteFallbackPlugin = createSlatePlugin({
@@ -2092,13 +2197,9 @@ export const PasteFallbackPlugin = createSlatePlugin({
 }).overrideEditor(({ editor, tf: { insertFragment } }) => ({
   transforms: {
     insertFragment(fragment, options) {
-      insertFragment(
-        sanitizePastedFragment(fragment, {
-          isInline: (node) => isElementNode(node) && editor.api.isInline(node),
-          seenIds: collectEditorIds(editor.children),
-        }),
-        options,
-      );
+      // TablePlugin inserts a one-table fragment before this fallback, so the
+      // table override sanitizes that path too. This still covers every other fragment.
+      insertFragment(preparePastedFragment(editor, fragment), options);
     },
   },
 }));
@@ -2134,6 +2235,13 @@ import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
+import { insertTableRow } from "@platejs/table";
+import {
+  TableCellHeaderPlugin,
+  TableCellPlugin,
+  TablePlugin,
+  TableRowPlugin,
+} from "@platejs/table/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -2211,6 +2319,19 @@ import {
 } from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
+import { preparePastedFragment, setPasteRepairs } from "./editor-paste";
+import { TableCellElement, TableElement, TableRowElement } from "./table-element";
+import {
+  caretAtCellStart,
+  fillTableWithTsv,
+  normalizeTableNode,
+  pastedTableTruncationMessage,
+  replaceTableWithParagraph,
+  selectedCellContext,
+  tableCellContext,
+  tableMaxRows,
+  wholeTableSelection,
+} from "./editor-table";
 
 const LIST_INDENT_MAX = 6;
 
@@ -2858,7 +2979,8 @@ const childTypesPlugin = createSlatePlugin({
         (normalizeRepairAttrs(editor, node, path) ||
           normalizeDisallowedMarks(editor, node, path) ||
           normalizeContainerShape(editor, node, path) ||
-          normalizeDisallowedChild(editor, node, path))
+          normalizeDisallowedChild(editor, node, path) ||
+          normalizeTableNode(editor, node, path))
       ) {
         return;
       }
@@ -3488,8 +3610,126 @@ const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
 });
 
+function htmlHasTable(html: string): boolean {
+  return html.toLowerCase().includes("<table");
+}
+
+// Tab inside a table, including a list item in a cell, belongs to the table.
+// Registered after codeBlock and listKeyboard, so this tab runs first and the
+// previous tab is code, then list. Outside a table, Tab is unchanged.
+// Plate's tab stops on the last cell. Appending a row there is editable only.
+// No insert shortcut. Slash menu and toolbar are DEV-122/125.
+// disableMerge keeps row and column edits off the span-writing paths.
+// initialTableWidth stays unset, so insert and normalize do not write colSizes.
+const tablePlugin = TablePlugin.configure({
+  options: {
+    disableMerge: true,
+  },
+  render: { node: TableElement },
+})
+  .configurePlugin(TableRowPlugin, { render: { node: TableRowElement } })
+  .configurePlugin(TableCellPlugin, { render: { node: TableCellElement } })
+  .configurePlugin(TableCellHeaderPlugin, { render: { node: TableCellElement } })
+  .overrideEditor(
+    ({ editor, tf: { deleteBackward, deleteFragment, insertData, insertFragment, tab } }) => ({
+      transforms: {
+        // withInsertFragmentTable inserts a single table before PasteFallback.
+        // Sanitize here so that path still drops spans, caps the grid, and
+        // omits an id the document already uses.
+        insertFragment(fragment, options) {
+          insertFragment(preparePastedFragment(editor, fragment), options);
+        },
+        tab(options?: { reverse?: boolean }) {
+          // Plate's tab reads options.reverse and throws when options is missing.
+          // The keydown handler always passes { reverse }.
+          // Selecting the next cell expands the range inside that cell, so the
+          // last-cell check uses the cell that contains both ends.
+          const reverse = options?.reverse === true;
+          const cell = selectedCellContext(editor);
+          if (!cell) {
+            return tab({ reverse });
+          }
+
+          const atLastCell =
+            !reverse &&
+            cell.rowIndex === cell.rowCount - 1 &&
+            cell.columnIndex === cell.columnCount - 1;
+          if (atLastCell) {
+            if (!editor.dom.readOnly && cell.rowCount < tableMaxRows()) {
+              insertTableRow(editor, { select: false });
+              const start = editor.api.start(cell.tablePath.concat(cell.rowIndex + 1, 0));
+              if (start) {
+                editor.tf.select(start);
+              }
+            }
+            return true;
+          }
+
+          return tab({ reverse });
+        },
+        deleteBackward(unit) {
+          const cell = tableCellContext(editor);
+          if (cell && caretAtCellStart(editor, cell.cellPath)) {
+            return;
+          }
+
+          deleteBackward(unit);
+        },
+        deleteFragment(direction) {
+          const tablePath = wholeTableSelection(editor);
+          if (tablePath) {
+            replaceTableWithParagraph(editor, tablePath);
+            return;
+          }
+
+          deleteFragment(direction);
+          if (editor.children.length === 0) {
+            editor.tf.insertNodes(
+              { type: KEYS.p, children: [{ text: "" }] },
+              { at: [0], select: true },
+            );
+          }
+        },
+        insertData(data: DataTransfer) {
+          const html = data.getData("text/html");
+          if (htmlHasTable(html)) {
+            // Plate's data pipe inserts the fragment inside withoutNormalizing.
+            // A table inserted that way is still inside the paragraph when
+            // normalize runs, and the paragraph unwraps the rows. Deserialize,
+            // then insertFragment so the sanitized table is normalized as a block.
+            const body = new DOMParser().parseFromString(html, "text/html").body;
+            editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            return;
+          }
+
+          const filled = fillTableWithTsv(editor, data.getData("text/plain"));
+          if (!filled.handled) {
+            insertData(data);
+            return;
+          }
+
+          setPasteRepairs(
+            editor,
+            filled.truncated ? [{ path: [], message: pastedTableTruncationMessage() }] : [],
+          );
+        },
+      },
+    }),
+  );
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
+// TablePlugin's api override copies editor.api.onChange back onto editor.onChange
+// after the toggle plugin has wrapped it. Priority 0 runs after those overrides,
+// so a selection in hidden toggle content still opens the toggle.
+const toggleRevealPlugin = createSlatePlugin({
+  key: "toggleReveal",
+  priority: 0,
+}).overrideEditor(({ editor }) => {
+  installToggleOnChange(editor);
+  return { transforms: {} };
+});
+
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
     NodeIdPlugin,
@@ -3521,11 +3761,13 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     codeBlockPlugin,
+    tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,
     childTypesPlugin,
     voidPropsPlugin,
+    toggleRevealPlugin,
   ];
 }
 ````
@@ -4975,6 +5217,243 @@ export function CodeSyntaxLeaf(props: PlateLeafProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/table-element.tsx
+```tsx
+import { KEYS } from "platejs";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useReadOnly,
+  type PlateElementProps,
+} from "platejs/react";
+import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
+
+import { cn } from "@/lib/utils";
+
+import { TableControls } from "./table-controls";
+
+const CELL_CLASS =
+  "min-w-32 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
+
+const HEADER_CLASS =
+  "bg-[var(--editor-table-header-bg)] font-medium text-[var(--editor-table-header-fg)]";
+
+const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
+
+export function TableElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const path = editor.api.findPath(element);
+  useSelectedCells();
+
+  return (
+    <PlateElement {...props} className="group relative my-2 max-w-full">
+      {readOnly || path === undefined ? null : <TableControls element={element} />}
+      <div className="max-w-full overflow-x-auto">
+        <table className="w-max min-w-full border-collapse">
+          <tbody>{props.children}</tbody>
+        </table>
+      </div>
+    </PlateElement>
+  );
+}
+
+export function TableRowElement(props: PlateElementProps) {
+  return <PlateElement {...props} as="tr" />;
+}
+
+export function TableCellElement(props: PlateElementProps) {
+  const selected = useIsCellSelected(props.element);
+  const header = props.element.type === KEYS.th;
+
+  return (
+    <PlateElement
+      {...props}
+      as={header ? "th" : "td"}
+      className={cn(CELL_CLASS, header && HEADER_CLASS, selected && SELECTED_CLASS)}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
+```tsx
+import { useRef } from "react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Columns3,
+  Rows3,
+  Table2,
+  Trash2,
+} from "lucide-react";
+import { ElementApi, type TElement } from "platejs";
+import { useEditorRef } from "platejs/react";
+
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
+
+import {
+  deleteTable,
+  deleteTableColumn,
+  deleteTableRow,
+  insertTableColumn,
+  insertTableRow,
+  runEditorCommand,
+  toggleTableHeaderColumn,
+  toggleTableHeaderRow,
+  type EditorCommand,
+} from "./editor-commands";
+import { columnIsHeader, rowIsHeader } from "./editor-table";
+
+const TOOLBAR_CLASS_NAME =
+  "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+function keepEditorSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+export function TableControls({ element }: { element: TElement }) {
+  const editor = useEditorRef();
+  const savedSelection = useRef(editor.selection);
+  const headerRow = ElementApi.isElement(element) && rowIsHeader(element);
+  const headerColumn = ElementApi.isElement(element) && columnIsHeader(element);
+
+  function apply<Payload>(command: EditorCommand<Payload>, payload: Payload): void {
+    runEditorCommand(editor, command, payload, {
+      selection: savedSelection.current ?? undefined,
+    });
+  }
+
+  return (
+    <div className={TOOLBAR_CLASS_NAME} contentEditable={false}>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger
+          aria-label="Table options"
+          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+          onMouseDown={keepEditorSelection}
+          onPointerDown={() => {
+            savedSelection.current = editor.selection;
+          }}
+        >
+          <Table2 aria-hidden="true" className="size-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-52"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const selection = savedSelection.current;
+            editor.tf.withoutSaving(() => {
+              editor.tf.focus();
+              if (selection) {
+                editor.tf.select(selection);
+              }
+            });
+          }}
+        >
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(insertTableRow, { before: true });
+            }}
+          >
+            <ArrowUp aria-hidden="true" />
+            Insert row above
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(insertTableRow, { before: false });
+            }}
+          >
+            <ArrowDown aria-hidden="true" />
+            Insert row below
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(insertTableColumn, { before: true });
+            }}
+          >
+            <ArrowLeft aria-hidden="true" />
+            Insert column left
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(insertTableColumn, { before: false });
+            }}
+          >
+            <ArrowRight aria-hidden="true" />
+            Insert column right
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(deleteTableRow, undefined);
+            }}
+          >
+            <Rows3 aria-hidden="true" />
+            Delete row
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(deleteTableColumn, undefined);
+            }}
+          >
+            <Columns3 aria-hidden="true" />
+            Delete column
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={headerRow}
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(toggleTableHeaderRow, undefined);
+            }}
+          >
+            Header row
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={headerColumn}
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(toggleTableHeaderColumn, undefined);
+            }}
+          >
+            Header column
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              apply(deleteTable, undefined);
+            }}
+          >
+            <Trash2 aria-hidden="true" />
+            Delete table
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
 ```tsx
 import { ChevronRight } from "lucide-react";
@@ -5174,6 +5653,12 @@ import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-st
 import { unwrapCodeBlock } from "@platejs/code-block";
 import { ListStyleType, toggleList } from "@platejs/list";
 import {
+  deleteColumn,
+  deleteRow,
+  insertTableColumn as insertPlateTableColumn,
+  insertTableRow as insertPlateTableRow,
+} from "@platejs/table";
+import {
   ElementApi,
   KEYS,
   NodeApi,
@@ -5188,6 +5673,16 @@ import {
 } from "platejs";
 
 import { openAncestorToggle } from "./editor-toggle";
+import {
+  clampTableCount,
+  columnIsHeader,
+  createTableNode,
+  replaceTableWithParagraph,
+  rowIsHeader,
+  tableCellContext,
+  tableMaxColumns,
+  tableMaxRows,
+} from "./editor-table";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -5733,6 +6228,11 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
   // reportParent "first" reports it only for the label, so content keeps its own type.
   if (reportsParentFromFirstChild(parentType) && path[path.length - 1] !== 0) {
     return reported;
+  }
+
+  // A plain paragraph in a cell reports the table. A list item already returned its list type.
+  if (parentType === KEYS.td || parentType === KEYS.th) {
+    return KEYS.table;
   }
 
   return parentType;
@@ -6429,6 +6929,212 @@ export const clearFormatting: EditorCommand = {
   isEnabled: selectionHasClearableMark,
   run: (editor) => {
     editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
+  },
+};
+
+function editorIsReadOnly(editor: SlateEditor): boolean {
+  return editor.dom.readOnly === true;
+}
+
+function inTable(editor: SlateEditor): boolean {
+  return !editorIsReadOnly(editor) && tableCellContext(editor) !== undefined;
+}
+
+function setFirstAxisType(editor: SlateEditor, axis: "row" | "column", header: boolean): void {
+  const cell = tableCellContext(editor);
+  if (!cell) {
+    return;
+  }
+
+  const table = editor.api.node(cell.tablePath)?.[0];
+  if (!ElementApi.isElement(table)) {
+    return;
+  }
+
+  const nextType = header ? KEYS.th : KEYS.td;
+  if (axis === "row") {
+    const row = table.children[0];
+    if (!ElementApi.isElement(row)) {
+      return;
+    }
+
+    for (let index = 0; index < row.children.length; index += 1) {
+      editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(0, index) });
+    }
+    return;
+  }
+
+  for (let index = 0; index < table.children.length; index += 1) {
+    editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(index, 0) });
+  }
+}
+
+// No shortcut. The slash menu and toolbar own insertion (DEV-122/125).
+// Rows and columns are clamped to the table cap. The size picker is UI for those tasks.
+export const insertTable: EditorCommand<{ rows?: number; cols?: number } | undefined> = {
+  id: "block.insert.table",
+  label: "Table",
+  group: "insert",
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const rows = clampTableCount(payload?.rows, 3, tableMaxRows());
+    const cols = clampTableCount(payload?.cols, 3, tableMaxColumns());
+    const entry = editor.api.block({ highest: true });
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let tablePath = path;
+    const table = createTableNode(rows, cols);
+    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
+      editor.tf.removeNodes({ at: path });
+      editor.tf.insertNodes(table, { at: path, select: false });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes(table, { at, select: false });
+      tablePath = at;
+    }
+
+    const after = PathApi.next(tablePath);
+    if (after && !editor.api.node(after)) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, children: [{ text: "" }] },
+        { at: after, select: false },
+      );
+    }
+
+    const start = editor.api.start(tablePath.concat(0, 0));
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
+export const insertTableRow: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-row",
+  label: "Insert row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.rowCount >= tableMaxRows()) {
+      return;
+    }
+
+    insertPlateTableRow(editor, {
+      before: payload?.before === true,
+      select: false,
+    });
+  },
+};
+
+export const insertTableColumn: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-column",
+  label: "Insert column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.columnCount >= tableMaxColumns()) {
+      return;
+    }
+
+    insertPlateTableColumn(editor, {
+      before: payload?.before === true,
+      select: false,
+    });
+  },
+};
+
+export const deleteTableRow: EditorCommand = {
+  id: "block.table.delete-row",
+  label: "Delete row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.rowCount <= 1) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    deleteRow(editor);
+  },
+};
+
+export const deleteTableColumn: EditorCommand = {
+  id: "block.table.delete-column",
+  label: "Delete column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.columnCount <= 1) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    deleteColumn(editor);
+  },
+};
+
+export const deleteTable: EditorCommand = {
+  id: "block.table.delete",
+  label: "Delete table",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    replaceTableWithParagraph(editor, cell.tablePath);
+  },
+};
+
+export const toggleTableHeaderRow: EditorCommand = {
+  id: "block.table.header-row",
+  label: "Header row",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "row", !rowIsHeader(table));
+  },
+};
+
+export const toggleTableHeaderColumn: EditorCommand = {
+  id: "block.table.header-column",
+  label: "Header column",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "column", !columnIsHeader(table));
   },
 };
 
@@ -9359,6 +10065,92 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-tables",
+    children: [{ text: "Tables" }],
+  },
+  {
+    type: "table",
+    id: "demo-table",
+    children: [
+      {
+        type: "tr",
+        id: "demo-table-r1",
+        children: [
+          {
+            type: "th",
+            id: "demo-table-r1c1",
+            children: [{ type: "p", id: "demo-table-r1c1p", children: [{ text: "Block" }] }],
+          },
+          {
+            type: "th",
+            id: "demo-table-r1c2",
+            children: [{ type: "p", id: "demo-table-r1c2p", children: [{ text: "Shortcut" }] }],
+          },
+          {
+            type: "th",
+            id: "demo-table-r1c3",
+            children: [{ type: "p", id: "demo-table-r1c3p", children: [{ text: "Notes" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-table-r2",
+        children: [
+          {
+            type: "td",
+            id: "demo-table-r2c1",
+            children: [{ type: "p", id: "demo-table-r2c1p", children: [{ text: "Bold" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r2c2",
+            children: [{ type: "p", id: "demo-table-r2c2p", children: [{ text: "Mod+B" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r2c3",
+            children: [
+              {
+                type: "p",
+                id: "demo-table-r2c3p",
+                children: [{ text: "Bold", bold: true }, { text: " toggles on the selection." }],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-table-r3",
+        children: [
+          {
+            type: "td",
+            id: "demo-table-r3c1",
+            children: [{ type: "p", id: "demo-table-r3c1p", children: [{ text: "Heading" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r3c2",
+            children: [{ type: "p", id: "demo-table-r3c2p", children: [{ text: "Mod+Alt+1" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r3c3",
+            children: [
+              {
+                type: "p",
+                id: "demo-table-r3c3p",
+                children: [{ text: "Heading 1 is the page title block." }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -9537,6 +10329,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/code-block-element.tsx",
     code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/table-element.tsx",
+    code: readSource(`${BLOCK_DIR}/table-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/table-controls.tsx",
+    code: readSource(`${BLOCK_DIR}/table-controls.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/toggle-element.tsx",

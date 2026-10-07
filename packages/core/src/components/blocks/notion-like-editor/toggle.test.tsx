@@ -226,6 +226,7 @@ describe("toggle schema", () => {
       "callout",
       "hr",
       "code_block",
+      "table",
     ]);
     expect(firstChildType("toggle")).toBe("p");
     expect(maxNesting("toggle")).toBe(3);

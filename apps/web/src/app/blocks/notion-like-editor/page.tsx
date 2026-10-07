@@ -80,6 +80,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/table-element.tsx",
+    code: readSource(`${BLOCK_DIR}/table-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/table-controls.tsx",
+    code: readSource(`${BLOCK_DIR}/table-controls.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/toggle-element.tsx",
     code: readSource(`${BLOCK_DIR}/toggle-element.tsx`),
   },

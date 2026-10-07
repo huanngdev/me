@@ -33,6 +33,8 @@ export type EditorElementRule = {
   firstChildForbiddenAttrs?: readonly string[];
   /** How many times this type may nest, counting the outermost node. */
   maxNesting?: number;
+  /** At most this many element children. */
+  maxChildren?: number;
   /**
    * Which plain paragraph children getBlockType reports as this container.
    * Absent means every plain paragraph child. "first" means only children[0].
@@ -161,6 +163,10 @@ export const CODE_LANGS = [
 ] as const;
 
 export type CodeLang = (typeof CODE_LANGS)[number];
+
+// A simple table, not a database. 50×20 is the stored cap shared by validate, normalize, and paste.
+export const TABLE_MAX_ROWS = 50;
+export const TABLE_MAX_COLUMNS = 20;
 
 export const CODE_LANG_LABELS = {
   plaintext: "Plain text",
@@ -293,7 +299,15 @@ export const EDITOR_ELEMENT_RULES = [
   {
     type: KEYS.toggle,
     attrs: ["id"],
-    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr, KEYS.codeBlock],
+    childTypes: [
+      KEYS.p,
+      KEYS.toggle,
+      KEYS.blockquote,
+      KEYS.callout,
+      KEYS.hr,
+      KEYS.codeBlock,
+      KEYS.table,
+    ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
     maxNesting: 3,
@@ -318,6 +332,32 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id"],
     marks: false,
     reportContainer: true,
+  },
+  // Plate's table > tr > td|th > p. Insert writes no colSizes, marginLeft, or spans
+  // when initialTableWidth is unset. Those attrs stay unsupported until DEV-102.
+  // A table is not a list, indent, align, or line-height target. Paragraphs inside cells are.
+  {
+    type: KEYS.table,
+    attrs: ["id"],
+    childTypes: [KEYS.tr],
+    maxChildren: TABLE_MAX_ROWS,
+    maxNesting: 1,
+  },
+  {
+    type: KEYS.tr,
+    attrs: ["id"],
+    childTypes: [KEYS.td, KEYS.th],
+    maxChildren: TABLE_MAX_COLUMNS,
+  },
+  {
+    type: KEYS.td,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
+  },
+  {
+    type: KEYS.th,
+    attrs: ["id"],
+    childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -389,6 +429,12 @@ const elementMaxNesting = new Map<string, number>(
   ),
 );
 
+const elementMaxChildren = new Map<string, number>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "maxChildren" in rule && rule.maxChildren !== undefined ? [[rule.type, rule.maxChildren]] : [],
+  ),
+);
+
 const elementReportParent = new Map<string, "all" | "first">(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
     "reportParent" in rule && rule.reportParent !== undefined
@@ -454,6 +500,10 @@ export function firstChildForbiddenAttrs(type: string): readonly string[] {
 
 export function maxNesting(type: string): number | undefined {
   return elementMaxNesting.get(type);
+}
+
+export function maxChildren(type: string): number | undefined {
+  return elementMaxChildren.get(type);
 }
 
 export function reportsParentFromFirstChild(type: string): boolean {

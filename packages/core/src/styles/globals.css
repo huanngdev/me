@@ -176,6 +176,10 @@
   --editor-code-addition: oklch(0.38 0.12 150);
   --editor-code-deletion: oklch(0.42 0.15 25);
   --editor-code-punctuation: oklch(0.38 0.02 300);
+  --editor-table-border: oklch(0.86 0.01 300);
+  --editor-table-header-bg: oklch(0.94 0.012 300);
+  --editor-table-header-fg: oklch(0.25 0.02 300);
+  --editor-table-selected: oklch(0.55 0.14 292 / 18%);
 }
 
 .dark {
@@ -256,6 +260,10 @@
   --editor-code-addition: oklch(0.86 0.13 150);
   --editor-code-deletion: oklch(0.8 0.14 25);
   --editor-code-punctuation: oklch(0.84 0.02 300);
+  --editor-table-border: oklch(1 0 0 / 18%);
+  --editor-table-header-bg: oklch(0.32 0.02 300);
+  --editor-table-header-fg: oklch(0.96 0.01 300);
+  --editor-table-selected: oklch(0.72 0.12 292 / 28%);
 }
 
 [data-palette="violet"]:not(.dark) {

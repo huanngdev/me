@@ -2,10 +2,12 @@ import {
   createSlatePlugin,
   isHtmlBlockElement,
   type Descendant,
+  type SlateEditor,
   type TElement,
   type TText,
 } from "platejs";
 
+import type { Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowsFirstChild,
@@ -22,12 +24,27 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import { capPastedTable } from "./editor-table";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
+  /** Truncation and other paste repairs. The same list is what the editor reports. */
+  repairs?: Repair[];
 };
+
+const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
+
+let activePasteRepairs: Repair[] | undefined;
+
+export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
+  pasteRepairLog.set(editor, [...repairs]);
+}
+
+export function pasteRepairsOf(editor: SlateEditor): readonly Repair[] {
+  return pasteRepairLog.get(editor) ?? [];
+}
 
 type IsInline = (node: Record<string, unknown>) => boolean;
 
@@ -422,7 +439,7 @@ function containerPieces(
   flushContainer();
 
   if (pieces.length > 0) {
-    return pieces;
+    return finishTable(node, pieces);
   }
 
   const props = elementNode(
@@ -431,7 +448,17 @@ function containerPieces(
     takeId(node, seen),
   );
   copyAllowedAttrs(node, props);
-  return [props];
+  return finishTable(node, [props]);
+}
+
+function finishTable(node: TElement, pieces: TElement[]): TElement[] {
+  if (node.type !== "table") {
+    return pieces;
+  }
+
+  return pieces.map((piece) =>
+    piece.type === "table" ? capPastedTable(piece, activePasteRepairs) : piece,
+  );
 }
 
 function expandBlock(
@@ -571,6 +598,8 @@ export function sanitizePastedFragment(
 ): EditorValue {
   const seen = options?.seenIds ?? new Set<string>();
   const isInline = options?.isInline ?? (() => false);
+  const previousRepairs = activePasteRepairs;
+  activePasteRepairs = options?.repairs;
   const paragraphs: EditorValue = [];
   let inlines: Descendant[] = [];
 
@@ -606,6 +635,7 @@ export function sanitizePastedFragment(
 
   flush();
 
+  activePasteRepairs = previousRepairs;
   return paragraphs;
 }
 
@@ -616,6 +646,20 @@ function collectEditorIds(value: readonly unknown[]): Set<string> {
   }
 
   return seen;
+}
+
+export function preparePastedFragment(
+  editor: SlateEditor,
+  fragment: readonly unknown[],
+): EditorValue {
+  const repairs: Repair[] = [];
+  const value = sanitizePastedFragment(fragment, {
+    isInline: (node) => isElementNode(node) && editor.api.isInline(node),
+    seenIds: collectEditorIds(editor.children),
+    repairs,
+  });
+  setPasteRepairs(editor, repairs);
+  return value;
 }
 
 export const PasteFallbackPlugin = createSlatePlugin({
@@ -634,13 +678,9 @@ export const PasteFallbackPlugin = createSlatePlugin({
 }).overrideEditor(({ editor, tf: { insertFragment } }) => ({
   transforms: {
     insertFragment(fragment, options) {
-      insertFragment(
-        sanitizePastedFragment(fragment, {
-          isInline: (node) => isElementNode(node) && editor.api.isInline(node),
-          seenIds: collectEditorIds(editor.children),
-        }),
-        options,
-      );
+      // TablePlugin inserts a one-table fragment before this fallback, so the
+      // table override sanitizes that path too. This still covers every other fragment.
+      insertFragment(preparePastedFragment(editor, fragment), options);
     },
   },
 }));

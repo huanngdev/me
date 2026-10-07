@@ -26,6 +26,13 @@ import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
+import { insertTableRow } from "@platejs/table";
+import {
+  TableCellHeaderPlugin,
+  TableCellPlugin,
+  TablePlugin,
+  TableRowPlugin,
+} from "@platejs/table/react";
 import {
   KEYS,
   NodeIdPlugin,
@@ -103,6 +110,19 @@ import {
 } from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
+import { preparePastedFragment, setPasteRepairs } from "./editor-paste";
+import { TableCellElement, TableElement, TableRowElement } from "./table-element";
+import {
+  caretAtCellStart,
+  fillTableWithTsv,
+  normalizeTableNode,
+  pastedTableTruncationMessage,
+  replaceTableWithParagraph,
+  selectedCellContext,
+  tableCellContext,
+  tableMaxRows,
+  wholeTableSelection,
+} from "./editor-table";
 
 const LIST_INDENT_MAX = 6;
 
@@ -750,7 +770,8 @@ const childTypesPlugin = createSlatePlugin({
         (normalizeRepairAttrs(editor, node, path) ||
           normalizeDisallowedMarks(editor, node, path) ||
           normalizeContainerShape(editor, node, path) ||
-          normalizeDisallowedChild(editor, node, path))
+          normalizeDisallowedChild(editor, node, path) ||
+          normalizeTableNode(editor, node, path))
       ) {
         return;
       }
@@ -1380,8 +1401,126 @@ const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
 });
 
+function htmlHasTable(html: string): boolean {
+  return html.toLowerCase().includes("<table");
+}
+
+// Tab inside a table, including a list item in a cell, belongs to the table.
+// Registered after codeBlock and listKeyboard, so this tab runs first and the
+// previous tab is code, then list. Outside a table, Tab is unchanged.
+// Plate's tab stops on the last cell. Appending a row there is editable only.
+// No insert shortcut. Slash menu and toolbar are DEV-122/125.
+// disableMerge keeps row and column edits off the span-writing paths.
+// initialTableWidth stays unset, so insert and normalize do not write colSizes.
+const tablePlugin = TablePlugin.configure({
+  options: {
+    disableMerge: true,
+  },
+  render: { node: TableElement },
+})
+  .configurePlugin(TableRowPlugin, { render: { node: TableRowElement } })
+  .configurePlugin(TableCellPlugin, { render: { node: TableCellElement } })
+  .configurePlugin(TableCellHeaderPlugin, { render: { node: TableCellElement } })
+  .overrideEditor(
+    ({ editor, tf: { deleteBackward, deleteFragment, insertData, insertFragment, tab } }) => ({
+      transforms: {
+        // withInsertFragmentTable inserts a single table before PasteFallback.
+        // Sanitize here so that path still drops spans, caps the grid, and
+        // omits an id the document already uses.
+        insertFragment(fragment, options) {
+          insertFragment(preparePastedFragment(editor, fragment), options);
+        },
+        tab(options?: { reverse?: boolean }) {
+          // Plate's tab reads options.reverse and throws when options is missing.
+          // The keydown handler always passes { reverse }.
+          // Selecting the next cell expands the range inside that cell, so the
+          // last-cell check uses the cell that contains both ends.
+          const reverse = options?.reverse === true;
+          const cell = selectedCellContext(editor);
+          if (!cell) {
+            return tab({ reverse });
+          }
+
+          const atLastCell =
+            !reverse &&
+            cell.rowIndex === cell.rowCount - 1 &&
+            cell.columnIndex === cell.columnCount - 1;
+          if (atLastCell) {
+            if (!editor.dom.readOnly && cell.rowCount < tableMaxRows()) {
+              insertTableRow(editor, { select: false });
+              const start = editor.api.start(cell.tablePath.concat(cell.rowIndex + 1, 0));
+              if (start) {
+                editor.tf.select(start);
+              }
+            }
+            return true;
+          }
+
+          return tab({ reverse });
+        },
+        deleteBackward(unit) {
+          const cell = tableCellContext(editor);
+          if (cell && caretAtCellStart(editor, cell.cellPath)) {
+            return;
+          }
+
+          deleteBackward(unit);
+        },
+        deleteFragment(direction) {
+          const tablePath = wholeTableSelection(editor);
+          if (tablePath) {
+            replaceTableWithParagraph(editor, tablePath);
+            return;
+          }
+
+          deleteFragment(direction);
+          if (editor.children.length === 0) {
+            editor.tf.insertNodes(
+              { type: KEYS.p, children: [{ text: "" }] },
+              { at: [0], select: true },
+            );
+          }
+        },
+        insertData(data: DataTransfer) {
+          const html = data.getData("text/html");
+          if (htmlHasTable(html)) {
+            // Plate's data pipe inserts the fragment inside withoutNormalizing.
+            // A table inserted that way is still inside the paragraph when
+            // normalize runs, and the paragraph unwraps the rows. Deserialize,
+            // then insertFragment so the sanitized table is normalized as a block.
+            const body = new DOMParser().parseFromString(html, "text/html").body;
+            editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            return;
+          }
+
+          const filled = fillTableWithTsv(editor, data.getData("text/plain"));
+          if (!filled.handled) {
+            insertData(data);
+            return;
+          }
+
+          setPasteRepairs(
+            editor,
+            filled.truncated ? [{ path: [], message: pastedTableTruncationMessage() }] : [],
+          );
+        },
+      },
+    }),
+  );
+
 // Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
 // Plate splices NodeIdPlugin out of the plugins array it receives.
+// TablePlugin's api override copies editor.api.onChange back onto editor.onChange
+// after the toggle plugin has wrapped it. Priority 0 runs after those overrides,
+// so a selection in hidden toggle content still opens the toggle.
+const toggleRevealPlugin = createSlatePlugin({
+  key: "toggleReveal",
+  priority: 0,
+}).overrideEditor(({ editor }) => {
+  installToggleOnChange(editor);
+  return { transforms: {} };
+});
+
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
     NodeIdPlugin,
@@ -1413,10 +1552,12 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     codeBlockPlugin,
+    tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,
     childTypesPlugin,
     voidPropsPlugin,
+    toggleRevealPlugin,
   ];
 }

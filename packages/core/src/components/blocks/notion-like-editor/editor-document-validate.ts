@@ -19,6 +19,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxChildren,
   maxNesting,
   repairAttrKeys,
   requiredAttr,
@@ -306,6 +307,14 @@ function walkElement(
     state.unsupported.push({
       path,
       message: `${formatBlockLabel(path)} must contain one empty text node. Restore from a backup or remove the block.`,
+    });
+  }
+
+  const childLimit = allowed === undefined ? undefined : maxChildren(type);
+  if (childLimit !== undefined && value.children.length > childLimit) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${value.children.length} children. At most ${childLimit} are supported. Restore from a backup or remove the extra blocks.`,
     });
   }
 

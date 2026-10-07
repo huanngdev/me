@@ -829,6 +829,92 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-tables",
+    children: [{ text: "Tables" }],
+  },
+  {
+    type: "table",
+    id: "demo-table",
+    children: [
+      {
+        type: "tr",
+        id: "demo-table-r1",
+        children: [
+          {
+            type: "th",
+            id: "demo-table-r1c1",
+            children: [{ type: "p", id: "demo-table-r1c1p", children: [{ text: "Block" }] }],
+          },
+          {
+            type: "th",
+            id: "demo-table-r1c2",
+            children: [{ type: "p", id: "demo-table-r1c2p", children: [{ text: "Shortcut" }] }],
+          },
+          {
+            type: "th",
+            id: "demo-table-r1c3",
+            children: [{ type: "p", id: "demo-table-r1c3p", children: [{ text: "Notes" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-table-r2",
+        children: [
+          {
+            type: "td",
+            id: "demo-table-r2c1",
+            children: [{ type: "p", id: "demo-table-r2c1p", children: [{ text: "Bold" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r2c2",
+            children: [{ type: "p", id: "demo-table-r2c2p", children: [{ text: "Mod+B" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r2c3",
+            children: [
+              {
+                type: "p",
+                id: "demo-table-r2c3p",
+                children: [{ text: "Bold", bold: true }, { text: " toggles on the selection." }],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-table-r3",
+        children: [
+          {
+            type: "td",
+            id: "demo-table-r3c1",
+            children: [{ type: "p", id: "demo-table-r3c1p", children: [{ text: "Heading" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r3c2",
+            children: [{ type: "p", id: "demo-table-r3c2p", children: [{ text: "Mod+Alt+1" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-table-r3c3",
+            children: [
+              {
+                type: "p",
+                id: "demo-table-r3c3p",
+                children: [{ text: "Heading 1 is the page title block." }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

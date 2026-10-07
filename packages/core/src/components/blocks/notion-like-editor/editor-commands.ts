@@ -2,6 +2,12 @@ import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-st
 import { unwrapCodeBlock } from "@platejs/code-block";
 import { ListStyleType, toggleList } from "@platejs/list";
 import {
+  deleteColumn,
+  deleteRow,
+  insertTableColumn as insertPlateTableColumn,
+  insertTableRow as insertPlateTableRow,
+} from "@platejs/table";
+import {
   ElementApi,
   KEYS,
   NodeApi,
@@ -16,6 +22,16 @@ import {
 } from "platejs";
 
 import { openAncestorToggle } from "./editor-toggle";
+import {
+  clampTableCount,
+  columnIsHeader,
+  createTableNode,
+  replaceTableWithParagraph,
+  rowIsHeader,
+  tableCellContext,
+  tableMaxColumns,
+  tableMaxRows,
+} from "./editor-table";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -561,6 +577,11 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
   // reportParent "first" reports it only for the label, so content keeps its own type.
   if (reportsParentFromFirstChild(parentType) && path[path.length - 1] !== 0) {
     return reported;
+  }
+
+  // A plain paragraph in a cell reports the table. A list item already returned its list type.
+  if (parentType === KEYS.td || parentType === KEYS.th) {
+    return KEYS.table;
   }
 
   return parentType;
@@ -1257,6 +1278,212 @@ export const clearFormatting: EditorCommand = {
   isEnabled: selectionHasClearableMark,
   run: (editor) => {
     editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
+  },
+};
+
+function editorIsReadOnly(editor: SlateEditor): boolean {
+  return editor.dom.readOnly === true;
+}
+
+function inTable(editor: SlateEditor): boolean {
+  return !editorIsReadOnly(editor) && tableCellContext(editor) !== undefined;
+}
+
+function setFirstAxisType(editor: SlateEditor, axis: "row" | "column", header: boolean): void {
+  const cell = tableCellContext(editor);
+  if (!cell) {
+    return;
+  }
+
+  const table = editor.api.node(cell.tablePath)?.[0];
+  if (!ElementApi.isElement(table)) {
+    return;
+  }
+
+  const nextType = header ? KEYS.th : KEYS.td;
+  if (axis === "row") {
+    const row = table.children[0];
+    if (!ElementApi.isElement(row)) {
+      return;
+    }
+
+    for (let index = 0; index < row.children.length; index += 1) {
+      editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(0, index) });
+    }
+    return;
+  }
+
+  for (let index = 0; index < table.children.length; index += 1) {
+    editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(index, 0) });
+  }
+}
+
+// No shortcut. The slash menu and toolbar own insertion (DEV-122/125).
+// Rows and columns are clamped to the table cap. The size picker is UI for those tasks.
+export const insertTable: EditorCommand<{ rows?: number; cols?: number } | undefined> = {
+  id: "block.insert.table",
+  label: "Table",
+  group: "insert",
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const rows = clampTableCount(payload?.rows, 3, tableMaxRows());
+    const cols = clampTableCount(payload?.cols, 3, tableMaxColumns());
+    const entry = editor.api.block({ highest: true });
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let tablePath = path;
+    const table = createTableNode(rows, cols);
+    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
+      editor.tf.removeNodes({ at: path });
+      editor.tf.insertNodes(table, { at: path, select: false });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes(table, { at, select: false });
+      tablePath = at;
+    }
+
+    const after = PathApi.next(tablePath);
+    if (after && !editor.api.node(after)) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, children: [{ text: "" }] },
+        { at: after, select: false },
+      );
+    }
+
+    const start = editor.api.start(tablePath.concat(0, 0));
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
+export const insertTableRow: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-row",
+  label: "Insert row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.rowCount >= tableMaxRows()) {
+      return;
+    }
+
+    insertPlateTableRow(editor, {
+      before: payload?.before === true,
+      select: false,
+    });
+  },
+};
+
+export const insertTableColumn: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-column",
+  label: "Insert column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.columnCount >= tableMaxColumns()) {
+      return;
+    }
+
+    insertPlateTableColumn(editor, {
+      before: payload?.before === true,
+      select: false,
+    });
+  },
+};
+
+export const deleteTableRow: EditorCommand = {
+  id: "block.table.delete-row",
+  label: "Delete row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.rowCount <= 1) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    deleteRow(editor);
+  },
+};
+
+export const deleteTableColumn: EditorCommand = {
+  id: "block.table.delete-column",
+  label: "Delete column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.columnCount <= 1) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    deleteColumn(editor);
+  },
+};
+
+export const deleteTable: EditorCommand = {
+  id: "block.table.delete",
+  label: "Delete table",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    replaceTableWithParagraph(editor, cell.tablePath);
+  },
+};
+
+export const toggleTableHeaderRow: EditorCommand = {
+  id: "block.table.header-row",
+  label: "Header row",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "row", !rowIsHeader(table));
+  },
+};
+
+export const toggleTableHeaderColumn: EditorCommand = {
+  id: "block.table.header-column",
+  label: "Header column",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "column", !columnIsHeader(table));
   },
 };
 

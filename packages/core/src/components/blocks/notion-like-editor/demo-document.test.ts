@@ -432,6 +432,8 @@ describe("demo document", () => {
     const codeHeading = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-heading");
     const codeTs = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-ts");
     const codeJson = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-json");
+    const tables = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-tables");
+    const table = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-table");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -447,6 +449,9 @@ describe("demo document", () => {
       !codeHeading ||
       !codeTs ||
       !codeJson ||
+      !tables ||
+      !table ||
+      table.type !== "table" ||
       !paste
     ) {
       throw new Error("Missing the toggles demo.");
@@ -469,7 +474,17 @@ describe("demo document", () => {
     expect(codeHeading.type).toBe("h3");
     expect(DEMO_DOCUMENT_VALUE.indexOf(codeTs)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeHeading) + 1);
     expect(DEMO_DOCUMENT_VALUE.indexOf(codeJson)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeTs) + 1);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeJson) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(tables)).toBe(DEMO_DOCUMENT_VALUE.indexOf(codeJson) + 1);
+    expect(tables.type).toBe("h3");
+    expect(textOf(tables)).toBe("Tables");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(table)).toBe(DEMO_DOCUMENT_VALUE.indexOf(tables) + 1);
+    const headerRow = elementChildren(table)[0];
+    const headerCells = elementChildren(headerRow);
+    expect(headerCells.map((cell) => field(cell, "type"))).toEqual(["th", "th", "th"]);
+    expect(
+      headerCells.map((cell) => leafText(elementChildren(elementChildren(cell)[0])[0])),
+    ).toEqual(["Block", "Shortcut", "Notes"]);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(table) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",
