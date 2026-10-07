@@ -434,6 +434,7 @@ describe("demo document", () => {
     const codeJson = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-code-json");
     const tables = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-tables");
     const table = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-table");
+    const release = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-release");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -452,6 +453,8 @@ describe("demo document", () => {
       !tables ||
       !table ||
       table.type !== "table" ||
+      !release ||
+      release.type !== "table" ||
       !paste
     ) {
       throw new Error("Missing the toggles demo.");
@@ -484,7 +487,14 @@ describe("demo document", () => {
     expect(
       headerCells.map((cell) => leafText(elementChildren(elementChildren(cell)[0])[0])),
     ).toEqual(["Block", "Shortcut", "Notes"]);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(table) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(release)).toBe(DEMO_DOCUMENT_VALUE.indexOf(table) + 1);
+    expect(field(release, "colSizes")).toEqual([160, 240, 120]);
+    const releaseHeader = elementChildren(elementChildren(release)[0]);
+    expect(field(releaseHeader[0], "colSpan")).toBe(2);
+    expect(leafText(elementChildren(elementChildren(releaseHeader[0])[0])[0])).toBe("Release plan");
+    const releaseBody = elementChildren(elementChildren(release)[1]);
+    expect(field(releaseBody[0], "rowSpan")).toBe(2);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

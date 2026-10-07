@@ -19,6 +19,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  elementChildIssues,
   maxChildren,
   maxNesting,
   repairAttrKeys,
@@ -300,6 +301,10 @@ function walkElement(
       path,
       message: `${formatBlockLabel(path)} has an unsupported attribute "${key}". Restore from a backup or remove the attribute.`,
     });
+  }
+
+  for (const issue of elementChildIssues(type, value, path)) {
+    state.unsupported.push(issue);
   }
 
   const voidBlock = isVoidElementType(type);

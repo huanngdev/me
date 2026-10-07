@@ -1,5 +1,7 @@
 import { KEYS } from "platejs";
 
+import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
+
 export type IntegerAttrRange = {
   readonly min: number;
   readonly max: number;
@@ -56,6 +58,11 @@ export type EditorElementRule = {
   repairAttrs?: readonly string[];
   /** getBlockType reports the container that allows this element, not the element. */
   reportContainer?: true;
+  /**
+   * Structural issues the attribute lists cannot express, such as a table grid.
+   * The validator reports them. It does not repair the document.
+   */
+  validateChildren?: (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[];
 };
 
 export type EditorMarkRule = {
@@ -333,15 +340,18 @@ export const EDITOR_ELEMENT_RULES = [
     marks: false,
     reportContainer: true,
   },
-  // Plate's table > tr > td|th > p. Insert writes no colSizes, marginLeft, or spans
-  // when initialTableWidth is unset. Those attrs stay unsupported until DEV-102.
+  // Plate's table > tr > td|th > p. colSizes is one width per grid column.
+  // null in that array is an automatic column. Absence of the array means every
+  // column is automatic. Spans are Plate's colSpan and rowSpan. Absence means 1.
   // A table is not a list, indent, align, or line-height target. Paragraphs inside cells are.
   {
     type: KEYS.table,
-    attrs: ["id"],
+    attrs: ["id", "colSizes"],
     childTypes: [KEYS.tr],
     maxChildren: TABLE_MAX_ROWS,
     maxNesting: 1,
+    validateChildren: (node, path) =>
+      checkTableGrid(node, path, { maxRows: TABLE_MAX_ROWS, maxColumns: TABLE_MAX_COLUMNS }).issues,
   },
   {
     type: KEYS.tr,
@@ -351,12 +361,12 @@ export const EDITOR_ELEMENT_RULES = [
   },
   {
     type: KEYS.td,
-    attrs: ["id"],
+    attrs: ["id", "colSpan", "rowSpan"],
     childTypes: [KEYS.p],
   },
   {
     type: KEYS.th,
-    attrs: ["id"],
+    attrs: ["id", "colSpan", "rowSpan"],
     childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
@@ -435,6 +445,17 @@ const elementMaxChildren = new Map<string, number>(
   ),
 );
 
+const elementChildValidators = new Map<
+  string,
+  (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[]
+>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "validateChildren" in rule && rule.validateChildren !== undefined
+      ? [[rule.type, rule.validateChildren]]
+      : [],
+  ),
+);
+
 const elementReportParent = new Map<string, "all" | "first">(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
     "reportParent" in rule && rule.reportParent !== undefined
@@ -504,6 +525,15 @@ export function maxNesting(type: string): number | undefined {
 
 export function maxChildren(type: string): number | undefined {
   return elementMaxChildren.get(type);
+}
+
+export function elementChildIssues(
+  type: string,
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const validate = elementChildValidators.get(type);
+  return validate === undefined ? [] : validate(node, path);
 }
 
 export function reportsParentFromFirstChild(type: string): boolean {

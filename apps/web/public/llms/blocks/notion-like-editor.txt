@@ -23,33 +23,36 @@
 13. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
 14. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
 15. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
-18. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
-19. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-21. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-22. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-23. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-24. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-25. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-26. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-27. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-28. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-29. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-30. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-31. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-32. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-33. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-34. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-35. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-36. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-37. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-38. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-39. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-40. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-41. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-42. apps/web/src/app/blocks/notion-like-editor/page.tsx
+16. packages/core/src/components/blocks/notion-like-editor/editor-table.ts
+17. packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
+18. packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
+19. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
+21. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+22. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+24. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+25. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+26. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+27. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+28. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+29. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+30. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+31. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+32. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+33. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+34. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+35. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+36. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+37. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+38. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+39. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+40. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+41. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+42. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+43. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+44. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+45. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -68,6 +71,8 @@ export const EMPTY_EDITOR_VALUE = [
 ## packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
 ````ts
 import { KEYS } from "platejs";
+
+import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
   readonly min: number;
@@ -125,6 +130,11 @@ export type EditorElementRule = {
   repairAttrs?: readonly string[];
   /** getBlockType reports the container that allows this element, not the element. */
   reportContainer?: true;
+  /**
+   * Structural issues the attribute lists cannot express, such as a table grid.
+   * The validator reports them. It does not repair the document.
+   */
+  validateChildren?: (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[];
 };
 
 export type EditorMarkRule = {
@@ -402,15 +412,18 @@ export const EDITOR_ELEMENT_RULES = [
     marks: false,
     reportContainer: true,
   },
-  // Plate's table > tr > td|th > p. Insert writes no colSizes, marginLeft, or spans
-  // when initialTableWidth is unset. Those attrs stay unsupported until DEV-102.
+  // Plate's table > tr > td|th > p. colSizes is one width per grid column.
+  // null in that array is an automatic column. Absence of the array means every
+  // column is automatic. Spans are Plate's colSpan and rowSpan. Absence means 1.
   // A table is not a list, indent, align, or line-height target. Paragraphs inside cells are.
   {
     type: KEYS.table,
-    attrs: ["id"],
+    attrs: ["id", "colSizes"],
     childTypes: [KEYS.tr],
     maxChildren: TABLE_MAX_ROWS,
     maxNesting: 1,
+    validateChildren: (node, path) =>
+      checkTableGrid(node, path, { maxRows: TABLE_MAX_ROWS, maxColumns: TABLE_MAX_COLUMNS }).issues,
   },
   {
     type: KEYS.tr,
@@ -420,12 +433,12 @@ export const EDITOR_ELEMENT_RULES = [
   },
   {
     type: KEYS.td,
-    attrs: ["id"],
+    attrs: ["id", "colSpan", "rowSpan"],
     childTypes: [KEYS.p],
   },
   {
     type: KEYS.th,
-    attrs: ["id"],
+    attrs: ["id", "colSpan", "rowSpan"],
     childTypes: [KEYS.p],
   },
 ] as const satisfies readonly EditorElementRule[];
@@ -504,6 +517,17 @@ const elementMaxChildren = new Map<string, number>(
   ),
 );
 
+const elementChildValidators = new Map<
+  string,
+  (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[]
+>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "validateChildren" in rule && rule.validateChildren !== undefined
+      ? [[rule.type, rule.validateChildren]]
+      : [],
+  ),
+);
+
 const elementReportParent = new Map<string, "all" | "first">(
   EDITOR_ELEMENT_RULES.flatMap((rule) =>
     "reportParent" in rule && rule.reportParent !== undefined
@@ -573,6 +597,15 @@ export function maxNesting(type: string): number | undefined {
 
 export function maxChildren(type: string): number | undefined {
   return elementMaxChildren.get(type);
+}
+
+export function elementChildIssues(
+  type: string,
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const validate = elementChildValidators.get(type);
+  return validate === undefined ? [] : validate(node, path);
 }
 
 export function reportsParentFromFirstChild(type: string): boolean {
@@ -969,6 +1002,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  elementChildIssues,
   maxChildren,
   maxNesting,
   repairAttrKeys,
@@ -1250,6 +1284,10 @@ function walkElement(
       path,
       message: `${formatBlockLabel(path)} has an unsupported attribute "${key}". Restore from a backup or remove the attribute.`,
     });
+  }
+
+  for (const issue of elementChildIssues(type, value, path)) {
+    state.unsupported.push(issue);
   }
 
   const voidBlock = isVoidElementType(type);
@@ -1543,7 +1581,8 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { capPastedTable } from "./editor-table";
+import { capPastedTable, repairTableGrid } from "./editor-table";
+import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -1648,6 +1687,35 @@ function takeId(node: Record<string, unknown>, seen: Set<string>): string | unde
   return node.id;
 }
 
+function integerSpan(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^-?[0-9]+$/.test(value)) {
+    return Number(value);
+  }
+
+  return undefined;
+}
+
+function copyCellSpans(node: Record<string, unknown>, props: TElement): void {
+  if (props.type !== "td" && props.type !== "th") {
+    return;
+  }
+
+  const attributes = isRecord(node.attributes) ? node.attributes : undefined;
+  const colSpan = integerSpan(node.colSpan) ?? integerSpan(attributes?.colspan);
+  const rowSpan = integerSpan(node.rowSpan) ?? integerSpan(attributes?.rowspan);
+  if (colSpan !== undefined) {
+    props.colSpan = colSpan;
+  }
+
+  if (rowSpan !== undefined) {
+    props.rowSpan = rowSpan;
+  }
+}
+
 function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void {
   const allowed = allowedElementAttrs(props.type);
   if (allowed === undefined) {
@@ -1655,12 +1723,20 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
-    if (key === "id" || !(key in node) || !isAllowedElementAttrValue(props.type, key, node[key])) {
+    if (
+      key === "id" ||
+      key === "colSpan" ||
+      key === "rowSpan" ||
+      !(key in node) ||
+      !isAllowedElementAttrValue(props.type, key, node[key])
+    ) {
       continue;
     }
 
     props[key] = node[key];
   }
+
+  copyCellSpans(node, props);
 
   for (const dependent of unsatisfiedDependentAttrs(props.type, props)) {
     Reflect.deleteProperty(props, dependent);
@@ -1970,14 +2046,219 @@ function containerPieces(
   return finishTable(node, [props]);
 }
 
+type HtmlWidthPlan = {
+  widths: (number | null)[] | undefined;
+  repairs: Repair[];
+};
+
+let htmlWidthPlans: HtmlWidthPlan[] = [];
+// The table override sanitizes, then PasteFallback sanitizes the same fragment.
+// The first pass consumes the width plan. These repairs are merged back so the
+// second pass does not replace the report with an empty list.
+let pendingWidthRepairs: Repair[] = [];
+
+function widthRepair(raw: string): Repair {
+  const message = raw.endsWith("%")
+    ? `A column width of ${raw} was dropped. The column stays automatic.`
+    : `A column width of ${raw} was dropped. Only widths from ${TABLE_MIN_COLUMN_WIDTH}px to ${TABLE_MAX_COLUMN_WIDTH}px are kept.`;
+  return { path: [], message };
+}
+
+function parsedPixelWidth(raw: string): { px: number } | { drop: string } {
+  const value = raw.trim();
+  const percent = /^(\d+(?:\.\d+)?)%$/.exec(value);
+  if (percent) {
+    return { drop: value };
+  }
+
+  const pixels = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(value);
+  const token = pixels?.[1];
+  if (token === undefined) {
+    return { drop: value.length > 0 ? value : raw };
+  }
+
+  const px = Number(token);
+  if (!Number.isInteger(px) || px < TABLE_MIN_COLUMN_WIDTH || px > TABLE_MAX_COLUMN_WIDTH) {
+    return { drop: value.endsWith("%") ? value : `${px}px` };
+  }
+
+  return { px };
+}
+
+function elementWidth(element: Element): string | null {
+  const style = element.getAttribute("style");
+  if (style !== null) {
+    const match = /(?:^|;)\s*width\s*:\s*([^;]+)/i.exec(style);
+    const declared = match?.[1]?.trim();
+    if (declared) {
+      return declared;
+    }
+  }
+
+  const width = element.getAttribute("width");
+  return width === null || width.trim().length === 0 ? null : width.trim();
+}
+
+function directColumns(table: Element): Element[] {
+  const columns: Element[] = [];
+  for (const child of table.children) {
+    if (child.tagName === "COL") {
+      columns.push(child);
+      continue;
+    }
+
+    if (child.tagName !== "COLGROUP") {
+      continue;
+    }
+
+    for (const column of child.children) {
+      if (column.tagName === "COL") {
+        columns.push(column);
+      }
+    }
+  }
+
+  return columns;
+}
+
+function widthsFromElements(elements: readonly Element[], spans: readonly number[]): HtmlWidthPlan {
+  const widths: (number | null)[] = [];
+  const repairs: Repair[] = [];
+  let column = 0;
+  for (let index = 0; index < elements.length; index += 1) {
+    const element = elements[index];
+    const span = spans[index] ?? 1;
+    if (!element) {
+      continue;
+    }
+
+    const raw = elementWidth(element);
+    const parsed = raw === null ? undefined : parsedPixelWidth(raw);
+    if (parsed && "px" in parsed) {
+      widths[column] = parsed.px;
+    } else {
+      if (parsed && "drop" in parsed) {
+        repairs.push(widthRepair(parsed.drop));
+      }
+      widths[column] = null;
+    }
+
+    for (let offset = 1; offset < span; offset += 1) {
+      widths[column + offset] = null;
+    }
+    column += span;
+  }
+
+  const explicit = widths.some((width) => typeof width === "number");
+  return { widths: explicit ? widths : undefined, repairs };
+}
+
+function positiveSpan(element: Element): number {
+  const raw = element.getAttribute("colspan");
+  if (raw === null || !/^[0-9]+$/.test(raw)) {
+    return 1;
+  }
+
+  const parsed = Number(raw);
+  return parsed > 1 ? parsed : 1;
+}
+
+// A bare `<col>` is invalid until a parser wraps it in `<colgroup>`. happy-dom
+// leaves that column as the table's previous sibling, so the width would be lost.
+function adoptedColumns(table: Element): Element[] {
+  const gathered: Element[] = [];
+  let sibling = table.previousElementSibling;
+  while (sibling && (sibling.tagName === "COL" || sibling.tagName === "COLGROUP")) {
+    gathered.push(sibling);
+    sibling = sibling.previousElementSibling;
+  }
+
+  gathered.reverse();
+  const columns: Element[] = [];
+  for (const element of gathered) {
+    if (element.tagName === "COL") {
+      columns.push(element);
+      continue;
+    }
+
+    for (const column of element.children) {
+      if (column.tagName === "COL") {
+        columns.push(column);
+      }
+    }
+  }
+
+  return columns;
+}
+
+function widthsFromHtmlTable(table: Element): HtmlWidthPlan {
+  const nested = directColumns(table);
+  const columns = nested.length > 0 ? nested : adoptedColumns(table);
+  if (columns.length > 0) {
+    return widthsFromElements(
+      columns,
+      columns.map(() => 1),
+    );
+  }
+
+  const row = table.querySelector("tr");
+  const cells =
+    row === null
+      ? []
+      : Array.from(row.children).filter(
+          (child) => child.tagName === "TD" || child.tagName === "TH",
+        );
+  return widthsFromElements(
+    cells,
+    cells.map((cell) => positiveSpan(cell)),
+  );
+}
+
+export function rememberHtmlTableWidths(html: string): void {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  pendingWidthRepairs = [];
+  htmlWidthPlans = Array.from(document.querySelectorAll("table")).map((table) =>
+    widthsFromHtmlTable(table),
+  );
+}
+
+export function clearHtmlTableWidths(): void {
+  htmlWidthPlans = [];
+  pendingWidthRepairs = [];
+}
+
+function applyRememberedWidths(table: TElement, repairs: Repair[] | undefined): TElement {
+  const plan = htmlWidthPlans.shift();
+  if (plan === undefined) {
+    return table;
+  }
+
+  pendingWidthRepairs.push(...plan.repairs);
+  if (repairs !== undefined) {
+    repairs.push(...plan.repairs);
+  }
+
+  if (plan.widths === undefined) {
+    return table;
+  }
+
+  return { ...table, colSizes: plan.widths };
+}
+
 function finishTable(node: TElement, pieces: TElement[]): TElement[] {
   if (node.type !== "table") {
     return pieces;
   }
 
-  return pieces.map((piece) =>
-    piece.type === "table" ? capPastedTable(piece, activePasteRepairs) : piece,
-  );
+  return pieces.map((piece) => {
+    if (piece.type !== "table") {
+      return piece;
+    }
+
+    const capped = capPastedTable(piece, activePasteRepairs);
+    const sized = applyRememberedWidths(capped, activePasteRepairs);
+    return repairTableGrid(sized, activePasteRepairs);
+  });
 }
 
 function expandBlock(
@@ -2155,6 +2436,7 @@ export function sanitizePastedFragment(
   flush();
 
   activePasteRepairs = previousRepairs;
+  htmlWidthPlans = [];
   return paragraphs;
 }
 
@@ -2177,6 +2459,11 @@ export function preparePastedFragment(
     seenIds: collectEditorIds(editor.children),
     repairs,
   });
+  for (const repair of pendingWidthRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }
@@ -2319,7 +2606,12 @@ import {
 } from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
-import { preparePastedFragment, setPasteRepairs } from "./editor-paste";
+import {
+  clearHtmlTableWidths,
+  preparePastedFragment,
+  rememberHtmlTableWidths,
+  setPasteRepairs,
+} from "./editor-paste";
 import { TableCellElement, TableElement, TableRowElement } from "./table-element";
 import {
   caretAtCellStart,
@@ -3619,11 +3911,11 @@ function htmlHasTable(html: string): boolean {
 // previous tab is code, then list. Outside a table, Tab is unchanged.
 // Plate's tab stops on the last cell. Appending a row there is editable only.
 // No insert shortcut. Slash menu and toolbar are DEV-122/125.
-// disableMerge keeps row and column edits off the span-writing paths.
-// initialTableWidth stays unset, so insert and normalize do not write colSizes.
+// initialTableWidth stays unset. Column insert still writes a 0 into colSizes
+// when widths already exist; the command rewrites that 0 to null before normalize.
 const tablePlugin = TablePlugin.configure({
   options: {
-    disableMerge: true,
+    disableMerge: false,
   },
   render: { node: TableElement },
 })
@@ -3634,7 +3926,7 @@ const tablePlugin = TablePlugin.configure({
     ({ editor, tf: { deleteBackward, deleteFragment, insertData, insertFragment, tab } }) => ({
       transforms: {
         // withInsertFragmentTable inserts a single table before PasteFallback.
-        // Sanitize here so that path still drops spans, caps the grid, and
+        // Sanitize here so that path keeps spans, caps the grid, and
         // omits an id the document already uses.
         insertFragment(fragment, options) {
           insertFragment(preparePastedFragment(editor, fragment), options);
@@ -3652,12 +3944,15 @@ const tablePlugin = TablePlugin.configure({
 
           const atLastCell =
             !reverse &&
-            cell.rowIndex === cell.rowCount - 1 &&
-            cell.columnIndex === cell.columnCount - 1;
+            cell.rowIndex + cell.rowSpan - 1 === cell.rowCount - 1 &&
+            cell.columnIndex + cell.colSpan - 1 === cell.columnCount - 1;
           if (atLastCell) {
             if (!editor.dom.readOnly && cell.rowCount < tableMaxRows()) {
-              insertTableRow(editor, { select: false });
-              const start = editor.api.start(cell.tablePath.concat(cell.rowIndex + 1, 0));
+              insertTableRow(editor, {
+                select: false,
+                fromRow: cell.tablePath.concat(cell.rowCount - 1),
+              });
+              const start = editor.api.start(cell.tablePath.concat(cell.rowCount, 0));
               if (start) {
                 editor.tf.select(start);
               }
@@ -3697,8 +3992,19 @@ const tablePlugin = TablePlugin.configure({
             // A table inserted that way is still inside the paragraph when
             // normalize runs, and the paragraph unwraps the rows. Deserialize,
             // then insertFragment so the sanitized table is normalized as a block.
-            const body = new DOMParser().parseFromString(html, "text/html").body;
-            editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            // Plate's cell parser keeps colspan on attributes and ignores widths.
+            rememberHtmlTableWidths(html);
+            try {
+              const body = new DOMParser().parseFromString(html, "text/html").body;
+              // happy-dom hoists a bare <col> out of the table. Widths are already
+              // recorded; leaving the column in the body pastes an empty paragraph.
+              for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
+                column.remove();
+              }
+              editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            } finally {
+              clearHtmlTableWidths();
+            }
             return;
           }
 
@@ -5217,9 +5523,2207 @@ export function CodeSyntaxLeaf(props: PlateLeafProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-table.ts
+```ts
+import { insertTableColumn, insertTableRow } from "@platejs/table";
+import {
+  KEYS,
+  PathApi,
+  PointApi,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type TText,
+} from "platejs";
+
+import type { Repair } from "./editor-document-ids";
+import {
+  allowedChildTypes,
+  maxChildren,
+  TABLE_MAX_COLUMNS,
+  TABLE_MAX_ROWS,
+} from "./editor-document-schema";
+import { checkTableGrid, tableCoverage, type CoveredCell } from "./editor-table-grid";
+
+export type TableCellContext = {
+  tablePath: number[];
+  cellPath: number[];
+  rowIndex: number;
+  /** Grid column. A colspan starts at this column. */
+  columnIndex: number;
+  cellIndex: number;
+  rowCount: number;
+  columnCount: number;
+  colSpan: number;
+  rowSpan: number;
+};
+
+export function tableMaxRows(): number {
+  return maxChildren(KEYS.table) ?? TABLE_MAX_ROWS;
+}
+
+export function tableMaxColumns(): number {
+  return maxChildren(KEYS.tr) ?? TABLE_MAX_COLUMNS;
+}
+
+export function pastedTableTruncationMessage(): string {
+  return `Pasted table kept the first ${tableMaxRows()} rows and ${tableMaxColumns()} columns. Cells past that cap were dropped.`;
+}
+
+function isTElement(node: unknown): node is TElement {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    typeof node.type === "string" &&
+    "children" in node &&
+    Array.isArray(node.children)
+  );
+}
+
+function emptyParagraph(text = ""): TElement {
+  return { type: KEYS.p, children: [{ text }] };
+}
+
+export function emptyTableCell(header: boolean, text = ""): TElement {
+  return {
+    type: header ? KEYS.th : KEYS.td,
+    children: [emptyParagraph(text)],
+  };
+}
+
+export function createTableNode(rows: number, cols: number): TElement {
+  const tableRows: TElement[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    const cells: TElement[] = [];
+    for (let column = 0; column < cols; column += 1) {
+      cells.push(emptyTableCell(false));
+    }
+    tableRows.push({ type: KEYS.tr, children: cells });
+  }
+
+  return { type: KEYS.table, children: tableRows };
+}
+
+export function clampTableCount(value: number | undefined, fallback: number, max: number): number {
+  if (value === undefined || !Number.isInteger(value)) {
+    return fallback;
+  }
+
+  if (value < 1) {
+    return 1;
+  }
+
+  if (value > max) {
+    return max;
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function elementChildren(node: TElement): TElement[] {
+  return node.children.filter(isTElement);
+}
+
+function tableRecord(node: TElement): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+  for (const key of Object.keys(node)) {
+    record[key] = node[key];
+  }
+
+  return record;
+}
+
+function elementFromRecord(node: Record<string, unknown>): TElement | undefined {
+  if (typeof node.type !== "string" || !Array.isArray(node.children)) {
+    return undefined;
+  }
+
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    if (!isRecord(child)) {
+      return undefined;
+    }
+
+    if (typeof child.text === "string") {
+      const text: TText = { text: child.text };
+      for (const key of Object.keys(child)) {
+        if (key !== "text") {
+          text[key] = child[key];
+        }
+      }
+      children.push(text);
+      continue;
+    }
+
+    const element = elementFromRecord(child);
+    if (!element) {
+      return undefined;
+    }
+
+    children.push(element);
+  }
+
+  const element: TElement = { type: node.type, children };
+  for (const key of Object.keys(node)) {
+    if (key === "type" || key === "children") {
+      continue;
+    }
+
+    element[key] = node[key];
+  }
+
+  return element;
+}
+
+export function capPastedTable(node: TElement, repairs: Repair[] | undefined): TElement {
+  if (node.type !== KEYS.table) {
+    return node;
+  }
+
+  const maxRows = tableMaxRows();
+  const maxColumns = tableMaxColumns();
+  const sourceRows = elementChildren(node);
+  let truncated = sourceRows.length > maxRows;
+  const keptRows = sourceRows.slice(0, maxRows);
+  let changed = keptRows.length !== node.children.length;
+  const nextRows = keptRows.map((row) => {
+    const cells = elementChildren(row);
+    if (cells.length <= maxColumns) {
+      return row;
+    }
+
+    truncated = true;
+    changed = true;
+    return { ...row, children: cells.slice(0, maxColumns) };
+  });
+
+  if (
+    truncated &&
+    repairs !== undefined &&
+    !repairs.some((repair) => repair.message === pastedTableTruncationMessage())
+  ) {
+    repairs.push({ path: [], message: pastedTableTruncationMessage() });
+  }
+
+  if (!changed && !truncated) {
+    return node;
+  }
+
+  return { ...node, children: nextRows };
+}
+
+function isCellElement(node: unknown): node is TElement {
+  return isTElement(node) && (node.type === KEYS.td || node.type === KEYS.th);
+}
+
+function contextForCell(editor: SlateEditor, cellPath: number[]): TableCellContext | undefined {
+  const tableEntry = editor.api.above({
+    at: cellPath,
+    match: (node) => isTElement(node) && node.type === KEYS.table,
+  });
+  if (!tableEntry || !isTElement(tableEntry[0])) {
+    return undefined;
+  }
+
+  const rowIndex = cellPath[cellPath.length - 2];
+  const cellIndex = cellPath[cellPath.length - 1];
+  if (rowIndex === undefined || cellIndex === undefined) {
+    return undefined;
+  }
+
+  const coverage = tableCoverage(tableRecord(tableEntry[0]), tableMaxColumns());
+  const covered = coverage.cells.find(
+    (cell) => cell.rowIndex === rowIndex && cell.cellIndex === cellIndex,
+  );
+
+  return {
+    tablePath: tableEntry[1],
+    cellPath,
+    rowIndex,
+    columnIndex: covered?.column ?? cellIndex,
+    cellIndex,
+    rowCount: coverage.rowCount,
+    columnCount: coverage.columnCount,
+    colSpan: covered?.colSpan ?? 1,
+    rowSpan: covered?.rowSpan ?? 1,
+  };
+}
+
+export function tableCellContext(editor: SlateEditor): TableCellContext | undefined {
+  if (!editor.selection) {
+    return undefined;
+  }
+
+  const cellEntry = editor.api.above({
+    match: (node) => isCellElement(node),
+  });
+  if (!cellEntry || !isCellElement(cellEntry[0])) {
+    return undefined;
+  }
+
+  return contextForCell(editor, cellEntry[1]);
+}
+
+// Plate's Tab selects the whole next cell, so the range is expanded but still
+// inside one cell. A range that crosses cells is left for Plate.
+export function selectedCellContext(editor: SlateEditor): TableCellContext | undefined {
+  const selection = editor.selection;
+  if (!selection) {
+    return undefined;
+  }
+
+  const anchorEntry = editor.api.above({
+    at: selection.anchor,
+    match: (node) => isCellElement(node),
+  });
+  const focusEntry = editor.api.above({
+    at: selection.focus,
+    match: (node) => isCellElement(node),
+  });
+  if (!anchorEntry || !focusEntry || !isCellElement(anchorEntry[0])) {
+    return undefined;
+  }
+
+  if (!PathApi.equals(anchorEntry[1], focusEntry[1])) {
+    return undefined;
+  }
+
+  return contextForCell(editor, anchorEntry[1]);
+}
+
+export function caretAtCellStart(editor: SlateEditor, cellPath: number[]): boolean {
+  if (!editor.selection || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  const start = editor.api.start(cellPath);
+  return start !== undefined && PointApi.equals(editor.selection.anchor, start);
+}
+
+export function replaceTableWithParagraph(editor: SlateEditor, tablePath: number[]): void {
+  editor.tf.removeNodes({ at: tablePath });
+  editor.tf.insertNodes(emptyParagraph(), { at: tablePath, select: true });
+}
+
+function liveTable(editor: SlateEditor, tablePath: number[]): TElement | undefined {
+  const entry = editor.api.node(tablePath);
+  return entry && isTElement(entry[0]) && entry[0].type === KEYS.table ? entry[0] : undefined;
+}
+
+function rowCountOf(table: TElement): number {
+  return table.children.length;
+}
+
+function columnCountOf(table: TElement): number {
+  return tableCoverage(tableRecord(table), tableMaxColumns()).columnCount;
+}
+
+function anchorAt(
+  table: TElement,
+  gridRow: number,
+  gridColumn: number,
+): CoveredCell | "covered" | undefined {
+  const owner = tableCoverage(tableRecord(table), tableMaxColumns()).cells.find(
+    (cell) =>
+      cell.row <= gridRow &&
+      gridRow < cell.row + cell.rowSpan &&
+      cell.column <= gridColumn &&
+      gridColumn < cell.column + cell.colSpan,
+  );
+  if (!owner) {
+    return undefined;
+  }
+
+  if (owner.row !== gridRow || owner.column !== gridColumn) {
+    return "covered";
+  }
+
+  return owner;
+}
+
+export function neutralizeInsertedColumnWidths(editor: SlateEditor, tablePath: number[]): void {
+  const table = liveTable(editor, tablePath);
+  const raw = table?.colSizes;
+  if (!table || !Array.isArray(raw)) {
+    return;
+  }
+
+  let changed = false;
+  const next = raw.map((value) => {
+    if (value === 0) {
+      changed = true;
+      return null;
+    }
+
+    return value;
+  });
+  if (!changed) {
+    return;
+  }
+
+  if (next.every((value) => value === null)) {
+    editor.tf.unsetNodes("colSizes", { at: tablePath });
+    return;
+  }
+
+  editor.tf.setNodes({ colSizes: next }, { at: tablePath });
+}
+
+export function repairTableGrid(node: TElement, repairs: Repair[] | undefined): TElement {
+  const checked = checkTableGrid(tableRecord(node), [], {
+    maxRows: tableMaxRows(),
+    maxColumns: tableMaxColumns(),
+  });
+  if (repairs !== undefined) {
+    repairs.push(...checked.repairs);
+  }
+
+  if (checked.next === undefined) {
+    return node;
+  }
+
+  return elementFromRecord(checked.next) ?? node;
+}
+
+export function tsvGrid(text: string): string[][] | undefined {
+  if (!text.includes("\t")) {
+    return undefined;
+  }
+
+  const normalized = text.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  const lines = normalized.split("\n");
+  if (lines.at(-1) === "") {
+    lines.pop();
+  }
+
+  if (lines.length === 0) {
+    return undefined;
+  }
+
+  return lines.map((line) => line.split("\t"));
+}
+
+function writeCellText(editor: SlateEditor, cellPath: number[], text: string): void {
+  if (!editor.api.node(cellPath)) {
+    return;
+  }
+
+  editor.tf.replaceNodes(emptyParagraph(text), { at: cellPath, children: true });
+}
+
+export function fillTableWithTsv(
+  editor: SlateEditor,
+  text: string,
+): { handled: boolean; truncated: boolean } {
+  const grid = tsvGrid(text);
+  const origin = tableCellContext(editor);
+  if (!grid || !origin) {
+    return { handled: false, truncated: false };
+  }
+
+  const maxRows = tableMaxRows();
+  const maxColumns = tableMaxColumns();
+  let truncated = false;
+
+  editor.tf.withoutNormalizing(() => {
+    for (let rowOffset = 0; rowOffset < grid.length; rowOffset += 1) {
+      const targetRow = origin.rowIndex + rowOffset;
+      if (targetRow >= maxRows) {
+        truncated = true;
+        break;
+      }
+
+      let table = liveTable(editor, origin.tablePath);
+      if (!table) {
+        return;
+      }
+
+      while (rowCountOf(table) <= targetRow) {
+        if (rowCountOf(table) >= maxRows) {
+          truncated = true;
+          break;
+        }
+
+        const before = rowCountOf(table);
+        // fromRow, not the selection: writing a cell replaces its children and
+        // moves the caret out of the table, and insertTableRow then no-ops.
+        insertTableRow(editor, {
+          select: false,
+          fromRow: origin.tablePath.concat(before - 1),
+        });
+        table = liveTable(editor, origin.tablePath);
+        if (!table || rowCountOf(table) === before) {
+          truncated = true;
+          return;
+        }
+      }
+
+      const row = grid[rowOffset];
+      if (!row || !table) {
+        continue;
+      }
+
+      for (let columnOffset = 0; columnOffset < row.length; columnOffset += 1) {
+        const targetColumn = origin.columnIndex + columnOffset;
+        if (targetColumn >= maxColumns) {
+          truncated = true;
+          continue;
+        }
+
+        table = liveTable(editor, origin.tablePath);
+        if (!table) {
+          return;
+        }
+
+        while (columnCountOf(table) <= targetColumn) {
+          if (columnCountOf(table) >= maxColumns) {
+            truncated = true;
+            break;
+          }
+
+          const before = columnCountOf(table);
+          const firstRow = table.children[0];
+          const lastCell = isTElement(firstRow) ? firstRow.children.length - 1 : 0;
+          // fromCell is the last cell, so the new column is appended. The caret
+          // is not a reliable anchor after writeCellText replaces a cell.
+          insertTableColumn(editor, {
+            select: false,
+            fromCell: origin.tablePath.concat(0, lastCell),
+          });
+          neutralizeInsertedColumnWidths(editor, origin.tablePath);
+          table = liveTable(editor, origin.tablePath);
+          if (!table || columnCountOf(table) === before) {
+            truncated = true;
+            return;
+          }
+        }
+
+        table = liveTable(editor, origin.tablePath);
+        if (!table) {
+          return;
+        }
+
+        const slot = anchorAt(table, targetRow, targetColumn);
+        if (slot === "covered" || slot === undefined) {
+          continue;
+        }
+
+        const cellText = row[columnOffset] ?? "";
+        writeCellText(editor, origin.tablePath.concat(slot.rowIndex, slot.cellIndex), cellText);
+      }
+    }
+  });
+
+  return { handled: true, truncated };
+}
+
+function followingParagraphAllowed(editor: SlateEditor, tablePath: number[]): boolean {
+  if (tablePath.length === 1) {
+    return true;
+  }
+
+  const parent = editor.api.node(tablePath.slice(0, -1));
+  if (!parent || !isTElement(parent[0])) {
+    return false;
+  }
+
+  const childTypes = allowedChildTypes(parent[0].type);
+  return (
+    childTypes !== undefined &&
+    childTypes.some((type) => type === KEYS.p) &&
+    childTypes.some((type) => type === KEYS.table)
+  );
+}
+
+function ensureParagraphAfterTable(editor: SlateEditor, tablePath: number[]): boolean {
+  if (!followingParagraphAllowed(editor, tablePath)) {
+    return false;
+  }
+
+  const next = PathApi.next(tablePath);
+  if (!next || editor.api.node(next)) {
+    return false;
+  }
+
+  editor.tf.insertNodes(emptyParagraph(), { at: next });
+  return true;
+}
+
+export function normalizeTableNode(
+  editor: SlateEditor,
+  node: { type: string; children?: unknown },
+  path: number[],
+): boolean {
+  if (node.type !== KEYS.table || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  const rows = node.children.filter(isTElement);
+  if (rows.length === 0) {
+    editor.tf.removeNodes({ at: path });
+    if (editor.children.length === 0) {
+      editor.tf.insertNodes(emptyParagraph(), { at: path.length === 1 ? path : [0], select: true });
+    }
+    return true;
+  }
+
+  if (rows.length > tableMaxRows()) {
+    editor.tf.removeNodes({ at: path.concat(tableMaxRows()) });
+    return true;
+  }
+
+  if (!isRecord(node)) {
+    return false;
+  }
+
+  const checked = checkTableGrid(node, path, {
+    maxRows: tableMaxRows(),
+    maxColumns: tableMaxColumns(),
+  });
+  const replacement = checked.next === undefined ? undefined : elementFromRecord(checked.next);
+  if (replacement) {
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.removeNodes({ at: path });
+      editor.tf.insertNodes(replacement, { at: path });
+    });
+    return true;
+  }
+
+  return ensureParagraphAfterTable(editor, path);
+}
+
+export function rowIsHeader(table: TElement): boolean {
+  const row = table.children[0];
+  if (!isTElement(row) || row.children.length === 0) {
+    return false;
+  }
+
+  return row.children.every((cell) => isTElement(cell) && cell.type === KEYS.th);
+}
+
+export function columnIsHeader(table: TElement): boolean {
+  const anchors = tableCoverage(tableRecord(table), tableMaxColumns()).cells.filter(
+    (cell) => cell.column === 0,
+  );
+  if (anchors.length === 0) {
+    return false;
+  }
+
+  return anchors.every((anchor) => {
+    const row = table.children[anchor.rowIndex];
+    const cell = isTElement(row) ? row.children[anchor.cellIndex] : undefined;
+    return isTElement(cell) && cell.type === KEYS.th;
+  });
+}
+
+export function wholeTableSelection(editor: SlateEditor): number[] | undefined {
+  if (!editor.selection || editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const matchesTable = (node: unknown): boolean => isTElement(node) && node.type === KEYS.table;
+  if (!editor.api.isAt({ block: true, match: matchesTable })) {
+    return undefined;
+  }
+
+  const entry = editor.api.block({ match: matchesTable });
+  return entry?.[1];
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
+```ts
+import { formatBlockLabel } from "./editor-document";
+
+// One grid check for the validator, the normalizer, and paste.
+// Plate stores colSpan and rowSpan on the cell (constants-6xljcM3U.js getColSpan
+// line 44, getRowSpan line 53). Absence means 1. 1 is never stored.
+// colSizes is one entry per grid column. null means that column is automatic.
+// 0 is not automatic: Plate uses 0 as an unset fill, and this schema rejects it.
+
+export const TABLE_MIN_COLUMN_WIDTH = 48;
+export const TABLE_MAX_COLUMN_WIDTH = 1200;
+
+export type TableGridIssue = {
+  path: number[];
+  message: string;
+};
+
+export type TableGridLimits = {
+  maxRows: number;
+  maxColumns: number;
+};
+
+export type TableGridResult = {
+  issues: TableGridIssue[];
+  repairs: TableGridIssue[];
+  next?: Record<string, unknown>;
+};
+
+export type CoveredCell = {
+  rowIndex: number;
+  cellIndex: number;
+  row: number;
+  column: number;
+  rowSpan: number;
+  colSpan: number;
+};
+
+type RowCells = {
+  row: Record<string, unknown>;
+  cells: Record<string, unknown>[];
+};
+
+type PlacedCell = {
+  node: Record<string, unknown>;
+  row: number;
+  column: number;
+  rowSpan: number;
+  colSpan: number;
+  requestedRowSpan: number;
+  requestedColSpan: number;
+};
+
+type SpanRead = {
+  span: number;
+  storedOne: boolean;
+  invalid: boolean;
+};
+
+const DEFAULT_LIMITS: TableGridLimits = { maxRows: 50, maxColumns: 20 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isElement(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && typeof value.type === "string" && Array.isArray(value.children);
+}
+
+function elementChildren(node: Record<string, unknown>): Record<string, unknown>[] {
+  if (!Array.isArray(node.children)) {
+    return [];
+  }
+
+  return node.children.filter(isElement);
+}
+
+function readSpan(cell: Record<string, unknown>, key: "colSpan" | "rowSpan"): SpanRead {
+  if (!(key in cell)) {
+    return { span: 1, storedOne: false, invalid: false };
+  }
+
+  const value = cell[key];
+  if (value === 1) {
+    return { span: 1, storedOne: true, invalid: false };
+  }
+
+  if (typeof value === "number" && Number.isInteger(value) && value >= 2) {
+    return { span: value, storedOne: false, invalid: false };
+  }
+
+  return { span: 1, storedOne: false, invalid: true };
+}
+
+function attributeSpan(
+  cell: Record<string, unknown>,
+  name: "colspan" | "rowspan",
+): number | undefined {
+  const attributes = cell.attributes;
+  if (!isRecord(attributes) || !(name in attributes)) {
+    return undefined;
+  }
+
+  const value = attributes[name];
+  if (typeof value === "number" && Number.isInteger(value) && value > 1) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^[0-9]+$/.test(value)) {
+    const parsed = Number(value);
+    if (parsed > 1) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+}
+
+function requestedSpans(cell: Record<string, unknown>): {
+  colSpan: number;
+  rowSpan: number;
+  col: SpanRead;
+  row: SpanRead;
+} {
+  const col = readSpan(cell, "colSpan");
+  const row = readSpan(cell, "rowSpan");
+  const attributeCol =
+    col.span === 1 && !col.storedOne ? attributeSpan(cell, "colspan") : undefined;
+  const attributeRow =
+    row.span === 1 && !row.storedOne ? attributeSpan(cell, "rowspan") : undefined;
+
+  return {
+    colSpan: attributeCol ?? col.span,
+    rowSpan: attributeRow ?? row.span,
+    col,
+    row,
+  };
+}
+
+function tableRows(
+  node: Record<string, unknown>,
+  maxRows: number,
+): { rows: RowCells[]; trimmed: boolean } {
+  const rows = elementChildren(node)
+    .filter((child) => child.type === "tr")
+    .slice(0, maxRows)
+    .map((row) => ({
+      row,
+      cells: elementChildren(row).filter((cell) => cell.type === "td" || cell.type === "th"),
+    }));
+
+  const trimmed = elementChildren(node).filter((child) => child.type === "tr").length > rows.length;
+  return { rows, trimmed };
+}
+
+function columnCountOf(rows: readonly RowCells[], maxColumns: number): number {
+  let count = 1;
+  for (const row of rows) {
+    let sum = 0;
+    for (const cell of row.cells) {
+      sum += requestedSpans(cell).colSpan;
+    }
+
+    if (sum > count) {
+      count = sum;
+    }
+  }
+
+  return Math.min(maxColumns, Math.max(1, count));
+}
+
+function cellNode(
+  cell: Record<string, unknown>,
+  colSpan: number,
+  rowSpan: number,
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...cell, children: cell.children };
+  delete next.colSpan;
+  delete next.rowSpan;
+  delete next.attributes;
+  if (colSpan > 1) {
+    next.colSpan = colSpan;
+  }
+
+  if (rowSpan > 1) {
+    next.rowSpan = rowSpan;
+  }
+
+  return next;
+}
+
+function emptyCell(header: boolean): Record<string, unknown> {
+  return {
+    type: header ? "th" : "td",
+    children: [{ type: "p", children: [{ text: "" }] }],
+  };
+}
+
+function rowIsHeader(cells: readonly Record<string, unknown>[]): boolean {
+  return cells.length > 0 && cells.every((cell) => cell.type === "th");
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+type WidthRepair = {
+  issues: TableGridIssue[];
+  repairs: TableGridIssue[];
+  value: (number | null)[] | undefined;
+  changed: boolean;
+};
+
+function repairWidths(raw: unknown, columnCount: number, path: number[]): WidthRepair {
+  const issues: TableGridIssue[] = [];
+  const repairs: TableGridIssue[] = [];
+  if (raw === undefined) {
+    return { issues, repairs, value: undefined, changed: false };
+  }
+
+  if (!Array.isArray(raw)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported colSizes. Column widths were removed.`,
+    });
+    repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} column widths were removed because none were valid.`,
+    });
+    return { issues, repairs, value: undefined, changed: true };
+  }
+
+  const cleaned: (number | null)[] = [];
+  let anyExplicit = false;
+  for (const entry of raw) {
+    if (entry === null) {
+      cleaned.push(null);
+      continue;
+    }
+
+    if (typeof entry !== "number" || !Number.isFinite(entry)) {
+      issues.push({
+        path,
+        message: `${formatBlockLabel(path)} has a colSizes entry that is not a finite number.`,
+      });
+      repairs.push({
+        path,
+        message: `${formatBlockLabel(path)} dropped a column width that was not a finite number. That column stays automatic.`,
+      });
+      cleaned.push(null);
+      continue;
+    }
+
+    if (!Number.isInteger(entry)) {
+      const rounded = Math.min(
+        TABLE_MAX_COLUMN_WIDTH,
+        Math.max(TABLE_MIN_COLUMN_WIDTH, Math.round(entry)),
+      );
+      issues.push({
+        path,
+        message: `${formatBlockLabel(path)} has a non-integer colSizes entry.`,
+      });
+      repairs.push({
+        path,
+        message: `${formatBlockLabel(path)} rounded a non-integer column width to ${rounded}px.`,
+      });
+      cleaned.push(rounded);
+      anyExplicit = true;
+      continue;
+    }
+
+    if (entry < TABLE_MIN_COLUMN_WIDTH || entry > TABLE_MAX_COLUMN_WIDTH) {
+      const clamped = Math.min(TABLE_MAX_COLUMN_WIDTH, Math.max(TABLE_MIN_COLUMN_WIDTH, entry));
+      const detail = entry === 0 ? "0" : entry < 0 ? "a negative width" : "a width above 1200";
+      issues.push({
+        path,
+        message: `${formatBlockLabel(path)} has colSizes ${detail}.`,
+      });
+      repairs.push({
+        path,
+        message: `${formatBlockLabel(path)} clamped a column width of ${entry}px to ${clamped}px.`,
+      });
+      cleaned.push(clamped);
+      anyExplicit = true;
+      continue;
+    }
+
+    cleaned.push(entry);
+    anyExplicit = true;
+  }
+
+  if (!anyExplicit) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has colSizes with no explicit column width.`,
+    });
+    repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} column widths were removed because none were valid.`,
+    });
+    return { issues, repairs, value: undefined, changed: true };
+  }
+
+  if (cleaned.length > columnCount) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has colSizes length ${cleaned.length}. The table has ${columnCount} columns.`,
+    });
+    repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} truncated column widths to ${columnCount} columns.`,
+    });
+    cleaned.length = columnCount;
+  } else if (cleaned.length < columnCount) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has colSizes length ${cleaned.length}. The table has ${columnCount} columns.`,
+    });
+    repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} padded column widths to ${columnCount} columns. Added columns stay automatic.`,
+    });
+    while (cleaned.length < columnCount) {
+      cleaned.push(null);
+    }
+  }
+
+  return {
+    issues,
+    repairs,
+    value: cleaned,
+    changed: !sameJson(raw, cleaned),
+  };
+}
+
+function occupied(
+  grid: (PlacedCell | undefined)[][],
+  row: number,
+  column: number,
+  rowSpan: number,
+  colSpan: number,
+  ignore?: PlacedCell,
+): boolean {
+  for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+    for (let columnOffset = 0; columnOffset < colSpan; columnOffset += 1) {
+      const cell = grid[row + rowOffset]?.[column + columnOffset];
+      if (cell && cell !== ignore) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function mark(grid: (PlacedCell | undefined)[][], cell: PlacedCell): void {
+  for (let rowOffset = 0; rowOffset < cell.rowSpan; rowOffset += 1) {
+    for (let columnOffset = 0; columnOffset < cell.colSpan; columnOffset += 1) {
+      const row = grid[cell.row + rowOffset];
+      if (row) {
+        row[cell.column + columnOffset] = cell;
+      }
+    }
+  }
+}
+
+function rebuild(grid: (PlacedCell | undefined)[][], placed: readonly PlacedCell[]): void {
+  for (const row of grid) {
+    row.fill(undefined);
+  }
+
+  for (const cell of placed) {
+    mark(grid, cell);
+  }
+}
+
+function freeSlots(grid: (PlacedCell | undefined)[][], row: number, columnCount: number): number {
+  let free = 0;
+  for (let column = 0; column < columnCount; column += 1) {
+    if (!grid[row]?.[column]) {
+      free += 1;
+    }
+  }
+
+  return free;
+}
+
+export function checkTableGrid(
+  node: Record<string, unknown>,
+  path: number[],
+  limits: TableGridLimits = DEFAULT_LIMITS,
+): TableGridResult {
+  const issues: TableGridIssue[] = [];
+  const repairs: TableGridIssue[] = [];
+  if (node.type !== "table" || !Array.isArray(node.children)) {
+    return { issues, repairs };
+  }
+
+  const { rows, trimmed } = tableRows(node, limits.maxRows);
+  if (rows.length === 0) {
+    return { issues, repairs };
+  }
+
+  let dirty = trimmed;
+  const rowCount = rows.length;
+  const columnCount = columnCountOf(rows, limits.maxColumns);
+  const grid: (PlacedCell | undefined)[][] = Array.from({ length: rowCount }, () => []);
+  const placed: PlacedCell[] = [];
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    if (!row) {
+      continue;
+    }
+
+    let guard = 0;
+    while (
+      freeSlots(grid, rowIndex, columnCount) < row.cells.length &&
+      guard < columnCount + row.cells.length
+    ) {
+      guard += 1;
+      const blocker = placed.find(
+        (cell) => cell.row < rowIndex && rowIndex < cell.row + cell.rowSpan && cell.rowSpan > 1,
+      );
+      if (!blocker) {
+        break;
+      }
+
+      blocker.rowSpan = rowIndex - blocker.row;
+      dirty = true;
+      issues.push({
+        path: path.concat(blocker.row),
+        message: `${formatBlockLabel(path)} has a cell that overlaps another cell.`,
+      });
+      repairs.push({
+        path: path.concat(blocker.row),
+        message: `${formatBlockLabel(path)} shrank an overlapping rowSpan to ${blocker.rowSpan === 1 ? "one row" : `${blocker.rowSpan} rows`}.`,
+      });
+      rebuild(grid, placed);
+    }
+
+    let column = 0;
+    for (const cell of row.cells) {
+      const requested = requestedSpans(cell);
+      const cellPath = path.concat(rowIndex, column);
+      if (requested.col.storedOne) {
+        dirty = true;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} stores colSpan 1. Absence means one column.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} removed stored colSpan 1.`,
+        });
+      }
+
+      if (requested.row.storedOne) {
+        dirty = true;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} stores rowSpan 1. Absence means one row.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} removed stored rowSpan 1.`,
+        });
+      }
+
+      if (requested.col.invalid) {
+        dirty = true;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} has an unsupported colSpan.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} removed an invalid colSpan.`,
+        });
+      }
+
+      if (requested.row.invalid) {
+        dirty = true;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} has an unsupported rowSpan.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} removed an invalid rowSpan.`,
+        });
+      }
+
+      if (
+        attributeSpan(cell, "colspan") !== undefined ||
+        attributeSpan(cell, "rowspan") !== undefined ||
+        isRecord(cell.attributes)
+      ) {
+        dirty = true;
+      }
+
+      while (column < columnCount && grid[rowIndex]?.[column]) {
+        column += 1;
+      }
+
+      if (column >= columnCount) {
+        dirty = true;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(path)} has a cell that overlaps another cell.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(path)} kept overlapping cell text in the row and dropped the extra grid slot.`,
+        });
+        const host = placed.find((item) => item.row === rowIndex) ?? placed[placed.length - 1];
+        if (host && Array.isArray(host.node.children) && Array.isArray(cell.children)) {
+          host.node = {
+            ...host.node,
+            children: [...host.node.children, ...cell.children],
+          };
+        }
+        continue;
+      }
+
+      let colSpan = requested.colSpan;
+      let rowSpan = requested.rowSpan;
+      if (rowIndex + rowSpan > rowCount) {
+        const nextSpan = rowCount - rowIndex;
+        issues.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} has rowSpan ${rowSpan}, which extends past the table.`,
+        });
+        repairs.push({
+          path: cellPath,
+          message: `${formatBlockLabel(cellPath)} shrank rowSpan from ${rowSpan} to ${nextSpan}.`,
+        });
+        rowSpan = nextSpan;
+        dirty = true;
+      }
+
+      if (column + colSpan > columnCount || occupied(grid, rowIndex, column, rowSpan, colSpan)) {
+        const original = colSpan;
+        while (
+          colSpan > 1 &&
+          (column + colSpan > columnCount || occupied(grid, rowIndex, column, rowSpan, colSpan))
+        ) {
+          colSpan -= 1;
+        }
+
+        if (column + colSpan > columnCount) {
+          colSpan = Math.max(1, columnCount - column);
+        }
+
+        while (rowSpan > 1 && occupied(grid, rowIndex, column, rowSpan, colSpan)) {
+          rowSpan -= 1;
+        }
+
+        if (original !== colSpan || requested.rowSpan !== rowSpan) {
+          dirty = true;
+          const pastEdge = column + original > columnCount;
+          issues.push({
+            path: cellPath,
+            message: pastEdge
+              ? `${formatBlockLabel(cellPath)} has colSpan ${original}, which extends past the table.`
+              : `${formatBlockLabel(path)} has a cell that overlaps another cell.`,
+          });
+          repairs.push({
+            path: cellPath,
+            message: pastEdge
+              ? `${formatBlockLabel(cellPath)} shrank colSpan from ${original} to ${colSpan}.`
+              : `${formatBlockLabel(cellPath)} shrank an overlapping span to ${colSpan} by ${rowSpan}.`,
+          });
+        }
+      }
+
+      const placedCell: PlacedCell = {
+        node: cell,
+        row: rowIndex,
+        column,
+        rowSpan,
+        colSpan,
+        requestedRowSpan: requested.rowSpan,
+        requestedColSpan: requested.colSpan,
+      };
+      placed.push(placedCell);
+      mark(grid, placedCell);
+      column += colSpan;
+    }
+  }
+
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    let missing = false;
+    for (let column = 0; column < columnCount; column += 1) {
+      if (!grid[rowIndex]?.[column]) {
+        missing = true;
+        break;
+      }
+    }
+
+    if (!missing) {
+      continue;
+    }
+
+    dirty = true;
+    repairs.push({
+      path: path.concat(rowIndex),
+      message: `${formatBlockLabel(path)} filled an empty cell so the row stays rectangular.`,
+    });
+  }
+
+  const widths = repairWidths(node.colSizes, columnCount, path);
+  issues.push(...widths.issues);
+  repairs.push(...widths.repairs);
+  if (widths.changed) {
+    dirty = true;
+  }
+
+  if (!dirty) {
+    return { issues, repairs };
+  }
+
+  const nextRows = rows.map((row, rowIndex) => {
+    const header = rowIsHeader(row.cells);
+    const children: Record<string, unknown>[] = [];
+    let column = 0;
+    const starts = placed
+      .filter((cell) => cell.row === rowIndex)
+      .sort((left, right) => left.column - right.column);
+    for (const cell of starts) {
+      while (column < cell.column) {
+        if (!grid[rowIndex]?.[column]) {
+          children.push(emptyCell(header));
+        }
+        column += 1;
+      }
+
+      children.push(cellNode(cell.node, cell.colSpan, cell.rowSpan));
+      column = cell.column + cell.colSpan;
+    }
+
+    while (column < columnCount) {
+      if (!grid[rowIndex]?.[column]) {
+        children.push(emptyCell(header));
+      }
+      column += 1;
+    }
+
+    return { ...row.row, children };
+  });
+
+  const next: Record<string, unknown> = { ...node, children: nextRows };
+  if (widths.value === undefined) {
+    delete next.colSizes;
+  } else {
+    next.colSizes = widths.value;
+  }
+
+  return { issues, repairs, next };
+}
+
+export function tableCoverage(
+  node: Record<string, unknown>,
+  maxColumns = DEFAULT_LIMITS.maxColumns,
+): {
+  rowCount: number;
+  columnCount: number;
+  cells: CoveredCell[];
+} {
+  const { rows } = tableRows(node, DEFAULT_LIMITS.maxRows);
+  const columnCount = columnCountOf(rows, maxColumns);
+  const grid: (CoveredCell | undefined)[][] = Array.from({ length: rows.length }, () => []);
+  const cells: CoveredCell[] = [];
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    if (!row) {
+      continue;
+    }
+
+    let column = 0;
+    for (let cellIndex = 0; cellIndex < row.cells.length; cellIndex += 1) {
+      const cell = row.cells[cellIndex];
+      if (!cell) {
+        continue;
+      }
+
+      while (column < columnCount && grid[rowIndex]?.[column]) {
+        column += 1;
+      }
+
+      if (column >= columnCount) {
+        break;
+      }
+
+      const spans = requestedSpans(cell);
+      const covered: CoveredCell = {
+        rowIndex,
+        cellIndex,
+        row: rowIndex,
+        column,
+        rowSpan: Math.min(spans.rowSpan, rows.length - rowIndex),
+        colSpan: Math.min(spans.colSpan, columnCount - column),
+      };
+      cells.push(covered);
+      for (let rowOffset = 0; rowOffset < covered.rowSpan; rowOffset += 1) {
+        for (let columnOffset = 0; columnOffset < covered.colSpan; columnOffset += 1) {
+          const line = grid[rowIndex + rowOffset];
+          if (line) {
+            line[column + columnOffset] = covered;
+          }
+        }
+      }
+      column += covered.colSpan;
+    }
+  }
+
+  return { rowCount: rows.length, columnCount, cells };
+}
+
+export function rowSliceIsClean(node: Record<string, unknown>, row: number): boolean {
+  const coverage = tableCoverage(node);
+  return coverage.cells.every(
+    (cell) =>
+      cell.row + cell.rowSpan - 1 < row ||
+      cell.row > row ||
+      (cell.row === row && cell.rowSpan === 1),
+  );
+}
+
+export function columnSliceIsClean(node: Record<string, unknown>, column: number): boolean {
+  const coverage = tableCoverage(node);
+  return coverage.cells.every(
+    (cell) =>
+      cell.column + cell.colSpan - 1 < column ||
+      cell.column > column ||
+      (cell.column === column && cell.colSpan === 1),
+  );
+}
+
+export function boundaryIsClean(
+  node: Record<string, unknown>,
+  axis: "row" | "column",
+  index: number,
+  neighbor: number,
+): boolean {
+  const coverage = tableCoverage(node);
+  return coverage.cells.every((cell) => {
+    const start = axis === "row" ? cell.row : cell.column;
+    const end = axis === "row" ? cell.row + cell.rowSpan - 1 : cell.column + cell.colSpan - 1;
+    const coversIndex = start <= index && index <= end;
+    const coversNeighbor = start <= neighbor && neighbor <= end;
+    return !(coversIndex && coversNeighbor);
+  });
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
+```ts
+import {
+  deleteColumn,
+  deleteRow,
+  getTableGridAbove,
+  insertTableColumn as insertPlateTableColumn,
+  insertTableRow as insertPlateTableRow,
+  mergeTableCells as mergePlateTableCells,
+  splitTableCell as splitPlateTableCell,
+} from "@platejs/table";
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  TextApi,
+  nanoid,
+  type SlateEditor,
+  type TElement,
+  type TText,
+} from "platejs";
+
+import { directText, isPlainParagraph, type EditorCommand } from "./editor-commands";
+import {
+  clampTableCount,
+  columnIsHeader,
+  createTableNode,
+  neutralizeInsertedColumnWidths,
+  replaceTableWithParagraph,
+  rowIsHeader,
+  tableCellContext,
+  tableMaxColumns,
+  tableMaxRows,
+  type TableCellContext,
+} from "./editor-table";
+import {
+  boundaryIsClean,
+  rowSliceIsClean,
+  tableCoverage,
+  TABLE_MAX_COLUMN_WIDTH,
+  TABLE_MIN_COLUMN_WIDTH,
+} from "./editor-table-grid";
+
+function editorIsReadOnly(editor: SlateEditor): boolean {
+  return editor.dom.readOnly === true;
+}
+
+function inTable(editor: SlateEditor): boolean {
+  return !editorIsReadOnly(editor) && tableCellContext(editor) !== undefined;
+}
+
+function nodeRecord(node: TElement): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+  for (const key of Object.keys(node)) {
+    record[key] = node[key];
+  }
+
+  return record;
+}
+
+function currentTable(editor: SlateEditor): { node: TElement; cell: TableCellContext } | undefined {
+  const cell = tableCellContext(editor);
+  if (!cell) {
+    return undefined;
+  }
+
+  const node = editor.api.node(cell.tablePath)?.[0];
+  if (!ElementApi.isElement(node) || node.type !== KEYS.table) {
+    return undefined;
+  }
+
+  return { node, cell };
+}
+
+function collapseToCell(editor: SlateEditor, cellPath: number[]): void {
+  if (!editor.selection || editor.api.isCollapsed()) {
+    return;
+  }
+
+  const start = editor.api.start(cellPath);
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function setFirstAxisType(editor: SlateEditor, axis: "row" | "column", header: boolean): void {
+  const current = currentTable(editor);
+  if (!current) {
+    return;
+  }
+
+  const nextType = header ? KEYS.th : KEYS.td;
+  if (axis === "row") {
+    const row = current.node.children[0];
+    if (!ElementApi.isElement(row)) {
+      return;
+    }
+
+    for (let index = 0; index < row.children.length; index += 1) {
+      editor.tf.setNodes({ type: nextType }, { at: current.cell.tablePath.concat(0, index) });
+    }
+    return;
+  }
+
+  const anchors = tableCoverage(nodeRecord(current.node), tableMaxColumns()).cells.filter(
+    (cell) => cell.column === 0,
+  );
+  for (const anchor of anchors) {
+    editor.tf.setNodes(
+      { type: nextType },
+      { at: current.cell.tablePath.concat(anchor.rowIndex, anchor.cellIndex) },
+    );
+  }
+}
+
+const MERGE_CELLS_REASON = "Select a rectangle of cells to merge";
+const SPLIT_CELL_REASON = "Select a merged cell to split.";
+
+function selectedTableCells(editor: SlateEditor): { node: TElement; path: number[] }[] {
+  const cells: { node: TElement; path: number[] }[] = [];
+  for (const entry of getTableGridAbove(editor, { format: "cell" })) {
+    const node = entry[0];
+    const path = entry[1];
+    if (!ElementApi.isElement(node) || !Array.isArray(path)) {
+      continue;
+    }
+
+    cells.push({ node, path: [...path] });
+  }
+
+  return cells;
+}
+
+export function mergeCellsReason(editor: SlateEditor): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const cells = selectedTableCells(editor);
+  const first = cells[0];
+  if (!first || cells.length < 2) {
+    return MERGE_CELLS_REASON;
+  }
+
+  const tablePath = first.path.slice(0, -2);
+  if (!cells.every((cell) => PathApi.equals(cell.path.slice(0, -2), tablePath))) {
+    return MERGE_CELLS_REASON;
+  }
+
+  const table = editor.api.node(tablePath)?.[0];
+  if (!ElementApi.isElement(table) || table.type !== KEYS.table) {
+    return MERGE_CELLS_REASON;
+  }
+
+  const coverage = tableCoverage(nodeRecord(table), tableMaxColumns());
+  const selected = cells.flatMap((cell) => {
+    const rowIndex = cell.path[cell.path.length - 2];
+    const cellIndex = cell.path[cell.path.length - 1];
+    const found = coverage.cells.find(
+      (item) => item.rowIndex === rowIndex && item.cellIndex === cellIndex,
+    );
+    return found === undefined ? [] : [found];
+  });
+  if (selected.length < 2) {
+    return MERGE_CELLS_REASON;
+  }
+
+  const minRow = Math.min(...selected.map((cell) => cell.row));
+  const maxRow = Math.max(...selected.map((cell) => cell.row + cell.rowSpan - 1));
+  const minColumn = Math.min(...selected.map((cell) => cell.column));
+  const maxColumn = Math.max(...selected.map((cell) => cell.column + cell.colSpan - 1));
+  const covered = new Set<string>();
+  for (const cell of selected) {
+    for (let rowOffset = 0; rowOffset < cell.rowSpan; rowOffset += 1) {
+      for (let columnOffset = 0; columnOffset < cell.colSpan; columnOffset += 1) {
+        covered.add(`${cell.row + rowOffset}:${cell.column + columnOffset}`);
+      }
+    }
+  }
+
+  const width = maxColumn - minColumn + 1;
+  const height = maxRow - minRow + 1;
+  return covered.size === width * height ? undefined : MERGE_CELLS_REASON;
+}
+
+export function splitCellReason(editor: SlateEditor): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const cell = tableCellContext(editor);
+  if (!cell || (cell.colSpan <= 1 && cell.rowSpan <= 1)) {
+    return SPLIT_CELL_REASON;
+  }
+
+  return undefined;
+}
+
+function columnCanDuplicate(node: TElement, column: number): boolean {
+  return tableCoverage(nodeRecord(node), tableMaxColumns()).cells.every((cell) => {
+    const covers = cell.column <= column && column <= cell.column + cell.colSpan - 1;
+    if (!covers) {
+      return true;
+    }
+
+    return cell.column === column && cell.colSpan === 1 && cell.rowSpan === 1;
+  });
+}
+
+export function duplicateRowReason(editor: SlateEditor): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const current = currentTable(editor);
+  if (!current) {
+    return undefined;
+  }
+
+  if (current.cell.rowCount >= tableMaxRows()) {
+    return `This table already has ${tableMaxRows()} rows.`;
+  }
+
+  if (!rowSliceIsClean(nodeRecord(current.node), current.cell.rowIndex)) {
+    return "A merged cell crosses this row.";
+  }
+
+  return undefined;
+}
+
+export function duplicateColumnReason(editor: SlateEditor): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const current = currentTable(editor);
+  if (!current) {
+    return undefined;
+  }
+
+  if (current.cell.columnCount >= tableMaxColumns()) {
+    return `This table already has ${tableMaxColumns()} columns.`;
+  }
+
+  if (!columnCanDuplicate(current.node, current.cell.columnIndex)) {
+    return "A merged cell crosses this column.";
+  }
+
+  return undefined;
+}
+
+export function moveRowReason(editor: SlateEditor, direction: "up" | "down"): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const current = currentTable(editor);
+  if (!current) {
+    return undefined;
+  }
+
+  const neighbor = direction === "up" ? current.cell.rowIndex - 1 : current.cell.rowIndex + 1;
+  if (neighbor < 0) {
+    return "This row is already at the top.";
+  }
+
+  if (neighbor >= current.cell.rowCount) {
+    return "This row is already at the bottom.";
+  }
+
+  if (!boundaryIsClean(nodeRecord(current.node), "row", current.cell.rowIndex, neighbor)) {
+    return "A merged cell crosses this row.";
+  }
+
+  return undefined;
+}
+
+export function moveColumnReason(
+  editor: SlateEditor,
+  direction: "left" | "right",
+): string | undefined {
+  if (editorIsReadOnly(editor)) {
+    return undefined;
+  }
+
+  const current = currentTable(editor);
+  if (!current) {
+    return undefined;
+  }
+
+  const neighbor =
+    direction === "left" ? current.cell.columnIndex - 1 : current.cell.columnIndex + 1;
+  if (neighbor < 0) {
+    return "This column is already at the left.";
+  }
+
+  if (neighbor >= current.cell.columnCount) {
+    return "This column is already at the right.";
+  }
+
+  if (!boundaryIsClean(nodeRecord(current.node), "column", current.cell.columnIndex, neighbor)) {
+    return "A merged cell crosses this column.";
+  }
+
+  return undefined;
+}
+
+function commandEnabled(
+  editor: SlateEditor,
+  reason: (editor: SlateEditor) => string | undefined,
+): boolean {
+  return (
+    !editorIsReadOnly(editor) &&
+    tableCellContext(editor) !== undefined &&
+    reason(editor) === undefined
+  );
+}
+
+function cloneWithNewIds(node: TElement): TElement {
+  const copy: TElement = { type: node.type, id: nanoid(10), children: [] };
+  for (const key of Object.keys(node)) {
+    if (key === "type" || key === "id" || key === "children") {
+      continue;
+    }
+
+    copy[key] = node[key];
+  }
+
+  copy.children = node.children.map((child) => {
+    if (TextApi.isText(child)) {
+      const text: TText = { text: child.text };
+      for (const key of Object.keys(child)) {
+        if (key !== "text") {
+          text[key] = child[key];
+        }
+      }
+
+      return text;
+    }
+
+    if (ElementApi.isElement(child)) {
+      return cloneWithNewIds(child);
+    }
+
+    return { text: "" };
+  });
+
+  return copy;
+}
+
+function selectSurvivingCell(editor: SlateEditor, tablePath: number[], rowIndex: number): void {
+  const node = editor.api.node(tablePath)?.[0];
+  if (!ElementApi.isElement(node) || node.type !== KEYS.table) {
+    if (!editor.api.node(tablePath)) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, children: [{ text: "" }] },
+        { at: tablePath, select: true },
+      );
+    }
+    return;
+  }
+
+  const row = Math.min(Math.max(0, rowIndex), node.children.length - 1);
+  const start = editor.api.start(tablePath.concat(row, 0));
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function columnWidths(node: TElement): (number | null)[] | undefined {
+  const raw = node.colSizes;
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+
+  return raw.map((value) => (typeof value === "number" || value === null ? value : null));
+}
+
+// No shortcut. The slash menu and toolbar own insertion (DEV-122/125).
+// Rows and columns are clamped to the table cap. The size picker is UI for those tasks.
+export const insertTable: EditorCommand<{ rows?: number; cols?: number } | undefined> = {
+  id: "block.insert.table",
+  label: "Table",
+  group: "insert",
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const rows = clampTableCount(payload?.rows, 3, tableMaxRows());
+    const cols = clampTableCount(payload?.cols, 3, tableMaxColumns());
+    const entry = editor.api.block({ highest: true });
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let tablePath = path;
+    const table = createTableNode(rows, cols);
+    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
+      editor.tf.removeNodes({ at: path });
+      editor.tf.insertNodes(table, { at: path, select: false });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes(table, { at, select: false });
+      tablePath = at;
+    }
+
+    const after = PathApi.next(tablePath);
+    if (after && !editor.api.node(after)) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, children: [{ text: "" }] },
+        { at: after, select: false },
+      );
+    }
+
+    const start = editor.api.start(tablePath.concat(0, 0));
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
+export const insertTableRow: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-row",
+  label: "Insert row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.rowCount >= tableMaxRows()) {
+      return;
+    }
+
+    collapseToCell(editor, cell.cellPath);
+    insertPlateTableRow(editor, {
+      before: payload?.before === true,
+      select: false,
+    });
+  },
+};
+
+export const insertTableColumn: EditorCommand<{ before?: boolean } | undefined> = {
+  id: "block.table.insert-column",
+  label: "Insert column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor, payload) => {
+    const cell = tableCellContext(editor);
+    if (!cell || cell.columnCount >= tableMaxColumns()) {
+      return;
+    }
+
+    editor.tf.withoutNormalizing(() => {
+      collapseToCell(editor, cell.cellPath);
+      insertPlateTableColumn(editor, {
+        before: payload?.before === true,
+        select: false,
+      });
+      neutralizeInsertedColumnWidths(editor, cell.tablePath);
+    });
+  },
+};
+
+export const deleteTableRow: EditorCommand = {
+  id: "block.table.delete-row",
+  label: "Delete row",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.rowCount <= 1 || (cell.rowIndex === 0 && cell.rowSpan >= cell.rowCount)) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    // Plate's merge-aware row delete inserts the surviving span, then removes
+    // the row. Normalizing between those steps replaces the table and leaves
+    // the removal on a stale path.
+    editor.tf.withoutNormalizing(() => {
+      collapseToCell(editor, cell.cellPath);
+      deleteRow(editor);
+    });
+    selectSurvivingCell(editor, cell.tablePath, cell.rowIndex);
+  },
+};
+
+export const deleteTableColumn: EditorCommand = {
+  id: "block.table.delete-column",
+  label: "Delete column",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    if (cell.columnCount <= 1 || cell.colSpan >= cell.columnCount) {
+      replaceTableWithParagraph(editor, cell.tablePath);
+      return;
+    }
+
+    editor.tf.withoutNormalizing(() => {
+      collapseToCell(editor, cell.cellPath);
+      deleteColumn(editor);
+    });
+    selectSurvivingCell(editor, cell.tablePath, cell.rowIndex);
+  },
+};
+
+export const deleteTable: EditorCommand = {
+  id: "block.table.delete",
+  label: "Delete table",
+  group: "insert",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    replaceTableWithParagraph(editor, cell.tablePath);
+  },
+};
+
+export const toggleTableHeaderRow: EditorCommand = {
+  id: "block.table.header-row",
+  label: "Header row",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "row", !rowIsHeader(table));
+  },
+};
+
+export const toggleTableHeaderColumn: EditorCommand = {
+  id: "block.table.header-column",
+  label: "Header column",
+  group: "format",
+  isEnabled: inTable,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
+    if (!cell || !ElementApi.isElement(table)) {
+      return;
+    }
+
+    setFirstAxisType(editor, "column", !columnIsHeader(table));
+  },
+};
+
+export const mergeTableCells: EditorCommand = {
+  id: "block.table.merge",
+  label: "Merge cells",
+  group: "insert",
+  disabledReason: mergeCellsReason,
+  isEnabled: (editor) => !editorIsReadOnly(editor) && mergeCellsReason(editor) === undefined,
+  run: (editor) => {
+    editor.tf.withoutNormalizing(() => {
+      mergePlateTableCells(editor);
+    });
+  },
+};
+
+export const splitTableCell: EditorCommand = {
+  id: "block.table.split",
+  label: "Split cell",
+  group: "insert",
+  disabledReason: splitCellReason,
+  isEnabled: (editor) => !editorIsReadOnly(editor) && splitCellReason(editor) === undefined,
+  run: (editor) => {
+    const cell = tableCellContext(editor);
+    if (!cell) {
+      return;
+    }
+
+    editor.tf.withoutNormalizing(() => {
+      collapseToCell(editor, cell.cellPath);
+      splitPlateTableCell(editor);
+    });
+  },
+};
+
+export const duplicateTableRow: EditorCommand = {
+  id: "block.table.duplicate-row",
+  label: "Duplicate row",
+  group: "insert",
+  disabledReason: duplicateRowReason,
+  isEnabled: (editor) => commandEnabled(editor, duplicateRowReason),
+  run: (editor) => {
+    const current = currentTable(editor);
+    if (!current || duplicateRowReason(editor) !== undefined) {
+      return;
+    }
+
+    const row = editor.api.node(current.cell.tablePath.concat(current.cell.rowIndex))?.[0];
+    if (!ElementApi.isElement(row)) {
+      return;
+    }
+
+    editor.tf.insertNodes(cloneWithNewIds(row), {
+      at: current.cell.tablePath.concat(current.cell.rowIndex + 1),
+    });
+  },
+};
+
+export const duplicateTableColumn: EditorCommand = {
+  id: "block.table.duplicate-column",
+  label: "Duplicate column",
+  group: "insert",
+  disabledReason: duplicateColumnReason,
+  isEnabled: (editor) => commandEnabled(editor, duplicateColumnReason),
+  run: (editor) => {
+    const current = currentTable(editor);
+    if (!current || duplicateColumnReason(editor) !== undefined) {
+      return;
+    }
+
+    const coverage = tableCoverage(nodeRecord(current.node), tableMaxColumns());
+    const widths = columnWidths(current.node);
+    editor.tf.withoutNormalizing(() => {
+      for (let rowIndex = coverage.rowCount - 1; rowIndex >= 0; rowIndex -= 1) {
+        const anchor = coverage.cells.find(
+          (cell) => cell.row === rowIndex && cell.column === current.cell.columnIndex,
+        );
+        const row = editor.api.node(current.cell.tablePath.concat(rowIndex))?.[0];
+        const source =
+          anchor && ElementApi.isElement(row) ? row.children[anchor.cellIndex] : undefined;
+        if (!anchor || !ElementApi.isElement(source)) {
+          continue;
+        }
+
+        editor.tf.insertNodes(cloneWithNewIds(source), {
+          at: current.cell.tablePath.concat(rowIndex, anchor.cellIndex + 1),
+        });
+      }
+
+      if (widths !== undefined) {
+        const next = [...widths];
+        next.splice(current.cell.columnIndex + 1, 0, widths[current.cell.columnIndex] ?? null);
+        editor.tf.setNodes({ colSizes: next }, { at: current.cell.tablePath });
+      }
+    });
+  },
+};
+
+function moveRow(editor: SlateEditor, direction: "up" | "down"): void {
+  const current = currentTable(editor);
+  if (!current || moveRowReason(editor, direction) !== undefined) {
+    return;
+  }
+
+  const index = current.cell.rowIndex;
+  const row = editor.api.node(current.cell.tablePath.concat(index))?.[0];
+  if (!ElementApi.isElement(row)) {
+    return;
+  }
+
+  const destination = direction === "down" ? index + 1 : index - 1;
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.removeNodes({ at: current.cell.tablePath.concat(index) });
+    editor.tf.insertNodes(row, { at: current.cell.tablePath.concat(destination) });
+  });
+  const start = editor.api.start(current.cell.tablePath.concat(destination, 0));
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function swapColumnCells(editor: SlateEditor, tablePath: number[], from: number, to: number): void {
+  const table = editor.api.node(tablePath)?.[0];
+  if (!ElementApi.isElement(table)) {
+    return;
+  }
+
+  const coverage = tableCoverage(nodeRecord(table), tableMaxColumns());
+  const widths = columnWidths(table);
+  editor.tf.withoutNormalizing(() => {
+    for (let rowIndex = 0; rowIndex < coverage.rowCount; rowIndex += 1) {
+      const fromCell = coverage.cells.find((cell) => cell.row === rowIndex && cell.column === from);
+      const toCell = coverage.cells.find((cell) => cell.row === rowIndex && cell.column === to);
+      if (!fromCell || !toCell || fromCell.cellIndex === toCell.cellIndex) {
+        continue;
+      }
+
+      const rowPath = tablePath.concat(rowIndex);
+      const row = editor.api.node(rowPath)?.[0];
+      if (!ElementApi.isElement(row)) {
+        continue;
+      }
+
+      const upper = Math.max(fromCell.cellIndex, toCell.cellIndex);
+      const lower = Math.min(fromCell.cellIndex, toCell.cellIndex);
+      const moving = row.children[upper];
+      if (!ElementApi.isElement(moving)) {
+        continue;
+      }
+
+      editor.tf.removeNodes({ at: rowPath.concat(upper) });
+      editor.tf.insertNodes(moving, { at: rowPath.concat(lower) });
+    }
+
+    if (widths !== undefined && from < widths.length && to < widths.length) {
+      const next = [...widths];
+      const fromWidth = next[from];
+      next[from] = next[to] ?? null;
+      next[to] = fromWidth ?? null;
+      editor.tf.setNodes({ colSizes: next }, { at: tablePath });
+    }
+  });
+}
+
+export const moveTableRowUp: EditorCommand = {
+  id: "block.table.move-row-up",
+  label: "Move row up",
+  group: "insert",
+  disabledReason: (editor) => moveRowReason(editor, "up"),
+  isEnabled: (editor) => commandEnabled(editor, (current) => moveRowReason(current, "up")),
+  run: (editor) => {
+    moveRow(editor, "up");
+  },
+};
+
+export const moveTableRowDown: EditorCommand = {
+  id: "block.table.move-row-down",
+  label: "Move row down",
+  group: "insert",
+  disabledReason: (editor) => moveRowReason(editor, "down"),
+  isEnabled: (editor) => commandEnabled(editor, (current) => moveRowReason(current, "down")),
+  run: (editor) => {
+    moveRow(editor, "down");
+  },
+};
+
+export const moveTableColumnLeft: EditorCommand = {
+  id: "block.table.move-column-left",
+  label: "Move column left",
+  group: "insert",
+  disabledReason: (editor) => moveColumnReason(editor, "left"),
+  isEnabled: (editor) => commandEnabled(editor, (current) => moveColumnReason(current, "left")),
+  run: (editor) => {
+    const current = currentTable(editor);
+    if (!current || moveColumnReason(editor, "left") !== undefined) {
+      return;
+    }
+
+    swapColumnCells(
+      editor,
+      current.cell.tablePath,
+      current.cell.columnIndex,
+      current.cell.columnIndex - 1,
+    );
+  },
+};
+
+export const moveTableColumnRight: EditorCommand = {
+  id: "block.table.move-column-right",
+  label: "Move column right",
+  group: "insert",
+  disabledReason: (editor) => moveColumnReason(editor, "right"),
+  isEnabled: (editor) => commandEnabled(editor, (current) => moveColumnReason(current, "right")),
+  run: (editor) => {
+    const current = currentTable(editor);
+    if (!current || moveColumnReason(editor, "right") !== undefined) {
+      return;
+    }
+
+    swapColumnCells(
+      editor,
+      current.cell.tablePath,
+      current.cell.columnIndex,
+      current.cell.columnIndex + 1,
+    );
+  },
+};
+
+export const setTableColumnWidth: EditorCommand<{
+  tablePath: number[];
+  column: number;
+  width: number | null;
+}> = {
+  id: "block.table.column-width",
+  label: "Column width",
+  group: "format",
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const node = editor.api.node(payload.tablePath)?.[0];
+    if (!ElementApi.isElement(node) || node.type !== KEYS.table) {
+      return;
+    }
+
+    const coverage = tableCoverage(nodeRecord(node), tableMaxColumns());
+    if (payload.column < 0 || payload.column >= coverage.columnCount) {
+      return;
+    }
+
+    const widths = columnWidths(node) ?? Array.from({ length: coverage.columnCount }, () => null);
+    const next = Array.from({ length: coverage.columnCount }, (_, index) => widths[index] ?? null);
+    next[payload.column] =
+      payload.width === null
+        ? null
+        : Math.min(
+            TABLE_MAX_COLUMN_WIDTH,
+            Math.max(TABLE_MIN_COLUMN_WIDTH, Math.round(payload.width)),
+          );
+    if (next.every((width) => width === null)) {
+      editor.tf.unsetNodes("colSizes", { at: payload.tablePath });
+      return;
+    }
+
+    editor.tf.setNodes({ colSizes: next }, { at: payload.tablePath });
+  },
+};
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/table-element.tsx
 ```tsx
-import { KEYS } from "platejs";
+import { useLayoutEffect, useRef, useState } from "react";
+import { KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
@@ -5231,30 +7735,251 @@ import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
 
 import { cn } from "@/lib/utils";
 
+import { runEditorCommand } from "./editor-commands";
+import { setTableColumnWidth } from "./editor-table-commands";
+import { tableCoverage, TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import { TableControls } from "./table-controls";
 
 const CELL_CLASS =
-  "min-w-32 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
+  "min-w-12 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
 
 const HEADER_CLASS =
   "bg-[var(--editor-table-header-bg)] font-medium text-[var(--editor-table-header-fg)]";
 
 const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
 
+const FALLBACK_COLUMN_WIDTH = 160;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function nodeRecord(node: TElement): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+  for (const key of Object.keys(node)) {
+    record[key] = node[key];
+  }
+
+  return record;
+}
+
+function storedWidths(node: TElement, columnCount: number): (number | null)[] {
+  const raw = node.colSizes;
+  const source = Array.isArray(raw) ? raw : [];
+  return Array.from({ length: columnCount }, (_, index) => {
+    const value = source[index];
+    return typeof value === "number" ? value : null;
+  });
+}
+
+function spanAttribute(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 1 ? value : undefined;
+}
+
+function clampWidth(width: number): number {
+  return Math.min(TABLE_MAX_COLUMN_WIDTH, Math.max(TABLE_MIN_COLUMN_WIDTH, Math.round(width)));
+}
+
+function columnRightEdges(table: HTMLTableElement): number[] {
+  const rows = Array.from(table.rows);
+  const coverage: (HTMLTableCellElement | undefined)[][] = [];
+  for (const row of rows) {
+    const line: (HTMLTableCellElement | undefined)[] = [];
+    coverage.push(line);
+    let column = 0;
+    for (const cell of Array.from(row.cells)) {
+      while (line[column]) {
+        column += 1;
+      }
+
+      const colSpan = cell.colSpan || 1;
+      const rowSpan = cell.rowSpan || 1;
+      for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+        const target = coverage[coverage.length - 1 + rowOffset] ?? [];
+        coverage[coverage.length - 1 + rowOffset] = target;
+        for (let columnOffset = 0; columnOffset < colSpan; columnOffset += 1) {
+          target[column + columnOffset] = cell;
+        }
+      }
+      column += colSpan;
+    }
+  }
+
+  const columnCount = coverage.reduce((count, line) => Math.max(count, line.length), 0);
+  const origin = table.getBoundingClientRect().left;
+  const edges: number[] = [];
+  for (let column = 0; column < columnCount; column += 1) {
+    let edge = 0;
+    for (const line of coverage) {
+      const cell = line[column];
+      if (!cell || (column > 0 && line[column - 1] === cell)) {
+        continue;
+      }
+
+      if ((cell.colSpan || 1) !== 1) {
+        continue;
+      }
+
+      edge = cell.getBoundingClientRect().right - origin;
+      break;
+    }
+    edges.push(edge);
+  }
+
+  return edges;
+}
+
 export function TableElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const readOnly = useReadOnly();
   const path = editor.api.findPath(element);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const coverage = tableCoverage(nodeRecord(element));
+  const widths = storedWidths(element, coverage.columnCount);
+  const [preview, setPreview] = useState<ReadonlyMap<number, number>>(() => new Map());
+  const [edges, setEdges] = useState<number[]>([]);
   useSelectedCells();
+
+  useLayoutEffect(() => {
+    const table = tableRef.current;
+    if (!table) {
+      return;
+    }
+
+    setEdges(columnRightEdges(table));
+  }, [element, preview, readOnly]);
+
+  const displayed = widths.map((width, index) => preview.get(index) ?? width);
+  const explicit = displayed.every((width) => typeof width === "number");
+  const tableWidth = explicit
+    ? displayed.reduce<number>((sum, width) => sum + (width ?? 0), 0)
+    : undefined;
+
+  function commitWidth(column: number, width: number | null): void {
+    if (path === undefined) {
+      return;
+    }
+
+    runEditorCommand(editor, setTableColumnWidth, { tablePath: path, column, width });
+  }
+
+  function startWidth(column: number): number {
+    const node = path === undefined ? undefined : editor.api.node(path)?.[0];
+    const raw = isRecord(node) && Array.isArray(node.colSizes) ? node.colSizes[column] : undefined;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw;
+    }
+
+    const previous = column === 0 ? 0 : edges[column - 1];
+    const edge = edges[column];
+    if (previous !== undefined && edge !== undefined && edge > previous) {
+      return edge - previous;
+    }
+
+    return FALLBACK_COLUMN_WIDTH;
+  }
 
   return (
     <PlateElement {...props} className="group relative my-2 max-w-full">
       {readOnly || path === undefined ? null : <TableControls element={element} />}
       <div className="max-w-full overflow-x-auto">
-        <table className="w-max min-w-full border-collapse">
-          <tbody>{props.children}</tbody>
-        </table>
+        <div className="relative w-max min-w-full">
+          <table
+            ref={tableRef}
+            className={explicit ? "border-collapse" : "w-max min-w-full border-collapse"}
+            style={tableWidth === undefined ? undefined : { width: tableWidth }}
+          >
+            <colgroup>
+              {displayed.map((width, index) => (
+                <col key={index} style={typeof width === "number" ? { width } : undefined} />
+              ))}
+            </colgroup>
+            <tbody>{props.children}</tbody>
+          </table>
+          {readOnly
+            ? null
+            : displayed.map((width, index) => {
+                const edge = edges[index];
+                const left =
+                  edge !== undefined && edge > 0
+                    ? edge
+                    : displayed
+                        .slice(0, index + 1)
+                        .reduce<number>((sum, value) => sum + (value ?? FALLBACK_COLUMN_WIDTH), 0);
+                const current = typeof width === "number" ? width : startWidth(index);
+                return (
+                  <div
+                    key={index}
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-valuemin={TABLE_MIN_COLUMN_WIDTH}
+                    aria-valuemax={TABLE_MAX_COLUMN_WIDTH}
+                    aria-valuenow={current}
+                    aria-label={`Resize column ${index + 1}`}
+                    tabIndex={0}
+                    contentEditable={false}
+                    data-column={index}
+                    className="absolute top-0 z-10 h-full w-2 -translate-x-1/2 cursor-col-resize"
+                    style={{ left }}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      event.stopPropagation();
+                      const handle = event.currentTarget;
+                      const originX = event.clientX;
+                      const initial = startWidth(index);
+                      let latest = initial;
+                      const move = (pointer: PointerEvent): void => {
+                        latest = clampWidth(initial + pointer.clientX - originX);
+                        setPreview((currentPreview) => {
+                          const next = new Map(currentPreview);
+                          next.set(index, latest);
+                          return next;
+                        });
+                      };
+                      const stop = (): void => {
+                        handle.removeEventListener("pointermove", move);
+                        handle.removeEventListener("pointerup", stop);
+                        handle.removeEventListener("pointercancel", stop);
+                        setPreview((currentPreview) => {
+                          const next = new Map(currentPreview);
+                          next.delete(index);
+                          return next;
+                        });
+                        if (latest !== initial) {
+                          commitWidth(index, latest);
+                        }
+                      };
+                      handle.addEventListener("pointermove", move);
+                      handle.addEventListener("pointerup", stop);
+                      handle.addEventListener("pointercancel", stop);
+                      if (event.isTrusted) {
+                        handle.setPointerCapture(event.pointerId);
+                      }
+                    }}
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      commitWidth(index, null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      event.stopPropagation();
+                      const delta = event.key === "ArrowRight" ? 8 : -8;
+                      commitWidth(index, clampWidth(startWidth(index) + delta));
+                    }}
+                  />
+                );
+              })}
+        </div>
       </div>
     </PlateElement>
   );
@@ -5267,11 +7992,18 @@ export function TableRowElement(props: PlateElementProps) {
 export function TableCellElement(props: PlateElementProps) {
   const selected = useIsCellSelected(props.element);
   const header = props.element.type === KEYS.th;
+  const colSpan = spanAttribute(props.element.colSpan);
+  const rowSpan = spanAttribute(props.element.rowSpan);
 
   return (
     <PlateElement
       {...props}
       as={header ? "th" : "td"}
+      attributes={{
+        ...props.attributes,
+        colSpan,
+        rowSpan,
+      }}
       className={cn(CELL_CLASS, header && HEADER_CLASS, selected && SELECTED_CLASS)}
     />
   );
@@ -5280,19 +8012,22 @@ export function TableCellElement(props: PlateElementProps) {
 
 ## packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
 ```tsx
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   Columns3,
+  CopyPlus,
+  Merge,
   Rows3,
+  Split,
   Table2,
   Trash2,
 } from "lucide-react";
 import { ElementApi, type TElement } from "platejs";
-import { useEditorRef } from "platejs/react";
+import { useEditorRef, useEditorSelector } from "platejs/react";
 
 import {
   DropdownMenu,
@@ -5303,17 +8038,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 
+import { runEditorCommand, type EditorCommand } from "./editor-commands";
 import {
   deleteTable,
   deleteTableColumn,
   deleteTableRow,
+  duplicateTableColumn,
+  duplicateTableRow,
   insertTableColumn,
   insertTableRow,
-  runEditorCommand,
+  mergeTableCells,
+  moveTableColumnLeft,
+  moveTableColumnRight,
+  moveTableRowDown,
+  moveTableRowUp,
+  splitTableCell,
   toggleTableHeaderColumn,
   toggleTableHeaderRow,
-  type EditorCommand,
-} from "./editor-commands";
+} from "./editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "./editor-table";
 
 const TOOLBAR_CLASS_NAME =
@@ -5323,8 +8065,42 @@ function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
 
+function CommandMenuItem<Payload>({
+  command,
+  payload,
+  icon,
+  onApply,
+}: {
+  command: EditorCommand<Payload>;
+  payload: Payload;
+  icon: ReactNode;
+  onApply: (command: EditorCommand<Payload>, payload: Payload) => void;
+}) {
+  const editor = useEditorRef();
+  const reason = command.disabledReason?.(editor);
+
+  return (
+    <DropdownMenuItem
+      disabled={reason !== undefined}
+      onMouseDown={keepEditorSelection}
+      onSelect={() => {
+        onApply(command, payload);
+      }}
+    >
+      {icon}
+      <span className="flex min-w-0 flex-col items-start">
+        <span>{command.label}</span>
+        {reason === undefined ? null : (
+          <span className="text-muted-foreground text-xs whitespace-normal">{reason}</span>
+        )}
+      </span>
+    </DropdownMenuItem>
+  );
+}
+
 export function TableControls({ element }: { element: TElement }) {
   const editor = useEditorRef();
+  useEditorSelector((instance) => instance.selection, []);
   const savedSelection = useRef(editor.selection);
   const headerRow = ElementApi.isElement(element) && rowIsHeader(element);
   const headerColumn = ElementApi.isElement(element) && columnIsHeader(element);
@@ -5350,7 +8126,7 @@ export function TableControls({ element }: { element: TElement }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-52"
+          className="w-64"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             const selection = savedSelection.current;
@@ -5398,6 +8174,55 @@ export function TableControls({ element }: { element: TElement }) {
             <ArrowRight aria-hidden="true" />
             Insert column right
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <CommandMenuItem
+            command={mergeTableCells}
+            payload={undefined}
+            icon={<Merge aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={splitTableCell}
+            payload={undefined}
+            icon={<Split aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={duplicateTableRow}
+            payload={undefined}
+            icon={<CopyPlus aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={duplicateTableColumn}
+            payload={undefined}
+            icon={<CopyPlus aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableRowUp}
+            payload={undefined}
+            icon={<ArrowUp aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableRowDown}
+            payload={undefined}
+            icon={<ArrowDown aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableColumnLeft}
+            payload={undefined}
+            icon={<ArrowLeft aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableColumnRight}
+            payload={undefined}
+            icon={<ArrowRight aria-hidden="true" />}
+            onApply={apply}
+          />
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onMouseDown={keepEditorSelection}
@@ -5653,12 +8478,6 @@ import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-st
 import { unwrapCodeBlock } from "@platejs/code-block";
 import { ListStyleType, toggleList } from "@platejs/list";
 import {
-  deleteColumn,
-  deleteRow,
-  insertTableColumn as insertPlateTableColumn,
-  insertTableRow as insertPlateTableRow,
-} from "@platejs/table";
-import {
   ElementApi,
   KEYS,
   NodeApi,
@@ -5673,16 +8492,6 @@ import {
 } from "platejs";
 
 import { openAncestorToggle } from "./editor-toggle";
-import {
-  clampTableCount,
-  columnIsHeader,
-  createTableNode,
-  replaceTableWithParagraph,
-  rowIsHeader,
-  tableCellContext,
-  tableMaxColumns,
-  tableMaxRows,
-} from "./editor-table";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -5721,6 +8530,8 @@ export type EditorCommand<Payload = void> = {
   label: string;
   group: EditorCommandGroup;
   isEnabled?: (editor: SlateEditor) => boolean;
+  /** Shown when the command cannot run. Absent means the control stays quiet. */
+  disabledReason?: (editor: SlateEditor) => string | undefined;
   getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
   run: (editor: SlateEditor, payload: Payload) => void;
 };
@@ -6853,7 +9664,7 @@ export const setListRestart: EditorCommand<number | null> = {
   },
 };
 
-function directText(node: TElement): string {
+export function directText(node: TElement): string {
   let text = "";
   for (const child of node.children) {
     if (TextApi.isText(child)) {
@@ -6864,7 +9675,7 @@ function directText(node: TElement): string {
   return text;
 }
 
-function isPlainParagraph(node: TElement): boolean {
+export function isPlainParagraph(node: TElement): boolean {
   return node.type === KEYS.p && node.listStyleType === undefined;
 }
 
@@ -6929,212 +9740,6 @@ export const clearFormatting: EditorCommand = {
   isEnabled: selectionHasClearableMark,
   run: (editor) => {
     editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
-  },
-};
-
-function editorIsReadOnly(editor: SlateEditor): boolean {
-  return editor.dom.readOnly === true;
-}
-
-function inTable(editor: SlateEditor): boolean {
-  return !editorIsReadOnly(editor) && tableCellContext(editor) !== undefined;
-}
-
-function setFirstAxisType(editor: SlateEditor, axis: "row" | "column", header: boolean): void {
-  const cell = tableCellContext(editor);
-  if (!cell) {
-    return;
-  }
-
-  const table = editor.api.node(cell.tablePath)?.[0];
-  if (!ElementApi.isElement(table)) {
-    return;
-  }
-
-  const nextType = header ? KEYS.th : KEYS.td;
-  if (axis === "row") {
-    const row = table.children[0];
-    if (!ElementApi.isElement(row)) {
-      return;
-    }
-
-    for (let index = 0; index < row.children.length; index += 1) {
-      editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(0, index) });
-    }
-    return;
-  }
-
-  for (let index = 0; index < table.children.length; index += 1) {
-    editor.tf.setNodes({ type: nextType }, { at: cell.tablePath.concat(index, 0) });
-  }
-}
-
-// No shortcut. The slash menu and toolbar own insertion (DEV-122/125).
-// Rows and columns are clamped to the table cap. The size picker is UI for those tasks.
-export const insertTable: EditorCommand<{ rows?: number; cols?: number } | undefined> = {
-  id: "block.insert.table",
-  label: "Table",
-  group: "insert",
-  isEnabled: (editor) => !editorIsReadOnly(editor),
-  run: (editor, payload) => {
-    const rows = clampTableCount(payload?.rows, 3, tableMaxRows());
-    const cols = clampTableCount(payload?.cols, 3, tableMaxColumns());
-    const entry = editor.api.block({ highest: true });
-    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
-      return;
-    }
-
-    const [node, path] = entry;
-    let tablePath = path;
-    const table = createTableNode(rows, cols);
-    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
-      editor.tf.removeNodes({ at: path });
-      editor.tf.insertNodes(table, { at: path, select: false });
-    } else {
-      const at = PathApi.next(path);
-      if (!at) {
-        return;
-      }
-
-      editor.tf.insertNodes(table, { at, select: false });
-      tablePath = at;
-    }
-
-    const after = PathApi.next(tablePath);
-    if (after && !editor.api.node(after)) {
-      editor.tf.insertNodes(
-        { type: KEYS.p, children: [{ text: "" }] },
-        { at: after, select: false },
-      );
-    }
-
-    const start = editor.api.start(tablePath.concat(0, 0));
-    if (start) {
-      editor.tf.select(start);
-    }
-  },
-};
-
-export const insertTableRow: EditorCommand<{ before?: boolean } | undefined> = {
-  id: "block.table.insert-row",
-  label: "Insert row",
-  group: "insert",
-  isEnabled: inTable,
-  run: (editor, payload) => {
-    const cell = tableCellContext(editor);
-    if (!cell || cell.rowCount >= tableMaxRows()) {
-      return;
-    }
-
-    insertPlateTableRow(editor, {
-      before: payload?.before === true,
-      select: false,
-    });
-  },
-};
-
-export const insertTableColumn: EditorCommand<{ before?: boolean } | undefined> = {
-  id: "block.table.insert-column",
-  label: "Insert column",
-  group: "insert",
-  isEnabled: inTable,
-  run: (editor, payload) => {
-    const cell = tableCellContext(editor);
-    if (!cell || cell.columnCount >= tableMaxColumns()) {
-      return;
-    }
-
-    insertPlateTableColumn(editor, {
-      before: payload?.before === true,
-      select: false,
-    });
-  },
-};
-
-export const deleteTableRow: EditorCommand = {
-  id: "block.table.delete-row",
-  label: "Delete row",
-  group: "insert",
-  isEnabled: inTable,
-  run: (editor) => {
-    const cell = tableCellContext(editor);
-    if (!cell) {
-      return;
-    }
-
-    if (cell.rowCount <= 1) {
-      replaceTableWithParagraph(editor, cell.tablePath);
-      return;
-    }
-
-    deleteRow(editor);
-  },
-};
-
-export const deleteTableColumn: EditorCommand = {
-  id: "block.table.delete-column",
-  label: "Delete column",
-  group: "insert",
-  isEnabled: inTable,
-  run: (editor) => {
-    const cell = tableCellContext(editor);
-    if (!cell) {
-      return;
-    }
-
-    if (cell.columnCount <= 1) {
-      replaceTableWithParagraph(editor, cell.tablePath);
-      return;
-    }
-
-    deleteColumn(editor);
-  },
-};
-
-export const deleteTable: EditorCommand = {
-  id: "block.table.delete",
-  label: "Delete table",
-  group: "insert",
-  isEnabled: inTable,
-  run: (editor) => {
-    const cell = tableCellContext(editor);
-    if (!cell) {
-      return;
-    }
-
-    replaceTableWithParagraph(editor, cell.tablePath);
-  },
-};
-
-export const toggleTableHeaderRow: EditorCommand = {
-  id: "block.table.header-row",
-  label: "Header row",
-  group: "format",
-  isEnabled: inTable,
-  run: (editor) => {
-    const cell = tableCellContext(editor);
-    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
-    if (!cell || !ElementApi.isElement(table)) {
-      return;
-    }
-
-    setFirstAxisType(editor, "row", !rowIsHeader(table));
-  },
-};
-
-export const toggleTableHeaderColumn: EditorCommand = {
-  id: "block.table.header-column",
-  label: "Header column",
-  group: "format",
-  isEnabled: inTable,
-  run: (editor) => {
-    const cell = tableCellContext(editor);
-    const table = cell ? editor.api.node(cell.tablePath)?.[0] : undefined;
-    if (!cell || !ElementApi.isElement(table)) {
-      return;
-    }
-
-    setFirstAxisType(editor, "column", !columnIsHeader(table));
   },
 };
 
@@ -10151,6 +12756,70 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "table",
+    id: "demo-release",
+    colSizes: [160, 240, 120],
+    children: [
+      {
+        type: "tr",
+        id: "demo-release-r1",
+        children: [
+          {
+            type: "th",
+            id: "demo-release-plan",
+            colSpan: 2,
+            children: [
+              { type: "p", id: "demo-release-plan-p", children: [{ text: "Release plan" }] },
+            ],
+          },
+          {
+            type: "th",
+            id: "demo-release-status",
+            children: [{ type: "p", id: "demo-release-status-p", children: [{ text: "Status" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-release-r2",
+        children: [
+          {
+            type: "td",
+            id: "demo-release-editor",
+            rowSpan: 2,
+            children: [{ type: "p", id: "demo-release-editor-p", children: [{ text: "Editor" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-merge",
+            children: [{ type: "p", id: "demo-release-merge-p", children: [{ text: "Merge" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-now",
+            children: [{ type: "p", id: "demo-release-now-p", children: [{ text: "Now" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-release-r3",
+        children: [
+          {
+            type: "td",
+            id: "demo-release-split",
+            children: [{ type: "p", id: "demo-release-split-p", children: [{ text: "Split" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-next",
+            children: [{ type: "p", id: "demo-release-next-p", children: [{ text: "Next" }] }],
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -10329,6 +12998,18 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/code-block-element.tsx",
     code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-table.ts",
+    code: readSource(`${BLOCK_DIR}/editor-table.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-table-grid.ts",
+    code: readSource(`${BLOCK_DIR}/editor-table-grid.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-table-commands.ts",
+    code: readSource(`${BLOCK_DIR}/editor-table-commands.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/table-element.tsx",

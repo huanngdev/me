@@ -915,6 +915,70 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "table",
+    id: "demo-release",
+    colSizes: [160, 240, 120],
+    children: [
+      {
+        type: "tr",
+        id: "demo-release-r1",
+        children: [
+          {
+            type: "th",
+            id: "demo-release-plan",
+            colSpan: 2,
+            children: [
+              { type: "p", id: "demo-release-plan-p", children: [{ text: "Release plan" }] },
+            ],
+          },
+          {
+            type: "th",
+            id: "demo-release-status",
+            children: [{ type: "p", id: "demo-release-status-p", children: [{ text: "Status" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-release-r2",
+        children: [
+          {
+            type: "td",
+            id: "demo-release-editor",
+            rowSpan: 2,
+            children: [{ type: "p", id: "demo-release-editor-p", children: [{ text: "Editor" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-merge",
+            children: [{ type: "p", id: "demo-release-merge-p", children: [{ text: "Merge" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-now",
+            children: [{ type: "p", id: "demo-release-now-p", children: [{ text: "Now" }] }],
+          },
+        ],
+      },
+      {
+        type: "tr",
+        id: "demo-release-r3",
+        children: [
+          {
+            type: "td",
+            id: "demo-release-split",
+            children: [{ type: "p", id: "demo-release-split-p", children: [{ text: "Split" }] }],
+          },
+          {
+            type: "td",
+            id: "demo-release-next",
+            children: [{ type: "p", id: "demo-release-next-p", children: [{ text: "Next" }] }],
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

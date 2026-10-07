@@ -24,7 +24,8 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { capPastedTable } from "./editor-table";
+import { capPastedTable, repairTableGrid } from "./editor-table";
+import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -129,6 +130,35 @@ function takeId(node: Record<string, unknown>, seen: Set<string>): string | unde
   return node.id;
 }
 
+function integerSpan(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^-?[0-9]+$/.test(value)) {
+    return Number(value);
+  }
+
+  return undefined;
+}
+
+function copyCellSpans(node: Record<string, unknown>, props: TElement): void {
+  if (props.type !== "td" && props.type !== "th") {
+    return;
+  }
+
+  const attributes = isRecord(node.attributes) ? node.attributes : undefined;
+  const colSpan = integerSpan(node.colSpan) ?? integerSpan(attributes?.colspan);
+  const rowSpan = integerSpan(node.rowSpan) ?? integerSpan(attributes?.rowspan);
+  if (colSpan !== undefined) {
+    props.colSpan = colSpan;
+  }
+
+  if (rowSpan !== undefined) {
+    props.rowSpan = rowSpan;
+  }
+}
+
 function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void {
   const allowed = allowedElementAttrs(props.type);
   if (allowed === undefined) {
@@ -136,12 +166,20 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
-    if (key === "id" || !(key in node) || !isAllowedElementAttrValue(props.type, key, node[key])) {
+    if (
+      key === "id" ||
+      key === "colSpan" ||
+      key === "rowSpan" ||
+      !(key in node) ||
+      !isAllowedElementAttrValue(props.type, key, node[key])
+    ) {
       continue;
     }
 
     props[key] = node[key];
   }
+
+  copyCellSpans(node, props);
 
   for (const dependent of unsatisfiedDependentAttrs(props.type, props)) {
     Reflect.deleteProperty(props, dependent);
@@ -451,14 +489,219 @@ function containerPieces(
   return finishTable(node, [props]);
 }
 
+type HtmlWidthPlan = {
+  widths: (number | null)[] | undefined;
+  repairs: Repair[];
+};
+
+let htmlWidthPlans: HtmlWidthPlan[] = [];
+// The table override sanitizes, then PasteFallback sanitizes the same fragment.
+// The first pass consumes the width plan. These repairs are merged back so the
+// second pass does not replace the report with an empty list.
+let pendingWidthRepairs: Repair[] = [];
+
+function widthRepair(raw: string): Repair {
+  const message = raw.endsWith("%")
+    ? `A column width of ${raw} was dropped. The column stays automatic.`
+    : `A column width of ${raw} was dropped. Only widths from ${TABLE_MIN_COLUMN_WIDTH}px to ${TABLE_MAX_COLUMN_WIDTH}px are kept.`;
+  return { path: [], message };
+}
+
+function parsedPixelWidth(raw: string): { px: number } | { drop: string } {
+  const value = raw.trim();
+  const percent = /^(\d+(?:\.\d+)?)%$/.exec(value);
+  if (percent) {
+    return { drop: value };
+  }
+
+  const pixels = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(value);
+  const token = pixels?.[1];
+  if (token === undefined) {
+    return { drop: value.length > 0 ? value : raw };
+  }
+
+  const px = Number(token);
+  if (!Number.isInteger(px) || px < TABLE_MIN_COLUMN_WIDTH || px > TABLE_MAX_COLUMN_WIDTH) {
+    return { drop: value.endsWith("%") ? value : `${px}px` };
+  }
+
+  return { px };
+}
+
+function elementWidth(element: Element): string | null {
+  const style = element.getAttribute("style");
+  if (style !== null) {
+    const match = /(?:^|;)\s*width\s*:\s*([^;]+)/i.exec(style);
+    const declared = match?.[1]?.trim();
+    if (declared) {
+      return declared;
+    }
+  }
+
+  const width = element.getAttribute("width");
+  return width === null || width.trim().length === 0 ? null : width.trim();
+}
+
+function directColumns(table: Element): Element[] {
+  const columns: Element[] = [];
+  for (const child of table.children) {
+    if (child.tagName === "COL") {
+      columns.push(child);
+      continue;
+    }
+
+    if (child.tagName !== "COLGROUP") {
+      continue;
+    }
+
+    for (const column of child.children) {
+      if (column.tagName === "COL") {
+        columns.push(column);
+      }
+    }
+  }
+
+  return columns;
+}
+
+function widthsFromElements(elements: readonly Element[], spans: readonly number[]): HtmlWidthPlan {
+  const widths: (number | null)[] = [];
+  const repairs: Repair[] = [];
+  let column = 0;
+  for (let index = 0; index < elements.length; index += 1) {
+    const element = elements[index];
+    const span = spans[index] ?? 1;
+    if (!element) {
+      continue;
+    }
+
+    const raw = elementWidth(element);
+    const parsed = raw === null ? undefined : parsedPixelWidth(raw);
+    if (parsed && "px" in parsed) {
+      widths[column] = parsed.px;
+    } else {
+      if (parsed && "drop" in parsed) {
+        repairs.push(widthRepair(parsed.drop));
+      }
+      widths[column] = null;
+    }
+
+    for (let offset = 1; offset < span; offset += 1) {
+      widths[column + offset] = null;
+    }
+    column += span;
+  }
+
+  const explicit = widths.some((width) => typeof width === "number");
+  return { widths: explicit ? widths : undefined, repairs };
+}
+
+function positiveSpan(element: Element): number {
+  const raw = element.getAttribute("colspan");
+  if (raw === null || !/^[0-9]+$/.test(raw)) {
+    return 1;
+  }
+
+  const parsed = Number(raw);
+  return parsed > 1 ? parsed : 1;
+}
+
+// A bare `<col>` is invalid until a parser wraps it in `<colgroup>`. happy-dom
+// leaves that column as the table's previous sibling, so the width would be lost.
+function adoptedColumns(table: Element): Element[] {
+  const gathered: Element[] = [];
+  let sibling = table.previousElementSibling;
+  while (sibling && (sibling.tagName === "COL" || sibling.tagName === "COLGROUP")) {
+    gathered.push(sibling);
+    sibling = sibling.previousElementSibling;
+  }
+
+  gathered.reverse();
+  const columns: Element[] = [];
+  for (const element of gathered) {
+    if (element.tagName === "COL") {
+      columns.push(element);
+      continue;
+    }
+
+    for (const column of element.children) {
+      if (column.tagName === "COL") {
+        columns.push(column);
+      }
+    }
+  }
+
+  return columns;
+}
+
+function widthsFromHtmlTable(table: Element): HtmlWidthPlan {
+  const nested = directColumns(table);
+  const columns = nested.length > 0 ? nested : adoptedColumns(table);
+  if (columns.length > 0) {
+    return widthsFromElements(
+      columns,
+      columns.map(() => 1),
+    );
+  }
+
+  const row = table.querySelector("tr");
+  const cells =
+    row === null
+      ? []
+      : Array.from(row.children).filter(
+          (child) => child.tagName === "TD" || child.tagName === "TH",
+        );
+  return widthsFromElements(
+    cells,
+    cells.map((cell) => positiveSpan(cell)),
+  );
+}
+
+export function rememberHtmlTableWidths(html: string): void {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  pendingWidthRepairs = [];
+  htmlWidthPlans = Array.from(document.querySelectorAll("table")).map((table) =>
+    widthsFromHtmlTable(table),
+  );
+}
+
+export function clearHtmlTableWidths(): void {
+  htmlWidthPlans = [];
+  pendingWidthRepairs = [];
+}
+
+function applyRememberedWidths(table: TElement, repairs: Repair[] | undefined): TElement {
+  const plan = htmlWidthPlans.shift();
+  if (plan === undefined) {
+    return table;
+  }
+
+  pendingWidthRepairs.push(...plan.repairs);
+  if (repairs !== undefined) {
+    repairs.push(...plan.repairs);
+  }
+
+  if (plan.widths === undefined) {
+    return table;
+  }
+
+  return { ...table, colSizes: plan.widths };
+}
+
 function finishTable(node: TElement, pieces: TElement[]): TElement[] {
   if (node.type !== "table") {
     return pieces;
   }
 
-  return pieces.map((piece) =>
-    piece.type === "table" ? capPastedTable(piece, activePasteRepairs) : piece,
-  );
+  return pieces.map((piece) => {
+    if (piece.type !== "table") {
+      return piece;
+    }
+
+    const capped = capPastedTable(piece, activePasteRepairs);
+    const sized = applyRememberedWidths(capped, activePasteRepairs);
+    return repairTableGrid(sized, activePasteRepairs);
+  });
 }
 
 function expandBlock(
@@ -636,6 +879,7 @@ export function sanitizePastedFragment(
   flush();
 
   activePasteRepairs = previousRepairs;
+  htmlWidthPlans = [];
   return paragraphs;
 }
 
@@ -658,6 +902,11 @@ export function preparePastedFragment(
     seenIds: collectEditorIds(editor.children),
     repairs,
   });
+  for (const repair of pendingWidthRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }

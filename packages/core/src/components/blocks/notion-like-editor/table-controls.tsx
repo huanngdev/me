@@ -1,16 +1,19 @@
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   Columns3,
+  CopyPlus,
+  Merge,
   Rows3,
+  Split,
   Table2,
   Trash2,
 } from "lucide-react";
 import { ElementApi, type TElement } from "platejs";
-import { useEditorRef } from "platejs/react";
+import { useEditorRef, useEditorSelector } from "platejs/react";
 
 import {
   DropdownMenu,
@@ -21,17 +24,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 
+import { runEditorCommand, type EditorCommand } from "./editor-commands";
 import {
   deleteTable,
   deleteTableColumn,
   deleteTableRow,
+  duplicateTableColumn,
+  duplicateTableRow,
   insertTableColumn,
   insertTableRow,
-  runEditorCommand,
+  mergeTableCells,
+  moveTableColumnLeft,
+  moveTableColumnRight,
+  moveTableRowDown,
+  moveTableRowUp,
+  splitTableCell,
   toggleTableHeaderColumn,
   toggleTableHeaderRow,
-  type EditorCommand,
-} from "./editor-commands";
+} from "./editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "./editor-table";
 
 const TOOLBAR_CLASS_NAME =
@@ -41,8 +51,42 @@ function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
 
+function CommandMenuItem<Payload>({
+  command,
+  payload,
+  icon,
+  onApply,
+}: {
+  command: EditorCommand<Payload>;
+  payload: Payload;
+  icon: ReactNode;
+  onApply: (command: EditorCommand<Payload>, payload: Payload) => void;
+}) {
+  const editor = useEditorRef();
+  const reason = command.disabledReason?.(editor);
+
+  return (
+    <DropdownMenuItem
+      disabled={reason !== undefined}
+      onMouseDown={keepEditorSelection}
+      onSelect={() => {
+        onApply(command, payload);
+      }}
+    >
+      {icon}
+      <span className="flex min-w-0 flex-col items-start">
+        <span>{command.label}</span>
+        {reason === undefined ? null : (
+          <span className="text-muted-foreground text-xs whitespace-normal">{reason}</span>
+        )}
+      </span>
+    </DropdownMenuItem>
+  );
+}
+
 export function TableControls({ element }: { element: TElement }) {
   const editor = useEditorRef();
+  useEditorSelector((instance) => instance.selection, []);
   const savedSelection = useRef(editor.selection);
   const headerRow = ElementApi.isElement(element) && rowIsHeader(element);
   const headerColumn = ElementApi.isElement(element) && columnIsHeader(element);
@@ -68,7 +112,7 @@ export function TableControls({ element }: { element: TElement }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-52"
+          className="w-64"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             const selection = savedSelection.current;
@@ -116,6 +160,55 @@ export function TableControls({ element }: { element: TElement }) {
             <ArrowRight aria-hidden="true" />
             Insert column right
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <CommandMenuItem
+            command={mergeTableCells}
+            payload={undefined}
+            icon={<Merge aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={splitTableCell}
+            payload={undefined}
+            icon={<Split aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={duplicateTableRow}
+            payload={undefined}
+            icon={<CopyPlus aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={duplicateTableColumn}
+            payload={undefined}
+            icon={<CopyPlus aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableRowUp}
+            payload={undefined}
+            icon={<ArrowUp aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableRowDown}
+            payload={undefined}
+            icon={<ArrowDown aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableColumnLeft}
+            payload={undefined}
+            icon={<ArrowLeft aria-hidden="true" />}
+            onApply={apply}
+          />
+          <CommandMenuItem
+            command={moveTableColumnRight}
+            payload={undefined}
+            icon={<ArrowRight aria-hidden="true" />}
+            onApply={apply}
+          />
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onMouseDown={keepEditorSelection}

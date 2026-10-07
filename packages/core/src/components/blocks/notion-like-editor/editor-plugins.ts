@@ -110,7 +110,12 @@ import {
 } from "./editor-code";
 import { PasteFallbackPlugin } from "./editor-paste";
 import { HeadingElement } from "./heading-element";
-import { preparePastedFragment, setPasteRepairs } from "./editor-paste";
+import {
+  clearHtmlTableWidths,
+  preparePastedFragment,
+  rememberHtmlTableWidths,
+  setPasteRepairs,
+} from "./editor-paste";
 import { TableCellElement, TableElement, TableRowElement } from "./table-element";
 import {
   caretAtCellStart,
@@ -1410,11 +1415,11 @@ function htmlHasTable(html: string): boolean {
 // previous tab is code, then list. Outside a table, Tab is unchanged.
 // Plate's tab stops on the last cell. Appending a row there is editable only.
 // No insert shortcut. Slash menu and toolbar are DEV-122/125.
-// disableMerge keeps row and column edits off the span-writing paths.
-// initialTableWidth stays unset, so insert and normalize do not write colSizes.
+// initialTableWidth stays unset. Column insert still writes a 0 into colSizes
+// when widths already exist; the command rewrites that 0 to null before normalize.
 const tablePlugin = TablePlugin.configure({
   options: {
-    disableMerge: true,
+    disableMerge: false,
   },
   render: { node: TableElement },
 })
@@ -1425,7 +1430,7 @@ const tablePlugin = TablePlugin.configure({
     ({ editor, tf: { deleteBackward, deleteFragment, insertData, insertFragment, tab } }) => ({
       transforms: {
         // withInsertFragmentTable inserts a single table before PasteFallback.
-        // Sanitize here so that path still drops spans, caps the grid, and
+        // Sanitize here so that path keeps spans, caps the grid, and
         // omits an id the document already uses.
         insertFragment(fragment, options) {
           insertFragment(preparePastedFragment(editor, fragment), options);
@@ -1443,12 +1448,15 @@ const tablePlugin = TablePlugin.configure({
 
           const atLastCell =
             !reverse &&
-            cell.rowIndex === cell.rowCount - 1 &&
-            cell.columnIndex === cell.columnCount - 1;
+            cell.rowIndex + cell.rowSpan - 1 === cell.rowCount - 1 &&
+            cell.columnIndex + cell.colSpan - 1 === cell.columnCount - 1;
           if (atLastCell) {
             if (!editor.dom.readOnly && cell.rowCount < tableMaxRows()) {
-              insertTableRow(editor, { select: false });
-              const start = editor.api.start(cell.tablePath.concat(cell.rowIndex + 1, 0));
+              insertTableRow(editor, {
+                select: false,
+                fromRow: cell.tablePath.concat(cell.rowCount - 1),
+              });
+              const start = editor.api.start(cell.tablePath.concat(cell.rowCount, 0));
               if (start) {
                 editor.tf.select(start);
               }
@@ -1488,8 +1496,19 @@ const tablePlugin = TablePlugin.configure({
             // A table inserted that way is still inside the paragraph when
             // normalize runs, and the paragraph unwraps the rows. Deserialize,
             // then insertFragment so the sanitized table is normalized as a block.
-            const body = new DOMParser().parseFromString(html, "text/html").body;
-            editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            // Plate's cell parser keeps colspan on attributes and ignores widths.
+            rememberHtmlTableWidths(html);
+            try {
+              const body = new DOMParser().parseFromString(html, "text/html").body;
+              // happy-dom hoists a bare <col> out of the table. Widths are already
+              // recorded; leaving the column in the body pastes an empty paragraph.
+              for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
+                column.remove();
+              }
+              editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
+            } finally {
+              clearHtmlTableWidths();
+            }
             return;
           }
 

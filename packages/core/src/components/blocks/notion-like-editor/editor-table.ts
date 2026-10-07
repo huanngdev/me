@@ -1,5 +1,13 @@
 import { insertTableColumn, insertTableRow } from "@platejs/table";
-import { KEYS, PathApi, PointApi, type SlateEditor, type TElement } from "platejs";
+import {
+  KEYS,
+  PathApi,
+  PointApi,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type TText,
+} from "platejs";
 
 import type { Repair } from "./editor-document-ids";
 import {
@@ -8,14 +16,19 @@ import {
   TABLE_MAX_COLUMNS,
   TABLE_MAX_ROWS,
 } from "./editor-document-schema";
+import { checkTableGrid, tableCoverage, type CoveredCell } from "./editor-table-grid";
 
 export type TableCellContext = {
   tablePath: number[];
   cellPath: number[];
   rowIndex: number;
+  /** Grid column. A colspan starts at this column. */
   columnIndex: number;
+  cellIndex: number;
   rowCount: number;
   columnCount: number;
+  colSpan: number;
+  rowSpan: number;
 };
 
 export function tableMaxRows(): number {
@@ -81,8 +94,63 @@ export function clampTableCount(value: number | undefined, fallback: number, max
   return value;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function elementChildren(node: TElement): TElement[] {
   return node.children.filter(isTElement);
+}
+
+function tableRecord(node: TElement): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+  for (const key of Object.keys(node)) {
+    record[key] = node[key];
+  }
+
+  return record;
+}
+
+function elementFromRecord(node: Record<string, unknown>): TElement | undefined {
+  if (typeof node.type !== "string" || !Array.isArray(node.children)) {
+    return undefined;
+  }
+
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    if (!isRecord(child)) {
+      return undefined;
+    }
+
+    if (typeof child.text === "string") {
+      const text: TText = { text: child.text };
+      for (const key of Object.keys(child)) {
+        if (key !== "text") {
+          text[key] = child[key];
+        }
+      }
+      children.push(text);
+      continue;
+    }
+
+    const element = elementFromRecord(child);
+    if (!element) {
+      return undefined;
+    }
+
+    children.push(element);
+  }
+
+  const element: TElement = { type: node.type, children };
+  for (const key of Object.keys(node)) {
+    if (key === "type" || key === "children") {
+      continue;
+    }
+
+    element[key] = node[key];
+  }
+
+  return element;
 }
 
 export function capPastedTable(node: TElement, repairs: Repair[] | undefined): TElement {
@@ -95,46 +163,16 @@ export function capPastedTable(node: TElement, repairs: Repair[] | undefined): T
   const sourceRows = elementChildren(node);
   let truncated = sourceRows.length > maxRows;
   const keptRows = sourceRows.slice(0, maxRows);
-  let width = 0;
-  for (const row of keptRows) {
-    const count = elementChildren(row).length;
-    if (count > width) {
-      width = count;
-    }
-  }
-
-  if (width > maxColumns) {
-    truncated = true;
-    width = maxColumns;
-  }
-
-  if (width < 1) {
-    width = 1;
-  }
-
   let changed = keptRows.length !== node.children.length;
   const nextRows = keptRows.map((row) => {
     const cells = elementChildren(row);
-    if (cells.length > width) {
-      truncated = true;
+    if (cells.length <= maxColumns) {
+      return row;
     }
 
-    const header = cells.length > 0 && cells.every((cell) => cell.type === KEYS.th);
-    const nextCells = cells.slice(0, width);
-    while (nextCells.length < width) {
-      nextCells.push(emptyTableCell(header));
-      changed = true;
-    }
-
-    if (
-      nextCells.length !== row.children.length ||
-      nextCells.some((cell, index) => cell !== row.children[index])
-    ) {
-      changed = true;
-      return { ...row, children: nextCells };
-    }
-
-    return row;
+    truncated = true;
+    changed = true;
+    return { ...row, children: cells.slice(0, maxColumns) };
   });
 
   if (
@@ -166,25 +204,26 @@ function contextForCell(editor: SlateEditor, cellPath: number[]): TableCellConte
   }
 
   const rowIndex = cellPath[cellPath.length - 2];
-  const columnIndex = cellPath[cellPath.length - 1];
-  if (rowIndex === undefined || columnIndex === undefined) {
+  const cellIndex = cellPath[cellPath.length - 1];
+  if (rowIndex === undefined || cellIndex === undefined) {
     return undefined;
   }
 
-  let columnCount = 0;
-  for (const row of tableEntry[0].children) {
-    if (isTElement(row) && row.children.length > columnCount) {
-      columnCount = row.children.length;
-    }
-  }
+  const coverage = tableCoverage(tableRecord(tableEntry[0]), tableMaxColumns());
+  const covered = coverage.cells.find(
+    (cell) => cell.rowIndex === rowIndex && cell.cellIndex === cellIndex,
+  );
 
   return {
     tablePath: tableEntry[1],
     cellPath,
     rowIndex,
-    columnIndex,
-    rowCount: tableEntry[0].children.length,
-    columnCount,
+    columnIndex: covered?.column ?? cellIndex,
+    cellIndex,
+    rowCount: coverage.rowCount,
+    columnCount: coverage.columnCount,
+    colSpan: covered?.colSpan ?? 1,
+    rowSpan: covered?.rowSpan ?? 1,
   };
 }
 
@@ -254,14 +293,74 @@ function rowCountOf(table: TElement): number {
 }
 
 function columnCountOf(table: TElement): number {
-  let count = 0;
-  for (const row of table.children) {
-    if (isTElement(row) && row.children.length > count) {
-      count = row.children.length;
-    }
+  return tableCoverage(tableRecord(table), tableMaxColumns()).columnCount;
+}
+
+function anchorAt(
+  table: TElement,
+  gridRow: number,
+  gridColumn: number,
+): CoveredCell | "covered" | undefined {
+  const owner = tableCoverage(tableRecord(table), tableMaxColumns()).cells.find(
+    (cell) =>
+      cell.row <= gridRow &&
+      gridRow < cell.row + cell.rowSpan &&
+      cell.column <= gridColumn &&
+      gridColumn < cell.column + cell.colSpan,
+  );
+  if (!owner) {
+    return undefined;
   }
 
-  return count;
+  if (owner.row !== gridRow || owner.column !== gridColumn) {
+    return "covered";
+  }
+
+  return owner;
+}
+
+export function neutralizeInsertedColumnWidths(editor: SlateEditor, tablePath: number[]): void {
+  const table = liveTable(editor, tablePath);
+  const raw = table?.colSizes;
+  if (!table || !Array.isArray(raw)) {
+    return;
+  }
+
+  let changed = false;
+  const next = raw.map((value) => {
+    if (value === 0) {
+      changed = true;
+      return null;
+    }
+
+    return value;
+  });
+  if (!changed) {
+    return;
+  }
+
+  if (next.every((value) => value === null)) {
+    editor.tf.unsetNodes("colSizes", { at: tablePath });
+    return;
+  }
+
+  editor.tf.setNodes({ colSizes: next }, { at: tablePath });
+}
+
+export function repairTableGrid(node: TElement, repairs: Repair[] | undefined): TElement {
+  const checked = checkTableGrid(tableRecord(node), [], {
+    maxRows: tableMaxRows(),
+    maxColumns: tableMaxColumns(),
+  });
+  if (repairs !== undefined) {
+    repairs.push(...checked.repairs);
+  }
+
+  if (checked.next === undefined) {
+    return node;
+  }
+
+  return elementFromRecord(checked.next) ?? node;
 }
 
 export function tsvGrid(text: string): string[][] | undefined {
@@ -361,12 +460,15 @@ export function fillTableWithTsv(
           }
 
           const before = columnCountOf(table);
+          const firstRow = table.children[0];
+          const lastCell = isTElement(firstRow) ? firstRow.children.length - 1 : 0;
           // fromCell is the last cell, so the new column is appended. The caret
           // is not a reliable anchor after writeCellText replaces a cell.
           insertTableColumn(editor, {
             select: false,
-            fromCell: origin.tablePath.concat(0, before - 1),
+            fromCell: origin.tablePath.concat(0, lastCell),
           });
+          neutralizeInsertedColumnWidths(editor, origin.tablePath);
           table = liveTable(editor, origin.tablePath);
           if (!table || columnCountOf(table) === before) {
             truncated = true;
@@ -374,8 +476,18 @@ export function fillTableWithTsv(
           }
         }
 
+        table = liveTable(editor, origin.tablePath);
+        if (!table) {
+          return;
+        }
+
+        const slot = anchorAt(table, targetRow, targetColumn);
+        if (slot === "covered" || slot === undefined) {
+          continue;
+        }
+
         const cellText = row[columnOffset] ?? "";
-        writeCellText(editor, origin.tablePath.concat(targetRow, targetColumn), cellText);
+        writeCellText(editor, origin.tablePath.concat(slot.rowIndex, slot.cellIndex), cellText);
       }
     }
   });
@@ -438,35 +550,21 @@ export function normalizeTableNode(
     return true;
   }
 
-  let width = 1;
-  for (const row of rows) {
-    const count = elementChildren(row).length;
-    if (count > width) {
-      width = count;
-    }
+  if (!isRecord(node)) {
+    return false;
   }
 
-  if (width > tableMaxColumns()) {
-    width = tableMaxColumns();
-  }
-
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-    const row = rows[rowIndex];
-    if (!row) {
-      continue;
-    }
-
-    const cells = elementChildren(row);
-    if (cells.length > width) {
-      editor.tf.removeNodes({ at: path.concat(rowIndex, cells.length - 1) });
-      return true;
-    }
-
-    if (cells.length < width) {
-      const header = cells.length > 0 && cells.every((cell) => cell.type === KEYS.th);
-      editor.tf.insertNodes(emptyTableCell(header), { at: path.concat(rowIndex, cells.length) });
-      return true;
-    }
+  const checked = checkTableGrid(node, path, {
+    maxRows: tableMaxRows(),
+    maxColumns: tableMaxColumns(),
+  });
+  const replacement = checked.next === undefined ? undefined : elementFromRecord(checked.next);
+  if (replacement) {
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.removeNodes({ at: path });
+      editor.tf.insertNodes(replacement, { at: path });
+    });
+    return true;
   }
 
   return ensureParagraphAfterTable(editor, path);
@@ -482,16 +580,16 @@ export function rowIsHeader(table: TElement): boolean {
 }
 
 export function columnIsHeader(table: TElement): boolean {
-  if (table.children.length === 0) {
+  const anchors = tableCoverage(tableRecord(table), tableMaxColumns()).cells.filter(
+    (cell) => cell.column === 0,
+  );
+  if (anchors.length === 0) {
     return false;
   }
 
-  return table.children.every((row) => {
-    if (!isTElement(row)) {
-      return false;
-    }
-
-    const cell = row.children[0];
+  return anchors.every((anchor) => {
+    const row = table.children[anchor.rowIndex];
+    const cell = isTElement(row) ? row.children[anchor.cellIndex] : undefined;
     return isTElement(cell) && cell.type === KEYS.th;
   });
 }

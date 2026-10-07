@@ -5,18 +5,17 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { getBlockType, runEditorCommand } from "./editor-commands";
 import {
   deleteTable,
   deleteTableColumn,
   deleteTableRow,
-  getBlockType,
   insertTable,
   insertTableColumn,
   insertTableRow,
-  runEditorCommand,
   toggleTableHeaderColumn,
   toggleTableHeaderRow,
-} from "./editor-commands";
+} from "./editor-table-commands";
 import { createEditorDocument } from "./editor-document";
 import { allowedChildTypes, TABLE_MAX_COLUMNS, TABLE_MAX_ROWS } from "./editor-document-schema";
 import { parseEditorDocument, type ParseResult } from "./editor-document-validate";
@@ -323,7 +322,7 @@ describe("table schema", () => {
     expect(issues(columns)).toContain("At most 20");
   });
 
-  test("a nested table, a non-paragraph cell, spans, colSizes, and inline cell children are unsupported", () => {
+  test("a nested table, a non-paragraph cell, and inline cell children are unsupported", () => {
     const nested = expectUnsupported(
       documentOf([
         tableNode("outer", [
@@ -344,16 +343,6 @@ describe("table schema", () => {
         ]),
       ]),
     );
-    const span = expectUnsupported(
-      documentOf([
-        tableNode("table-1", [row("row-1", [{ ...cell("td", "cell-1", "A"), colSpan: 2 }])]),
-      ]),
-    );
-    const sizes = expectUnsupported(
-      documentOf([
-        { ...tableNode("table-1", [row("row-1", [cell("td", "cell-1", "A")])]), colSizes: [120] },
-      ]),
-    );
     const inline = expectUnsupported(
       documentOf([
         tableNode("table-1", [
@@ -364,9 +353,22 @@ describe("table schema", () => {
 
     expect(issues(nested)).toContain('unsupported child type "table"');
     expect(issues(heading)).toContain('unsupported child type "h1"');
-    expect(issues(span)).toContain('unsupported attribute "colSpan"');
-    expect(issues(sizes)).toContain('unsupported attribute "colSizes"');
     expect(issues(inline)).toContain("inline children");
+  });
+
+  test("a span that defines the grid and an in-range colSizes round-trip", () => {
+    const spanned = tableNode("table-1", [
+      row("row-1", [{ ...cell("td", "cell-1", "A"), colSpan: 2 }, cell("td", "cell-2", "B")]),
+    ]);
+    const sized = {
+      ...tableNode("table-2", [row("row-2", [cell("td", "sized-a", "A")])]),
+      colSizes: [120],
+    };
+    const parsed = expectOk(documentOf([spanned, sized]));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(JSON.stringify(parsed.document.content[0])).toContain('"colSpan":2');
+    expect(field(parsed.document.content[1], "colSizes")).toEqual([120]);
   });
 });
 
@@ -952,9 +954,9 @@ describe("table paste", () => {
     expect(nodeText(table)).toContain("Lovelace");
     expect(nodeText(table)).toContain("Bold");
     expect(nodeText(table)).toContain("Merged");
-    expect(JSON.stringify(table)).not.toContain("colSpan");
+    expect(JSON.stringify(table)).toContain('"colSpan":2');
     expect(JSON.stringify(table)).not.toContain("colspan");
-    expect(grid.every((tableRow) => tableRow.length === grid[0]?.length)).toBe(true);
+    expect(grid[2]).toHaveLength(1);
     const bold = JSON.stringify(table);
     expect(bold).toContain('"bold":true');
   });
@@ -1104,7 +1106,7 @@ describe("table render", () => {
     expect(html).toContain("<th");
     expect(html).toContain("<td");
     expect(html).toContain("overflow-x-auto");
-    expect(html).toContain("min-w-32");
+    expect(html).toContain("min-w-12");
     expect(html).toContain("var(--editor-table-border)");
     expect(html).toContain("var(--editor-table-header-bg)");
     expect(html).toContain('contentEditable="false"');
@@ -1113,6 +1115,7 @@ describe("table render", () => {
     const readOnly = renderTable([sample], true);
     expect(readOnly).toContain("<th");
     expect(readOnly).not.toContain("Table options");
+    expect(readOnly).not.toContain('role="separator"');
   });
 
   test("a multi-cell selection marks the selected cells", async () => {
