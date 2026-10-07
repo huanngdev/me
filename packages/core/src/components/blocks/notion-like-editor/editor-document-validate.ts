@@ -11,10 +11,13 @@ import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxNesting,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
@@ -174,7 +177,14 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
   return childType !== undefined && childTypes.some((type) => type === childType);
 }
 
-function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
+const emptyNesting = new Map<string, number>();
+
+function walkElement(
+  value: Record<string, unknown>,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
       state,
@@ -273,6 +283,43 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const nestingLimit = allowed === undefined ? undefined : maxNesting(type);
+  let childNesting: ReadonlyMap<string, number> = nesting;
+  if (nestingLimit !== undefined) {
+    const depth = (nesting.get(type) ?? 0) + 1;
+    if (depth > nestingLimit) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} is nested deeper than ${nestingLimit} ${type} levels. Restore from a backup or remove the extra nesting.`,
+      });
+    }
+
+    const nextNesting = new Map(nesting);
+    nextNesting.set(type, depth);
+    childNesting = nextNesting;
+  }
+
+  const labelType = allowed === undefined ? undefined : firstChildType(type);
+  if (labelType !== undefined) {
+    const first = value.children[0];
+    const firstStructuralType = structuralChildType(first);
+    if (firstStructuralType !== undefined && firstStructuralType !== labelType) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported first child type "${firstStructuralType}". Restore from a backup or remove the block.`,
+      });
+    } else if (firstStructuralType === labelType && isRecord(first)) {
+      for (const key of firstChildForbiddenAttrs(type)) {
+        if (key in first) {
+          state.unsupported.push({
+            path,
+            message: `${formatBlockLabel(path)} has an unsupported label ${key}. Restore from a backup or remove the attribute.`,
+          });
+        }
+      }
+    }
+  }
+
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
     if (!voidBlock && !childIsAllowed(type, child)) {
@@ -285,14 +332,19 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
       });
     }
 
-    walkDescendant(child, [...path, index], state);
+    walkDescendant(child, [...path, index], state, childNesting);
     if (state.invalid) {
       return;
     }
   }
 }
 
-function walkDescendant(value: unknown, path: number[], state: WalkState): void {
+function walkDescendant(
+  value: unknown,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (!isRecord(value)) {
     reject(
       state,
@@ -303,7 +355,7 @@ function walkDescendant(value: unknown, path: number[], state: WalkState): void 
   }
 
   if ("children" in value || "type" in value) {
-    walkElement(value, path, state);
+    walkElement(value, path, state, nesting);
     return;
   }
 
@@ -319,7 +371,12 @@ function walkDescendant(value: unknown, path: number[], state: WalkState): void 
   );
 }
 
-function walkTopLevel(value: unknown, path: number[], state: WalkState): void {
+function walkTopLevel(
+  value: unknown,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (!isRecord(value) || !("children" in value || "type" in value)) {
     reject(
       state,
@@ -329,7 +386,7 @@ function walkTopLevel(value: unknown, path: number[], state: WalkState): void {
     return;
   }
 
-  walkElement(value, path, state);
+  walkElement(value, path, state, nesting);
 }
 
 export function parseEditorDocument(raw: unknown): ParseResult {

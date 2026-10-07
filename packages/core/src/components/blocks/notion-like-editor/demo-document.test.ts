@@ -264,6 +264,35 @@ describe("demo document", () => {
     expect(elementChildren(calloutChildren[1])).toEqual([
       { text: "Click the icon to change both." },
     ]);
+
+    const toggles = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggles");
+    const toggle = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toggle");
+    if (!toggles || !toggle || toggle.type !== "toggle") {
+      throw new Error("Missing the toggles demo.");
+    }
+
+    expect(toggles.type).toBe("h3");
+    expect(textOf(toggles)).toBe("Toggles");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(toggles)).toBe(DEMO_DOCUMENT_VALUE.indexOf(callout) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(toggle)).toBe(DEMO_DOCUMENT_VALUE.indexOf(toggles) + 1);
+    const toggleChildren = elementChildren(toggle);
+    expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
+      "demo-toggle-1",
+      "demo-toggle-2",
+      "demo-toggle-3",
+    ]);
+    expect(elementChildren(toggleChildren[0])).toEqual([
+      { text: "Click the arrow to show what is inside." },
+    ]);
+    expect(field(toggleChildren[0], "listStyleType")).toBeUndefined();
+    expect(elementChildren(toggleChildren[1])).toEqual([
+      { text: "Toggles hide content until you open them." },
+    ]);
+    expect(field(toggleChildren[2], "listStyleType")).toBe("disc");
+    expect(field(toggleChildren[2], "indent")).toBe(1);
+    expect(elementChildren(toggleChildren[2])).toEqual([
+      { text: "Content stays in the document while hidden." },
+    ]);
   });
 
   test("normalizing the demo leaves every derived list attr unchanged", () => {

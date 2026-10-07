@@ -16,34 +16,36 @@
 6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
 7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
 8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-9. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
-10. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
-11. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
-12. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
-13. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-14. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-15. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-16. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-17. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-18. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-19. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-20. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-21. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-22. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-23. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-24. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-25. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-26. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-27. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-28. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-29. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-30. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-31. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-32. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-33. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-34. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-35. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-36. apps/web/src/app/blocks/notion-like-editor/page.tsx
+9. packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
+10. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
+11. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
+12. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
+13. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
+14. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+15. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+16. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+17. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+18. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+19. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+20. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+21. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+22. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+23. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+24. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+25. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+26. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+27. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+28. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+29. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+30. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+31. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+32. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+33. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+34. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+35. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+36. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+37. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+38. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -87,6 +89,17 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
+  /** When set, children[0] must be this type. Later children still use childTypes. */
+  firstChildType?: string;
+  /** Attrs childTypes allows that are still illegal on children[0]. */
+  firstChildForbiddenAttrs?: readonly string[];
+  /** How many times this type may nest, counting the outermost node. */
+  maxNesting?: number;
+  /**
+   * Which plain paragraph children getBlockType reports as this container.
+   * Absent means every plain paragraph child. "first" means only children[0].
+   */
+  reportParent?: "all" | "first";
   /**
    * A void stores exactly one empty text leaf and no marks.
    * It is not a container, so childTypes stays absent.
@@ -249,6 +262,17 @@ export const EDITOR_ELEMENT_RULES = [
     },
     childTypes: [KEYS.p],
   },
+  // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
+  // No shortcut. The "> " trigger is DEV-126.
+  {
+    type: KEYS.toggle,
+    attrs: ["id"],
+    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
+    firstChildType: KEYS.p,
+    firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
+    maxNesting: 3,
+    reportParent: "first",
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -289,12 +313,60 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
+const elementFirstChildType = new Map<string, string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "firstChildType" in rule && rule.firstChildType !== undefined
+      ? [[rule.type, rule.firstChildType]]
+      : [],
+  ),
+);
+
+const elementFirstChildForbiddenAttrs = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "firstChildForbiddenAttrs" in rule && rule.firstChildForbiddenAttrs !== undefined
+      ? [[rule.type, rule.firstChildForbiddenAttrs]]
+      : [],
+  ),
+);
+
+const elementMaxNesting = new Map<string, number>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "maxNesting" in rule && rule.maxNesting !== undefined ? [[rule.type, rule.maxNesting]] : [],
+  ),
+);
+
+const elementReportParent = new Map<string, "all" | "first">(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportParent" in rule && rule.reportParent !== undefined
+      ? [[rule.type, rule.reportParent]]
+      : [],
+  ),
+);
+
+const noForbiddenAttrs: readonly string[] = [];
+
 const voidElementTypes = new Set<string>(
   EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
 );
 
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
+}
+
+export function firstChildType(type: string): string | undefined {
+  return elementFirstChildType.get(type);
+}
+
+export function firstChildForbiddenAttrs(type: string): readonly string[] {
+  return elementFirstChildForbiddenAttrs.get(type) ?? noForbiddenAttrs;
+}
+
+export function maxNesting(type: string): number | undefined {
+  return elementMaxNesting.get(type);
+}
+
+export function reportsParentFromFirstChild(type: string): boolean {
+  return elementReportParent.get(type) === "first";
 }
 
 export function isVoidElementType(type: string): boolean {
@@ -667,10 +739,13 @@ import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
   allowedChildTypes,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxNesting,
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
@@ -830,7 +905,14 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
   return childType !== undefined && childTypes.some((type) => type === childType);
 }
 
-function walkElement(value: Record<string, unknown>, path: number[], state: WalkState): void {
+const emptyNesting = new Map<string, number>();
+
+function walkElement(
+  value: Record<string, unknown>,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (path.length > EDITOR_DOCUMENT_LIMITS.maxDepth) {
     reject(
       state,
@@ -929,6 +1011,43 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
     });
   }
 
+  const nestingLimit = allowed === undefined ? undefined : maxNesting(type);
+  let childNesting: ReadonlyMap<string, number> = nesting;
+  if (nestingLimit !== undefined) {
+    const depth = (nesting.get(type) ?? 0) + 1;
+    if (depth > nestingLimit) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} is nested deeper than ${nestingLimit} ${type} levels. Restore from a backup or remove the extra nesting.`,
+      });
+    }
+
+    const nextNesting = new Map(nesting);
+    nextNesting.set(type, depth);
+    childNesting = nextNesting;
+  }
+
+  const labelType = allowed === undefined ? undefined : firstChildType(type);
+  if (labelType !== undefined) {
+    const first = value.children[0];
+    const firstStructuralType = structuralChildType(first);
+    if (firstStructuralType !== undefined && firstStructuralType !== labelType) {
+      state.unsupported.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported first child type "${firstStructuralType}". Restore from a backup or remove the block.`,
+      });
+    } else if (firstStructuralType === labelType && isRecord(first)) {
+      for (const key of firstChildForbiddenAttrs(type)) {
+        if (key in first) {
+          state.unsupported.push({
+            path,
+            message: `${formatBlockLabel(path)} has an unsupported label ${key}. Restore from a backup or remove the attribute.`,
+          });
+        }
+      }
+    }
+  }
+
   for (let index = 0; index < value.children.length; index += 1) {
     const child = value.children[index];
     if (!voidBlock && !childIsAllowed(type, child)) {
@@ -941,14 +1060,19 @@ function walkElement(value: Record<string, unknown>, path: number[], state: Walk
       });
     }
 
-    walkDescendant(child, [...path, index], state);
+    walkDescendant(child, [...path, index], state, childNesting);
     if (state.invalid) {
       return;
     }
   }
 }
 
-function walkDescendant(value: unknown, path: number[], state: WalkState): void {
+function walkDescendant(
+  value: unknown,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (!isRecord(value)) {
     reject(
       state,
@@ -959,7 +1083,7 @@ function walkDescendant(value: unknown, path: number[], state: WalkState): void 
   }
 
   if ("children" in value || "type" in value) {
-    walkElement(value, path, state);
+    walkElement(value, path, state, nesting);
     return;
   }
 
@@ -975,7 +1099,12 @@ function walkDescendant(value: unknown, path: number[], state: WalkState): void 
   );
 }
 
-function walkTopLevel(value: unknown, path: number[], state: WalkState): void {
+function walkTopLevel(
+  value: unknown,
+  path: number[],
+  state: WalkState,
+  nesting: ReadonlyMap<string, number> = emptyNesting,
+): void {
   if (!isRecord(value) || !("children" in value || "type" in value)) {
     reject(
       state,
@@ -985,7 +1114,7 @@ function walkTopLevel(value: unknown, path: number[], state: WalkState): void {
     return;
   }
 
-  walkElement(value, path, state);
+  walkElement(value, path, state, nesting);
 }
 
 export function parseEditorDocument(raw: unknown): ParseResult {
@@ -1078,10 +1207,13 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
@@ -1092,6 +1224,10 @@ export type PasteSanitizeOptions = {
 };
 
 type IsInline = (node: Record<string, unknown>) => boolean;
+
+type Nesting = ReadonlyMap<string, number>;
+
+const emptyNesting: Nesting = new Map();
 
 type PasteChild =
   | { kind: "text"; node: TText }
@@ -1226,6 +1362,42 @@ function collectIds(value: unknown, seen: Set<string>): void {
   }
 }
 
+function stripForbiddenAttrs(node: TElement, forbidden: readonly string[]): TElement {
+  if (forbidden.length === 0 || forbidden.every((key) => !(key in node))) {
+    return node;
+  }
+
+  const next: TElement = { ...node, children: node.children };
+  for (const key of forbidden) {
+    Reflect.deleteProperty(next, key);
+  }
+
+  for (const dependent of unsatisfiedDependentAttrs(next.type, next)) {
+    Reflect.deleteProperty(next, dependent);
+  }
+
+  return next;
+}
+
+function withFirstChild(type: string, blocks: TElement[]): TElement[] {
+  const expected = firstChildType(type);
+  if (expected === undefined) {
+    return blocks;
+  }
+
+  const first = blocks[0];
+  if (first === undefined || first.type !== expected) {
+    return [elementNode(expected, [{ text: "" }], undefined), ...blocks];
+  }
+
+  const stripped = stripForbiddenAttrs(first, firstChildForbiddenAttrs(type));
+  if (stripped === first) {
+    return blocks;
+  }
+
+  return [stripped, ...blocks.slice(1)];
+}
+
 function disallowedVoid(node: TElement, parentType: string): boolean {
   if (!isVoidElementType(node.type)) {
     return false;
@@ -1240,20 +1412,21 @@ function placeInParent(
   parentType: string,
   isInline: IsInline,
   seen: Set<string>,
+  nesting: Nesting = emptyNesting,
 ): TElement[] {
   // A void is never retyped. A container that cannot hold it splits around the void.
   if (isVoidElementType(node.type)) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
   const parentTypes = allowedChildTypes(parentType) ?? [];
   if (parentTypes.some((type) => type === node.type)) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
   if (allowedChildTypes(node.type) !== undefined) {
     const placed: TElement[] = [];
-    for (const piece of containerPieces(node, isInline, seen)) {
+    for (const piece of containerPieces(node, isInline, seen, nesting)) {
       if (isVoidElementType(piece.type)) {
         placed.push(piece);
         continue;
@@ -1261,7 +1434,7 @@ function placeInParent(
 
       for (const child of piece.children) {
         if (isElementNode(child)) {
-          placed.push(...placeInParent(child, parentType, isInline, seen));
+          placed.push(...placeInParent(child, parentType, isInline, seen, nesting));
         }
       }
     }
@@ -1271,15 +1444,73 @@ function placeInParent(
 
   const target = containerContentType(parentType);
   if (target === undefined) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
-  return expandBlock({ ...node, type: target }, isInline, seen);
+  return expandBlock({ ...node, type: target }, isInline, seen, nesting);
 }
 
 // One container, or several pieces when a disallowed void splits it:
 // quote(a), hr, quote(b). An empty piece on either side is not emitted.
-function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+function liftedChildren(
+  children: readonly unknown[],
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting,
+): TElement[] {
+  const pieces: TElement[] = [];
+  let inlines: Descendant[] = [];
+
+  const flush = (): void => {
+    if (inlines.length === 0) {
+      return;
+    }
+
+    pieces.push(paragraph(inlines));
+    inlines = [];
+  };
+
+  for (const child of children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    pieces.push(...expandBlock(classified.node, isInline, seen, nesting));
+  }
+
+  flush();
+  return pieces;
+}
+
+function containerPieces(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting = emptyNesting,
+): TElement[] {
+  const limit = maxNesting(node.type);
+  const depth = (nesting.get(node.type) ?? 0) + 1;
+  const nextNesting = new Map(nesting);
+  if (limit !== undefined) {
+    nextNesting.set(node.type, depth);
+  }
+
+  if (limit !== undefined && depth > limit) {
+    return liftedChildren(node.children, isInline, seen, nextNesting);
+  }
+
   const contentType = containerContentType(node.type);
   const pieces: TElement[] = [];
   let blocks: TElement[] = [];
@@ -1304,7 +1535,7 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
 
     const id = usedId ? undefined : takeId(node, seen);
     usedId = true;
-    const props = elementNode(node.type, blocks, id);
+    const props = elementNode(node.type, withFirstChild(node.type, blocks), id);
     copyAllowedAttrs(node, props);
     pieces.push(props);
     blocks = [];
@@ -1327,7 +1558,7 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
     }
 
     flushInlines();
-    for (const part of placeInParent(classified.node, node.type, isInline, seen)) {
+    for (const part of placeInParent(classified.node, node.type, isInline, seen, nextNesting)) {
       if (disallowedVoid(part, node.type)) {
         flushContainer();
         pieces.push(part);
@@ -1346,20 +1577,25 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
 
   const props = elementNode(
     node.type,
-    [elementNode(contentType ?? "p", [{ text: "" }], undefined)],
+    withFirstChild(node.type, [elementNode(contentType ?? "p", [{ text: "" }], undefined)]),
     takeId(node, seen),
   );
   copyAllowedAttrs(node, props);
   return [props];
 }
 
-function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+function expandBlock(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting = emptyNesting,
+): TElement[] {
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
   if (allowedChildTypes(node.type) !== undefined) {
-    return containerPieces(node, isInline, seen);
+    return containerPieces(node, isInline, seen, nesting);
   }
 
   const allowed = allowedElementAttrs(node.type) !== undefined;
@@ -1402,7 +1638,7 @@ function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TEl
     }
 
     flush();
-    paragraphs.push(...expandBlock(classified.node, isInline, seen));
+    paragraphs.push(...expandBlock(classified.node, isInline, seen, nesting));
   }
 
   flush();
@@ -1595,6 +1831,15 @@ import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { HrElement } from "./hr-element";
+import { ToggleElement } from "./toggle-element";
+import {
+  backspaceToggleLabel,
+  breakToggleLabel,
+  collectToggleIds,
+  installToggleOnChange,
+  openNewToggles,
+  togglePlugin as toggleBasePlugin,
+} from "./editor-toggle";
 import {
   clearFormatting,
   containerParentType,
@@ -1620,7 +1865,10 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isVoidElementType,
+  maxNesting,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -2023,6 +2271,15 @@ function containerRules(type: string) {
         return false;
       }
 
+      // The label's Backspace unwraps the whole container. delete.start would lift only the label.
+      if (
+        rule === "delete.start" &&
+        path[path.length - 1] === 0 &&
+        firstChildType(type) !== undefined
+      ) {
+        return false;
+      }
+
       return rule === "break.empty" || !PathApi.hasPrevious(path);
     },
   };
@@ -2046,12 +2303,91 @@ function configureContainerPlugin<TNode extends (props: PlateElementProps) => JS
 
 const blockquotePlugin = configureContainerPlugin(BlockquotePlugin, BlockquoteElement);
 const calloutPlugin = configureContainerPlugin(CalloutPlugin, CalloutElement);
+const togglePlugin = configureContainerPlugin(toggleBasePlugin, ToggleElement).overrideEditor(
+  ({ editor, tf: { insertBreak, deleteBackward, insertFragment } }) => {
+    installToggleOnChange(editor);
+
+    return {
+      transforms: {
+        insertBreak() {
+          if (breakToggleLabel(editor, insertBreak)) {
+            return;
+          }
+
+          insertBreak();
+        },
+        deleteBackward(unit) {
+          if (backspaceToggleLabel(editor)) {
+            return;
+          }
+
+          deleteBackward(unit);
+        },
+        insertFragment(fragment, options) {
+          const before = collectToggleIds(editor);
+          insertFragment(fragment, options);
+          openNewToggles(editor, before);
+        },
+      },
+    };
+  },
+);
 
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
 // outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
 // only sees paragraphs or wraps leftover inlines. A disallowed void is lifted out so
 // it is not retyped into an empty paragraph.
+function sameTypeDepth(editor: SlateEditor, type: string, path: number[]): number {
+  let depth = 1;
+  let parentPath = path.slice(0, -1);
+  while (parentPath.length > 0) {
+    const parent = editor.api.node(parentPath);
+    if (parent && isElementRecord(parent[0]) && parent[0].type === type) {
+      depth += 1;
+    }
+
+    parentPath = parentPath.slice(0, -1);
+  }
+
+  return depth;
+}
+
+function normalizeContainerShape(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const limit = maxNesting(node.type);
+  if (limit !== undefined && sameTypeDepth(editor, node.type, path) > limit) {
+    editor.tf.unwrapNodes({
+      at: path,
+      match: (_candidate, candidatePath) => PathApi.equals(candidatePath, path),
+    });
+    return true;
+  }
+
+  const expected = firstChildType(node.type);
+  if (expected === undefined || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  const first = node.children[0];
+  const childPath = path.concat(0);
+  if (!isElementRecord(first) || first.type !== expected) {
+    editor.tf.insertNodes({ type: expected, children: [{ text: "" }] }, { at: childPath });
+    return true;
+  }
+
+  const drop = firstChildForbiddenAttrs(node.type).filter((key) => key in first);
+  if (drop.length === 0) {
+    return false;
+  }
+
+  editor.tf.unsetNodes(drop, { at: childPath });
+  return true;
+}
+
 function normalizeDisallowedChild(
   editor: SlateEditor,
   node: { type: string } & Record<string, unknown>,
@@ -2110,7 +2446,11 @@ const childTypesPlugin = createSlatePlugin({
   transforms: {
     normalizeNode(entry) {
       const [node, path] = entry;
-      if (isElementRecord(node) && normalizeDisallowedChild(editor, node, path)) {
+      if (
+        isElementRecord(node) &&
+        (normalizeContainerShape(editor, node, path) ||
+          normalizeDisallowedChild(editor, node, path))
+      ) {
         return;
       }
 
@@ -2663,7 +3003,18 @@ const breakAbovePlugin = createSlatePlugin({
         const copied = listBreakAbove(block[0]);
         Object.assign(above, copied.attrs);
         const sourcePath = block[1];
-        editor.tf.insertNodes(above, { at: sourcePath, select: false });
+        // A container label (firstChildType) breaks above the container, not inside it.
+        const parentPath = sourcePath.slice(0, -1);
+        const parent = parentPath.length > 0 ? editor.api.node(parentPath) : undefined;
+        const aboveContainer =
+          parent !== undefined &&
+          isElementRecord(parent[0]) &&
+          firstChildType(parent[0].type) !== undefined &&
+          sourcePath[sourcePath.length - 1] === 0;
+        editor.tf.insertNodes(above, {
+          at: aboveContainer ? parentPath : sourcePath,
+          select: false,
+        });
         const moved = PathApi.next(sourcePath);
         if (copied.unset.length > 0 && moved) {
           editor.tf.unsetNodes(copied.unset, { at: moved });
@@ -2702,6 +3053,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading3Plugin,
     blockquotePlugin,
     calloutPlugin,
+    togglePlugin,
     // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,
@@ -2717,6 +3069,436 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     childTypesPlugin,
     voidPropsPlugin,
   ];
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  TextApi,
+  createSlatePlugin,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type TText,
+} from "platejs";
+
+// Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
+// No shortcut. The "> " trigger is DEV-126.
+export const togglePlugin = createSlatePlugin({
+  key: KEYS.toggle,
+  node: { isElement: true },
+  options: {
+    openIds: new Set<string>(),
+  },
+  parsers: {
+    html: {
+      deserializer: {
+        rules: [{ validNodeName: "DETAILS" }],
+        parse: ({ editor, element, type }) => parseDetails(editor, element, type),
+      },
+    },
+  },
+});
+
+type LabelContext = {
+  id: string;
+  labelPath: number[];
+  togglePath: number[];
+};
+
+function isHtmlElementNode(value: unknown): value is HTMLElement {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "nodeType" in value &&
+    value.nodeType === 1 &&
+    "nodeName" in value &&
+    "childNodes" in value
+  );
+}
+
+function nodeText(node: unknown): string {
+  if (!node || typeof node !== "object") {
+    return "";
+  }
+
+  if ("text" in node && typeof node.text === "string" && !("children" in node)) {
+    return node.text;
+  }
+
+  if (!("children" in node) || !Array.isArray(node.children)) {
+    return "";
+  }
+
+  return node.children.map((child: unknown) => nodeText(child)).join("");
+}
+
+function isDescendant(value: unknown): value is Descendant {
+  return TextApi.isText(value) || ElementApi.isElement(value);
+}
+
+// deserialize() normalizes a document fragment. A non-body element comes back as one
+// node, so wrap the element in a body first. Plate only returns an array for that.
+function deserializedNodes(editor: SlateEditor, element: HTMLElement): Descendant[] {
+  const body = element.ownerDocument.createElement("body");
+  body.append(element.cloneNode(true));
+  const parsed: unknown = editor.api.html.deserialize({ element: body });
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter(isDescendant);
+}
+
+function labelInlines(editor: SlateEditor, summary: HTMLElement): Descendant[] {
+  const inlines: Descendant[] = [];
+  for (const node of deserializedNodes(editor, summary)) {
+    if (TextApi.isText(node)) {
+      inlines.push(node);
+      continue;
+    }
+
+    if (!ElementApi.isElement(node)) {
+      continue;
+    }
+
+    if (node.type === KEYS.p) {
+      inlines.push(...node.children);
+      continue;
+    }
+
+    const text = nodeText(node);
+    if (text.length > 0) {
+      inlines.push({ text });
+    }
+  }
+
+  return inlines.length > 0 ? inlines : [{ text: "" }];
+}
+
+function contentBlocks(editor: SlateEditor, node: ChildNode): TElement[] {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent ?? "";
+    if (text.trim().length === 0) {
+      return [];
+    }
+
+    return [{ type: KEYS.p, children: [{ text }] }];
+  }
+
+  if (!isHtmlElementNode(node)) {
+    return [];
+  }
+
+  const blocks: TElement[] = [];
+  for (const child of deserializedNodes(editor, node)) {
+    if (ElementApi.isElement(child)) {
+      blocks.push(child);
+      continue;
+    }
+
+    if (TextApi.isText(child) && child.text.length > 0) {
+      blocks.push({ type: KEYS.p, children: [child] });
+    }
+  }
+
+  return blocks;
+}
+
+// SUMMARY is the label. Without one, the label is an empty paragraph and the
+// rest stays content. The container sanitizer then enforces the nesting cap.
+function parseDetails(editor: SlateEditor, element: HTMLElement, type: string): TElement {
+  let summary: HTMLElement | undefined;
+  const rest: ChildNode[] = [];
+  for (const child of element.childNodes) {
+    if (summary === undefined && isHtmlElementNode(child) && child.nodeName === "SUMMARY") {
+      summary = child;
+      continue;
+    }
+
+    rest.push(child);
+  }
+
+  const label: TText[] | Descendant[] = summary ? labelInlines(editor, summary) : [{ text: "" }];
+  const content = rest.flatMap((child) => contentBlocks(editor, child));
+
+  return {
+    type,
+    children: [{ type: KEYS.p, children: label }, ...content],
+  };
+}
+
+export function readToggleOpenIds(editor: SlateEditor): Set<string> {
+  const value: unknown = editor.getOption(togglePlugin, "openIds");
+  if (!(value instanceof Set)) {
+    return new Set();
+  }
+
+  const ids = new Set<string>();
+  for (const id of value) {
+    if (typeof id === "string" && id.length > 0) {
+      ids.add(id);
+    }
+  }
+
+  return ids;
+}
+
+function writeToggleOpenIds(editor: SlateEditor, ids: Set<string>): void {
+  editor.setOption(togglePlugin, "openIds", ids);
+}
+
+function findToggle(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) =>
+      ElementApi.isElement(candidate) && candidate.type === KEYS.toggle && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return [node, path];
+    }
+  }
+
+  return undefined;
+}
+
+function pathInside(parent: readonly number[], path: readonly number[]): boolean {
+  if (path.length <= parent.length) {
+    return false;
+  }
+
+  return parent.every((step, index) => path[index] === step);
+}
+
+function moveSelectionToLabelEnd(editor: SlateEditor, id: string): void {
+  const selection = editor.selection;
+  const entry = selection ? findToggle(editor, id) : undefined;
+  if (!selection || !entry) {
+    return;
+  }
+
+  const togglePath = entry[1];
+  const focus = selection.focus.path;
+  if (!pathInside(togglePath, focus)) {
+    return;
+  }
+
+  const childIndex = focus[togglePath.length];
+  if (childIndex === undefined || childIndex === 0) {
+    return;
+  }
+
+  const end = editor.api.end(togglePath.concat(0));
+  if (!end) {
+    return;
+  }
+
+  editor.tf.withoutSaving(() => {
+    editor.tf.select(end);
+  });
+}
+
+export function toggleOpen(editor: SlateEditor, id: string, open?: boolean): void {
+  const current = readToggleOpenIds(editor);
+  const isOpen = current.has(id);
+  const nextOpen = open ?? !isOpen;
+  if (nextOpen === isOpen) {
+    return;
+  }
+
+  if (!nextOpen) {
+    moveSelectionToLabelEnd(editor, id);
+  }
+
+  const next = new Set(current);
+  if (nextOpen) {
+    next.add(id);
+  } else {
+    next.delete(id);
+  }
+
+  writeToggleOpenIds(editor, next);
+}
+
+export function openAncestorToggle(editor: SlateEditor): void {
+  const entry = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.toggle,
+  });
+  if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].id !== "string") {
+    return;
+  }
+
+  if (entry[0].id.length === 0) {
+    return;
+  }
+
+  toggleOpen(editor, entry[0].id, true);
+}
+
+// Selection that lands in hidden content opens that toggle. Slate flushes editor.onChange
+// in a microtask after select, undo, paste, and programmatic selection changes.
+export function revealClosedToggleContent(editor: SlateEditor): void {
+  const selection = editor.selection;
+  if (!selection) {
+    return;
+  }
+
+  const next = readToggleOpenIds(editor);
+  let path = selection.focus.path;
+  let changed = false;
+  while (path.length > 1) {
+    const index = path[path.length - 1];
+    path = path.slice(0, -1);
+    if (index === undefined || index === 0) {
+      continue;
+    }
+
+    const parent = editor.api.node(path);
+    if (!parent || !ElementApi.isElement(parent[0]) || parent[0].type !== KEYS.toggle) {
+      continue;
+    }
+
+    const id = parent[0].id;
+    if (typeof id !== "string" || id.length === 0 || next.has(id)) {
+      continue;
+    }
+
+    next.add(id);
+    changed = true;
+  }
+
+  if (changed) {
+    writeToggleOpenIds(editor, next);
+  }
+}
+
+function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
+  return typeof value === "function";
+}
+
+export function installToggleOnChange(editor: SlateEditor): void {
+  const onChange = editor.onChange;
+  if (!isEditorOnChange(onChange)) {
+    return;
+  }
+
+  editor.onChange = (options?: { operation?: unknown }) => {
+    onChange(options);
+    revealClosedToggleContent(editor);
+  };
+}
+
+function labelContext(editor: SlateEditor): LabelContext | undefined {
+  if (!editor.selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const block = editor.api.block();
+  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== KEYS.p) {
+    return undefined;
+  }
+
+  if (typeof block[0].listStyleType === "string" || block[1][block[1].length - 1] !== 0) {
+    return undefined;
+  }
+
+  const parent = editor.api.parent(block[1]);
+  if (
+    !parent ||
+    !ElementApi.isElement(parent[0]) ||
+    parent[0].type !== KEYS.toggle ||
+    typeof parent[0].id !== "string" ||
+    parent[0].id.length === 0
+  ) {
+    return undefined;
+  }
+
+  return { id: parent[0].id, labelPath: block[1], togglePath: parent[1] };
+}
+
+function moveSplitAfterToggle(editor: SlateEditor, togglePath: number[]): void {
+  const createdPath = togglePath.concat(1);
+  const destination = PathApi.next(togglePath);
+  if (!destination || !editor.api.node(createdPath)) {
+    return;
+  }
+
+  editor.tf.moveNodes({ at: createdPath, to: destination });
+  const start = editor.api.start(destination);
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+export function breakToggleLabel(editor: SlateEditor, insertBreak: () => void): boolean {
+  const label = labelContext(editor);
+  if (!label) {
+    return false;
+  }
+
+  const atStart = editor.api.isAt({ start: true });
+  const empty = editor.selection !== null && editor.api.isEmpty(editor.selection, { block: true });
+  if ((atStart && !empty) || readToggleOpenIds(editor).has(label.id)) {
+    return false;
+  }
+
+  insertBreak();
+  moveSplitAfterToggle(editor, label.togglePath);
+  return true;
+}
+
+export function backspaceToggleLabel(editor: SlateEditor): boolean {
+  const label = labelContext(editor);
+  if (!label || !editor.api.isAt({ start: true })) {
+    return false;
+  }
+
+  const togglePath = label.togglePath;
+  editor.tf.unwrapNodes({
+    at: togglePath,
+    match: (_node, path) => PathApi.equals(path, togglePath),
+  });
+  const start = editor.api.start(togglePath);
+  if (start) {
+    editor.tf.select(start);
+  }
+
+  return true;
+}
+
+export function collectToggleIds(editor: SlateEditor): Set<string> {
+  const ids = new Set<string>();
+  for (const [node] of editor.api.nodes({
+    at: [],
+    match: (candidate) => ElementApi.isElement(candidate) && candidate.type === KEYS.toggle,
+  })) {
+    if (ElementApi.isElement(node) && typeof node.id === "string" && node.id.length > 0) {
+      ids.add(node.id);
+    }
+  }
+
+  return ids;
+}
+
+export function openNewToggles(editor: SlateEditor, before: ReadonlySet<string>): void {
+  const next = readToggleOpenIds(editor);
+  let changed = false;
+  for (const id of collectToggleIds(editor)) {
+    if (before.has(id) || next.has(id)) {
+      continue;
+    }
+
+    next.add(id);
+    changed = true;
+  }
+
+  if (changed) {
+    writeToggleOpenIds(editor, next);
+  }
 }
 ```
 
@@ -3183,6 +3965,114 @@ export function CalloutElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+```tsx
+import { ChevronRight } from "lucide-react";
+import { KEYS } from "platejs";
+import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import { toggleOpen, togglePlugin } from "./editor-toggle";
+
+// Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
+// The label is the first child. The gutter is contenteditable="false", so closing hides
+// only the content and leaves that button on screen. Children stay in the DOM.
+export const TOGGLE_HIDDEN_CONTENT_CLASS =
+  "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
+
+// pl-6 is the same gutter step as a depth-1 bullet. Content lines up under the label text.
+export const TOGGLE_CLASS_NAME = cn(
+  "relative space-y-2 pl-6",
+  LIST_SIBLING_GAP_CLASS,
+  TOGGLE_HIDDEN_CONTENT_CLASS,
+);
+
+function elementId(element: PlateElementProps["element"]): string | undefined {
+  if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
+    return undefined;
+  }
+
+  return element.id;
+}
+
+function plainText(node: unknown): string {
+  if (!node || typeof node !== "object") {
+    return "";
+  }
+
+  if ("text" in node && typeof node.text === "string" && !("children" in node)) {
+    return node.text;
+  }
+
+  if (!("children" in node) || !Array.isArray(node.children)) {
+    return "";
+  }
+
+  return node.children.map((child: unknown) => plainText(child)).join("");
+}
+
+function labelText(element: PlateElementProps["element"]): string {
+  const first = element.children[0];
+  if (!first || typeof first !== "object" || !("type" in first) || first.type !== KEYS.p) {
+    return "";
+  }
+
+  return plainText(first);
+}
+
+function keepCaret(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+export function ToggleElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const openIds = usePluginOption(togglePlugin, "openIds");
+  const id = elementId(props.element);
+  const open = id !== undefined && openIds instanceof Set && openIds.has(id);
+  const text = labelText(props.element);
+  const action = open ? "Collapse" : "Expand";
+
+  return (
+    <PlateElement
+      {...props}
+      attributes={{
+        ...props.attributes,
+        "data-open": open ? "true" : "false",
+      }}
+      className={cn(TOGGLE_CLASS_NAME, props.className)}
+    >
+      {props.children}
+      <div className="absolute top-0.5 left-0" contentEditable={false}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={text.length > 0 ? `${action} ${text}` : action}
+          className="text-muted-foreground hover:text-foreground inline-flex size-5 items-center justify-center rounded-sm"
+          onMouseDown={keepCaret}
+          onClick={() => {
+            if (id === undefined) {
+              return;
+            }
+
+            toggleOpen(editor, id);
+          }}
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={cn(
+              "size-4 transition-transform duration-150 ease-out motion-reduce:transition-none",
+              open && "rotate-90",
+            )}
+          />
+        </button>
+      </div>
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
 ```tsx
 import {
@@ -3259,6 +4149,7 @@ import {
   type TText,
 } from "platejs";
 
+import { openAncestorToggle } from "./editor-toggle";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -3274,6 +4165,7 @@ import {
   allowedElementAttrs,
   isAllowedValue,
   isWithinAttrRange,
+  reportsParentFromFirstChild,
   type FontFamily,
   type FontSize,
   type HighlightToken,
@@ -3756,7 +4648,18 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
     return reported;
   }
 
-  return containerParentType(editor, node, path) ?? reported;
+  const parentType = containerParentType(editor, node, path);
+  if (parentType === undefined) {
+    return reported;
+  }
+
+  // Quote and callout report the container for every plain paragraph.
+  // reportParent "first" reports it only for the label, so content keeps its own type.
+  if (reportsParentFromFirstChild(parentType) && path[path.length - 1] !== 0) {
+    return reported;
+  }
+
+  return parentType;
 }
 
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
@@ -3865,10 +4768,73 @@ export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
 
 // Outside, toggleBlock wraps the selection in one container and leaves its attrs unset.
-// Inside, liftBlock unwraps the selected paragraphs and splits a partial selection.
+// Inside a quote or callout, liftBlock unwraps the selected paragraphs and splits a partial selection.
+// A toggle label is structural. Selecting it unwraps the whole toggle. Selecting content moves
+// those blocks out after the toggle, so the following block does not become a new label.
+function selectionIncludesContainerLabel(editor: SlateEditor, type: string): boolean {
+  return lowestBlocks(editor).some(([, blockPath]) => {
+    if (blockPath[blockPath.length - 1] !== 0) {
+      return false;
+    }
+
+    const parent = editor.api.parent(blockPath);
+    return parent !== undefined && ElementApi.isElement(parent[0]) && parent[0].type === type;
+  });
+}
+
+function pathStartsWith(path: readonly number[], prefix: readonly number[]): boolean {
+  return prefix.length <= path.length && prefix.every((step, index) => path[index] === step);
+}
+
+function liftSelectedContent(editor: SlateEditor, type: string): void {
+  const above = editor.api.above({ match: { type } });
+  if (!above) {
+    return;
+  }
+
+  const containerPath = above[1];
+  const destination = PathApi.next(containerPath);
+  if (!destination) {
+    return;
+  }
+
+  const seen = new Set<string>();
+  const childPaths: number[][] = [];
+  for (const [, blockPath] of lowestBlocks(editor)) {
+    if (!pathStartsWith(blockPath, containerPath) || blockPath.length <= containerPath.length) {
+      continue;
+    }
+
+    const index = blockPath[containerPath.length];
+    if (index === undefined || index === 0) {
+      continue;
+    }
+
+    const childPath = containerPath.concat(index);
+    const key = childPath.join(".");
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    childPaths.push(childPath);
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    for (const childPath of childPaths.reverse()) {
+      editor.tf.moveNodes({ at: childPath, to: destination });
+    }
+  });
+}
+
 export function createTurnIntoContainer(
   type: string,
   meta: { id: string; label: string },
+  options?: {
+    afterWrap?: (editor: SlateEditor) => void;
+    unwrapFromFirstChild?: boolean;
+    liftContentOut?: boolean;
+  },
 ): EditorCommand {
   return {
     id: meta.id,
@@ -3876,6 +4842,24 @@ export function createTurnIntoContainer(
     group: "turn-into",
     run: (editor) => {
       if (editor.api.above({ match: { type } })) {
+        if (options?.unwrapFromFirstChild && selectionIncludesContainerLabel(editor, type)) {
+          const above = editor.api.above({ match: { type } });
+          if (!above) {
+            return;
+          }
+
+          editor.tf.unwrapNodes({
+            at: above[1],
+            match: (_node, path) => PathApi.equals(path, above[1]),
+          });
+          return;
+        }
+
+        if (options?.liftContentOut) {
+          liftSelectedContent(editor, type);
+          return;
+        }
+
         const blocks = lowestBlocks(editor);
         editor.tf.withoutNormalizing(() => {
           for (const [, blockPath] of blocks.reverse()) {
@@ -3886,6 +4870,7 @@ export function createTurnIntoContainer(
       }
 
       editor.tf.toggleBlock(type, { wrap: true });
+      options?.afterWrap?.(editor);
     },
   };
 }
@@ -3899,6 +4884,15 @@ export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
   id: "block.turn-into.callout",
   label: "Callout",
 });
+
+export const turnIntoToggle = createTurnIntoContainer(
+  KEYS.toggle,
+  {
+    id: "block.turn-into.toggle",
+    label: "Toggle list",
+  },
+  { afterWrap: openAncestorToggle, unwrapFromFirstChild: true, liftContentOut: true },
+);
 
 export type CalloutAttrPayload = {
   value: string | null;
@@ -6584,6 +7578,34 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-toggles",
+    children: [{ text: "Toggles" }],
+  },
+  {
+    type: "toggle",
+    id: "demo-toggle",
+    children: [
+      {
+        type: "p",
+        id: "demo-toggle-1",
+        children: [{ text: "Click the arrow to show what is inside." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-2",
+        children: [{ text: "Toggles hide content until you open them." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-3",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Content stays in the document while hidden." }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -6704,6 +7726,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-toggle.ts",
+    code: readSource(`${BLOCK_DIR}/editor-toggle.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/heading-element.tsx",
     code: readSource(`${BLOCK_DIR}/heading-element.tsx`),
   },
@@ -6718,6 +7744,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/callout-element.tsx",
     code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/toggle-element.tsx",
+    code: readSource(`${BLOCK_DIR}/toggle-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/hr-element.tsx",

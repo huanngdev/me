@@ -12,6 +12,7 @@ import {
   type TText,
 } from "platejs";
 
+import { openAncestorToggle } from "./editor-toggle";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -27,6 +28,7 @@ import {
   allowedElementAttrs,
   isAllowedValue,
   isWithinAttrRange,
+  reportsParentFromFirstChild,
   type FontFamily,
   type FontSize,
   type HighlightToken,
@@ -509,7 +511,18 @@ function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): strin
     return reported;
   }
 
-  return containerParentType(editor, node, path) ?? reported;
+  const parentType = containerParentType(editor, node, path);
+  if (parentType === undefined) {
+    return reported;
+  }
+
+  // Quote and callout report the container for every plain paragraph.
+  // reportParent "first" reports it only for the label, so content keeps its own type.
+  if (reportsParentFromFirstChild(parentType) && path[path.length - 1] !== 0) {
+    return reported;
+  }
+
+  return parentType;
 }
 
 export function getBlockType(editor: SlateEditor): string | "mixed" | null {
@@ -618,10 +631,73 @@ export const turnIntoHeading2 = createTurnIntoHeading(2);
 export const turnIntoHeading3 = createTurnIntoHeading(3);
 
 // Outside, toggleBlock wraps the selection in one container and leaves its attrs unset.
-// Inside, liftBlock unwraps the selected paragraphs and splits a partial selection.
+// Inside a quote or callout, liftBlock unwraps the selected paragraphs and splits a partial selection.
+// A toggle label is structural. Selecting it unwraps the whole toggle. Selecting content moves
+// those blocks out after the toggle, so the following block does not become a new label.
+function selectionIncludesContainerLabel(editor: SlateEditor, type: string): boolean {
+  return lowestBlocks(editor).some(([, blockPath]) => {
+    if (blockPath[blockPath.length - 1] !== 0) {
+      return false;
+    }
+
+    const parent = editor.api.parent(blockPath);
+    return parent !== undefined && ElementApi.isElement(parent[0]) && parent[0].type === type;
+  });
+}
+
+function pathStartsWith(path: readonly number[], prefix: readonly number[]): boolean {
+  return prefix.length <= path.length && prefix.every((step, index) => path[index] === step);
+}
+
+function liftSelectedContent(editor: SlateEditor, type: string): void {
+  const above = editor.api.above({ match: { type } });
+  if (!above) {
+    return;
+  }
+
+  const containerPath = above[1];
+  const destination = PathApi.next(containerPath);
+  if (!destination) {
+    return;
+  }
+
+  const seen = new Set<string>();
+  const childPaths: number[][] = [];
+  for (const [, blockPath] of lowestBlocks(editor)) {
+    if (!pathStartsWith(blockPath, containerPath) || blockPath.length <= containerPath.length) {
+      continue;
+    }
+
+    const index = blockPath[containerPath.length];
+    if (index === undefined || index === 0) {
+      continue;
+    }
+
+    const childPath = containerPath.concat(index);
+    const key = childPath.join(".");
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    childPaths.push(childPath);
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    for (const childPath of childPaths.reverse()) {
+      editor.tf.moveNodes({ at: childPath, to: destination });
+    }
+  });
+}
+
 export function createTurnIntoContainer(
   type: string,
   meta: { id: string; label: string },
+  options?: {
+    afterWrap?: (editor: SlateEditor) => void;
+    unwrapFromFirstChild?: boolean;
+    liftContentOut?: boolean;
+  },
 ): EditorCommand {
   return {
     id: meta.id,
@@ -629,6 +705,24 @@ export function createTurnIntoContainer(
     group: "turn-into",
     run: (editor) => {
       if (editor.api.above({ match: { type } })) {
+        if (options?.unwrapFromFirstChild && selectionIncludesContainerLabel(editor, type)) {
+          const above = editor.api.above({ match: { type } });
+          if (!above) {
+            return;
+          }
+
+          editor.tf.unwrapNodes({
+            at: above[1],
+            match: (_node, path) => PathApi.equals(path, above[1]),
+          });
+          return;
+        }
+
+        if (options?.liftContentOut) {
+          liftSelectedContent(editor, type);
+          return;
+        }
+
         const blocks = lowestBlocks(editor);
         editor.tf.withoutNormalizing(() => {
           for (const [, blockPath] of blocks.reverse()) {
@@ -639,6 +733,7 @@ export function createTurnIntoContainer(
       }
 
       editor.tf.toggleBlock(type, { wrap: true });
+      options?.afterWrap?.(editor);
     },
   };
 }
@@ -652,6 +747,15 @@ export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
   id: "block.turn-into.callout",
   label: "Callout",
 });
+
+export const turnIntoToggle = createTurnIntoContainer(
+  KEYS.toggle,
+  {
+    id: "block.turn-into.toggle",
+    label: "Toggle list",
+  },
+  { afterWrap: openAncestorToggle, unwrapFromFirstChild: true, liftContentOut: true },
+);
 
 export type CalloutAttrPayload = {
   value: string | null;

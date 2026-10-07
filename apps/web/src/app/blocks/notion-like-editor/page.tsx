@@ -52,6 +52,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-toggle.ts",
+    code: readSource(`${BLOCK_DIR}/editor-toggle.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/heading-element.tsx",
     code: readSource(`${BLOCK_DIR}/heading-element.tsx`),
   },
@@ -66,6 +70,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/callout-element.tsx",
     code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/toggle-element.tsx",
+    code: readSource(`${BLOCK_DIR}/toggle-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/hr-element.tsx",

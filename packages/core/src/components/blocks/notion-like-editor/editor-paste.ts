@@ -10,10 +10,13 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
   isVoidElementType,
+  maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import type { EditorValue } from "./editor-value";
@@ -24,6 +27,10 @@ export type PasteSanitizeOptions = {
 };
 
 type IsInline = (node: Record<string, unknown>) => boolean;
+
+type Nesting = ReadonlyMap<string, number>;
+
+const emptyNesting: Nesting = new Map();
 
 type PasteChild =
   | { kind: "text"; node: TText }
@@ -158,6 +165,42 @@ function collectIds(value: unknown, seen: Set<string>): void {
   }
 }
 
+function stripForbiddenAttrs(node: TElement, forbidden: readonly string[]): TElement {
+  if (forbidden.length === 0 || forbidden.every((key) => !(key in node))) {
+    return node;
+  }
+
+  const next: TElement = { ...node, children: node.children };
+  for (const key of forbidden) {
+    Reflect.deleteProperty(next, key);
+  }
+
+  for (const dependent of unsatisfiedDependentAttrs(next.type, next)) {
+    Reflect.deleteProperty(next, dependent);
+  }
+
+  return next;
+}
+
+function withFirstChild(type: string, blocks: TElement[]): TElement[] {
+  const expected = firstChildType(type);
+  if (expected === undefined) {
+    return blocks;
+  }
+
+  const first = blocks[0];
+  if (first === undefined || first.type !== expected) {
+    return [elementNode(expected, [{ text: "" }], undefined), ...blocks];
+  }
+
+  const stripped = stripForbiddenAttrs(first, firstChildForbiddenAttrs(type));
+  if (stripped === first) {
+    return blocks;
+  }
+
+  return [stripped, ...blocks.slice(1)];
+}
+
 function disallowedVoid(node: TElement, parentType: string): boolean {
   if (!isVoidElementType(node.type)) {
     return false;
@@ -172,20 +215,21 @@ function placeInParent(
   parentType: string,
   isInline: IsInline,
   seen: Set<string>,
+  nesting: Nesting = emptyNesting,
 ): TElement[] {
   // A void is never retyped. A container that cannot hold it splits around the void.
   if (isVoidElementType(node.type)) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
   const parentTypes = allowedChildTypes(parentType) ?? [];
   if (parentTypes.some((type) => type === node.type)) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
   if (allowedChildTypes(node.type) !== undefined) {
     const placed: TElement[] = [];
-    for (const piece of containerPieces(node, isInline, seen)) {
+    for (const piece of containerPieces(node, isInline, seen, nesting)) {
       if (isVoidElementType(piece.type)) {
         placed.push(piece);
         continue;
@@ -193,7 +237,7 @@ function placeInParent(
 
       for (const child of piece.children) {
         if (isElementNode(child)) {
-          placed.push(...placeInParent(child, parentType, isInline, seen));
+          placed.push(...placeInParent(child, parentType, isInline, seen, nesting));
         }
       }
     }
@@ -203,15 +247,73 @@ function placeInParent(
 
   const target = containerContentType(parentType);
   if (target === undefined) {
-    return expandBlock(node, isInline, seen);
+    return expandBlock(node, isInline, seen, nesting);
   }
 
-  return expandBlock({ ...node, type: target }, isInline, seen);
+  return expandBlock({ ...node, type: target }, isInline, seen, nesting);
 }
 
 // One container, or several pieces when a disallowed void splits it:
 // quote(a), hr, quote(b). An empty piece on either side is not emitted.
-function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+function liftedChildren(
+  children: readonly unknown[],
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting,
+): TElement[] {
+  const pieces: TElement[] = [];
+  let inlines: Descendant[] = [];
+
+  const flush = (): void => {
+    if (inlines.length === 0) {
+      return;
+    }
+
+    pieces.push(paragraph(inlines));
+    inlines = [];
+  };
+
+  for (const child of children) {
+    const classified = classifyPasteChild(child, isInline);
+    if (classified === undefined) {
+      continue;
+    }
+
+    if (classified.kind === "text") {
+      inlines.push(classified.node);
+      continue;
+    }
+
+    if (classified.kind === "inline") {
+      inlines.push(...inlineNodes(classified.node, isInline, seen));
+      continue;
+    }
+
+    flush();
+    pieces.push(...expandBlock(classified.node, isInline, seen, nesting));
+  }
+
+  flush();
+  return pieces;
+}
+
+function containerPieces(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting = emptyNesting,
+): TElement[] {
+  const limit = maxNesting(node.type);
+  const depth = (nesting.get(node.type) ?? 0) + 1;
+  const nextNesting = new Map(nesting);
+  if (limit !== undefined) {
+    nextNesting.set(node.type, depth);
+  }
+
+  if (limit !== undefined && depth > limit) {
+    return liftedChildren(node.children, isInline, seen, nextNesting);
+  }
+
   const contentType = containerContentType(node.type);
   const pieces: TElement[] = [];
   let blocks: TElement[] = [];
@@ -236,7 +338,7 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
 
     const id = usedId ? undefined : takeId(node, seen);
     usedId = true;
-    const props = elementNode(node.type, blocks, id);
+    const props = elementNode(node.type, withFirstChild(node.type, blocks), id);
     copyAllowedAttrs(node, props);
     pieces.push(props);
     blocks = [];
@@ -259,7 +361,7 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
     }
 
     flushInlines();
-    for (const part of placeInParent(classified.node, node.type, isInline, seen)) {
+    for (const part of placeInParent(classified.node, node.type, isInline, seen, nextNesting)) {
       if (disallowedVoid(part, node.type)) {
         flushContainer();
         pieces.push(part);
@@ -278,20 +380,25 @@ function containerPieces(node: TElement, isInline: IsInline, seen: Set<string>):
 
   const props = elementNode(
     node.type,
-    [elementNode(contentType ?? "p", [{ text: "" }], undefined)],
+    withFirstChild(node.type, [elementNode(contentType ?? "p", [{ text: "" }], undefined)]),
     takeId(node, seen),
   );
   copyAllowedAttrs(node, props);
   return [props];
 }
 
-function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TElement[] {
+function expandBlock(
+  node: TElement,
+  isInline: IsInline,
+  seen: Set<string>,
+  nesting: Nesting = emptyNesting,
+): TElement[] {
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
   if (allowedChildTypes(node.type) !== undefined) {
-    return containerPieces(node, isInline, seen);
+    return containerPieces(node, isInline, seen, nesting);
   }
 
   const allowed = allowedElementAttrs(node.type) !== undefined;
@@ -334,7 +441,7 @@ function expandBlock(node: TElement, isInline: IsInline, seen: Set<string>): TEl
     }
 
     flush();
-    paragraphs.push(...expandBlock(classified.node, isInline, seen));
+    paragraphs.push(...expandBlock(classified.node, isInline, seen, nesting));
   }
 
   flush();

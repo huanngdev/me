@@ -329,6 +329,34 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-toggles",
+    children: [{ text: "Toggles" }],
+  },
+  {
+    type: "toggle",
+    id: "demo-toggle",
+    children: [
+      {
+        type: "p",
+        id: "demo-toggle-1",
+        children: [{ text: "Click the arrow to show what is inside." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-2",
+        children: [{ text: "Toggles hide content until you open them." }],
+      },
+      {
+        type: "p",
+        id: "demo-toggle-3",
+        indent: 1,
+        listStyleType: "disc",
+        children: [{ text: "Content stays in the document while hidden." }],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

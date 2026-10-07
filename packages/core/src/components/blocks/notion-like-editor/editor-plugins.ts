@@ -42,6 +42,15 @@ import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { HrElement } from "./hr-element";
+import { ToggleElement } from "./toggle-element";
+import {
+  backspaceToggleLabel,
+  breakToggleLabel,
+  collectToggleIds,
+  installToggleOnChange,
+  openNewToggles,
+  togglePlugin as toggleBasePlugin,
+} from "./editor-toggle";
 import {
   clearFormatting,
   containerParentType,
@@ -67,7 +76,10 @@ import {
   allowedChildTypes,
   containerContentType,
   allowedElementAttrs,
+  firstChildForbiddenAttrs,
+  firstChildType,
   isVoidElementType,
+  maxNesting,
   isAllowedValue,
   isPaletteToken,
   isWithinAttrRange,
@@ -470,6 +482,15 @@ function containerRules(type: string) {
         return false;
       }
 
+      // The label's Backspace unwraps the whole container. delete.start would lift only the label.
+      if (
+        rule === "delete.start" &&
+        path[path.length - 1] === 0 &&
+        firstChildType(type) !== undefined
+      ) {
+        return false;
+      }
+
       return rule === "break.empty" || !PathApi.hasPrevious(path);
     },
   };
@@ -493,12 +514,91 @@ function configureContainerPlugin<TNode extends (props: PlateElementProps) => JS
 
 const blockquotePlugin = configureContainerPlugin(BlockquotePlugin, BlockquoteElement);
 const calloutPlugin = configureContainerPlugin(CalloutPlugin, CalloutElement);
+const togglePlugin = configureContainerPlugin(toggleBasePlugin, ToggleElement).overrideEditor(
+  ({ editor, tf: { insertBreak, deleteBackward, insertFragment } }) => {
+    installToggleOnChange(editor);
+
+    return {
+      transforms: {
+        insertBreak() {
+          if (breakToggleLabel(editor, insertBreak)) {
+            return;
+          }
+
+          insertBreak();
+        },
+        deleteBackward(unit) {
+          if (backspaceToggleLabel(editor)) {
+            return;
+          }
+
+          deleteBackward(unit);
+        },
+        insertFragment(fragment, options) {
+          const before = collectToggleIds(editor);
+          insertFragment(fragment, options);
+          openNewToggles(editor, before);
+        },
+      },
+    };
+  },
+);
 
 // Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
 // block children unchanged, including a nested quote or a heading. This pass is the
 // outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
 // only sees paragraphs or wraps leftover inlines. A disallowed void is lifted out so
 // it is not retyped into an empty paragraph.
+function sameTypeDepth(editor: SlateEditor, type: string, path: number[]): number {
+  let depth = 1;
+  let parentPath = path.slice(0, -1);
+  while (parentPath.length > 0) {
+    const parent = editor.api.node(parentPath);
+    if (parent && isElementRecord(parent[0]) && parent[0].type === type) {
+      depth += 1;
+    }
+
+    parentPath = parentPath.slice(0, -1);
+  }
+
+  return depth;
+}
+
+function normalizeContainerShape(
+  editor: SlateEditor,
+  node: { type: string } & Record<string, unknown>,
+  path: number[],
+): boolean {
+  const limit = maxNesting(node.type);
+  if (limit !== undefined && sameTypeDepth(editor, node.type, path) > limit) {
+    editor.tf.unwrapNodes({
+      at: path,
+      match: (_candidate, candidatePath) => PathApi.equals(candidatePath, path),
+    });
+    return true;
+  }
+
+  const expected = firstChildType(node.type);
+  if (expected === undefined || !Array.isArray(node.children)) {
+    return false;
+  }
+
+  const first = node.children[0];
+  const childPath = path.concat(0);
+  if (!isElementRecord(first) || first.type !== expected) {
+    editor.tf.insertNodes({ type: expected, children: [{ text: "" }] }, { at: childPath });
+    return true;
+  }
+
+  const drop = firstChildForbiddenAttrs(node.type).filter((key) => key in first);
+  if (drop.length === 0) {
+    return false;
+  }
+
+  editor.tf.unsetNodes(drop, { at: childPath });
+  return true;
+}
+
 function normalizeDisallowedChild(
   editor: SlateEditor,
   node: { type: string } & Record<string, unknown>,
@@ -557,7 +657,11 @@ const childTypesPlugin = createSlatePlugin({
   transforms: {
     normalizeNode(entry) {
       const [node, path] = entry;
-      if (isElementRecord(node) && normalizeDisallowedChild(editor, node, path)) {
+      if (
+        isElementRecord(node) &&
+        (normalizeContainerShape(editor, node, path) ||
+          normalizeDisallowedChild(editor, node, path))
+      ) {
         return;
       }
 
@@ -1110,7 +1214,18 @@ const breakAbovePlugin = createSlatePlugin({
         const copied = listBreakAbove(block[0]);
         Object.assign(above, copied.attrs);
         const sourcePath = block[1];
-        editor.tf.insertNodes(above, { at: sourcePath, select: false });
+        // A container label (firstChildType) breaks above the container, not inside it.
+        const parentPath = sourcePath.slice(0, -1);
+        const parent = parentPath.length > 0 ? editor.api.node(parentPath) : undefined;
+        const aboveContainer =
+          parent !== undefined &&
+          isElementRecord(parent[0]) &&
+          firstChildType(parent[0].type) !== undefined &&
+          sourcePath[sourcePath.length - 1] === 0;
+        editor.tf.insertNodes(above, {
+          at: aboveContainer ? parentPath : sourcePath,
+          select: false,
+        });
         const moved = PathApi.next(sourcePath);
         if (copied.unset.length > 0 && moved) {
           editor.tf.unsetNodes(copied.unset, { at: moved });
@@ -1149,6 +1264,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     heading3Plugin,
     blockquotePlugin,
     calloutPlugin,
+    togglePlugin,
     // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,

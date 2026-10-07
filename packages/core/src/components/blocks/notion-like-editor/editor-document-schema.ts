@@ -24,6 +24,17 @@ export type EditorElementRule = {
    * Present: every child is an element of one of these types.
    */
   childTypes?: readonly string[];
+  /** When set, children[0] must be this type. Later children still use childTypes. */
+  firstChildType?: string;
+  /** Attrs childTypes allows that are still illegal on children[0]. */
+  firstChildForbiddenAttrs?: readonly string[];
+  /** How many times this type may nest, counting the outermost node. */
+  maxNesting?: number;
+  /**
+   * Which plain paragraph children getBlockType reports as this container.
+   * Absent means every plain paragraph child. "first" means only children[0].
+   */
+  reportParent?: "all" | "first";
   /**
    * A void stores exactly one empty text leaf and no marks.
    * It is not a container, so childTypes stays absent.
@@ -186,6 +197,17 @@ export const EDITOR_ELEMENT_RULES = [
     },
     childTypes: [KEYS.p],
   },
+  // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
+  // No shortcut. The "> " trigger is DEV-126.
+  {
+    type: KEYS.toggle,
+    attrs: ["id"],
+    childTypes: [KEYS.p, KEYS.toggle, KEYS.blockquote, KEYS.callout, KEYS.hr],
+    firstChildType: KEYS.p,
+    firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
+    maxNesting: 3,
+    reportParent: "first",
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -226,12 +248,60 @@ const elementChildTypes = new Map<string, readonly string[]>(
   ),
 );
 
+const elementFirstChildType = new Map<string, string>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "firstChildType" in rule && rule.firstChildType !== undefined
+      ? [[rule.type, rule.firstChildType]]
+      : [],
+  ),
+);
+
+const elementFirstChildForbiddenAttrs = new Map<string, readonly string[]>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "firstChildForbiddenAttrs" in rule && rule.firstChildForbiddenAttrs !== undefined
+      ? [[rule.type, rule.firstChildForbiddenAttrs]]
+      : [],
+  ),
+);
+
+const elementMaxNesting = new Map<string, number>(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "maxNesting" in rule && rule.maxNesting !== undefined ? [[rule.type, rule.maxNesting]] : [],
+  ),
+);
+
+const elementReportParent = new Map<string, "all" | "first">(
+  EDITOR_ELEMENT_RULES.flatMap((rule) =>
+    "reportParent" in rule && rule.reportParent !== undefined
+      ? [[rule.type, rule.reportParent]]
+      : [],
+  ),
+);
+
+const noForbiddenAttrs: readonly string[] = [];
+
 const voidElementTypes = new Set<string>(
   EDITOR_ELEMENT_RULES.flatMap((rule) => ("isVoid" in rule && rule.isVoid ? [rule.type] : [])),
 );
 
 export function allowedChildTypes(type: string): readonly string[] | undefined {
   return elementChildTypes.get(type);
+}
+
+export function firstChildType(type: string): string | undefined {
+  return elementFirstChildType.get(type);
+}
+
+export function firstChildForbiddenAttrs(type: string): readonly string[] {
+  return elementFirstChildForbiddenAttrs.get(type) ?? noForbiddenAttrs;
+}
+
+export function maxNesting(type: string): number | undefined {
+  return elementMaxNesting.get(type);
+}
+
+export function reportsParentFromFirstChild(type: string): boolean {
+  return elementReportParent.get(type) === "first";
 }
 
 export function isVoidElementType(type: string): boolean {

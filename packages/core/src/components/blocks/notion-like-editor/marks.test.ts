@@ -449,8 +449,8 @@ describe.each(MARKS)("%s", (_name, mark) => {
     const expected = mark.samples === undefined ? [mark.sample] : [...mark.samples];
 
     expect(parsed.repairs).toEqual([]);
-    // Top-level blocks. Paragraphs nested in the quote are not counted.
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(40);
+    // Top-level blocks. Paragraphs nested in the quote, callout, and toggle are not counted.
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(42);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });
