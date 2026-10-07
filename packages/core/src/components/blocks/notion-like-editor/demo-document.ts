@@ -311,7 +311,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "callout",
     id: "demo-callout",
-    icon: "💡",
+    icon: "lightbulb",
     variant: "info",
     children: [
       {

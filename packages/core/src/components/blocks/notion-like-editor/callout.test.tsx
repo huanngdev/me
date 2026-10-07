@@ -17,7 +17,7 @@ import {
   turnIntoCallout,
 } from "./editor-commands";
 import { createEditorDocument } from "./editor-document";
-import { allowedChildTypes } from "./editor-document-schema";
+import { CALLOUT_ICONS, allowedChildTypes } from "./editor-document-schema";
 import { parseEditorDocument } from "./editor-document-validate";
 import { createEditorPlugins } from "./editor-plugins";
 import { EditorSurface } from "./editor-surface";
@@ -213,7 +213,7 @@ describe("callout schema", () => {
           },
           paragraph("Item", "para-2", { indent: 1, listStyleType: "disc" }),
         ],
-        { icon: "💡", variant: "info" },
+        { icon: "lightbulb", variant: "info" },
       ),
     ];
     const parsed = expectOk(parseEditorDocument(createEditorDocument("doc", content)));
@@ -239,6 +239,26 @@ describe("callout schema", () => {
     const result = expectUnsupported(parseEditorDocument(raw));
 
     expect(result.issues[0]?.message).toContain('unsupported icon "🦄"');
+    expect(result.raw).toBe(raw);
+  });
+
+  test("every Lucide icon key round-trips", () => {
+    const content = CALLOUT_ICONS.map((icon, index) =>
+      callout(`callout-${String(index)}`, [paragraph("Note", `para-${String(index)}`)], { icon }),
+    );
+    const parsed = expectOk(parseEditorDocument(createEditorDocument("doc-icons", content)));
+
+    expect(parsed.repairs).toEqual([]);
+    expect(parsed.document.content).toEqual(content);
+  });
+
+  test("a stored emoji icon is unsupported and the raw document is kept", () => {
+    const raw = createEditorDocument("doc-emoji", [
+      callout("callout-1", [paragraph("Note", "para-1")], { icon: "💡" }),
+    ]);
+    const result = expectUnsupported(parseEditorDocument(raw));
+
+    expect(result.issues[0]?.message).toContain('unsupported icon "💡"');
     expect(result.raw).toBe(raw);
   });
 
@@ -287,14 +307,14 @@ describe("callout schema", () => {
 describe("callout normalizer", () => {
   test("a quote inside a callout flattens into the callout", () => {
     const editor = createEditor([
-      callout("callout-1", [quote("quote-1", [paragraph("x", "para-1")])], { icon: "📌" }),
+      callout("callout-1", [quote("quote-1", [paragraph("x", "para-1")])], { icon: "pin" }),
     ]);
 
     editor.tf.normalize({ force: true });
 
     expect(typesOf(editor)).toEqual(["callout"]);
     expect(field(editor.children[0], "id")).toBe("callout-1");
-    expect(field(editor.children[0], "icon")).toBe("📌");
+    expect(field(editor.children[0], "icon")).toBe("pin");
     expect(childIds(editor.children[0])).toEqual(["para-1"]);
     expect(nodeText(editor.children[0])).toBe("x");
     expect(JSON.stringify(editor.children)).not.toContain("quote-1");
@@ -443,19 +463,19 @@ describe("callout commands", () => {
     const children = JSON.parse(JSON.stringify(editor.children[0]?.children));
 
     const setIcon = editor.history.undos.length;
-    expect(runEditorCommand(editor, setCalloutIcon, { value: "📌" })).toBe(true);
-    expect(field(editor.children[0], "icon")).toBe("📌");
+    expect(runEditorCommand(editor, setCalloutIcon, { value: "pin" })).toBe(true);
+    expect(field(editor.children[0], "icon")).toBe("pin");
     expect(editor.history.undos.length - setIcon).toBe(1);
 
-    runEditorCommand(editor, setCalloutIcon, { value: "🔥" });
-    expect(field(editor.children[0], "icon")).toBe("🔥");
+    runEditorCommand(editor, setCalloutIcon, { value: "flame" });
+    expect(field(editor.children[0], "icon")).toBe("flame");
     editor.tf.undo();
-    expect(field(editor.children[0], "icon")).toBe("📌");
+    expect(field(editor.children[0], "icon")).toBe("pin");
 
     runEditorCommand(editor, setCalloutIcon, { value: null });
     expect(field(editor.children[0], "icon")).toBeUndefined();
     editor.tf.undo();
-    expect(field(editor.children[0], "icon")).toBe("📌");
+    expect(field(editor.children[0], "icon")).toBe("pin");
 
     const setTone = editor.history.undos.length;
     expect(runEditorCommand(editor, setCalloutTone, { value: "info" })).toBe(true);
@@ -484,32 +504,35 @@ describe("callout commands", () => {
       focus: { path: [1, 0], offset: 12 },
     };
     outside.tf.select(selection);
-    runEditorCommand(outside, setCalloutIcon, { value: "⚠️", at: [0] });
+    runEditorCommand(outside, setCalloutIcon, { value: "triangle-alert", at: [0] });
     expect(outside.selection).toEqual(selection);
-    expect(field(outside.children[0], "icon")).toBe("⚠️");
+    expect(field(outside.children[0], "icon")).toBe("triangle-alert");
   });
 
   test("a read-only editor refuses icon and tone changes", () => {
     const editor = createEditor([
-      callout("callout-1", [paragraph("Note", "para-1")], { icon: "💡", variant: "info" }),
+      callout("callout-1", [paragraph("Note", "para-1")], { icon: "lightbulb", variant: "info" }),
     ]);
     editor.tf.select(caret([0, 0, 0], 1));
     const undos = editor.history.undos.length;
 
-    expect(runEditorCommand(editor, setCalloutIcon, { value: "🔥" }, { readOnly: true })).toBe(
+    expect(runEditorCommand(editor, setCalloutIcon, { value: "flame" }, { readOnly: true })).toBe(
       false,
     );
     expect(runEditorCommand(editor, setCalloutTone, { value: null }, { readOnly: true })).toBe(
       false,
     );
-    expect(field(editor.children[0], "icon")).toBe("💡");
+    expect(field(editor.children[0], "icon")).toBe("lightbulb");
     expect(field(editor.children[0], "variant")).toBe("info");
     expect(editor.history.undos.length).toBe(undos);
   });
 
   test("reset removes both attrs in one undo and leaves the children", () => {
     const editor = createEditor([
-      callout("callout-1", [paragraph("Note", "para-1")], { icon: "💡", variant: "warning" }),
+      callout("callout-1", [paragraph("Note", "para-1")], {
+        icon: "lightbulb",
+        variant: "warning",
+      }),
     ]);
     const children = JSON.parse(JSON.stringify(editor.children[0]?.children));
     const before = editor.history.undos.length;
@@ -523,7 +546,7 @@ describe("callout commands", () => {
 
     editor.tf.undo();
 
-    expect(field(editor.children[0], "icon")).toBe("💡");
+    expect(field(editor.children[0], "icon")).toBe("lightbulb");
     expect(field(editor.children[0], "variant")).toBe("warning");
   });
 });
@@ -614,29 +637,31 @@ describe("callout keyboard", () => {
 describe("callout rendering", () => {
   test("an info callout uses the info tone and the stored icon", () => {
     const html = renderCallout([
-      callout("callout-1", [paragraph("Note", "para-1")], { icon: "📌", variant: "info" }),
+      callout("callout-1", [paragraph("Note", "para-1")], { icon: "pin", variant: "info" }),
     ]);
 
     expect(html).toContain('role="note"');
     expect(html).toContain(CALLOUT_TONE_CLASS_NAME.info);
-    expect(html).toContain("📌");
+    expect(html).toContain("lucide-pin");
     expect(html).toContain('aria-label="Change callout icon and color"');
   });
 
   test("a callout without an icon shows the default light bulb", () => {
     const html = renderCallout([callout("callout-1", [paragraph("Note", "para-1")])]);
 
-    expect(html).toContain("💡");
+    expect(html).toContain("<svg");
+    expect(html).toContain("lucide-lightbulb");
+    expect(html).toContain("text-muted-foreground");
     expect(html).toContain(CALLOUT_TONE_CLASS_NAME.default);
   });
 
   test("a read-only callout shows the icon and no button", () => {
     const html = renderCallout(
-      [callout("callout-1", [paragraph("Note", "para-1")], { icon: "✅" })],
+      [callout("callout-1", [paragraph("Note", "para-1")], { icon: "circle-check" })],
       true,
     );
 
-    expect(html).toContain("✅");
+    expect(html).toContain("lucide-circle-check");
     expect(html).not.toContain("<button");
     expect(html).not.toContain("Change callout icon and color");
   });
@@ -679,7 +704,28 @@ describe("callout picker", () => {
       });
 
       const items = [...document.querySelectorAll("[role='menuitem']")];
-      const warning = items.find((item) => item.getAttribute("aria-label") === "⚠️");
+      const labels = [
+        "Lightbulb",
+        "Info",
+        "Circle check",
+        "Triangle alert",
+        "Ban",
+        "Pin",
+        "Notebook pen",
+        "Flame",
+        "Circle help",
+        "Star",
+        "Target",
+        "Message circle",
+      ];
+      for (const label of labels) {
+        const item = items.find((entry) => entry.getAttribute("aria-label") === label);
+        if (!item) {
+          throw new Error(`Missing ${label} icon.`);
+        }
+      }
+
+      const warning = items.find((item) => item.getAttribute("aria-label") === "Triangle alert");
       if (!warning || !isClickable(warning)) {
         throw new Error("Missing warning icon.");
       }
@@ -689,7 +735,7 @@ describe("callout picker", () => {
         warning.dispatchEvent(new view.MouseEvent("click", { bubbles: true, cancelable: true }));
       });
 
-      expect(field(mounted.editor.children[0], "icon")).toBe("⚠️");
+      expect(field(mounted.editor.children[0], "icon")).toBe("triangle-alert");
       expect(mounted.editor.history.undos.length - before).toBe(1);
       expect(mounted.editor.selection).toEqual(selection);
     } finally {
@@ -703,11 +749,11 @@ describe("callout paste", () => {
     const editor = createEditor();
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertFragment([
-      callout("callout-1", [paragraph("Kept", "para-1")], { icon: "⭐", variant: "success" }),
+      callout("callout-1", [paragraph("Kept", "para-1")], { icon: "star", variant: "success" }),
     ]);
 
     expect(typesOf(editor)).toEqual(["callout"]);
-    expect(field(editor.children[0], "icon")).toBe("⭐");
+    expect(field(editor.children[0], "icon")).toBe("star");
     expect(field(editor.children[0], "variant")).toBe("success");
     expect(nodeText(editor.children[0])).toBe("Kept");
   });
@@ -716,11 +762,11 @@ describe("callout paste", () => {
     const editor = createEditor();
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertFragment([
-      callout("callout-1", [paragraph("Kept", "para-1")], { icon: "⭐", variant: "error" }),
+      callout("callout-1", [paragraph("Kept", "para-1")], { icon: "star", variant: "error" }),
     ]);
 
     expect(typesOf(editor)).toEqual(["callout"]);
-    expect(field(editor.children[0], "icon")).toBe("⭐");
+    expect(field(editor.children[0], "icon")).toBe("star");
     expect(field(editor.children[0], "variant")).toBeUndefined();
     expect(nodeText(editor.children[0])).toBe("Kept");
   });
@@ -737,6 +783,19 @@ describe("callout paste", () => {
     expect(field(child, "listStyleType")).toBe("disc");
     expect(field(child, "indent")).toBe(1);
     expect(nodeText(child)).toBe("Item");
+  });
+
+  test("an editor fragment drops an emoji icon and keeps the callout", () => {
+    const editor = createEditor();
+    editor.tf.select(caret([0, 0], 0));
+    editor.tf.insertFragment([
+      callout("callout-1", [paragraph("Kept", "para-1")], { icon: "💡", variant: "info" }),
+    ]);
+
+    expect(typesOf(editor)).toEqual(["callout"]);
+    expect(field(editor.children[0], "icon")).toBeUndefined();
+    expect(field(editor.children[0], "variant")).toBe("info");
+    expect(nodeText(editor.children[0])).toBe("Kept");
   });
 
   test("native HTML does not invent a callout, and the text is kept", () => {

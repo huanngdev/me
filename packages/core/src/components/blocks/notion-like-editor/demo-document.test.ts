@@ -249,7 +249,7 @@ describe("demo document", () => {
     expect(textOf(callouts)).toBe("Callouts");
     expect(DEMO_DOCUMENT_VALUE.indexOf(callouts)).toBe(DEMO_DOCUMENT_VALUE.indexOf(quote) + 1);
     expect(DEMO_DOCUMENT_VALUE.indexOf(callout)).toBe(DEMO_DOCUMENT_VALUE.indexOf(callouts) + 1);
-    expect(field(callout, "icon")).toBe("💡");
+    expect(field(callout, "icon")).toBe("lightbulb");
     expect(field(callout, "variant")).toBe("info");
     const calloutChildren = elementChildren(callout);
     expect(calloutChildren.map((child) => field(child, "id"))).toEqual([

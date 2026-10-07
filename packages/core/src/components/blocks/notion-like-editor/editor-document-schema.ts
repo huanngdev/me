@@ -107,25 +107,25 @@ export const CALLOUT_TONES = ["info", "success", "warning", "danger"] as const;
 
 export type CalloutTone = (typeof CALLOUT_TONES)[number];
 
-// Preset icons. Absence means 💡. An emoji outside this list is not stored.
+// Lucide keys. Absence means lightbulb. Unreleased, so a stored emoji is unsupported and is not migrated.
 export const CALLOUT_ICONS = [
-  "💡",
-  "ℹ️",
-  "✅",
-  "⚠️",
-  "🚫",
-  "📌",
-  "📝",
-  "🔥",
-  "❓",
-  "⭐",
-  "🎯",
-  "💬",
+  "lightbulb",
+  "info",
+  "circle-check",
+  "triangle-alert",
+  "ban",
+  "pin",
+  "notebook-pen",
+  "flame",
+  "circle-help",
+  "star",
+  "target",
+  "message-circle",
 ] as const;
 
 export type CalloutIcon = (typeof CALLOUT_ICONS)[number];
 
-export const CALLOUT_DEFAULT_ICON: CalloutIcon = "💡";
+export const CALLOUT_DEFAULT_ICON: CalloutIcon = "lightbulb";
 
 const headingElementRule = {
   attrs: ["id", "align"],

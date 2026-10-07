@@ -1,5 +1,20 @@
 import { useRef } from "react";
 import {
+  Ban,
+  CircleCheck,
+  CircleHelp,
+  Flame,
+  Info,
+  Lightbulb,
+  MessageCircle,
+  NotebookPen,
+  Pin,
+  Star,
+  Target,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
+import {
   PlateElement,
   useEditorRef,
   useElement,
@@ -44,6 +59,30 @@ const TONE_LABEL = {
   warning: "Warning",
   danger: "Danger",
 } as const;
+
+// The size-7 box aligns with the 26px first line. The glyph is 1.25× the 16px text.
+const CALLOUT_ICON_CLASS = "size-5 text-muted-foreground";
+
+const CALLOUT_ICON_GLYPH = {
+  lightbulb: { label: "Lightbulb", Icon: Lightbulb },
+  info: { label: "Info", Icon: Info },
+  "circle-check": { label: "Circle check", Icon: CircleCheck },
+  "triangle-alert": { label: "Triangle alert", Icon: TriangleAlert },
+  ban: { label: "Ban", Icon: Ban },
+  pin: { label: "Pin", Icon: Pin },
+  "notebook-pen": { label: "Notebook pen", Icon: NotebookPen },
+  flame: { label: "Flame", Icon: Flame },
+  "circle-help": { label: "Circle help", Icon: CircleHelp },
+  star: { label: "Star", Icon: Star },
+  target: { label: "Target", Icon: Target },
+  "message-circle": { label: "Message circle", Icon: MessageCircle },
+} as const satisfies Record<CalloutIcon, { label: string; Icon: LucideIcon }>;
+
+function CalloutIconGlyph({ icon }: { icon: CalloutIcon }) {
+  const { Icon } = CALLOUT_ICON_GLYPH[icon];
+
+  return <Icon aria-hidden="true" className={CALLOUT_ICON_CLASS} />;
+}
 
 export function calloutIcon(value: unknown): CalloutIcon {
   const found = CALLOUT_ICONS.find((icon) => icon === value);
@@ -96,7 +135,7 @@ export function CalloutElement(props: PlateElementProps) {
             aria-hidden="true"
             className="inline-flex size-7 items-center justify-center text-base leading-none"
           >
-            {icon}
+            <CalloutIconGlyph icon={icon} />
           </span>
         ) : (
           <DropdownMenu modal={false}>
@@ -108,7 +147,7 @@ export function CalloutElement(props: PlateElementProps) {
                 savedSelection.current = editor.selection;
               }}
             >
-              <span aria-hidden="true">{icon}</span>
+              <CalloutIconGlyph icon={icon} />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
@@ -129,14 +168,14 @@ export function CalloutElement(props: PlateElementProps) {
                 {CALLOUT_ICONS.map((choice) => (
                   <DropdownMenuItem
                     key={choice}
-                    aria-label={choice}
+                    aria-label={CALLOUT_ICON_GLYPH[choice].label}
                     className="justify-center px-0"
                     onMouseDown={keepEditorSelection}
                     onSelect={() => {
                       runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
                     }}
                   >
-                    <span aria-hidden="true">{choice}</span>
+                    <CalloutIconGlyph icon={choice} />
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuGroup>
