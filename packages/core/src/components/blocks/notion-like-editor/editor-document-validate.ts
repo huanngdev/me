@@ -26,6 +26,7 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import { repairColumnContent } from "./editor-columns";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -537,9 +538,11 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
+  const structurally = repairColumnContent(envelope.data.content);
+  const content = structurally.content;
 
-  for (let index = 0; index < envelope.data.content.length; index += 1) {
-    walkTopLevel(envelope.data.content[index], [index], state);
+  for (let index = 0; index < content.length; index += 1) {
+    walkTopLevel(content[index], [index], state);
     if (state.invalid) {
       return {
         status: "invalid",
@@ -557,10 +560,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     };
   }
 
-  const normalized = normalizeBlockIds(
-    dropRepairedAttrs(envelope.data.content, state.repairs),
-    createPlateId,
-  );
+  const normalized = normalizeBlockIds(dropRepairedAttrs(content, state.repairs), createPlateId);
 
   return {
     status: "ok",
@@ -570,6 +570,6 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       revision: envelope.data.revision,
       content: normalized.content,
     },
-    repairs: [...state.repairs, ...normalized.repairs],
+    repairs: [...structurally.repairs, ...state.repairs, ...normalized.repairs],
   };
 }

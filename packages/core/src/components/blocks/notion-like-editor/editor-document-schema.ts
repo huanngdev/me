@@ -1027,6 +1027,39 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "colSpan", "rowSpan"],
     childTypes: [KEYS.p],
   },
+  // Plate column_group (@platejs/layout 53.0.0). Two or three columns, top-level only.
+  // A one-column group is unwrapped before this rule runs. Width lives on each column.
+  {
+    type: KEYS.columnGroup,
+    attrs: ["id"],
+    childTypes: [KEYS.column],
+    maxChildren: 3,
+    maxNesting: 1,
+  },
+  // width is the percent string Plate stores ("50%", "33.33%"). No allowlist: a bad
+  // value is rewritten by the column repair, and an unknown attribute still fails closed.
+  {
+    type: KEYS.column,
+    attrs: ["id", "width"],
+    childTypes: [
+      KEYS.p,
+      KEYS.h1,
+      KEYS.h2,
+      KEYS.h3,
+      KEYS.blockquote,
+      KEYS.callout,
+      KEYS.toggle,
+      KEYS.hr,
+      KEYS.codeBlock,
+      KEYS.img,
+      KEYS.video,
+      KEYS.audio,
+      KEYS.file,
+      KEYS.mediaEmbed,
+      BOOKMARK_KEY,
+      KEYS.table,
+    ],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [

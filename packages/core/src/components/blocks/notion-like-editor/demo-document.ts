@@ -1061,6 +1061,51 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-columns",
+    children: [{ text: "Columns" }],
+  },
+  {
+    type: "column_group",
+    id: "demo-column-group",
+    children: [
+      {
+        type: "column",
+        id: "demo-column-list",
+        width: "50%",
+        children: [
+          {
+            type: "p",
+            id: "demo-column-item",
+            indent: 1,
+            listStyleType: "disc",
+            children: [{ text: "A list can sit in one column." }],
+          },
+        ],
+      },
+      {
+        type: "column",
+        id: "demo-column-note",
+        width: "50%",
+        children: [
+          {
+            type: "callout",
+            id: "demo-column-callout",
+            icon: "info",
+            variant: "info",
+            children: [
+              {
+                type: "p",
+                id: "demo-column-callout-text",
+                children: [{ text: "A callout can sit in the other." }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

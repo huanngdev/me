@@ -599,8 +599,28 @@ describe("demo document", () => {
     const demoAudioSize = demoAudio.size;
     expect(demoAudioSize).toBeGreaterThan(44);
     expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+    const columns = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-columns");
+    const columnGroup = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-column-group");
+    expect(columns?.type).toBe("h3");
+    expect(columns ? textOf(columns) : "").toBe("Columns");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(columns ?? bookmarkFallback)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 1,
+    );
+    expect(columnGroup?.type).toBe("column_group");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(columnGroup ?? bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 2,
+    );
+    const columnChildren = elementChildren(columnGroup ?? bookmarkFallback);
+    expect(columnChildren.map((column) => field(column, "width"))).toEqual(["50%", "50%"]);
+    const listColumn = elementChildren(columnChildren[0] ?? bookmarkFallback);
+    expect(field(listColumn[0], "listStyleType")).toBe("disc");
+    expect(elementChildren(listColumn[0] ?? bookmarkFallback)).toEqual([
+      { text: "A list can sit in one column." },
+    ]);
+    const noteColumn = elementChildren(columnChildren[1] ?? bookmarkFallback);
+    expect(field(noteColumn[0], "type")).toBe("callout");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 3,
     );
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([

@@ -26,6 +26,7 @@ import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
 import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
+import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
 import { insertTableRow } from "@platejs/table";
@@ -55,6 +56,8 @@ import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
+import { ColumnElement, ColumnGroupElement } from "./column-element";
+import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
 import { FileElement } from "./file-element";
@@ -687,6 +690,37 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
+    // Columns are top-level only. A group inside a toggle, quote, callout, table
+    // cell, or column is moved out whole. Unwrapping it would dump its columns
+    // into the container.
+    if (child.type === KEYS.columnGroup) {
+      if (
+        (node.type === KEYS.td || node.type === KEYS.th) &&
+        moveMediaAfterTable(editor, path, childPath)
+      ) {
+        return true;
+      }
+
+      const containerPath = node.type === KEYS.column ? path.slice(0, -1) : path;
+      const destination = PathApi.next(containerPath);
+      if (!destination) {
+        return false;
+      }
+
+      editor.tf.withoutNormalizing(() => {
+        editor.tf.moveNodes({ at: childPath, to: destination });
+        const container = editor.api.node(path);
+        const remaining =
+          container && isElementRecord(container[0]) && Array.isArray(container[0].children)
+            ? container[0].children
+            : [];
+        if (remaining.length === 0) {
+          editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path.concat(0) });
+        }
+      });
+      return true;
+    }
+
     // A table cell only stores paragraphs. Lifting a media void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
@@ -1557,6 +1591,41 @@ const bookmarkPlugin = createSlatePlugin({
   render: { node: BookmarkElement },
 });
 
+const columnPlugin = ColumnPlugin.configure({
+  render: { node: ColumnGroupElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onColumnKeyDown(editor, event);
+    },
+  },
+}).configurePlugin(ColumnItemPlugin, {
+  render: { node: ColumnElement },
+});
+
+// Runs after childTypes so a bad column tree is rewritten before Plate's
+// withColumn normalizer sees it. withColumn would equalize widths without the
+// 20% rule and delete an empty column instead of keeping a paragraph.
+const columnNormalizePlugin = createSlatePlugin({
+  key: "columnNormalize",
+}).overrideEditor(({ editor, tf: { normalizeNode, deleteBackward } }) => ({
+  transforms: {
+    normalizeNode(entry) {
+      if (applyColumnRepair(editor)) {
+        return;
+      }
+
+      normalizeNode(entry);
+    },
+    deleteBackward(unit) {
+      if (isColumnBoundary(editor)) {
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+  },
+}));
+
 const filePlugin = FilePlugin.configure({
   node: { isVoid: true },
   render: { node: FileElement },
@@ -1783,6 +1852,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     filePlugin,
     mediaEmbedPlugin,
     bookmarkPlugin,
+    columnPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
@@ -1794,6 +1864,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     voidKeyboardPlugin,
     breakAbovePlugin,
     childTypesPlugin,
+    columnNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
   ];
