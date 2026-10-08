@@ -142,6 +142,8 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/video-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/editor-audio.ts",
       "packages/core/src/components/blocks/notion-like-editor/audio-element.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/editor-file.ts",
+      "packages/core/src/components/blocks/notion-like-editor/file-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/editor-selection.ts",
       "packages/core/src/components/blocks/notion-like-editor/editor-commands.ts",
       "packages/core/src/components/blocks/notion-like-editor/editor-assets.ts",

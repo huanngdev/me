@@ -360,6 +360,9 @@ export const AUDIO_NAME_MAX = 255;
 export const AUDIO_MIME_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"] as const;
 export const AUDIO_ALIGNS = IMAGE_ALIGNS;
 
+export const FILE_NAME_MAX = 255;
+export const FILE_MIME_TYPES = ["application/pdf", "application/octet-stream"] as const;
+
 export type AudioMimeType = (typeof AUDIO_MIME_TYPES)[number];
 
 // A stored file name is already trimmed. Control characters and a length past 255 are rejected.
@@ -380,6 +383,50 @@ export function isStoredAudioName(value: unknown): value is string {
   }
 
   return true;
+}
+
+export type FileMimeType = (typeof FILE_MIME_TYPES)[number];
+
+// A stored file name is trimmed, at most 255 code-safe characters, and has no
+// controls, bidi overrides, or path separators. The write path strips those.
+export function isStoredFileName(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || [...value].length > FILE_NAME_MAX) {
+    return false;
+  }
+
+  if (value !== value.trim() || value.includes("/") || value.includes("\\")) {
+    return false;
+  }
+
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    if (code === undefined || code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+
+    if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isStoredFileMime(value: unknown): value is FileMimeType {
+  return typeof value === "string" && FILE_MIME_TYPES.some((mime) => mime === value);
+}
+
+function isStoredByteSize(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function fileHasSource(node: Record<string, unknown>): boolean {
+  const assetId = node.assetId;
+  const url = node.url;
+  return (
+    (typeof assetId === "string" && assetId.length > 0) ||
+    (typeof url === "string" && isSafeImageUrl(url))
+  );
 }
 
 // A sourceless video is an upload that has not finished. It loads as ok.
@@ -425,6 +472,42 @@ export function checkAudioNode(
     issues.push({
       path,
       message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+// A sourceless file is an upload that has not finished. It loads as ok.
+// Width, align, and view state are not document fields. A ready file requires a name.
+export function checkFileNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path)];
+
+  if (("name" in node || fileHasSource(node)) && !isStoredFileName(node.name)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported name. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("mimeType" in node && !isStoredFileMime(node.mimeType)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported mime type. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("byteSize" in node && !isStoredByteSize(node.byteSize)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported size. Restore from a backup or remove the attribute.`,
     });
   }
 
@@ -640,6 +723,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { align: AUDIO_ALIGNS, mimeType: AUDIO_MIME_TYPES },
     validateChildren: (node, path) => checkAudioNode(node, path),
   },
+  // Plate's file node is BaseFilePlugin (@platejs/media 53.1.4, dist/src-C28rUpXn.js):
+  // key KEYS.file ("file"), isElement, isVoid, and no dangerouslyAllowAttributes.
+  // FilePlugin is toPlatePlugin(BaseFilePlugin) in @platejs/media/react.
+  // The url field is the same element url insertImage writes. Plate does not write a
+  // file name; name is this editor's attribute. Caption is Plate's [{ text }] shape,
+  // written by setNodes in @platejs/caption. Width, align, and view state are not stored.
+  {
+    type: KEYS.file,
+    attrs: ["id", "assetId", "url", "mimeType", "name", "byteSize", "caption"],
+    isVoid: true,
+    attrValues: { mimeType: FILE_MIME_TYPES },
+    validateChildren: (node, path) => checkFileNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -665,6 +761,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.img,
       KEYS.video,
       KEYS.audio,
+      KEYS.file,
       KEYS.codeBlock,
       KEYS.table,
     ],

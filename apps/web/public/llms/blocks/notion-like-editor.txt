@@ -39,29 +39,31 @@
 29. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
 30. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
 31. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-33. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-34. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-35. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-36. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-37. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-38. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-39. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-40. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-41. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-42. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-43. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-44. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-45. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-46. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-47. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-48. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-49. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-50. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-51. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-52. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-53. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-54. apps/web/src/app/blocks/notion-like-editor/page.tsx
+32. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+33. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+34. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+35. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+36. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+37. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+38. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+39. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+40. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+41. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+42. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+43. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+44. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+45. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+46. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+47. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+48. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+49. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+50. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+51. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+52. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+53. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+54. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+55. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+56. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -441,6 +443,9 @@ export const AUDIO_NAME_MAX = 255;
 export const AUDIO_MIME_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"] as const;
 export const AUDIO_ALIGNS = IMAGE_ALIGNS;
 
+export const FILE_NAME_MAX = 255;
+export const FILE_MIME_TYPES = ["application/pdf", "application/octet-stream"] as const;
+
 export type AudioMimeType = (typeof AUDIO_MIME_TYPES)[number];
 
 // A stored file name is already trimmed. Control characters and a length past 255 are rejected.
@@ -461,6 +466,50 @@ export function isStoredAudioName(value: unknown): value is string {
   }
 
   return true;
+}
+
+export type FileMimeType = (typeof FILE_MIME_TYPES)[number];
+
+// A stored file name is trimmed, at most 255 code-safe characters, and has no
+// controls, bidi overrides, or path separators. The write path strips those.
+export function isStoredFileName(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || [...value].length > FILE_NAME_MAX) {
+    return false;
+  }
+
+  if (value !== value.trim() || value.includes("/") || value.includes("\\")) {
+    return false;
+  }
+
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    if (code === undefined || code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+
+    if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isStoredFileMime(value: unknown): value is FileMimeType {
+  return typeof value === "string" && FILE_MIME_TYPES.some((mime) => mime === value);
+}
+
+function isStoredByteSize(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function fileHasSource(node: Record<string, unknown>): boolean {
+  const assetId = node.assetId;
+  const url = node.url;
+  return (
+    (typeof assetId === "string" && assetId.length > 0) ||
+    (typeof url === "string" && isSafeImageUrl(url))
+  );
 }
 
 // A sourceless video is an upload that has not finished. It loads as ok.
@@ -506,6 +555,42 @@ export function checkAudioNode(
     issues.push({
       path,
       message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+// A sourceless file is an upload that has not finished. It loads as ok.
+// Width, align, and view state are not document fields. A ready file requires a name.
+export function checkFileNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path)];
+
+  if (("name" in node || fileHasSource(node)) && !isStoredFileName(node.name)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported name. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("mimeType" in node && !isStoredFileMime(node.mimeType)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported mime type. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("byteSize" in node && !isStoredByteSize(node.byteSize)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported size. Restore from a backup or remove the attribute.`,
     });
   }
 
@@ -721,6 +806,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { align: AUDIO_ALIGNS, mimeType: AUDIO_MIME_TYPES },
     validateChildren: (node, path) => checkAudioNode(node, path),
   },
+  // Plate's file node is BaseFilePlugin (@platejs/media 53.1.4, dist/src-C28rUpXn.js):
+  // key KEYS.file ("file"), isElement, isVoid, and no dangerouslyAllowAttributes.
+  // FilePlugin is toPlatePlugin(BaseFilePlugin) in @platejs/media/react.
+  // The url field is the same element url insertImage writes. Plate does not write a
+  // file name; name is this editor's attribute. Caption is Plate's [{ text }] shape,
+  // written by setNodes in @platejs/caption. Width, align, and view state are not stored.
+  {
+    type: KEYS.file,
+    attrs: ["id", "assetId", "url", "mimeType", "name", "byteSize", "caption"],
+    isVoid: true,
+    attrValues: { mimeType: FILE_MIME_TYPES },
+    validateChildren: (node, path) => checkFileNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -746,6 +844,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.img,
       KEYS.video,
       KEYS.audio,
+      KEYS.file,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -1598,11 +1697,12 @@ function walkElement(
     }
 
     const attr = value[key];
-    // Image, video, and audio report blob and data urls as unsupported below. Other blocks stay invalid.
+    // Image, video, audio, and file report blob and data urls as unsupported below. Other blocks stay invalid.
     if (
       type !== KEYS.img &&
       type !== KEYS.video &&
       type !== KEYS.audio &&
+      type !== KEYS.file &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -1970,6 +2070,12 @@ import {
   planPastedAudio,
   queuePastedAudioUpload,
 } from "./editor-audio";
+import {
+  FILE_BOTH_SOURCES,
+  pastedFileDroppedUrl,
+  planPastedFile,
+  queuePastedFileUpload,
+} from "./editor-file";
 import type { EditorValue } from "./editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -2237,6 +2343,16 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     droppedUrl: pastedAudioDroppedUrl,
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
+  });
+}
+
+function pastedFile(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.file,
+    plan: planPastedFile,
+    droppedUrl: pastedFileDroppedUrl,
+    bothSourcesMessage: FILE_BOTH_SOURCES,
+    queueUpload: queuePastedFileUpload,
   });
 }
 
@@ -2768,6 +2884,10 @@ function expandBlock(
       return pastedAudio(node, seen);
     }
 
+    if (node.type === KEYS.file) {
+      return pastedFile(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -3051,7 +3171,7 @@ import {
 import { CalloutPlugin } from "@platejs/callout/react";
 import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { AudioPlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
+import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -3082,6 +3202,7 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
+import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
 import {
@@ -3092,10 +3213,12 @@ import {
   imageRuntimePlugin,
 } from "./editor-image";
 import { audioHtmlDeserializer, ensureAudioMedia, flushPastedAudioUploads } from "./editor-audio";
+import { ensureFileMedia, flushPastedFileUploads } from "./editor-file";
 import { ensureVideoMedia, flushPastedVideoUploads, videoHtmlDeserializer } from "./editor-video";
 
 const videoRuntimePlugin = ensureVideoMedia().plugin;
 const audioRuntimePlugin = ensureAudioMedia().plugin;
+const fileRuntimePlugin = ensureFileMedia().plugin;
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -3710,7 +3833,10 @@ function normalizeDisallowedChild(
     // A table cell only stores paragraphs. Lifting a media void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
-      (child.type === KEYS.img || child.type === KEYS.video || child.type === KEYS.audio) &&
+      (child.type === KEYS.img ||
+        child.type === KEYS.video ||
+        child.type === KEYS.audio ||
+        child.type === KEYS.file) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -4555,10 +4681,25 @@ const audioPlugin = AudioPlugin.configure({
   },
 }));
 
+const filePlugin = FilePlugin.configure({
+  node: { isVoid: true },
+  render: { node: FileElement },
+}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
+  transforms: {
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedFileUploads(editor);
+      }
+    },
+  },
+}));
+
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img, KEYS.video, KEYS.audio],
+      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file],
     },
   },
 });
@@ -4763,10 +4904,12 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     imagePlugin,
     videoPlugin,
     audioPlugin,
+    filePlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
     audioRuntimePlugin,
+    fileRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -9159,6 +9302,7 @@ export function HrElement(props: PlateElementProps) {
 ```ts
 import {
   ElementApi,
+  KEYS,
   PathApi,
   createSlatePlugin,
   nanoid,
@@ -9180,8 +9324,10 @@ import type {
 import { isSafeImageUrl } from "./editor-document-schema";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
-// Anything that is not an image, a video, or audio stays here until file blocks exist.
+// Used only when the file route is not registered. A registered file block takes every other file.
 export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
+
+const MEDIA_NAME_MAX = 255;
 
 const RESIZE_STEP = 16;
 
@@ -9222,16 +9368,16 @@ export type MediaKindSpec = {
   assetKind: AssetRecord["kind"];
   pluginKey: string;
   mimePrefix: string;
-  // Absent for a kind that does not resize. Audio is a full-width bar.
+  // Absent for a kind that does not resize. Audio is a full-width bar. File has no width.
   minWidth?: number;
   maxWidth?: number;
-  aligns: readonly string[];
+  aligns?: readonly string[];
   messages: MediaMessages;
   replaceUnset: readonly string[];
   commands: {
     insertFiles: { id: string; label: string };
     insertUrl: { id: string; label: string };
-    align: { id: string; label: string };
+    align?: { id: string; label: string };
     width?: { id: string; label: string };
     remove: { id: string; label: string };
     replace: { id: string; label: string };
@@ -9241,6 +9387,7 @@ export type MediaKindSpec = {
   dataUrlFile?: (url: string) => UploadSource | undefined;
   rejectUrl?: (url: string) => string | undefined;
   onRejectedUrl?: (editor: SlateEditor, url: string, message: string) => void;
+  propsFromUrl?: (url: string) => Record<string, unknown>;
   applyReady: (record: AssetRecord, role: MediaRole) => ReadyWrite;
   probe?: AssetProbe;
 };
@@ -9249,6 +9396,7 @@ type CachedAsset = {
   url: string;
   objectUrl: boolean;
   name?: string;
+  expiresAt?: number;
 };
 
 type MediaRuntime = {
@@ -9259,12 +9407,19 @@ type MediaRuntime = {
   cache: Map<string, CachedAsset>;
   refreshed: Set<string>;
   missing: Set<string>;
+  denied: Set<string>;
   inflight: Set<string>;
 };
 
 type MediaRoute = {
+  nodeType: string;
   mimePrefix: string;
-  insert: (editor: SlateEditor, files: readonly UploadSource[], scope: "highest" | "local") => void;
+  insert: (
+    editor: SlateEditor,
+    files: readonly UploadSource[],
+    scope: "highest" | "local",
+    trailing?: boolean,
+  ) => void;
 };
 
 const routes: MediaRoute[] = [];
@@ -9321,6 +9476,7 @@ export function createMediaKind(spec: MediaKindSpec) {
       cache: new Map(),
       refreshed: new Set(),
       missing: new Set(),
+      denied: new Set(),
       inflight: new Set(),
     };
 
@@ -9384,6 +9540,24 @@ export function createMediaKind(spec: MediaKindSpec) {
     return runtimes.get(editor)?.missing.has(assetId) === true;
   }
 
+  function assetIsDenied(editor: SlateEditor, assetId: string): boolean {
+    return runtimes.get(editor)?.denied.has(assetId) === true;
+  }
+
+  function markAssetDenied(editor: SlateEditor, assetId: string): void {
+    const runtime = runtimes.get(editor);
+    if (!runtime || runtime.denied.has(assetId)) {
+      return;
+    }
+
+    runtime.denied.add(assetId);
+    bump(editor);
+  }
+
+  function cachedAssetExpiresAt(editor: SlateEditor, assetId: string): number | undefined {
+    return runtimes.get(editor)?.cache.get(assetId)?.expiresAt;
+  }
+
   function assetIsAdapter(editor: SlateEditor, assetId: string): boolean {
     const runtime = runtimes.get(editor);
     if (runtime?.store?.resolveUrl === undefined) {
@@ -9424,6 +9598,7 @@ export function createMediaKind(spec: MediaKindSpec) {
     runtime.refreshed.add(assetId);
     runtime.cache.delete(assetId);
     runtime.missing.delete(assetId);
+    runtime.denied.delete(assetId);
     void loadAssetUrl(editor, runtime, assetId);
     return true;
   }
@@ -9563,14 +9738,21 @@ export function createMediaKind(spec: MediaKindSpec) {
     editor: SlateEditor,
     files: readonly UploadSource[],
     scope: "highest" | "local",
+    trailing = true,
   ): void {
     if (editor.dom.readOnly === true) {
       return;
     }
 
-    for (const file of files) {
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      if (!file) {
+        continue;
+      }
+
       const id = nanoid();
-      place(editor, { id }, scope);
+      const last = index === files.length - 1;
+      place(editor, { id }, scope, last && trailing);
       beginUpload(editor, id, file, "source");
     }
   }
@@ -9604,15 +9786,21 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      place(editor, { id: nanoid(), url: trimmed }, "highest");
+      place(editor, { id: nanoid(), ...spec.propsFromUrl?.(trimmed), url: trimmed }, "highest");
     },
   };
 
+  const alignCommand = spec.commands.align;
+  const aligns = spec.aligns ?? [];
   const setAlign: EditorCommand<{ id: string; align: string | null }> = {
-    id: spec.commands.align.id,
-    label: spec.commands.align.label,
+    id: alignCommand?.id ?? "block.media.align",
+    label: alignCommand?.label ?? "Align",
     group: "action",
     run: (editor, payload) => {
+      if (alignCommand === undefined) {
+        return;
+      }
+
       const entry = writable(editor, payload.id);
       if (!entry) {
         return;
@@ -9623,7 +9811,7 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      if (!spec.aligns.some((align) => align === payload.align)) {
+      if (!aligns.some((align) => align === payload.align)) {
         return;
       }
 
@@ -9706,6 +9894,7 @@ export function createMediaKind(spec: MediaKindSpec) {
     editor: SlateEditor,
     props: Record<string, unknown>,
     scope: "highest" | "local",
+    trailing = true,
   ): void {
     const entry = scope === "highest" ? editor.api.block({ highest: true }) : editor.api.block();
     if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
@@ -9743,12 +9932,27 @@ export function createMediaKind(spec: MediaKindSpec) {
 
     const next = editor.api.node(after);
     const nextNode = next?.[0];
-    if (
-      next &&
+    const nextParagraph =
+      next !== undefined &&
       next[1].length === mediaPath.length &&
       ElementApi.isElement(nextNode) &&
-      isPlainParagraph(nextNode)
-    ) {
+      isPlainParagraph(nextNode);
+    // A later file in the same paste has to land on this block. Selecting the
+    // paragraph that already followed the caret would split the group.
+    if (!trailing) {
+      if (nextParagraph && directText(nextNode).length === 0) {
+        const start = editor.api.start(after);
+        if (start) {
+          editor.tf.select(start);
+        }
+        return;
+      }
+
+      editor.tf.insertNodes({ type: "p", children: [{ text: "" }] }, { at: after, select: true });
+      return;
+    }
+
+    if (nextParagraph) {
       const start = editor.api.start(after);
       if (start) {
         editor.tf.select(start);
@@ -9924,7 +10128,13 @@ export function createMediaKind(spec: MediaKindSpec) {
           return;
         }
 
-        runtime.cache.set(assetId, { url: resolved.url, objectUrl: false });
+        runtime.cache.set(assetId, {
+          url: resolved.url,
+          objectUrl: false,
+          expiresAt: typeof resolved.expiresAt === "number" ? resolved.expiresAt : undefined,
+        });
+        runtime.missing.delete(assetId);
+        runtime.denied.delete(assetId);
         return;
       }
 
@@ -9946,6 +10156,9 @@ export function createMediaKind(spec: MediaKindSpec) {
     } catch {
       if (runtimes.get(editor) === runtime) {
         runtime.missing.add(assetId);
+        if (runtime.store?.resolveUrl) {
+          runtime.denied.add(assetId);
+        }
       }
     } finally {
       runtime.inflight.delete(assetId);
@@ -9966,6 +10179,9 @@ export function createMediaKind(spec: MediaKindSpec) {
     cachedAssetUrl,
     assetFileName,
     assetIsMissing,
+    assetIsDenied,
+    markAssetDenied,
+    cachedAssetExpiresAt,
     assetIsAdapter,
     resolveAssetURL,
     refreshAssetURL,
@@ -9992,6 +10208,7 @@ export function createMediaKind(spec: MediaKindSpec) {
   };
 
   registerMediaRoute({
+    nodeType: spec.nodeType,
     mimePrefix: spec.mimePrefix,
     insert: insertFiles,
   });
@@ -10043,15 +10260,20 @@ export function handleMediaInsertData(
 ): boolean {
   const html = data.getData("text/html");
   const files = transferFiles(data);
-  const matched = matchFiles(files);
+  const matched = routedFiles(files);
   const table = html.toLowerCase().includes("<table");
-  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+  const mediaCount = matched.length;
 
   if (mediaCount > 0 && !table) {
     if (editor.dom.readOnly !== true) {
       editor.tf.withNewBatch(() => {
-        for (const group of matched) {
-          group.route.insert(editor, group.files, "highest");
+        for (let index = 0; index < matched.length; index += 1) {
+          const item = matched[index];
+          if (!item) {
+            continue;
+          }
+
+          item.route.insert(editor, [item.file], "highest", index === matched.length - 1);
         }
       });
       editor.tf.setSplittingOnce(true);
@@ -10077,14 +10299,19 @@ export function handleMediaDrop(editor: SlateEditor, event: MediaDropEvent): boo
     return false;
   }
 
-  const matched = matchFiles(files);
-  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+  const matched = routedFiles(files);
+  const mediaCount = matched.length;
   event.preventDefault();
   if (mediaCount > 0 && editor.dom.readOnly !== true) {
     editor.tf.withNewBatch(() => {
       selectDropPoint(editor, event);
-      for (const group of matched) {
-        group.route.insert(editor, group.files, "local");
+      for (let index = 0; index < matched.length; index += 1) {
+        const item = matched[index];
+        if (!item) {
+          continue;
+        }
+
+        item.route.insert(editor, [item.file], "local", index === matched.length - 1);
       }
     });
     editor.tf.setSplittingOnce(true);
@@ -10102,26 +10329,34 @@ function registerMediaRoute(route: MediaRoute): void {
   routes.push(route);
 }
 
-function matchFiles(
-  files: readonly UploadSource[],
-): { route: MediaRoute; files: UploadSource[] }[] {
-  const grouped: { route: MediaRoute; files: UploadSource[] }[] = [];
-  for (const file of files) {
-    const type = file.type.toLowerCase();
-    const route = routes.find((item) => type.startsWith(item.mimePrefix));
-    if (!route) {
-      continue;
-    }
+// Image, video, and audio keep their own blocks, including when the bytes fail that kind's sniff.
+// application/pdf is a file block until DEV-107 gives it a preview block.
+export function mediaRouteForFile(file: UploadSource): MediaRoute | undefined {
+  const type = file.type.trim().toLowerCase();
+  const specific = routes.find(
+    (route) => route.mimePrefix.length > 0 && type.startsWith(route.mimePrefix),
+  );
+  if (specific) {
+    return specific;
+  }
 
-    const existing = grouped.find((group) => group.route === route);
-    if (existing) {
-      existing.files.push(file);
-    } else {
-      grouped.push({ route, files: [file] });
+  if (type === "application/pdf") {
+    return routes.find((route) => route.nodeType === KEYS.file);
+  }
+
+  return routes.find((route) => route.nodeType === KEYS.file);
+}
+
+function routedFiles(files: readonly UploadSource[]): { route: MediaRoute; file: UploadSource }[] {
+  const matched: { route: MediaRoute; file: UploadSource }[] = [];
+  for (const file of files) {
+    const route = mediaRouteForFile(file);
+    if (route) {
+      matched.push({ route, file });
     }
   }
 
-  return grouped;
+  return matched;
 }
 
 function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolean): void {
@@ -10134,6 +10369,63 @@ function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolea
 
   const current = replace ? [] : pasteRepairsOf(editor);
   setPasteRepairs(editor, [...current, { path: [], message: MEDIA_FILE_SKIPPED }]);
+}
+
+// Strips controls, bidi overrides, and path separators. Unicode, including emoji, stays.
+// `../notes.pdf` becomes `notes.pdf`. `a/b.txt` becomes `ab.txt`.
+export function sanitizeMediaName(value: string): string | undefined {
+  const normalized = value.normalize("NFC").replaceAll("\\", "/");
+  let cleaned = "";
+  for (const segment of normalized.split("/")) {
+    if (segment.length === 0 || segment === "." || segment === "..") {
+      continue;
+    }
+
+    for (const char of segment) {
+      const code = char.codePointAt(0);
+      if (code === undefined || code <= 0x1f || code === 0x7f) {
+        continue;
+      }
+
+      if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+        continue;
+      }
+
+      cleaned += char;
+    }
+  }
+
+  const trimmed = cleaned.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  const points = [...trimmed];
+  if (points.length <= MEDIA_NAME_MAX) {
+    return trimmed;
+  }
+
+  return points.slice(0, MEDIA_NAME_MAX).join("");
+}
+
+// Last path segment of a safe URL, decoded, then passed through sanitizeMediaName.
+export function decodeUrlFileName(url: string): string | undefined {
+  if (!isSafeImageUrl(url)) {
+    return undefined;
+  }
+
+  const path = url.split("?")[0]?.split("#")[0] ?? "";
+  const raw = path.split("/").pop() ?? "";
+  if (raw.length === 0) {
+    return undefined;
+  }
+
+  try {
+    const decoded = decodeURIComponent(raw);
+    return sanitizeMediaName(decoded.length > 0 ? decoded : raw);
+  } catch {
+    return sanitizeMediaName(raw);
+  }
 }
 
 function isDataUrl(value: string): boolean {
@@ -12459,15 +12751,12 @@ function VideoToolbar({
 import { KEYS, type TElement } from "platejs";
 
 import type { AssetKind, AssetRecord, UploadSource } from "./editor-assets";
-import {
-  AUDIO_ALIGNS,
-  AUDIO_MIME_TYPES,
-  isSafeImageUrl,
-  isStoredAudioName,
-} from "./editor-document-schema";
+import { AUDIO_ALIGNS, AUDIO_MIME_TYPES, isStoredAudioName } from "./editor-document-schema";
 import {
   createMediaKind,
+  decodeUrlFileName,
   readMediaAlignCaption,
+  sanitizeMediaName,
   type MediaKind,
   type MediaPastePlan,
   type MediaRole,
@@ -12633,8 +12922,7 @@ export const pastedAudioDroppedUrl: MediaKind["pastedDroppedUrl"] = (node) =>
 export type AudioPastePlan = MediaPastePlan;
 
 export function storedAudioName(value: string): string | undefined {
-  const trimmed = value.trim();
-  return isStoredAudioName(trimmed) ? trimmed : undefined;
+  return sanitizeMediaName(value);
 }
 
 export function formatAudioDuration(durationMs: number): string {
@@ -12740,8 +13028,11 @@ function readAudioProps(node: Record<string, unknown>): Record<string, unknown> 
     props.durationMs = node.durationMs;
   }
 
-  if (isStoredAudioName(node.name)) {
-    props.name = node.name;
+  if (typeof node.name === "string") {
+    const name = sanitizeMediaName(node.name);
+    if (name !== undefined) {
+      props.name = name;
+    }
   }
 
   return props;
@@ -12785,22 +13076,11 @@ function figureCaption(element: HTMLElement): string | undefined {
 }
 
 function urlPathSegment(url: string | undefined): string | undefined {
-  if (url === undefined || !isSafeImageUrl(url)) {
+  if (url === undefined) {
     return undefined;
   }
 
-  const path = url.split("?")[0]?.split("#")[0] ?? "";
-  const raw = path.split("/").pop() ?? "";
-  if (raw.length === 0) {
-    return undefined;
-  }
-
-  try {
-    const decoded = decodeURIComponent(raw);
-    return decoded.length > 0 ? decoded : undefined;
-  } catch {
-    return raw;
-  }
+  return decodeUrlFileName(url);
 }
 
 function isPositivePixel(value: unknown): value is number {
@@ -13094,6 +13374,540 @@ function AudioToolbar({ id, align }: { id: string; align: "left" | "right" | und
       </MediaIconButton>
     </div>
   );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+```ts
+import { KEYS } from "platejs";
+
+import type { AssetRecord, UploadSource } from "./editor-assets";
+import { FILE_MIME_TYPES } from "./editor-document-schema";
+import {
+  createMediaKind,
+  decodeUrlFileName,
+  readMediaAlignCaption,
+  sanitizeMediaName,
+  type MediaKind,
+  type MediaPastePlan,
+  type MediaRole,
+} from "./editor-media";
+
+export const FILE_UNSAFE_URL = "A file with an unsafe URL was removed.";
+export const FILE_BOTH_SOURCES = "A file URL was removed because the file already has an asset.";
+export const FILE_UPLOAD_INTERRUPTED = "Upload didn't finish";
+export const FILE_NOT_FOUND = "File not found";
+export const FILE_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+export const FILE_NO_ACCESS = "You don't have access to this file";
+
+let fileKind: MediaKind | undefined;
+
+// editor-paste imports this module while editor-media is still evaluating.
+// The route is registered on first use, after that module has finished.
+export function ensureFileMedia(): MediaKind {
+  if (!fileKind) {
+    fileKind = createMediaKind({
+      nodeType: KEYS.file,
+      assetKind: "file",
+      pluginKey: "fileRuntime",
+      mimePrefix: "",
+      messages: {
+        unsafeUrl: FILE_UNSAFE_URL,
+        bothSources: FILE_BOTH_SOURCES,
+        uploadInterrupted: FILE_UPLOAD_INTERRUPTED,
+        notFound: FILE_NOT_FOUND,
+        storageUnavailable: FILE_STORAGE_UNAVAILABLE,
+      },
+      replaceUnset: ["url", "assetId", "mimeType", "byteSize", "name"],
+      commands: {
+        insertFiles: { id: "block.insert.file", label: "File" },
+        insertUrl: { id: "block.insert.file-url", label: "File from URL" },
+        remove: { id: "block.file.remove", label: "Remove file" },
+        replace: { id: "block.file.replace", label: "Replace file" },
+      },
+      readProps: readFileProps,
+      propsFromUrl: (url) => ({ name: decodeUrlFileName(url) ?? "file" }),
+      applyReady: fileReady,
+    });
+  }
+
+  return fileKind;
+}
+
+export const fileMedia = {
+  get spec() {
+    return ensureFileMedia().spec;
+  },
+  get plugin() {
+    return ensureFileMedia().plugin;
+  },
+};
+
+export const attachFileRuntime: MediaKind["attach"] = (editor, store, options) =>
+  ensureFileMedia().attach(editor, store, options);
+export const fileUploadState: MediaKind["uploadState"] = (editor, blockId) =>
+  ensureFileMedia().uploadState(editor, blockId);
+export const cachedFileUrl: MediaKind["cachedAssetUrl"] = (editor, assetId) =>
+  ensureFileMedia().cachedAssetUrl(editor, assetId);
+export const fileAssetFileName: MediaKind["assetFileName"] = (editor, assetId) =>
+  ensureFileMedia().assetFileName(editor, assetId);
+export const fileAssetIsMissing: MediaKind["assetIsMissing"] = (editor, assetId) =>
+  ensureFileMedia().assetIsMissing(editor, assetId);
+export const fileAssetIsDenied: MediaKind["assetIsDenied"] = (editor, assetId) =>
+  ensureFileMedia().assetIsDenied(editor, assetId);
+export const markFileDenied: MediaKind["markAssetDenied"] = (editor, assetId) => {
+  ensureFileMedia().markAssetDenied(editor, assetId);
+};
+export const cachedFileExpiresAt: MediaKind["cachedAssetExpiresAt"] = (editor, assetId) =>
+  ensureFileMedia().cachedAssetExpiresAt(editor, assetId);
+export const fileAssetIsAdapter: MediaKind["assetIsAdapter"] = (editor, assetId) =>
+  ensureFileMedia().assetIsAdapter(editor, assetId);
+export const resolveFileURL: MediaKind["resolveAssetURL"] = (editor, assetId) =>
+  ensureFileMedia().resolveAssetURL(editor, assetId);
+export const refreshFileURL: MediaKind["refreshAssetURL"] = (editor, assetId) =>
+  ensureFileMedia().refreshAssetURL(editor, assetId);
+export const queuePastedFileUpload: MediaKind["queuePastedUpload"] = (id, file) => {
+  ensureFileMedia().queuePastedUpload(id, file);
+};
+export const flushPastedFileUploads: MediaKind["flushPastedUploads"] = (editor) => {
+  ensureFileMedia().flushPastedUploads(editor);
+};
+export const beginFileUpload: MediaKind["beginUpload"] = (editor, blockId, file, role) => {
+  ensureFileMedia().beginUpload(editor, blockId, file, role);
+};
+export const holdFileUpload: MediaKind["holdUpload"] = (editor, blockId) => {
+  ensureFileMedia().holdUpload(editor, blockId);
+};
+export const retryFileUpload: MediaKind["retryUpload"] = (editor, blockId) => {
+  ensureFileMedia().retryUpload(editor, blockId);
+};
+export const insertFileFromFiles = {
+  id: "block.insert.file",
+  label: "File",
+  group: "insert" as const,
+  run: (
+    editor: Parameters<MediaKind["insertFromFiles"]["run"]>[0],
+    files: readonly UploadSource[],
+  ) => {
+    ensureFileMedia().insertFromFiles.run(editor, files);
+  },
+};
+export const insertFileFromUrl = {
+  id: "block.insert.file-url",
+  label: "File from URL",
+  group: "insert" as const,
+  run: (editor: Parameters<MediaKind["insertFromUrl"]["run"]>[0], url: string) => {
+    ensureFileMedia().insertFromUrl.run(editor, url);
+  },
+};
+export const removeFile: MediaKind["remove"] = {
+  id: "block.file.remove",
+  label: "Remove file",
+  group: "action",
+  run: (editor, id) => {
+    ensureFileMedia().remove.run(editor, id);
+  },
+};
+export const replaceFileFromFile: MediaKind["replaceFromFile"] = {
+  id: "block.file.replace",
+  label: "Replace file",
+  group: "action",
+  run: (editor, payload) => {
+    ensureFileMedia().replaceFromFile.run(editor, payload);
+  },
+};
+export const planPastedFile: MediaKind["planPasted"] = (node) => ensureFileMedia().planPasted(node);
+export const pastedFileDroppedUrl: MediaKind["pastedDroppedUrl"] = (node) =>
+  ensureFileMedia().pastedDroppedUrl(node);
+
+export type FilePastePlan = MediaPastePlan;
+
+export function fileExtension(name: string): string | undefined {
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0 || dot === name.length - 1) {
+    return undefined;
+  }
+
+  const extension = name.slice(dot + 1).toLowerCase();
+  if (extension.length === 0 || extension.length > 16 || extension.includes(" ")) {
+    return undefined;
+  }
+
+  return extension;
+}
+
+function fileReady(record: AssetRecord, _role: MediaRole) {
+  const props: Record<string, unknown> = {
+    assetId: record.id,
+    mimeType: record.mimeType,
+    name: sanitizeMediaName(record.name) ?? "file",
+  };
+  if (Number.isSafeInteger(record.byteSize) && record.byteSize >= 0) {
+    props.byteSize = record.byteSize;
+  }
+
+  return { props, unset: [], save: "fold" as const };
+}
+
+function readFileProps(node: Record<string, unknown>): Record<string, unknown> {
+  const shared = readMediaAlignCaption(node);
+  const props: Record<string, unknown> = {};
+  if ("caption" in shared) {
+    props.caption = shared.caption;
+  }
+
+  if (typeof node.mimeType === "string" && isFileMime(node.mimeType)) {
+    props.mimeType = node.mimeType;
+  }
+
+  if (typeof node.name === "string") {
+    const name = sanitizeMediaName(node.name);
+    if (name !== undefined) {
+      props.name = name;
+    }
+  }
+
+  if (isStoredByteSize(node.byteSize)) {
+    props.byteSize = node.byteSize;
+  }
+
+  return props;
+}
+
+function isFileMime(value: string): boolean {
+  return FILE_MIME_TYPES.some((mime) => mime === value);
+}
+
+function isStoredByteSize(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+```tsx
+import { useEffect } from "react";
+import { Caption, CaptionTextarea } from "@platejs/caption/react";
+import { File, FileArchive, FileText, Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { formatBytes } from "./asset-validation";
+import type { AssetStore } from "./editor-assets";
+import { runEditorCommand } from "./editor-commands";
+import { isSafeImageUrl } from "./editor-document-schema";
+import {
+  FILE_NOT_FOUND,
+  FILE_NO_ACCESS,
+  FILE_UPLOAD_INTERRUPTED,
+  attachFileRuntime,
+  beginFileUpload,
+  cachedFileExpiresAt,
+  cachedFileUrl,
+  ensureFileMedia,
+  fileAssetFileName,
+  fileAssetIsAdapter,
+  fileAssetIsDenied,
+  fileAssetIsMissing,
+  fileExtension,
+  fileUploadState,
+  holdFileUpload,
+  markFileDenied,
+  refreshFileURL,
+  removeFile,
+  replaceFileFromFile,
+  resolveFileURL,
+  retryFileUpload,
+} from "./editor-file";
+import { hrElementClassName } from "./hr-element";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaCaptionButton,
+  MediaFileButton,
+  MediaIconButton,
+  MediaNotice,
+  MediaProgress,
+  mediaCaptionText,
+  mediaFrameState,
+  mediaStringAttr,
+  useMediaUpload,
+  useResolvedMedia,
+} from "./media-element-parts";
+
+export function FileRuntime({ store }: { store: AssetStore | null }) {
+  const editor = useEditorRef();
+  useEffect(() => attachFileRuntime(editor, store), [editor, store]);
+  return null;
+}
+
+export function FileElement(props: PlateElementProps) {
+  "use no memo";
+  // Asset URLs and upload progress live outside React. Memoizing the first read kept the card empty.
+
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const id = typeof element.id === "string" ? element.id : "";
+  const assetId = mediaStringAttr(element, "assetId");
+  const url = mediaStringAttr(element, "url");
+  const mimeType = mediaStringAttr(element, "mimeType");
+  const storedName = mediaStringAttr(element, "name");
+  const byteSize = storedByteSize(Reflect.get(element, "byteSize"));
+  const asset = useResolvedMedia(
+    assetId,
+    ensureFileMedia().plugin,
+    resolveFileURL,
+    cachedFileUrl,
+    fileAssetIsMissing,
+    fileAssetIsAdapter,
+  );
+  const upload = useMediaUpload(id, ensureFileMedia().plugin, fileUploadState);
+  const displayUrl = assetId !== undefined ? asset.url : url;
+  const denied = assetId !== undefined && fileAssetIsDenied(editor, assetId);
+  const missing = assetId !== undefined && asset.missing && !denied;
+  const resolving = assetId !== undefined && displayUrl === undefined && !missing && !denied;
+  const sourcePending =
+    resolving ||
+    (assetId === undefined &&
+      url === undefined &&
+      (upload?.status === "pending" ||
+        upload?.status === "processing" ||
+        upload?.status === "ready"));
+  const sourceFailed = upload?.status === "failed" ? upload.error : undefined;
+  const uploading =
+    upload?.status === "pending" || upload?.status === "processing" ? upload : undefined;
+  const showFile =
+    displayUrl !== undefined && !denied && !missing && sourceFailed === undefined && !sourcePending;
+  const cachedName = assetId !== undefined ? fileAssetFileName(editor, assetId) : undefined;
+  const label = storedName ?? cachedName ?? upload?.name ?? "file";
+  const extension = fileExtension(label);
+  const openHref =
+    showFile && displayUrl !== undefined && isSafeImageUrl(displayUrl) ? displayUrl : undefined;
+  const downloadHref = showFile && displayUrl !== undefined ? displayUrl : undefined;
+
+  useEffect(() => {
+    if (assetId === undefined) {
+      return;
+    }
+
+    const expiresAt = cachedFileExpiresAt(editor, assetId);
+    if (expiresAt === undefined || expiresAt > Date.now()) {
+      return;
+    }
+
+    if (!refreshFileURL(editor, assetId)) {
+      markFileDenied(editor, assetId);
+    }
+  }, [assetId, displayUrl, editor]);
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn(
+        "group relative max-w-full py-2",
+        hrElementClassName(selected, focused, readOnly),
+      )}
+    >
+      <figure
+        contentEditable={false}
+        data-file-state={mediaFrameState({
+          pending: sourcePending,
+          failed: denied ? FILE_NO_ACCESS : sourceFailed,
+          missing,
+          failedUrl: denied,
+          showMedia: showFile,
+          loaded: showFile,
+        })}
+        className="relative max-w-full"
+      >
+        {showFile && downloadHref !== undefined ? (
+          <FileRow
+            name={label}
+            mimeType={mimeType}
+            byteSize={byteSize}
+            extension={extension}
+            downloadHref={downloadHref}
+            openHref={openHref}
+          />
+        ) : null}
+        {sourcePending ? (
+          <div className="border-border flex min-w-0 items-center gap-3 rounded-md border p-3">
+            <FileTypeIcon name={label} mimeType={mimeType} />
+            <p className="min-w-0 text-sm [overflow-wrap:anywhere]">{label}</p>
+          </div>
+        ) : null}
+        {uploading && !readOnly ? (
+          <MediaProgress
+            onCancel={(current) => {
+              holdFileUpload(current, id);
+            }}
+          />
+        ) : null}
+        {sourceFailed !== undefined ? (
+          <MediaNotice
+            message={sourceFailed}
+            retry={sourceFailed !== "Choose the file again."}
+            onRetry={(current) => {
+              retryFileUpload(current, id);
+            }}
+            onRemove={(current) => {
+              runEditorCommand(current, removeFile, id);
+            }}
+          />
+        ) : null}
+        {denied && sourceFailed === undefined ? (
+          <MediaNotice message={FILE_NO_ACCESS} retry={false} />
+        ) : null}
+        {missing ? (
+          <MediaNotice
+            message={FILE_NOT_FOUND}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeFile, id);
+            }}
+          />
+        ) : null}
+        {!showFile && !sourcePending && sourceFailed === undefined && !missing && !denied ? (
+          <MediaNotice
+            message={FILE_UPLOAD_INTERRUPTED}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeFile, id);
+            }}
+          >
+            {readOnly ? null : (
+              <MediaFileButton
+                label="Insert file"
+                accept="*/*"
+                onFile={(current, file) => {
+                  beginFileUpload(current, id, file, "source");
+                }}
+              />
+            )}
+          </MediaNotice>
+        ) : null}
+        {showFile && !readOnly ? <FileToolbar id={id} /> : null}
+        {!readOnly && (showFile || mediaCaptionText(element).length > 0) ? (
+          <Caption>
+            <CaptionTextarea placeholder="Write a caption…" />
+          </Caption>
+        ) : mediaCaptionText(element).length > 0 ? (
+          <p className="text-muted-foreground mt-1 text-sm">{mediaCaptionText(element)}</p>
+        ) : null}
+      </figure>
+      {props.children}
+    </PlateElement>
+  );
+}
+
+function FileRow({
+  name,
+  mimeType,
+  byteSize,
+  extension,
+  downloadHref,
+  openHref,
+}: {
+  name: string;
+  mimeType: string | undefined;
+  byteSize: number | undefined;
+  extension: string | undefined;
+  downloadHref: string;
+  openHref: string | undefined;
+}) {
+  const details = [byteSize === undefined ? undefined : formatBytes(byteSize), extension].filter(
+    (part) => part !== undefined,
+  );
+
+  return (
+    <div className="border-border bg-muted flex min-w-0 items-start gap-3 rounded-md border p-3">
+      <FileTypeIcon name={name} mimeType={mimeType} />
+      <div className="min-w-0 flex-1">
+        <p className="text-foreground min-w-0 text-sm [overflow-wrap:anywhere]">{name}</p>
+        {details.length > 0 ? (
+          <p className="text-muted-foreground font-mono text-xs">{details.join(" · ")}</p>
+        ) : null}
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          <a href={downloadHref} download={name} rel="noopener noreferrer" className="underline">
+            Download
+          </a>
+          {openHref !== undefined ? (
+            <a href={openHref} target="_blank" rel="noopener noreferrer" className="underline">
+              Open
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FileTypeIcon({ name, mimeType }: { name: string; mimeType: string | undefined }) {
+  const extension = fileExtension(name);
+  const className = "text-muted-foreground mt-0.5 size-5 shrink-0";
+  if (
+    mimeType === "application/pdf" ||
+    extension === "pdf" ||
+    extension === "txt" ||
+    extension === "md"
+  ) {
+    return <FileText aria-hidden className={className} />;
+  }
+
+  if (
+    extension === "zip" ||
+    extension === "rar" ||
+    extension === "7z" ||
+    extension === "gz" ||
+    extension === "tar"
+  ) {
+    return <FileArchive aria-hidden className={className} />;
+  }
+
+  return <File aria-hidden className={className} />;
+}
+
+function FileToolbar({ id }: { id: string }) {
+  const selected = useSelected();
+
+  return (
+    <div className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
+      <MediaCaptionButton />
+      <MediaFileButton
+        label="Replace file"
+        accept="*/*"
+        onFile={(editor, file) => {
+          runEditorCommand(editor, replaceFileFromFile, { id, file });
+        }}
+      />
+      <MediaIconButton
+        label="Remove"
+        onClick={(editor) => {
+          runEditorCommand(editor, removeFile, id);
+        }}
+      >
+        <Trash2 aria-hidden className="size-4" />
+      </MediaIconButton>
+    </div>
+  );
+}
+
+function storedByteSize(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    return value;
+  }
+
+  return undefined;
 }
 ```
 
@@ -14667,15 +15481,48 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return text;
 }
 
-function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
-  const scaled = (bytes / (1024 * 1024)) * 10;
-  const tenths = round === "up" ? Math.ceil(scaled) : Math.round(scaled);
-  const rounded = tenths / 10;
-  if (Number.isInteger(rounded)) {
-    return `${String(rounded)} MB`;
+function scaledTenths(bytes: number, unit: number, round: "nearest" | "up"): number {
+  const scaled = (bytes / unit) * 10;
+  return round === "up" ? Math.ceil(scaled) : Math.round(scaled);
+}
+
+function formatScaled(
+  bytes: number,
+  unit: number,
+  round: "nearest" | "up",
+  keepTenth: boolean,
+): string {
+  const rounded = scaledTenths(bytes, unit, round) / 10;
+  if (!keepTenth && Number.isInteger(rounded)) {
+    return String(rounded);
   }
 
-  return `${rounded.toFixed(1)} MB`;
+  return rounded.toFixed(1);
+}
+
+function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
+  return `${formatScaled(bytes, 1024 * 1024, round, false)} MB`;
+}
+
+// 1024-based. Bytes stay whole. Kilobytes keep one decimal. Larger units drop a trailing .0.
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 1024) {
+    const whole = Number.isFinite(bytes) && bytes > 0 ? Math.floor(bytes) : 0;
+    return `${String(whole)} B`;
+  }
+
+  const kibibyte = 1024;
+  const mebibyte = kibibyte * 1024;
+  if (bytes < mebibyte) {
+    return `${formatScaled(bytes, kibibyte, "nearest", true)} KB`;
+  }
+
+  const gibibyte = mebibyte * 1024;
+  if (bytes < gibibyte) {
+    return `${formatScaled(bytes, mebibyte, "nearest", false)} MB`;
+  }
+
+  return `${formatScaled(bytes, gibibyte, "nearest", false)} GB`;
 }
 ```
 
@@ -16136,6 +16983,7 @@ import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
+import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
 import { VideoRuntime } from "./video-element";
 
@@ -16167,6 +17015,7 @@ export function EditorSurface({
       <ImageRuntime store={assetStore} />
       <VideoRuntime store={assetStore} />
       <AudioRuntime store={assetStore} />
+      <FileRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -17535,7 +18384,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h3",
     id: "demo-images",
-    children: [{ text: "Images, video, and audio" }],
+    children: [{ text: "Media and files" }],
   },
   {
     type: "img",
@@ -17566,6 +18415,16 @@ export const DEMO_DOCUMENT_VALUE = [
     name: "audio-demo.wav",
     durationMs: 1000,
     caption: [{ text: "A one-second tone, written into a WAV file." }],
+    children: [{ text: "" }],
+  },
+  {
+    type: "file",
+    id: "demo-file",
+    url: "/blocks/notion-like-editor/file-demo.txt",
+    mimeType: "application/octet-stream",
+    name: "file-demo.txt",
+    byteSize: 73,
+    caption: [{ text: "A text file stored with the block." }],
     children: [{ text: "" }],
   },
   {
@@ -17836,6 +18695,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/audio-element.tsx",
     code: readSource(`${BLOCK_DIR}/audio-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-file.ts",
+    code: readSource(`${BLOCK_DIR}/editor-file.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/file-element.tsx",
+    code: readSource(`${BLOCK_DIR}/file-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

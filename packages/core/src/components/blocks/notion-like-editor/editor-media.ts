@@ -1,5 +1,6 @@
 import {
   ElementApi,
+  KEYS,
   PathApi,
   createSlatePlugin,
   nanoid,
@@ -21,8 +22,10 @@ import type {
 import { isSafeImageUrl } from "./editor-document-schema";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
-// Anything that is not an image, a video, or audio stays here until file blocks exist.
+// Used only when the file route is not registered. A registered file block takes every other file.
 export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
+
+const MEDIA_NAME_MAX = 255;
 
 const RESIZE_STEP = 16;
 
@@ -63,16 +66,16 @@ export type MediaKindSpec = {
   assetKind: AssetRecord["kind"];
   pluginKey: string;
   mimePrefix: string;
-  // Absent for a kind that does not resize. Audio is a full-width bar.
+  // Absent for a kind that does not resize. Audio is a full-width bar. File has no width.
   minWidth?: number;
   maxWidth?: number;
-  aligns: readonly string[];
+  aligns?: readonly string[];
   messages: MediaMessages;
   replaceUnset: readonly string[];
   commands: {
     insertFiles: { id: string; label: string };
     insertUrl: { id: string; label: string };
-    align: { id: string; label: string };
+    align?: { id: string; label: string };
     width?: { id: string; label: string };
     remove: { id: string; label: string };
     replace: { id: string; label: string };
@@ -82,6 +85,7 @@ export type MediaKindSpec = {
   dataUrlFile?: (url: string) => UploadSource | undefined;
   rejectUrl?: (url: string) => string | undefined;
   onRejectedUrl?: (editor: SlateEditor, url: string, message: string) => void;
+  propsFromUrl?: (url: string) => Record<string, unknown>;
   applyReady: (record: AssetRecord, role: MediaRole) => ReadyWrite;
   probe?: AssetProbe;
 };
@@ -90,6 +94,7 @@ type CachedAsset = {
   url: string;
   objectUrl: boolean;
   name?: string;
+  expiresAt?: number;
 };
 
 type MediaRuntime = {
@@ -100,12 +105,19 @@ type MediaRuntime = {
   cache: Map<string, CachedAsset>;
   refreshed: Set<string>;
   missing: Set<string>;
+  denied: Set<string>;
   inflight: Set<string>;
 };
 
 type MediaRoute = {
+  nodeType: string;
   mimePrefix: string;
-  insert: (editor: SlateEditor, files: readonly UploadSource[], scope: "highest" | "local") => void;
+  insert: (
+    editor: SlateEditor,
+    files: readonly UploadSource[],
+    scope: "highest" | "local",
+    trailing?: boolean,
+  ) => void;
 };
 
 const routes: MediaRoute[] = [];
@@ -162,6 +174,7 @@ export function createMediaKind(spec: MediaKindSpec) {
       cache: new Map(),
       refreshed: new Set(),
       missing: new Set(),
+      denied: new Set(),
       inflight: new Set(),
     };
 
@@ -225,6 +238,24 @@ export function createMediaKind(spec: MediaKindSpec) {
     return runtimes.get(editor)?.missing.has(assetId) === true;
   }
 
+  function assetIsDenied(editor: SlateEditor, assetId: string): boolean {
+    return runtimes.get(editor)?.denied.has(assetId) === true;
+  }
+
+  function markAssetDenied(editor: SlateEditor, assetId: string): void {
+    const runtime = runtimes.get(editor);
+    if (!runtime || runtime.denied.has(assetId)) {
+      return;
+    }
+
+    runtime.denied.add(assetId);
+    bump(editor);
+  }
+
+  function cachedAssetExpiresAt(editor: SlateEditor, assetId: string): number | undefined {
+    return runtimes.get(editor)?.cache.get(assetId)?.expiresAt;
+  }
+
   function assetIsAdapter(editor: SlateEditor, assetId: string): boolean {
     const runtime = runtimes.get(editor);
     if (runtime?.store?.resolveUrl === undefined) {
@@ -265,6 +296,7 @@ export function createMediaKind(spec: MediaKindSpec) {
     runtime.refreshed.add(assetId);
     runtime.cache.delete(assetId);
     runtime.missing.delete(assetId);
+    runtime.denied.delete(assetId);
     void loadAssetUrl(editor, runtime, assetId);
     return true;
   }
@@ -404,14 +436,21 @@ export function createMediaKind(spec: MediaKindSpec) {
     editor: SlateEditor,
     files: readonly UploadSource[],
     scope: "highest" | "local",
+    trailing = true,
   ): void {
     if (editor.dom.readOnly === true) {
       return;
     }
 
-    for (const file of files) {
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      if (!file) {
+        continue;
+      }
+
       const id = nanoid();
-      place(editor, { id }, scope);
+      const last = index === files.length - 1;
+      place(editor, { id }, scope, last && trailing);
       beginUpload(editor, id, file, "source");
     }
   }
@@ -445,15 +484,21 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      place(editor, { id: nanoid(), url: trimmed }, "highest");
+      place(editor, { id: nanoid(), ...spec.propsFromUrl?.(trimmed), url: trimmed }, "highest");
     },
   };
 
+  const alignCommand = spec.commands.align;
+  const aligns = spec.aligns ?? [];
   const setAlign: EditorCommand<{ id: string; align: string | null }> = {
-    id: spec.commands.align.id,
-    label: spec.commands.align.label,
+    id: alignCommand?.id ?? "block.media.align",
+    label: alignCommand?.label ?? "Align",
     group: "action",
     run: (editor, payload) => {
+      if (alignCommand === undefined) {
+        return;
+      }
+
       const entry = writable(editor, payload.id);
       if (!entry) {
         return;
@@ -464,7 +509,7 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      if (!spec.aligns.some((align) => align === payload.align)) {
+      if (!aligns.some((align) => align === payload.align)) {
         return;
       }
 
@@ -547,6 +592,7 @@ export function createMediaKind(spec: MediaKindSpec) {
     editor: SlateEditor,
     props: Record<string, unknown>,
     scope: "highest" | "local",
+    trailing = true,
   ): void {
     const entry = scope === "highest" ? editor.api.block({ highest: true }) : editor.api.block();
     if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
@@ -584,12 +630,27 @@ export function createMediaKind(spec: MediaKindSpec) {
 
     const next = editor.api.node(after);
     const nextNode = next?.[0];
-    if (
-      next &&
+    const nextParagraph =
+      next !== undefined &&
       next[1].length === mediaPath.length &&
       ElementApi.isElement(nextNode) &&
-      isPlainParagraph(nextNode)
-    ) {
+      isPlainParagraph(nextNode);
+    // A later file in the same paste has to land on this block. Selecting the
+    // paragraph that already followed the caret would split the group.
+    if (!trailing) {
+      if (nextParagraph && directText(nextNode).length === 0) {
+        const start = editor.api.start(after);
+        if (start) {
+          editor.tf.select(start);
+        }
+        return;
+      }
+
+      editor.tf.insertNodes({ type: "p", children: [{ text: "" }] }, { at: after, select: true });
+      return;
+    }
+
+    if (nextParagraph) {
       const start = editor.api.start(after);
       if (start) {
         editor.tf.select(start);
@@ -765,7 +826,13 @@ export function createMediaKind(spec: MediaKindSpec) {
           return;
         }
 
-        runtime.cache.set(assetId, { url: resolved.url, objectUrl: false });
+        runtime.cache.set(assetId, {
+          url: resolved.url,
+          objectUrl: false,
+          expiresAt: typeof resolved.expiresAt === "number" ? resolved.expiresAt : undefined,
+        });
+        runtime.missing.delete(assetId);
+        runtime.denied.delete(assetId);
         return;
       }
 
@@ -787,6 +854,9 @@ export function createMediaKind(spec: MediaKindSpec) {
     } catch {
       if (runtimes.get(editor) === runtime) {
         runtime.missing.add(assetId);
+        if (runtime.store?.resolveUrl) {
+          runtime.denied.add(assetId);
+        }
       }
     } finally {
       runtime.inflight.delete(assetId);
@@ -807,6 +877,9 @@ export function createMediaKind(spec: MediaKindSpec) {
     cachedAssetUrl,
     assetFileName,
     assetIsMissing,
+    assetIsDenied,
+    markAssetDenied,
+    cachedAssetExpiresAt,
     assetIsAdapter,
     resolveAssetURL,
     refreshAssetURL,
@@ -833,6 +906,7 @@ export function createMediaKind(spec: MediaKindSpec) {
   };
 
   registerMediaRoute({
+    nodeType: spec.nodeType,
     mimePrefix: spec.mimePrefix,
     insert: insertFiles,
   });
@@ -884,15 +958,20 @@ export function handleMediaInsertData(
 ): boolean {
   const html = data.getData("text/html");
   const files = transferFiles(data);
-  const matched = matchFiles(files);
+  const matched = routedFiles(files);
   const table = html.toLowerCase().includes("<table");
-  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+  const mediaCount = matched.length;
 
   if (mediaCount > 0 && !table) {
     if (editor.dom.readOnly !== true) {
       editor.tf.withNewBatch(() => {
-        for (const group of matched) {
-          group.route.insert(editor, group.files, "highest");
+        for (let index = 0; index < matched.length; index += 1) {
+          const item = matched[index];
+          if (!item) {
+            continue;
+          }
+
+          item.route.insert(editor, [item.file], "highest", index === matched.length - 1);
         }
       });
       editor.tf.setSplittingOnce(true);
@@ -918,14 +997,19 @@ export function handleMediaDrop(editor: SlateEditor, event: MediaDropEvent): boo
     return false;
   }
 
-  const matched = matchFiles(files);
-  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+  const matched = routedFiles(files);
+  const mediaCount = matched.length;
   event.preventDefault();
   if (mediaCount > 0 && editor.dom.readOnly !== true) {
     editor.tf.withNewBatch(() => {
       selectDropPoint(editor, event);
-      for (const group of matched) {
-        group.route.insert(editor, group.files, "local");
+      for (let index = 0; index < matched.length; index += 1) {
+        const item = matched[index];
+        if (!item) {
+          continue;
+        }
+
+        item.route.insert(editor, [item.file], "local", index === matched.length - 1);
       }
     });
     editor.tf.setSplittingOnce(true);
@@ -943,26 +1027,34 @@ function registerMediaRoute(route: MediaRoute): void {
   routes.push(route);
 }
 
-function matchFiles(
-  files: readonly UploadSource[],
-): { route: MediaRoute; files: UploadSource[] }[] {
-  const grouped: { route: MediaRoute; files: UploadSource[] }[] = [];
-  for (const file of files) {
-    const type = file.type.toLowerCase();
-    const route = routes.find((item) => type.startsWith(item.mimePrefix));
-    if (!route) {
-      continue;
-    }
+// Image, video, and audio keep their own blocks, including when the bytes fail that kind's sniff.
+// application/pdf is a file block until DEV-107 gives it a preview block.
+export function mediaRouteForFile(file: UploadSource): MediaRoute | undefined {
+  const type = file.type.trim().toLowerCase();
+  const specific = routes.find(
+    (route) => route.mimePrefix.length > 0 && type.startsWith(route.mimePrefix),
+  );
+  if (specific) {
+    return specific;
+  }
 
-    const existing = grouped.find((group) => group.route === route);
-    if (existing) {
-      existing.files.push(file);
-    } else {
-      grouped.push({ route, files: [file] });
+  if (type === "application/pdf") {
+    return routes.find((route) => route.nodeType === KEYS.file);
+  }
+
+  return routes.find((route) => route.nodeType === KEYS.file);
+}
+
+function routedFiles(files: readonly UploadSource[]): { route: MediaRoute; file: UploadSource }[] {
+  const matched: { route: MediaRoute; file: UploadSource }[] = [];
+  for (const file of files) {
+    const route = mediaRouteForFile(file);
+    if (route) {
+      matched.push({ route, file });
     }
   }
 
-  return grouped;
+  return matched;
 }
 
 function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolean): void {
@@ -975,6 +1067,63 @@ function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolea
 
   const current = replace ? [] : pasteRepairsOf(editor);
   setPasteRepairs(editor, [...current, { path: [], message: MEDIA_FILE_SKIPPED }]);
+}
+
+// Strips controls, bidi overrides, and path separators. Unicode, including emoji, stays.
+// `../notes.pdf` becomes `notes.pdf`. `a/b.txt` becomes `ab.txt`.
+export function sanitizeMediaName(value: string): string | undefined {
+  const normalized = value.normalize("NFC").replaceAll("\\", "/");
+  let cleaned = "";
+  for (const segment of normalized.split("/")) {
+    if (segment.length === 0 || segment === "." || segment === "..") {
+      continue;
+    }
+
+    for (const char of segment) {
+      const code = char.codePointAt(0);
+      if (code === undefined || code <= 0x1f || code === 0x7f) {
+        continue;
+      }
+
+      if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+        continue;
+      }
+
+      cleaned += char;
+    }
+  }
+
+  const trimmed = cleaned.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  const points = [...trimmed];
+  if (points.length <= MEDIA_NAME_MAX) {
+    return trimmed;
+  }
+
+  return points.slice(0, MEDIA_NAME_MAX).join("");
+}
+
+// Last path segment of a safe URL, decoded, then passed through sanitizeMediaName.
+export function decodeUrlFileName(url: string): string | undefined {
+  if (!isSafeImageUrl(url)) {
+    return undefined;
+  }
+
+  const path = url.split("?")[0]?.split("#")[0] ?? "";
+  const raw = path.split("/").pop() ?? "";
+  if (raw.length === 0) {
+    return undefined;
+  }
+
+  try {
+    const decoded = decodeURIComponent(raw);
+    return sanitizeMediaName(decoded.length > 0 ? decoded : raw);
+  } catch {
+    return sanitizeMediaName(raw);
+  }
 }
 
 function isDataUrl(value: string): boolean {

@@ -439,6 +439,7 @@ describe("demo document", () => {
     const image = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-image");
     const video = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-video");
     const audio = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-audio");
+    const file = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-file");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -464,6 +465,8 @@ describe("demo document", () => {
       video.type !== "video" ||
       !audio ||
       audio.type !== "audio" ||
+      !file ||
+      file.type !== "file" ||
       !release ||
       release.type !== "table" ||
       !paste
@@ -507,7 +510,7 @@ describe("demo document", () => {
     expect(field(releaseBody[0], "rowSpan")).toBe(2);
     expect(DEMO_DOCUMENT_VALUE.indexOf(images)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
     expect(images.type).toBe("h3");
-    expect(textOf(images)).toBe("Images, video, and audio");
+    expect(textOf(images)).toBe("Media and files");
     expect(DEMO_DOCUMENT_VALUE.indexOf(image)).toBe(DEMO_DOCUMENT_VALUE.indexOf(images) + 1);
     expect(field(image, "url")).toBe("/blocks/notion-like-editor/image-demo.svg");
     expect(field(image, "alt")).toBe("A small window looking onto a violet hill and a pale sun");
@@ -530,13 +533,24 @@ describe("demo document", () => {
     expect(field(audio, "caption")).toEqual([
       { text: "A one-second tone, written into a WAV file." },
     ]);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(file)).toBe(DEMO_DOCUMENT_VALUE.indexOf(audio) + 1);
+    expect(field(file, "url")).toBe("/blocks/notion-like-editor/file-demo.txt");
+    expect(field(file, "mimeType")).toBe("application/octet-stream");
+    expect(field(file, "name")).toBe("file-demo.txt");
+    expect(field(file, "caption")).toEqual([{ text: "A text file stored with the block." }]);
+    const demoFile = Bun.file(
+      `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/file-demo.txt`,
+    );
+    const demoFileSize = demoFile.size;
+    expect(field(file, "byteSize")).toBe(demoFileSize);
+    expect(demoFileSize).toBeLessThanOrEqual(2048);
     const demoAudio = Bun.file(
       `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/audio-demo.wav`,
     );
     const demoAudioSize = demoAudio.size;
     expect(demoAudioSize).toBeGreaterThan(44);
     expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(audio) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(file) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

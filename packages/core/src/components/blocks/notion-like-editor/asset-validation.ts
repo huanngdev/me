@@ -170,13 +170,46 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return text;
 }
 
-function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
-  const scaled = (bytes / (1024 * 1024)) * 10;
-  const tenths = round === "up" ? Math.ceil(scaled) : Math.round(scaled);
-  const rounded = tenths / 10;
-  if (Number.isInteger(rounded)) {
-    return `${String(rounded)} MB`;
+function scaledTenths(bytes: number, unit: number, round: "nearest" | "up"): number {
+  const scaled = (bytes / unit) * 10;
+  return round === "up" ? Math.ceil(scaled) : Math.round(scaled);
+}
+
+function formatScaled(
+  bytes: number,
+  unit: number,
+  round: "nearest" | "up",
+  keepTenth: boolean,
+): string {
+  const rounded = scaledTenths(bytes, unit, round) / 10;
+  if (!keepTenth && Number.isInteger(rounded)) {
+    return String(rounded);
   }
 
-  return `${rounded.toFixed(1)} MB`;
+  return rounded.toFixed(1);
+}
+
+function formatMegabytes(bytes: number, round: "nearest" | "up" = "nearest"): string {
+  return `${formatScaled(bytes, 1024 * 1024, round, false)} MB`;
+}
+
+// 1024-based. Bytes stay whole. Kilobytes keep one decimal. Larger units drop a trailing .0.
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 1024) {
+    const whole = Number.isFinite(bytes) && bytes > 0 ? Math.floor(bytes) : 0;
+    return `${String(whole)} B`;
+  }
+
+  const kibibyte = 1024;
+  const mebibyte = kibibyte * 1024;
+  if (bytes < mebibyte) {
+    return `${formatScaled(bytes, kibibyte, "nearest", true)} KB`;
+  }
+
+  const gibibyte = mebibyte * 1024;
+  if (bytes < gibibyte) {
+    return `${formatScaled(bytes, mebibyte, "nearest", false)} MB`;
+  }
+
+  return `${formatScaled(bytes, gibibyte, "nearest", false)} GB`;
 }

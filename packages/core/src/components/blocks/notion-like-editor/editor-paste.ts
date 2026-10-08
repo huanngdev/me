@@ -47,6 +47,12 @@ import {
   planPastedAudio,
   queuePastedAudioUpload,
 } from "./editor-audio";
+import {
+  FILE_BOTH_SOURCES,
+  pastedFileDroppedUrl,
+  planPastedFile,
+  queuePastedFileUpload,
+} from "./editor-file";
 import type { EditorValue } from "./editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -314,6 +320,16 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     droppedUrl: pastedAudioDroppedUrl,
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
+  });
+}
+
+function pastedFile(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.file,
+    plan: planPastedFile,
+    droppedUrl: pastedFileDroppedUrl,
+    bothSourcesMessage: FILE_BOTH_SOURCES,
+    queueUpload: queuePastedFileUpload,
   });
 }
 
@@ -843,6 +859,10 @@ function expandBlock(
 
     if (node.type === KEYS.audio) {
       return pastedAudio(node, seen);
+    }
+
+    if (node.type === KEYS.file) {
+      return pastedFile(node, seen);
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

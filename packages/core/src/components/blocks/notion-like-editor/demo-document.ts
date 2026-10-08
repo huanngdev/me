@@ -981,7 +981,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h3",
     id: "demo-images",
-    children: [{ text: "Images, video, and audio" }],
+    children: [{ text: "Media and files" }],
   },
   {
     type: "img",
@@ -1012,6 +1012,16 @@ export const DEMO_DOCUMENT_VALUE = [
     name: "audio-demo.wav",
     durationMs: 1000,
     caption: [{ text: "A one-second tone, written into a WAV file." }],
+    children: [{ text: "" }],
+  },
+  {
+    type: "file",
+    id: "demo-file",
+    url: "/blocks/notion-like-editor/file-demo.txt",
+    mimeType: "application/octet-stream",
+    name: "file-demo.txt",
+    byteSize: 73,
+    caption: [{ text: "A text file stored with the block." }],
     children: [{ text: "" }],
   },
   {

@@ -1,15 +1,12 @@
 import { KEYS, type TElement } from "platejs";
 
 import type { AssetKind, AssetRecord, UploadSource } from "./editor-assets";
-import {
-  AUDIO_ALIGNS,
-  AUDIO_MIME_TYPES,
-  isSafeImageUrl,
-  isStoredAudioName,
-} from "./editor-document-schema";
+import { AUDIO_ALIGNS, AUDIO_MIME_TYPES, isStoredAudioName } from "./editor-document-schema";
 import {
   createMediaKind,
+  decodeUrlFileName,
   readMediaAlignCaption,
+  sanitizeMediaName,
   type MediaKind,
   type MediaPastePlan,
   type MediaRole,
@@ -175,8 +172,7 @@ export const pastedAudioDroppedUrl: MediaKind["pastedDroppedUrl"] = (node) =>
 export type AudioPastePlan = MediaPastePlan;
 
 export function storedAudioName(value: string): string | undefined {
-  const trimmed = value.trim();
-  return isStoredAudioName(trimmed) ? trimmed : undefined;
+  return sanitizeMediaName(value);
 }
 
 export function formatAudioDuration(durationMs: number): string {
@@ -282,8 +278,11 @@ function readAudioProps(node: Record<string, unknown>): Record<string, unknown> 
     props.durationMs = node.durationMs;
   }
 
-  if (isStoredAudioName(node.name)) {
-    props.name = node.name;
+  if (typeof node.name === "string") {
+    const name = sanitizeMediaName(node.name);
+    if (name !== undefined) {
+      props.name = name;
+    }
   }
 
   return props;
@@ -327,22 +326,11 @@ function figureCaption(element: HTMLElement): string | undefined {
 }
 
 function urlPathSegment(url: string | undefined): string | undefined {
-  if (url === undefined || !isSafeImageUrl(url)) {
+  if (url === undefined) {
     return undefined;
   }
 
-  const path = url.split("?")[0]?.split("#")[0] ?? "";
-  const raw = path.split("/").pop() ?? "";
-  if (raw.length === 0) {
-    return undefined;
-  }
-
-  try {
-    const decoded = decodeURIComponent(raw);
-    return decoded.length > 0 ? decoded : undefined;
-  } catch {
-    return raw;
-  }
+  return decodeUrlFileName(url);
 }
 
 function isPositivePixel(value: unknown): value is number {

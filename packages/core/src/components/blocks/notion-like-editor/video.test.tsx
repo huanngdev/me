@@ -741,7 +741,7 @@ describe("video upload", () => {
 });
 
 describe("video paste and drop", () => {
-  test("a video file uploads, a pdf is skipped, and html video or source becomes a url video", async () => {
+  test("a video file uploads, a pdf becomes a file block, and html video or source becomes a url video", async () => {
     const { editor, detach } = openVideo();
     editor.tf.insertData(withFiles([webmSource()]));
     await until(() => field(videoNode(editor), "assetId") === "id-2");
@@ -752,16 +752,11 @@ describe("video paste and drop", () => {
 
     const skipped = createEditor([paragraph("", "empty")]);
     skipped.tf.select(caret([0, 0], 0));
-    const before = snapshot(skipped.children);
     skipped.tf.insertData(
       withFiles([uploadSource(Uint8Array.from([1, 2, 3]), "notes.pdf", "application/pdf")]),
     );
-    expect(skipped.children).toEqual(before);
-    expect(
-      pasteRepairsOf(skipped)
-        .map((repair) => repair.message)
-        .join("\n"),
-    ).toContain("File blocks are not available yet.");
+    expect(typesOf(skipped)).toContain("file");
+    expect(pasteRepairsOf(skipped)).toEqual([]);
 
     const html = createEditor([paragraph("", "empty")]);
     html.tf.select(caret([0, 0], 0));

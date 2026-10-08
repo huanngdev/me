@@ -35,7 +35,6 @@ import { ASSET_LIMITS } from "./editor-assets";
 import {
   IMAGE_BOTH_SOURCES,
   IMAGE_DATA_URL,
-  IMAGE_FILE_SKIPPED,
   IMAGE_NOT_FOUND,
   IMAGE_UNSAFE_URL,
   assetIsMissing,
@@ -846,7 +845,7 @@ describe("image paste and drop", () => {
     expect(pasteRepairsOf(editor).map((repair) => repair.message)).toContain(IMAGE_BOTH_SOURCES);
   });
 
-  test("an image file drops at the caret and a non-image file is reported", () => {
+  test("an image file drops at the caret and a non-image file becomes a file block", () => {
     const { editor, detach } = openImage([
       paragraph("Alpha", "a"),
       paragraph("Beta", "b"),
@@ -886,8 +885,9 @@ describe("image paste and drop", () => {
     });
 
     expect(ignored).toBe(true);
-    expect(other.children).toEqual(before);
-    expect(pasteRepairsOf(other).map((repair) => repair.message)).toEqual([IMAGE_FILE_SKIPPED]);
+    expect(typesOf(other)).toEqual(["p", "file", "p"]);
+    expect(other.children).not.toEqual(before);
+    expect(pasteRepairsOf(other)).toEqual([]);
   });
 });
 

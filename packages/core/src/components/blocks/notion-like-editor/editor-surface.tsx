@@ -9,6 +9,7 @@ import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
+import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
 import { VideoRuntime } from "./video-element";
 
@@ -40,6 +41,7 @@ export function EditorSurface({
       <ImageRuntime store={assetStore} />
       <VideoRuntime store={assetStore} />
       <AudioRuntime store={assetStore} />
+      <FileRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

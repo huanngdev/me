@@ -228,6 +228,7 @@ describe("toggle schema", () => {
       "img",
       "video",
       "audio",
+      "file",
       "code_block",
       "table",
     ]);

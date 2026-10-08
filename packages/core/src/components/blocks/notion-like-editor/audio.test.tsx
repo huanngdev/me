@@ -23,7 +23,6 @@ import { ASSET_LIMITS, type AssetStore, type UploadSource } from "./editor-asset
 import { handleImageDrop } from "./editor-image";
 import { EditorSurface } from "./editor-surface";
 import { createEditorPlugins } from "./editor-plugins";
-import { MEDIA_FILE_SKIPPED } from "./editor-media";
 import { pasteRepairsOf } from "./editor-paste";
 import {
   AUDIO_BOTH_SOURCES,
@@ -481,7 +480,7 @@ describe("audio commands", () => {
     expect(insertAudioFromFiles.id).toBe("block.insert.audio");
     expect(insertAudioFromFiles.label).toBe("Audio");
     expect(
-      runEditorCommand(uploaded.editor, insertAudioFromFiles, [wavSource("  tone.wav  ")]),
+      runEditorCommand(uploaded.editor, insertAudioFromFiles, [wavSource(" \u202Eto\nne.wav ")]),
     ).toBe(true);
     await until(() => field(audioNode(uploaded.editor), "assetId") === "id-2");
 
@@ -721,7 +720,7 @@ describe("audio upload", () => {
 });
 
 describe("audio paste and drop", () => {
-  test("a file uploads, a pdf is skipped, and html audio or source becomes a url audio", async () => {
+  test("a file uploads, a pdf becomes a file block, and html audio or source becomes a url audio", async () => {
     const { editor, detach } = openAudio();
     editor.tf.insertData(withFiles([wavSource()]));
     await until(() => field(audioNode(editor), "assetId") === "id-2");
@@ -733,12 +732,11 @@ describe("audio paste and drop", () => {
 
     const skipped = createEditor([paragraph("", "empty")]);
     skipped.tf.select(caret([0, 0], 0));
-    const before = snapshot(skipped.children);
     skipped.tf.insertData(
       withFiles([uploadSource(Uint8Array.from([1, 2, 3]), "notes.pdf", "application/pdf")]),
     );
-    expect(skipped.children).toEqual(before);
-    expect(pasteRepairsOf(skipped).map((repair) => repair.message)).toEqual([MEDIA_FILE_SKIPPED]);
+    expect(typesOf(skipped)).toContain("file");
+    expect(pasteRepairsOf(skipped)).toEqual([]);
 
     const html = createEditor([paragraph("", "empty")]);
     html.tf.select(caret([0, 0], 0));
@@ -813,7 +811,7 @@ describe("audio paste and drop", () => {
     expect(pasteRepairsOf(editor).map((repair) => repair.message)).toContain(AUDIO_BOTH_SOURCES);
   });
 
-  test("a mixed paste inserts the image and the audio and skips the zip once", () => {
+  test("a mixed paste inserts the image, the audio, and the zip as a file", () => {
     const editor = createEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertData(
@@ -824,9 +822,8 @@ describe("audio paste and drop", () => {
       ]),
     );
 
-    expect(typesOf(editor)).toContain("img");
-    expect(typesOf(editor)).toContain("audio");
-    expect(pasteRepairsOf(editor).map((repair) => repair.message)).toEqual([MEDIA_FILE_SKIPPED]);
+    expect(typesOf(editor)).toEqual(["img", "audio", "file", "p"]);
+    expect(pasteRepairsOf(editor)).toEqual([]);
   });
 
   test("an ogg file is audio only when its mime is audio, and video when its mime is video", () => {
