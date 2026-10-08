@@ -1,6 +1,13 @@
 import { KEYS } from "platejs";
 
 import { formatBlockLabel } from "./editor-document";
+import {
+  EMBED_URL_MAX,
+  isEmbedHash,
+  isEmbedVideoId,
+  storedEmbed,
+  type EmbedProvider,
+} from "./editor-embed-url";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -420,6 +427,122 @@ function isStoredByteSize(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
+function embedProvider(value: unknown): EmbedProvider | undefined {
+  return value === "youtube" || value === "vimeo" ? value : undefined;
+}
+
+export function checkEmbedNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const provider = embedProvider(node.provider);
+  if (!("provider" in node) || provider === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported provider. Restore from a backup or remove the block.`,
+    });
+  }
+
+  if (
+    !("videoId" in node) ||
+    typeof node.videoId !== "string" ||
+    provider === undefined ||
+    !isEmbedVideoId(provider, node.videoId)
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported videoId. Restore from a backup or remove the block.`,
+    });
+  }
+
+  issues.push(...embedSourceIssues(node, path));
+
+  if (
+    "hash" in node &&
+    (provider !== "vimeo" || typeof node.hash !== "string" || !isEmbedHash(node.hash))
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported hash. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if (
+    "startSeconds" in node &&
+    !(
+      typeof node.startSeconds === "number" &&
+      Number.isSafeInteger(node.startSeconds) &&
+      node.startSeconds >= 0
+    )
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported startSeconds. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  if (issues.length === 0 && storedEmbed(node) === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has a sourceUrl that does not match the video. Restore from a backup or remove the block.`,
+    });
+  }
+
+  return issues;
+}
+
+function embedSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
+  if (!("sourceUrl" in node)) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has no sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  if (
+    typeof node.sourceUrl !== "string" ||
+    node.sourceUrl.length === 0 ||
+    node.sourceUrl.length > EMBED_URL_MAX
+  ) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  let url: URL;
+  try {
+    url = new URL(node.sourceUrl);
+  } catch {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  if (url.protocol !== "https:") {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has a sourceUrl that is not https. Restore from a backup or replace the link.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
 function fileHasSource(node: Record<string, unknown>): boolean {
   const assetId = node.assetId;
   const url = node.url;
@@ -736,6 +859,18 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { mimeType: FILE_MIME_TYPES },
     validateChildren: (node, path) => checkFileNode(node, path),
   },
+  // Plate's media embed is BaseMediaEmbedPlugin (@platejs/media 53.1.4): key
+  // KEYS.mediaEmbed ("media_embed"), void, and an iframe deserializer that stores
+  // whatever src it finds on `url`. This block stores provider, videoId, an optional
+  // Vimeo hash, an optional start, and the https source URL. The iframe src is derived
+  // at render. url, src, and html are not attributes.
+  {
+    type: KEYS.mediaEmbed,
+    attrs: ["id", "provider", "videoId", "hash", "startSeconds", "sourceUrl", "caption"],
+    isVoid: true,
+    attrValues: { provider: ["youtube", "vimeo"] },
+    validateChildren: (node, path) => checkEmbedNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -762,6 +897,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.video,
       KEYS.audio,
       KEYS.file,
+      KEYS.mediaEmbed,
       KEYS.codeBlock,
       KEYS.table,
     ],

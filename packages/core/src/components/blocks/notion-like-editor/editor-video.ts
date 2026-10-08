@@ -9,6 +9,8 @@ import {
   VIDEO_MIME_TYPES,
   VIDEO_MIN_WIDTH,
 } from "./editor-document-schema";
+import { parseEmbedUrl } from "./editor-embed-url";
+import { insertEmbedFromUrl } from "./editor-embed";
 import { setPasteRepairs } from "./editor-paste";
 import { probeImageSize } from "./editor-image";
 import {
@@ -167,6 +169,11 @@ export const insertVideoFromUrl = {
   label: "Video from URL",
   group: "insert" as const,
   run: (editor: Parameters<MediaKind["insertFromUrl"]["run"]>[0], url: string) => {
+    if (parseEmbedUrl(url) !== undefined) {
+      insertEmbedFromUrl.run(editor, url);
+      return;
+    }
+
     ensureVideoMedia().insertFromUrl.run(editor, url);
   },
 };

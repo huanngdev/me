@@ -136,6 +136,22 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/video-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-embed-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-embed-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-embed.ts",
+    code: readSource(`${BLOCK_DIR}/editor-embed.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/embed-element.tsx",
+    code: readSource(`${BLOCK_DIR}/embed-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
+    code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-audio.ts",
     code: readSource(`${BLOCK_DIR}/editor-audio.ts`),
   },

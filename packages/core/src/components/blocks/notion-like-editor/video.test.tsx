@@ -542,17 +542,38 @@ describe("video commands", () => {
     linked.detach();
   });
 
-  test("a youtube or vimeo url is rejected and the document stays put", () => {
+  test("a provider url inserts an embed and a bad provider id stays put", () => {
     const { editor, detach } = openVideo();
     const before = snapshot(editor.children);
     runEditorCommand(editor, insertVideoFromUrl, "https://www.youtube.com/watch?v=abc");
     runEditorCommand(editor, insertVideoFromUrl, "https://youtu.be/abc");
-    runEditorCommand(editor, insertVideoFromUrl, "https://vimeo.com/123");
-    runEditorCommand(editor, insertVideoFromUrl, "https://player.vimeo.com/video/123");
 
     expect(editor.children).toEqual(before);
     expect(pasteRepairsOf(editor).map((repair) => repair.message)).toContain(VIDEO_EMBED_REJECTED);
     expect(editor.history.undos.length).toBe(0);
+
+    runEditorCommand(editor, insertVideoFromUrl, "https://vimeo.com/123");
+    expect(editor.children.some((block) => block.type === KEYS.mediaEmbed)).toBe(true);
+    expect(
+      field(
+        editor.children.find((block) => block.type === KEYS.mediaEmbed),
+        "videoId",
+      ),
+    ).toBe("123");
+    expect(editor.history.undos.length).toBe(1);
+    editor.tf.undo();
+    expect(editor.children).toEqual(before);
+
+    runEditorCommand(editor, insertVideoFromUrl, "https://player.vimeo.com/video/123");
+    expect(
+      field(
+        editor.children.find((block) => block.type === KEYS.mediaEmbed),
+        "provider",
+      ),
+    ).toBe("vimeo");
+    expect(editor.history.undos.length).toBe(1);
+    editor.tf.undo();
+    expect(editor.children).toEqual(before);
     detach();
   });
 

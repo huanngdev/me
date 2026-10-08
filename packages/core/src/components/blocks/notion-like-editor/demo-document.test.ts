@@ -441,6 +441,7 @@ describe("demo document", () => {
     const audio = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-audio");
     const file = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-file");
     const pdf = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-pdf");
+    const embed = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-embed");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -470,6 +471,8 @@ describe("demo document", () => {
       file.type !== "file" ||
       !pdf ||
       pdf.type !== "file" ||
+      !embed ||
+      embed.type !== "media_embed" ||
       !release ||
       release.type !== "table" ||
       !paste
@@ -559,6 +562,14 @@ describe("demo document", () => {
     const demoPdfSize = demoPdf.size;
     expect(field(pdf, "byteSize")).toBe(demoPdfSize);
     expect(demoPdfSize).toBeLessThanOrEqual(2048);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(embed)).toBe(DEMO_DOCUMENT_VALUE.indexOf(pdf) + 1);
+    expect(field(embed, "provider")).toBe("youtube");
+    expect(field(embed, "videoId")).toBe("jNQXAC9IVRw");
+    expect(field(embed, "sourceUrl")).toBe("https://www.youtube.com/watch?v=jNQXAC9IVRw");
+    expect(field(embed, "url")).toBeUndefined();
+    expect(field(embed, "caption")).toEqual([
+      { text: "Me at the zoo, the first video uploaded to YouTube." },
+    ]);
     const demoPdfBytes = new Uint8Array(await demoPdf.arrayBuffer());
     expect(Array.from(demoPdfBytes.slice(0, 5))).toEqual([0x25, 0x50, 0x44, 0x46, 0x2d]);
     const demoAudio = Bun.file(
@@ -567,7 +578,7 @@ describe("demo document", () => {
     const demoAudioSize = demoAudio.size;
     expect(demoAudioSize).toBeGreaterThan(44);
     expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(pdf) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(embed) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

@@ -11,6 +11,7 @@ const installed: Record<string, unknown> = {
   Element: dom.Element,
   HTMLElement: dom.HTMLElement,
   HTMLInputElement: dom.HTMLInputElement,
+  HTMLButtonElement: dom.HTMLButtonElement,
   HTMLIFrameElement: dom.HTMLIFrameElement,
   Event: dom.Event,
   CustomEvent: dom.CustomEvent,

@@ -54,9 +54,11 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
+import { EmbedElement } from "./embed-element";
 import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
+import { embedHtmlDeserializer, pasteUrlPlugin } from "./editor-embed";
 import {
   flushPastedImageUploads,
   handleImageDrop,
@@ -688,7 +690,8 @@ function normalizeDisallowedChild(
       (child.type === KEYS.img ||
         child.type === KEYS.video ||
         child.type === KEYS.audio ||
-        child.type === KEYS.file) &&
+        child.type === KEYS.file ||
+        child.type === KEYS.mediaEmbed) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1533,6 +1536,17 @@ const audioPlugin = AudioPlugin.configure({
   },
 }));
 
+const mediaEmbedPlugin = createSlatePlugin({
+  key: KEYS.mediaEmbed,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedElement },
+  parsers: {
+    html: {
+      deserializer: embedHtmlDeserializer,
+    },
+  },
+});
+
 const filePlugin = FilePlugin.configure({
   node: { isVoid: true },
   render: { node: FileElement },
@@ -1551,7 +1565,7 @@ const filePlugin = FilePlugin.configure({
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file],
+      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file, KEYS.mediaEmbed],
     },
   },
 });
@@ -1757,12 +1771,14 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     videoPlugin,
     audioPlugin,
     filePlugin,
+    mediaEmbedPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
     audioRuntimePlugin,
     fileRuntimePlugin,
     tablePlugin,
+    pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,

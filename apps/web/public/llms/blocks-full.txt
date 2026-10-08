@@ -2421,33 +2421,37 @@ export default function ErrorPageBlockPage() {
 27. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
 28. packages/core/src/components/blocks/notion-like-editor/editor-video.ts
 29. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
-30. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-31. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-33. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-34. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-35. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-36. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-37. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-38. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-39. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-40. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-41. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-42. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-43. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-44. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-45. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-46. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-47. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-48. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-49. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-50. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-51. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-52. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-53. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-54. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-55. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-56. apps/web/src/app/blocks/notion-like-editor/page.tsx
+30. packages/core/src/components/blocks/notion-like-editor/editor-embed-url.ts
+31. packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
+32. packages/core/src/components/blocks/notion-like-editor/embed-element.tsx
+33. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+34. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+35. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+36. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+37. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+38. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+39. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+40. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+41. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+42. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+43. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+44. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+45. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+46. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+47. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+48. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+49. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+50. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+51. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+52. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+53. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+54. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+55. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+56. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+57. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+58. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+59. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+60. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2468,6 +2472,13 @@ export const EMPTY_EDITOR_VALUE = [
 import { KEYS } from "platejs";
 
 import { formatBlockLabel } from "./editor-document";
+import {
+  EMBED_URL_MAX,
+  isEmbedHash,
+  isEmbedVideoId,
+  storedEmbed,
+  type EmbedProvider,
+} from "./editor-embed-url";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -2887,6 +2898,122 @@ function isStoredByteSize(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
+function embedProvider(value: unknown): EmbedProvider | undefined {
+  return value === "youtube" || value === "vimeo" ? value : undefined;
+}
+
+export function checkEmbedNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const provider = embedProvider(node.provider);
+  if (!("provider" in node) || provider === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported provider. Restore from a backup or remove the block.`,
+    });
+  }
+
+  if (
+    !("videoId" in node) ||
+    typeof node.videoId !== "string" ||
+    provider === undefined ||
+    !isEmbedVideoId(provider, node.videoId)
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported videoId. Restore from a backup or remove the block.`,
+    });
+  }
+
+  issues.push(...embedSourceIssues(node, path));
+
+  if (
+    "hash" in node &&
+    (provider !== "vimeo" || typeof node.hash !== "string" || !isEmbedHash(node.hash))
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported hash. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if (
+    "startSeconds" in node &&
+    !(
+      typeof node.startSeconds === "number" &&
+      Number.isSafeInteger(node.startSeconds) &&
+      node.startSeconds >= 0
+    )
+  ) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported startSeconds. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  if (issues.length === 0 && storedEmbed(node) === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has a sourceUrl that does not match the video. Restore from a backup or remove the block.`,
+    });
+  }
+
+  return issues;
+}
+
+function embedSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
+  if (!("sourceUrl" in node)) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has no sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  if (
+    typeof node.sourceUrl !== "string" ||
+    node.sourceUrl.length === 0 ||
+    node.sourceUrl.length > EMBED_URL_MAX
+  ) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  let url: URL;
+  try {
+    url = new URL(node.sourceUrl);
+  } catch {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported sourceUrl. Restore from a backup or remove the block.`,
+      },
+    ];
+  }
+
+  if (url.protocol !== "https:") {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has a sourceUrl that is not https. Restore from a backup or replace the link.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
 function fileHasSource(node: Record<string, unknown>): boolean {
   const assetId = node.assetId;
   const url = node.url;
@@ -3203,6 +3330,18 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { mimeType: FILE_MIME_TYPES },
     validateChildren: (node, path) => checkFileNode(node, path),
   },
+  // Plate's media embed is BaseMediaEmbedPlugin (@platejs/media 53.1.4): key
+  // KEYS.mediaEmbed ("media_embed"), void, and an iframe deserializer that stores
+  // whatever src it finds on `url`. This block stores provider, videoId, an optional
+  // Vimeo hash, an optional start, and the https source URL. The iframe src is derived
+  // at render. url, src, and html are not attributes.
+  {
+    type: KEYS.mediaEmbed,
+    attrs: ["id", "provider", "videoId", "hash", "startSeconds", "sourceUrl", "caption"],
+    isVoid: true,
+    attrValues: { provider: ["youtube", "vimeo"] },
+    validateChildren: (node, path) => checkEmbedNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -3229,6 +3368,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.video,
       KEYS.audio,
       KEYS.file,
+      KEYS.mediaEmbed,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -4460,6 +4600,8 @@ import {
   planPastedFile,
   queuePastedFileUpload,
 } from "./editor-file";
+import { EMBED_PASTE_DROPPED } from "./editor-embed";
+import { embedElement, parseEmbedUrl, storedEmbed } from "./editor-embed-url";
 import type { EditorValue } from "./editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -4710,6 +4852,17 @@ function pastedMedia(
 }
 
 function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const assetId = typeof node.assetId === "string" && node.assetId.length > 0;
+  const url = typeof node.url === "string" ? node.url : undefined;
+  if (!assetId && url !== undefined) {
+    const parsed = parseEmbedUrl(url);
+    if (parsed !== undefined) {
+      const element = embedElement(parsed, nanoid());
+      copyAllowedAttrs(node, element);
+      return [element];
+    }
+  }
+
   return pastedMedia(node, seen, {
     type: KEYS.video,
     plan: planPastedVideo,
@@ -4728,6 +4881,19 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
   });
+}
+
+function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
+  void seen;
+  const parsed = storedEmbed(node);
+  if ("embedDrop" in node || parsed === undefined) {
+    rememberImageRepair({ path: [], message: EMBED_PASTE_DROPPED });
+    return [];
+  }
+
+  const element = embedElement(parsed, nanoid());
+  copyAllowedAttrs(node, element);
+  return [element];
 }
 
 function pastedFile(node: TElement, seen: Set<string>): TElement[] {
@@ -5272,6 +5438,10 @@ function expandBlock(
       return pastedFile(node, seen);
     }
 
+    if (node.type === KEYS.mediaEmbed) {
+      return pastedEmbed(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -5586,9 +5756,11 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
+import { EmbedElement } from "./embed-element";
 import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
+import { embedHtmlDeserializer, pasteUrlPlugin } from "./editor-embed";
 import {
   flushPastedImageUploads,
   handleImageDrop,
@@ -6220,7 +6392,8 @@ function normalizeDisallowedChild(
       (child.type === KEYS.img ||
         child.type === KEYS.video ||
         child.type === KEYS.audio ||
-        child.type === KEYS.file) &&
+        child.type === KEYS.file ||
+        child.type === KEYS.mediaEmbed) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -7065,6 +7238,17 @@ const audioPlugin = AudioPlugin.configure({
   },
 }));
 
+const mediaEmbedPlugin = createSlatePlugin({
+  key: KEYS.mediaEmbed,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedElement },
+  parsers: {
+    html: {
+      deserializer: embedHtmlDeserializer,
+    },
+  },
+});
+
 const filePlugin = FilePlugin.configure({
   node: { isVoid: true },
   render: { node: FileElement },
@@ -7083,7 +7267,7 @@ const filePlugin = FilePlugin.configure({
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file],
+      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file, KEYS.mediaEmbed],
     },
   },
 });
@@ -7289,12 +7473,14 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     videoPlugin,
     audioPlugin,
     filePlugin,
+    mediaEmbedPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
     audioRuntimePlugin,
     fileRuntimePlugin,
     tablePlugin,
+    pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,
@@ -13536,6 +13722,81 @@ const MEDIA_PLAYBACK_EVENTS = [
   "input",
 ] as const;
 
+const FACADE_PREVENT = ["pointerdown", "pointerup", "mousedown", "mouseup"] as const;
+const FACADE_STOP = ["click", "keydown", "keyup", "beforeinput", "input"] as const;
+
+export function bindIsolatedMediaEvents(node: EventTarget): () => void {
+  const stop = (event: Event): void => {
+    event.stopPropagation();
+  };
+  for (const name of MEDIA_PLAYBACK_EVENTS) {
+    node.addEventListener(name, stop);
+  }
+
+  return () => {
+    for (const name of MEDIA_PLAYBACK_EVENTS) {
+      node.removeEventListener(name, stop);
+    }
+  };
+}
+
+export function useIsolatedMediaTarget(
+  nodeRef: { current: EventTarget | null },
+  active: boolean,
+): void {
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node || !active) {
+      return;
+    }
+
+    return bindIsolatedMediaEvents(node);
+  }, [active, nodeRef]);
+}
+
+// Plate treats a stopped event as handled. Stopping at the facade keeps the
+// editor selection still. The play button listens itself, before this bubble.
+export function useFacadeIsolation(nodeRef: { current: HTMLElement | null }): void {
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) {
+      return;
+    }
+
+    const prevent = (event: Event): void => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const stop = (event: Event): void => {
+      const target = event.target;
+      if (
+        event.type === "click" &&
+        target instanceof Element &&
+        target.closest("[data-embed-toolbar]") !== null
+      ) {
+        return;
+      }
+
+      event.stopPropagation();
+    };
+    for (const name of FACADE_PREVENT) {
+      node.addEventListener(name, prevent);
+    }
+    for (const name of FACADE_STOP) {
+      node.addEventListener(name, stop);
+    }
+
+    return () => {
+      for (const name of FACADE_PREVENT) {
+        node.removeEventListener(name, prevent);
+      }
+      for (const name of FACADE_STOP) {
+        node.removeEventListener(name, stop);
+      }
+    };
+  }, [nodeRef]);
+}
+
 export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
   mediaRef: { current: T | null },
   displayUrl: string | undefined,
@@ -13550,22 +13811,12 @@ export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
 
     // Slate listens on the editable ancestor during bubble. Stopping here leaves
     // the browser's own media controls (play, seek, volume) intact.
-    const stop = (event: Event): void => {
-      event.stopPropagation();
-    };
-    for (const name of MEDIA_PLAYBACK_EVENTS) {
-      node.addEventListener(name, stop);
-    }
-
+    const release = bindIsolatedMediaEvents(node);
     if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
       setFailedUrl(true);
     }
 
-    return () => {
-      for (const name of MEDIA_PLAYBACK_EVENTS) {
-        node.removeEventListener(name, stop);
-      }
-    };
+    return release;
   }, [displayUrl, mimeType, setFailedUrl, mediaRef]);
 }
 
@@ -14294,6 +14545,8 @@ import {
   VIDEO_MIME_TYPES,
   VIDEO_MIN_WIDTH,
 } from "./editor-document-schema";
+import { parseEmbedUrl } from "./editor-embed-url";
+import { insertEmbedFromUrl } from "./editor-embed";
 import { setPasteRepairs } from "./editor-paste";
 import { probeImageSize } from "./editor-image";
 import {
@@ -14452,6 +14705,11 @@ export const insertVideoFromUrl = {
   label: "Video from URL",
   group: "insert" as const,
   run: (editor: Parameters<MediaKind["insertFromUrl"]["run"]>[0], url: string) => {
+    if (parseEmbedUrl(url) !== undefined) {
+      insertEmbedFromUrl.run(editor, url);
+      return;
+    }
+
     ensureVideoMedia().insertFromUrl.run(editor, url);
   },
 };
@@ -15136,6 +15394,1274 @@ function VideoToolbar({
       />
     </>
   );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-embed-url.ts
+```ts
+import { KEYS, type TElement } from "platejs";
+
+// Plate's parseVideoUrl (@platejs/media 53.1.4, dist/src-C28rUpXn.js) accepts
+// Dailymotion, Youku, Coub, every *.youtube.com host, and vimeopro.com. It stores
+// the player URL and drops the start time and the Vimeo privacy hash.
+// BaseMediaEmbedPlugin deserializes any iframe src into { url }.
+// This parser accepts only the YouTube and Vimeo URLs from DEV-108.
+export const EMBED_URL_MAX = 2048;
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const VIMEO_ID = /^\d{1,12}$/;
+const VIMEO_HASH = /^[0-9a-f]{6,20}$/;
+
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtu.be",
+  "www.youtu.be",
+  "m.youtu.be",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+  "m.youtube-nocookie.com",
+]);
+
+const VIMEO_HOSTS = new Set([
+  "vimeo.com",
+  "www.vimeo.com",
+  "m.vimeo.com",
+  "player.vimeo.com",
+  "www.player.vimeo.com",
+  "m.player.vimeo.com",
+]);
+
+export const EMBED_IFRAME_ALLOW =
+  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+
+export const EMBED_SANDBOX =
+  "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox";
+
+export type EmbedProvider = "youtube" | "vimeo";
+
+export type ParsedEmbed = {
+  provider: EmbedProvider;
+  videoId: string;
+  hash?: string;
+  startSeconds?: number;
+  sourceUrl: string;
+};
+
+export function parseEmbedUrl(input: string): ParsedEmbed | undefined {
+  const trimmed = input.trim();
+  if (trimmed.length === 0 || trimmed.length > EMBED_URL_MAX) {
+    return undefined;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return undefined;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return undefined;
+  }
+
+  if (url.username.length > 0 || url.password.length > 0 || url.port.length > 0) {
+    return undefined;
+  }
+
+  const host = url.hostname.toLowerCase();
+  const start = readStart(url);
+  if (!start.ok) {
+    return undefined;
+  }
+
+  const parsed = YOUTUBE_HOSTS.has(host)
+    ? parseYouTube(url, host)
+    : VIMEO_HOSTS.has(host)
+      ? parseVimeo(url, host)
+      : undefined;
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  const sourceUrl = normalizedHttps(url);
+  if (sourceUrl.length > EMBED_URL_MAX) {
+    return undefined;
+  }
+
+  const embed: ParsedEmbed = {
+    provider: parsed.provider,
+    videoId: parsed.videoId,
+    sourceUrl,
+  };
+  const hash = "hash" in parsed ? parsed.hash : undefined;
+  if (hash !== undefined) {
+    embed.hash = hash;
+  }
+  if (start.seconds !== undefined) {
+    embed.startSeconds = start.seconds;
+  }
+
+  return embed;
+}
+
+export function isYouTubeShort(sourceUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    return false;
+  }
+
+  const [first] = pathSegments(url);
+  return first === "shorts";
+}
+
+export function embedTitle(provider: EmbedProvider): string {
+  return provider === "youtube" ? "YouTube video" : "Vimeo video";
+}
+
+export function embedProviderLabel(provider: EmbedProvider): string {
+  return provider === "youtube" ? "YouTube" : "Vimeo";
+}
+
+export function embedFrameSrc(
+  embed: Pick<ParsedEmbed, "provider" | "videoId" | "hash" | "startSeconds">,
+  autoplay: boolean,
+): string {
+  if (embed.provider === "youtube") {
+    const params = new URLSearchParams();
+    if (embed.startSeconds !== undefined) {
+      params.set("start", String(embed.startSeconds));
+    }
+    if (autoplay) {
+      params.set("autoplay", "1");
+    }
+    const query = params.toString();
+    const suffix = query.length > 0 ? `?${query}` : "";
+    return `https://www.youtube-nocookie.com/embed/${embed.videoId}${suffix}`;
+  }
+
+  const params = new URLSearchParams();
+  if (embed.hash !== undefined) {
+    params.set("h", embed.hash);
+  }
+  if (autoplay) {
+    params.set("autoplay", "1");
+  }
+  const query = params.toString();
+  const suffix = query.length > 0 ? `?${query}` : "";
+  const time = embed.startSeconds !== undefined ? `#t=${String(embed.startSeconds)}s` : "";
+  return `https://player.vimeo.com/video/${embed.videoId}${suffix}${time}`;
+}
+
+export function embedElement(parsed: ParsedEmbed, id?: string): TElement {
+  const node: TElement = {
+    type: KEYS.mediaEmbed,
+    provider: parsed.provider,
+    videoId: parsed.videoId,
+    sourceUrl: parsed.sourceUrl,
+    children: [{ text: "" }],
+  };
+  if (id !== undefined) {
+    node.id = id;
+  }
+  if (parsed.hash !== undefined) {
+    node.hash = parsed.hash;
+  }
+  if (parsed.startSeconds !== undefined) {
+    node.startSeconds = parsed.startSeconds;
+  }
+
+  return node;
+}
+
+export function storedEmbed(node: Record<string, unknown>): ParsedEmbed | undefined {
+  const provider = node.provider;
+  const videoId = node.videoId;
+  const sourceUrl = node.sourceUrl;
+  if ((provider !== "youtube" && provider !== "vimeo") || typeof videoId !== "string") {
+    return undefined;
+  }
+  if (typeof sourceUrl !== "string") {
+    return undefined;
+  }
+
+  const parsed = parseEmbedUrl(sourceUrl);
+  if (parsed === undefined || parsed.provider !== provider || parsed.videoId !== videoId) {
+    return undefined;
+  }
+  if (parsed.sourceUrl !== sourceUrl) {
+    return undefined;
+  }
+
+  const hash = node.hash;
+  if (parsed.hash !== undefined) {
+    if (hash !== parsed.hash) {
+      return undefined;
+    }
+  } else if (hash !== undefined) {
+    return undefined;
+  }
+
+  const startSeconds = node.startSeconds;
+  if (parsed.startSeconds !== undefined) {
+    if (startSeconds !== parsed.startSeconds) {
+      return undefined;
+    }
+  } else if (startSeconds !== undefined) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export function isEmbedVideoId(provider: EmbedProvider, videoId: string): boolean {
+  return provider === "youtube" ? YOUTUBE_ID.test(videoId) : VIMEO_ID.test(videoId);
+}
+
+export function isEmbedHash(hash: string): boolean {
+  return VIMEO_HASH.test(hash);
+}
+
+function parseYouTube(
+  url: URL,
+  host: string,
+): { provider: "youtube"; videoId: string } | undefined {
+  const parts = pathSegments(url);
+  const shortHost = host === "youtu.be" || host === "www.youtu.be" || host === "m.youtu.be";
+  if (shortHost) {
+    const id = parts.length === 1 ? parts[0] : undefined;
+    return youtubeId(id);
+  }
+
+  const nocookie =
+    host === "youtube-nocookie.com" ||
+    host === "www.youtube-nocookie.com" ||
+    host === "m.youtube-nocookie.com";
+  if (nocookie) {
+    return parts.length === 2 && parts[0] === "embed" ? youtubeId(parts[1]) : undefined;
+  }
+
+  const music = host === "music.youtube.com";
+  if (music) {
+    return parts.length === 1 && parts[0] === "watch"
+      ? youtubeId(url.searchParams.get("v"))
+      : undefined;
+  }
+
+  if (parts.length === 1 && parts[0] === "watch") {
+    return youtubeId(url.searchParams.get("v"));
+  }
+
+  if (
+    parts.length === 2 &&
+    (parts[0] === "shorts" || parts[0] === "embed" || parts[0] === "live")
+  ) {
+    return youtubeId(parts[1]);
+  }
+
+  return undefined;
+}
+
+function parseVimeo(
+  url: URL,
+  host: string,
+): { provider: "vimeo"; videoId: string; hash?: string } | undefined {
+  const parts = pathSegments(url);
+  const player =
+    host === "player.vimeo.com" || host === "www.player.vimeo.com" || host === "m.player.vimeo.com";
+  if (player) {
+    if (parts.length !== 2 || parts[0] !== "video") {
+      return undefined;
+    }
+    return vimeoId(parts[1], url.searchParams.get("h"));
+  }
+
+  if (parts.length === 1) {
+    return vimeoId(parts[0], null);
+  }
+
+  if (parts.length === 2 && parts[1] !== undefined && isEmbedHash(parts[1].toLowerCase())) {
+    return vimeoId(parts[0], parts[1]);
+  }
+
+  if (parts.length === 3 && parts[0] === "channels") {
+    return vimeoId(parts[2], url.searchParams.get("h"));
+  }
+
+  if (parts.length === 4 && parts[0] === "groups" && parts[2] === "videos") {
+    return vimeoId(parts[3], url.searchParams.get("h"));
+  }
+
+  return undefined;
+}
+
+function youtubeId(
+  id: string | null | undefined,
+): { provider: "youtube"; videoId: string } | undefined {
+  if (id === undefined || id === null || !YOUTUBE_ID.test(id)) {
+    return undefined;
+  }
+
+  return { provider: "youtube", videoId: id };
+}
+
+function vimeoId(
+  id: string | undefined,
+  hash: string | null,
+): { provider: "vimeo"; videoId: string; hash?: string } | undefined {
+  if (id === undefined || !VIMEO_ID.test(id)) {
+    return undefined;
+  }
+
+  if (hash === null || hash.length === 0) {
+    return { provider: "vimeo", videoId: id };
+  }
+
+  const normalized = hash.toLowerCase();
+  if (!isEmbedHash(normalized)) {
+    return undefined;
+  }
+
+  return { provider: "vimeo", videoId: id, hash: normalized };
+}
+
+function pathSegments(url: URL): string[] {
+  return url.pathname.split("/").filter((part) => part.length > 0);
+}
+
+function readStart(url: URL): { ok: true; seconds?: number } | { ok: false } {
+  const raw = firstTime(url);
+  if (raw === undefined) {
+    return { ok: true };
+  }
+
+  const seconds = parseClock(raw);
+  if (seconds === undefined) {
+    return { ok: false };
+  }
+
+  return { ok: true, seconds };
+}
+
+function firstTime(url: URL): string | undefined {
+  if (url.searchParams.has("t")) {
+    return url.searchParams.get("t") ?? "";
+  }
+
+  if (url.searchParams.has("start")) {
+    return url.searchParams.get("start") ?? "";
+  }
+
+  if (url.hash.length > 1) {
+    const params = new URLSearchParams(url.hash.slice(1));
+    if (params.has("t")) {
+      return params.get("t") ?? "";
+    }
+  }
+
+  return undefined;
+}
+
+function parseClock(value: string): number | undefined {
+  if (/^\d{1,9}$/.test(value)) {
+    return Number(value);
+  }
+
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/i.exec(value);
+  if (match === null) {
+    return undefined;
+  }
+
+  const hours = match[1];
+  const minutes = match[2];
+  const seconds = match[3];
+  if (hours === undefined && minutes === undefined && seconds === undefined) {
+    return undefined;
+  }
+
+  const total = Number(hours ?? 0) * 3600 + Number(minutes ?? 0) * 60 + Number(seconds ?? 0);
+  if (!Number.isSafeInteger(total)) {
+    return undefined;
+  }
+
+  return total;
+}
+
+function normalizedHttps(url: URL): string {
+  const copy = new URL(url.href);
+  copy.protocol = "https:";
+  copy.username = "";
+  copy.password = "";
+  copy.port = "";
+  return copy.href;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  TextApi,
+  createSlatePlugin,
+  nanoid,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { selectionInCodeBlock } from "./editor-code";
+import { embedElement, parseEmbedUrl, type ParsedEmbed } from "./editor-embed-url";
+import { setPasteRepairs } from "./editor-paste-repairs";
+
+export const EMBED_INVALID_URL = "That link is not a YouTube or Vimeo video.";
+export const EMBED_PASTE_DROPPED =
+  "An embed was removed because it is not a YouTube or Vimeo video.";
+
+export type PasteUrlOffer = {
+  url: string;
+  raw: string;
+  path: number[];
+  start: number;
+  end: number;
+};
+
+export type PasteUrlAction = {
+  id: string;
+  label: string;
+  match: (url: string) => boolean;
+  run: (editor: SlateEditor, offer: PasteUrlOffer) => void;
+};
+
+// DEV-109 adds a bookmark action here. The menu lists every action whose match
+// accepts the pasted URL. Each run is a later undo step than the paste.
+export const pasteUrlActions: PasteUrlAction[] = [
+  {
+    id: "embed",
+    label: "Embed video",
+    match: (url) => parseEmbedUrl(url) !== undefined,
+    run: (editor, offer) => {
+      replacePastedUrl(editor, offer);
+    },
+  },
+];
+
+function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
+  return typeof value === "function";
+}
+
+function emptyOffer(): PasteUrlOffer | undefined {
+  return undefined;
+}
+
+export const pasteUrlPlugin = createSlatePlugin({
+  key: "pasteUrl",
+  options: {
+    offer: emptyOffer(),
+  },
+}).overrideEditor(({ editor, tf: { insertBreak, insertData, insertFragment, insertText } }) => {
+  const { onChange } = editor;
+  if (isEditorOnChange(onChange)) {
+    editor.onChange = (options?: { operation?: unknown }) => {
+      onChange(options);
+      dismissOfferIfSelectionMoved(editor);
+    };
+  }
+
+  return {
+    transforms: {
+      insertData(data: DataTransfer) {
+        clearPasteUrlOffer(editor);
+        const prepared = dataWithoutScripts(data);
+        const plain = prepared.getData("text/plain");
+        const html = prepared.getData("text/html");
+        const offerUrl = pasteOfferUrl(editor, plain, html);
+        insertData(prepared);
+        if (offerUrl === undefined) {
+          return;
+        }
+
+        const located = insertedRange(editor, plain);
+        if (located === undefined) {
+          return;
+        }
+
+        editor.setOption(pasteUrlPlugin, "offer", {
+          url: offerUrl,
+          raw: plain,
+          path: located.path,
+          start: located.start,
+          end: located.end,
+        });
+      },
+      insertText(text, options) {
+        clearPasteUrlOffer(editor);
+        insertText(text, options);
+      },
+      insertBreak() {
+        clearPasteUrlOffer(editor);
+        insertBreak();
+      },
+      insertFragment(fragment, options) {
+        clearPasteUrlOffer(editor);
+        insertFragment(fragment, options);
+      },
+    },
+  };
+});
+
+function dismissOfferIfSelectionMoved(editor: SlateEditor): void {
+  const offer = editor.getOption(pasteUrlPlugin, "offer");
+  if (offer === undefined || selectionAtOffer(editor, offer)) {
+    return;
+  }
+
+  clearPasteUrlOffer(editor);
+}
+
+function selectionAtOffer(editor: SlateEditor, offer: PasteUrlOffer): boolean {
+  const selection = editor.selection;
+  if (selection === null || selection === undefined) {
+    return false;
+  }
+
+  return (
+    selection.anchor.offset === offer.end &&
+    selection.focus.offset === offer.end &&
+    samePath(selection.anchor.path, offer.path) &&
+    samePath(selection.focus.path, offer.path)
+  );
+}
+
+function samePath(path: number[], expected: number[]): boolean {
+  return path.length === expected.length && path.every((value, index) => value === expected[index]);
+}
+
+export function clearPasteUrlOffer(editor: SlateEditor): void {
+  if (editor.getOption(pasteUrlPlugin, "offer") !== undefined) {
+    editor.setOption(pasteUrlPlugin, "offer", undefined);
+  }
+}
+
+export const embedHtmlDeserializer = {
+  isElement: true,
+  rules: [{ validNodeName: "IFRAME" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const src = element.getAttribute("src") ?? "";
+    const parsed = parseEmbedUrl(src);
+    if (parsed === undefined) {
+      return { type: KEYS.mediaEmbed, embedDrop: true, children: [{ text: "" }] };
+    }
+
+    return embedElement(parsed);
+  },
+};
+
+export const insertEmbedFromUrl: EditorCommand<string> = {
+  id: "block.insert.embed",
+  label: "Embed video",
+  group: "insert",
+  run: (editor, url) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    const parsed = parseEmbedUrl(url);
+    if (parsed === undefined) {
+      setPasteRepairs(editor, [{ path: [], message: EMBED_INVALID_URL }]);
+      return;
+    }
+
+    placeEmbed(editor, parsed);
+  },
+};
+
+export const applyPasteUrlAction: EditorCommand<string> = {
+  id: "block.paste-url.apply",
+  label: "Apply pasted link",
+  group: "action",
+  run: (editor, actionId) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    const offer = editor.getOption(pasteUrlPlugin, "offer");
+    const action = pasteUrlActions.find((item) => item.id === actionId);
+    if (offer === undefined || action === undefined || !action.match(offer.url)) {
+      return;
+    }
+
+    clearPasteUrlOffer(editor);
+    action.run(editor, offer);
+  },
+};
+
+export const convertEmbedToText: EditorCommand<string> = {
+  id: "block.embed.to-text",
+  label: "Convert to text",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableEmbed(editor, id);
+    if (entry === undefined) {
+      return;
+    }
+
+    const sourceUrl = entry[0].sourceUrl;
+    if (typeof sourceUrl !== "string") {
+      return;
+    }
+
+    editor.tf.removeNodes({ at: entry[1] });
+    editor.tf.insertNodes(
+      { type: KEYS.p, id: nanoid(), children: [{ text: sourceUrl }] },
+      { at: entry[1], select: true },
+    );
+  },
+};
+
+export const removeEmbed: EditorCommand<string> = {
+  id: "block.embed.remove",
+  label: "Remove",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableEmbed(editor, id);
+    if (entry === undefined) {
+      return;
+    }
+
+    editor.tf.removeNodes({ at: entry[1] });
+    if (editor.children.length === 0) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
+        { at: [0], select: true },
+      );
+    }
+  },
+};
+
+function placeEmbed(editor: SlateEditor, parsed: ParsedEmbed): void {
+  const entry = editor.api.block({ highest: true });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return;
+  }
+
+  const [node, path] = entry;
+  const element = embedElement(parsed, nanoid());
+  const replaceEmpty =
+    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
+  if (replaceEmpty) {
+    editor.tf.removeNodes({ at: path });
+    editor.tf.insertNodes(element, { at: path, select: true });
+    return;
+  }
+
+  const at = PathApi.next(path);
+  if (at === undefined) {
+    return;
+  }
+
+  editor.tf.insertNodes(element, { at, select: true });
+}
+
+function replacePastedUrl(editor: SlateEditor, offer: PasteUrlOffer): void {
+  const parsed = parseEmbedUrl(offer.url);
+  const textEntry = editor.api.node(offer.path);
+  if (parsed === undefined || textEntry === undefined || !TextApi.isText(textEntry[0])) {
+    return;
+  }
+
+  const blockEntry = editor.api.block({ at: offer.path });
+  if (blockEntry === undefined || !ElementApi.isElement(blockEntry[0])) {
+    return;
+  }
+
+  const [block, blockPath] = blockEntry;
+  const onlyUrl = block.type === KEYS.p && editor.api.string(block).trim() === offer.url;
+  if (onlyUrl) {
+    editor.tf.removeNodes({ at: blockPath });
+    editor.tf.insertNodes(embedElement(parsed, nanoid()), { at: blockPath, select: true });
+    return;
+  }
+
+  editor.tf.delete({
+    at: {
+      anchor: { path: offer.path, offset: offer.start },
+      focus: { path: offer.path, offset: offer.end },
+    },
+  });
+  const after = PathApi.next(blockPath);
+  if (after === undefined) {
+    return;
+  }
+
+  editor.tf.insertNodes(embedElement(parsed, nanoid()), { at: after, select: true });
+}
+
+function writableEmbed(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  if (editor.dom.readOnly === true) {
+    return undefined;
+  }
+
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) =>
+      ElementApi.isElement(candidate) && candidate.type === KEYS.mediaEmbed && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return [node, path];
+    }
+  }
+
+  return undefined;
+}
+
+function pasteOfferUrl(editor: SlateEditor, plain: string, html: string): string | undefined {
+  if (editor.dom.readOnly === true || html.trim().length > 0) {
+    return undefined;
+  }
+
+  if (selectionInCodeBlock(editor) || selectionInTableCell(editor)) {
+    return undefined;
+  }
+
+  const url = bareHttpUrl(plain);
+  if (url === undefined) {
+    return undefined;
+  }
+
+  return pasteUrlActions.some((action) => action.match(url)) ? url : undefined;
+}
+
+function bareHttpUrl(text: string): string | undefined {
+  const trimmed = text.trim();
+  if (trimmed.length === 0 || /\s/.test(trimmed)) {
+    return undefined;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return undefined;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+function selectionInTableCell(editor: SlateEditor): boolean {
+  return (
+    editor.api.above({
+      match: (node) =>
+        ElementApi.isElement(node) && (node.type === KEYS.td || node.type === KEYS.th),
+    }) !== undefined
+  );
+}
+
+function insertedRange(
+  editor: SlateEditor,
+  raw: string,
+): { path: number[]; start: number; end: number } | undefined {
+  const selection = editor.selection;
+  if (selection === null || selection === undefined) {
+    return undefined;
+  }
+
+  const anchor = selection.anchor;
+  const focus = selection.focus;
+  if (anchor.offset !== focus.offset || anchor.path.length !== focus.path.length) {
+    return undefined;
+  }
+
+  for (let index = 0; index < anchor.path.length; index += 1) {
+    if (anchor.path[index] !== focus.path[index]) {
+      return undefined;
+    }
+  }
+
+  const entry = editor.api.node(focus.path);
+  if (entry === undefined || !TextApi.isText(entry[0])) {
+    return undefined;
+  }
+
+  const end = focus.offset;
+  const start = end - raw.length;
+  if (start < 0 || entry[0].text.slice(start, end) !== raw) {
+    return undefined;
+  }
+
+  return { path: [...focus.path], start, end };
+}
+
+function dataWithoutScripts(data: DataTransfer): DataTransfer {
+  const html = data.getData("text/html");
+  if (html.length === 0 || !/<\s*script\b/i.test(html)) {
+    return data;
+  }
+
+  const next = new DataTransfer();
+  const plain = data.getData("text/plain");
+  if (plain.length > 0) {
+    next.setData("text/plain", plain);
+  }
+
+  const cleaned = htmlWithoutScripts(html);
+  if (cleaned.length > 0) {
+    next.setData("text/html", cleaned);
+  }
+
+  const files = data.files;
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files.item(index);
+    if (file) {
+      next.items.add(file);
+    }
+  }
+
+  return next;
+}
+
+function htmlWithoutScripts(html: string): string {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  for (const node of Array.from(document.querySelectorAll("script"))) {
+    node.remove();
+  }
+
+  return document.body.innerHTML;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/embed-element.tsx
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Caption, CaptionTextarea } from "@platejs/caption/react";
+import { ExternalLink, Play, Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { runEditorCommand } from "./editor-commands";
+import { convertEmbedToText, removeEmbed } from "./editor-embed";
+import {
+  EMBED_IFRAME_ALLOW,
+  EMBED_SANDBOX,
+  embedFrameSrc,
+  embedProviderLabel,
+  embedTitle,
+  isYouTubeShort,
+  type EmbedProvider,
+} from "./editor-embed-url";
+import { hrElementClassName } from "./hr-element";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaCaptionButton,
+  MediaIconButton,
+  mediaCaptionText,
+  mediaStringAttr,
+  useFacadeIsolation,
+  useIsolatedMediaTarget,
+} from "./media-element-parts";
+
+export function EmbedElement(props: PlateElementProps) {
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const provider = mediaProvider(element.provider);
+  const videoId = mediaStringAttr(element, "videoId");
+  const hash = mediaStringAttr(element, "hash");
+  const sourceUrl = mediaStringAttr(element, "sourceUrl");
+  const startSeconds = mediaStart(element.startSeconds);
+  const [active, setActive] = useState(false);
+  const frame = useRef<HTMLElement>(null);
+  const iframe = useRef<HTMLIFrameElement>(null);
+  const title = provider === undefined ? "Video" : embedTitle(provider);
+  const short = provider === "youtube" && sourceUrl !== undefined && isYouTubeShort(sourceUrl);
+  const showFrame = provider !== undefined && videoId !== undefined && sourceUrl !== undefined;
+
+  useFacadeIsolation(frame);
+  useIsolatedMediaTarget(iframe, active);
+  useEmbedFrameFocus(iframe, active);
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn("group relative py-2", hrElementClassName(selected, focused, readOnly))}
+    >
+      <figure
+        ref={frame}
+        contentEditable={false}
+        data-embed-state={active ? "playing" : "facade"}
+        className="relative mx-auto w-full max-w-full"
+      >
+        {showFrame ? (
+          <div
+            className={cn(
+              "bg-muted relative z-0 mx-auto overflow-hidden",
+              short ? "w-auto max-w-full" : "w-full",
+            )}
+            style={
+              short
+                ? { aspectRatio: "9 / 16", height: "70vh", maxHeight: "70vh" }
+                : { aspectRatio: "16 / 9", width: "100%" }
+            }
+          >
+            {active ? (
+              <iframe
+                ref={iframe}
+                title={title}
+                src={embedFrameSrc({ provider, videoId, hash, startSeconds }, true)}
+                loading="lazy"
+                allow={EMBED_IFRAME_ALLOW}
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                sandbox={EMBED_SANDBOX}
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            ) : (
+              <EmbedFacade
+                provider={provider}
+                title={title}
+                onActivate={() => {
+                  setActive(true);
+                }}
+              />
+            )}
+          </div>
+        ) : null}
+        {sourceUrl !== undefined ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground mt-2 inline-flex text-sm underline underline-offset-4"
+          >
+            Open original
+          </a>
+        ) : null}
+        {showFrame && !readOnly ? (
+          <EmbedToolbar
+            id={typeof element.id === "string" ? element.id : ""}
+            sourceUrl={sourceUrl}
+          />
+        ) : null}
+        {showFrame || mediaCaptionText(element).length > 0 ? (
+          <Caption>
+            <CaptionTextarea placeholder="Write a caption…" />
+          </Caption>
+        ) : null}
+      </figure>
+      {props.children}
+    </PlateElement>
+  );
+}
+
+function EmbedFacade({
+  provider,
+  title,
+  onActivate,
+}: {
+  provider: EmbedProvider;
+  title: string;
+  onActivate: () => void;
+}) {
+  const button = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const node = button.current;
+    if (!node) {
+      return;
+    }
+
+    const onClick = (): void => {
+      onActivate();
+    };
+    node.addEventListener("click", onClick);
+    return () => {
+      node.removeEventListener("click", onClick);
+    };
+  }, [onActivate]);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+      <button
+        ref={button}
+        type="button"
+        aria-label={`Play ${title}`}
+        className="bg-background text-foreground inline-flex size-11 items-center justify-center rounded-full"
+      >
+        <Play aria-hidden className="size-5" />
+      </button>
+      <p className="text-foreground text-sm">{title}</p>
+      <p className="text-muted-foreground text-xs">{embedProviderLabel(provider)}</p>
+    </div>
+  );
+}
+
+function EmbedToolbar({ id, sourceUrl }: { id: string; sourceUrl: string | undefined }) {
+  const editor = useEditorRef();
+  const selected = useSelected();
+
+  return (
+    <div
+      data-embed-toolbar=""
+      className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
+    >
+      <MediaCaptionButton />
+      {sourceUrl !== undefined ? (
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open original"
+          className="text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs"
+        >
+          <ExternalLink aria-hidden className="size-4" />
+          Open original
+        </a>
+      ) : null}
+      <MediaIconButton
+        label="Convert to text"
+        onClick={(current) => {
+          runEditorCommand(current, convertEmbedToText, id);
+        }}
+      >
+        Convert to text
+      </MediaIconButton>
+      <MediaIconButton
+        label="Remove"
+        onClick={() => {
+          runEditorCommand(editor, removeEmbed, id);
+        }}
+      >
+        <Trash2 aria-hidden className="size-4" />
+      </MediaIconButton>
+    </div>
+  );
+}
+
+// Chrome's sequential Tab skips an iframe inside contenteditable in one direction.
+// Activation focuses the player. While it is mounted, Tab from the control before it
+// and Shift+Tab from the control after it move into the iframe. Keys from inside the
+// player stay with the browser, which is what leaves the iframe again.
+function useEmbedFrameFocus(
+  iframeRef: { current: HTMLIFrameElement | null },
+  active: boolean,
+): void {
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    iframeRef.current?.focus({ preventScroll: true });
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Tab" || event.altKey || event.metaKey || event.ctrlKey) {
+        return;
+      }
+
+      const frame = iframeRef.current;
+      const current = document.activeElement;
+      if (
+        !(frame instanceof HTMLIFrameElement) ||
+        !(current instanceof HTMLElement) ||
+        current === frame
+      ) {
+        return;
+      }
+
+      const stops = tabStopsExcept(frame);
+      const index = stops.indexOf(current);
+      const neighbor = event.shiftKey ? stops[index - 1] : stops[index + 1];
+      if (index < 0 || !(neighbor instanceof HTMLElement) || !straddles(current, frame, neighbor)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      frame.focus({ preventScroll: true });
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [active, iframeRef]);
+}
+
+function tabStopsExcept(frame: HTMLElement): HTMLElement[] {
+  const stops: HTMLElement[] = [];
+  for (const node of document.querySelectorAll(
+    "a[href], button, textarea, input, select, iframe",
+  )) {
+    if (
+      node instanceof HTMLElement &&
+      node !== frame &&
+      node.tabIndex >= 0 &&
+      !node.hasAttribute("disabled")
+    ) {
+      stops.push(node);
+    }
+  }
+  return stops;
+}
+
+function straddles(current: HTMLElement, frame: HTMLElement, neighbor: HTMLElement): boolean {
+  const following = Node.DOCUMENT_POSITION_FOLLOWING;
+  const after = (left: HTMLElement, right: HTMLElement): boolean =>
+    (left.compareDocumentPosition(right) & following) !== 0;
+  const forward = after(current, frame) && after(frame, neighbor);
+  const backward = after(neighbor, frame) && after(frame, current);
+  return forward || backward;
+}
+
+function mediaProvider(value: unknown): EmbedProvider | undefined {
+  return value === "youtube" || value === "vimeo" ? value : undefined;
+}
+
+function mediaStart(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+```tsx
+import { useEffect } from "react";
+import { useEditorRef, usePluginOption } from "platejs/react";
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { runEditorCommand } from "./editor-commands";
+import {
+  applyPasteUrlAction,
+  clearPasteUrlOffer,
+  pasteUrlActions,
+  pasteUrlPlugin,
+} from "./editor-embed";
+
+export function PasteUrlMenu() {
+  const editor = useEditorRef();
+  const offer = usePluginOption(pasteUrlPlugin, "offer");
+  const actions =
+    offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+
+  useEffect(() => {
+    if (offer === undefined) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        clearPasteUrlOffer(editor);
+      }
+    };
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-paste-url-menu]") !== null) {
+        return;
+      }
+
+      clearPasteUrlOffer(editor);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [editor, offer]);
+
+  if (offer === undefined || actions.length === 0) {
+    return null;
+  }
+
+  const rect = selectionRect();
+
+  return (
+    <Popover open>
+      <PopoverAnchor asChild>
+        <span
+          data-paste-url-anchor=""
+          style={{
+            position: "fixed",
+            top: rect.top,
+            left: rect.left,
+            width: 1,
+            height: 1,
+          }}
+        />
+      </PopoverAnchor>
+      <PopoverContent
+        data-paste-url-menu=""
+        align="start"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        className="w-auto gap-1 p-1"
+      >
+        {actions.map((action) => (
+          <button
+            key={action.id}
+            type="button"
+            className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              runEditorCommand(editor, applyPasteUrlAction, action.id);
+            }}
+          >
+            {action.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          data-default="true"
+          className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
+          onClick={() => {
+            clearPasteUrlOffer(editor);
+          }}
+        >
+          Keep as text
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function selectionRect(): { top: number; left: number } {
+  if (typeof window === "undefined") {
+    return { top: 0, left: 0 };
+  }
+
+  const selection = window.getSelection();
+  if (selection === null || selection.rangeCount === 0) {
+    return { top: 0, left: 0 };
+  }
+
+  const rect = selection.getRangeAt(0).getBoundingClientRect();
+  return { top: rect.bottom, left: rect.left };
 }
 ```
 
@@ -19568,6 +21094,7 @@ import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
+import { PasteUrlMenu } from "./paste-url-menu";
 import { VideoRuntime } from "./video-element";
 
 type EditorSurfaceProps = {
@@ -19599,6 +21126,7 @@ export function EditorSurface({
       <VideoRuntime store={assetStore} />
       <AudioRuntime store={assetStore} />
       <FileRuntime store={assetStore} />
+      <PasteUrlMenu />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -21021,6 +22549,15 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "media_embed",
+    id: "demo-embed",
+    provider: "youtube",
+    videoId: "jNQXAC9IVRw",
+    sourceUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    caption: [{ text: "Me at the zoo, the first video uploaded to YouTube." }],
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -21280,6 +22817,22 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/video-element.tsx",
     code: readSource(`${BLOCK_DIR}/video-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-embed-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-embed-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-embed.ts",
+    code: readSource(`${BLOCK_DIR}/editor-embed.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/embed-element.tsx",
+    code: readSource(`${BLOCK_DIR}/embed-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
+    code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-audio.ts",

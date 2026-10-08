@@ -11,6 +11,7 @@ import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
+import { PasteUrlMenu } from "./paste-url-menu";
 import { VideoRuntime } from "./video-element";
 
 type EditorSurfaceProps = {
@@ -42,6 +43,7 @@ export function EditorSurface({
       <VideoRuntime store={assetStore} />
       <AudioRuntime store={assetStore} />
       <FileRuntime store={assetStore} />
+      <PasteUrlMenu />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

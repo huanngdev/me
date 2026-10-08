@@ -1035,6 +1035,15 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "media_embed",
+    id: "demo-embed",
+    provider: "youtube",
+    videoId: "jNQXAC9IVRw",
+    sourceUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    caption: [{ text: "Me at the zoo, the first video uploaded to YouTube." }],
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

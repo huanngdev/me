@@ -53,6 +53,8 @@ import {
   planPastedFile,
   queuePastedFileUpload,
 } from "./editor-file";
+import { EMBED_PASTE_DROPPED } from "./editor-embed";
+import { embedElement, parseEmbedUrl, storedEmbed } from "./editor-embed-url";
 import type { EditorValue } from "./editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -303,6 +305,17 @@ function pastedMedia(
 }
 
 function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const assetId = typeof node.assetId === "string" && node.assetId.length > 0;
+  const url = typeof node.url === "string" ? node.url : undefined;
+  if (!assetId && url !== undefined) {
+    const parsed = parseEmbedUrl(url);
+    if (parsed !== undefined) {
+      const element = embedElement(parsed, nanoid());
+      copyAllowedAttrs(node, element);
+      return [element];
+    }
+  }
+
   return pastedMedia(node, seen, {
     type: KEYS.video,
     plan: planPastedVideo,
@@ -321,6 +334,19 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
   });
+}
+
+function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
+  void seen;
+  const parsed = storedEmbed(node);
+  if ("embedDrop" in node || parsed === undefined) {
+    rememberImageRepair({ path: [], message: EMBED_PASTE_DROPPED });
+    return [];
+  }
+
+  const element = embedElement(parsed, nanoid());
+  copyAllowedAttrs(node, element);
+  return [element];
 }
 
 function pastedFile(node: TElement, seen: Set<string>): TElement[] {
@@ -863,6 +889,10 @@ function expandBlock(
 
     if (node.type === KEYS.file) {
       return pastedFile(node, seen);
+    }
+
+    if (node.type === KEYS.mediaEmbed) {
+      return pastedEmbed(node, seen);
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

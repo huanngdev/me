@@ -558,6 +558,81 @@ const MEDIA_PLAYBACK_EVENTS = [
   "input",
 ] as const;
 
+const FACADE_PREVENT = ["pointerdown", "pointerup", "mousedown", "mouseup"] as const;
+const FACADE_STOP = ["click", "keydown", "keyup", "beforeinput", "input"] as const;
+
+export function bindIsolatedMediaEvents(node: EventTarget): () => void {
+  const stop = (event: Event): void => {
+    event.stopPropagation();
+  };
+  for (const name of MEDIA_PLAYBACK_EVENTS) {
+    node.addEventListener(name, stop);
+  }
+
+  return () => {
+    for (const name of MEDIA_PLAYBACK_EVENTS) {
+      node.removeEventListener(name, stop);
+    }
+  };
+}
+
+export function useIsolatedMediaTarget(
+  nodeRef: { current: EventTarget | null },
+  active: boolean,
+): void {
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node || !active) {
+      return;
+    }
+
+    return bindIsolatedMediaEvents(node);
+  }, [active, nodeRef]);
+}
+
+// Plate treats a stopped event as handled. Stopping at the facade keeps the
+// editor selection still. The play button listens itself, before this bubble.
+export function useFacadeIsolation(nodeRef: { current: HTMLElement | null }): void {
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) {
+      return;
+    }
+
+    const prevent = (event: Event): void => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const stop = (event: Event): void => {
+      const target = event.target;
+      if (
+        event.type === "click" &&
+        target instanceof Element &&
+        target.closest("[data-embed-toolbar]") !== null
+      ) {
+        return;
+      }
+
+      event.stopPropagation();
+    };
+    for (const name of FACADE_PREVENT) {
+      node.addEventListener(name, prevent);
+    }
+    for (const name of FACADE_STOP) {
+      node.addEventListener(name, stop);
+    }
+
+    return () => {
+      for (const name of FACADE_PREVENT) {
+        node.removeEventListener(name, prevent);
+      }
+      for (const name of FACADE_STOP) {
+        node.removeEventListener(name, stop);
+      }
+    };
+  }, [nodeRef]);
+}
+
 export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
   mediaRef: { current: T | null },
   displayUrl: string | undefined,
@@ -572,22 +647,12 @@ export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
 
     // Slate listens on the editable ancestor during bubble. Stopping here leaves
     // the browser's own media controls (play, seek, volume) intact.
-    const stop = (event: Event): void => {
-      event.stopPropagation();
-    };
-    for (const name of MEDIA_PLAYBACK_EVENTS) {
-      node.addEventListener(name, stop);
-    }
-
+    const release = bindIsolatedMediaEvents(node);
     if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
       setFailedUrl(true);
     }
 
-    return () => {
-      for (const name of MEDIA_PLAYBACK_EVENTS) {
-        node.removeEventListener(name, stop);
-      }
-    };
+    return release;
   }, [displayUrl, mimeType, setFailedUrl, mediaRef]);
 }
 
