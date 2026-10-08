@@ -38,6 +38,7 @@ import {
   REPO_URL,
   SOCIAL_LINKS,
 } from "../../constants";
+import { switchThemeWithReveal } from "../../lib/theme-transition";
 import { cn } from "../../lib/utils";
 import { Button } from "../button";
 import {
@@ -356,7 +357,7 @@ export function CommandPalette() {
                 keywords={["theme", "dark", "light", "mode", "appearance"]}
                 onSelect={() =>
                   runCommand(() => {
-                    setTheme(isDark ? "light" : "dark");
+                    switchThemeWithReveal(() => setTheme(isDark ? "light" : "dark"));
                   })
                 }
               >
