@@ -22,11 +22,18 @@ export type UploadState = {
   error?: string;
 };
 
+export type ResolvedAssetUrl = {
+  url: string;
+  expiresAt?: number;
+};
+
 export type AssetStore = {
   put: (record: AssetRecord, blob: Blob) => Promise<void>;
   get: (id: string) => Promise<{ record: AssetRecord; blob: Blob } | null>;
   delete: (id: string) => Promise<void>;
   list: () => Promise<AssetRecord[]>;
+  // Signed-url adapters. IndexedDB keeps using object URLs and omits this.
+  resolveUrl?: (assetId: string) => Promise<ResolvedAssetUrl>;
 };
 
 const MIB = 1024 * 1024;

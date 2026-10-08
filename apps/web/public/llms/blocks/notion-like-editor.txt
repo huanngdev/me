@@ -30,31 +30,35 @@
 20. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
 21. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
 22. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-image.ts
-24. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
-25. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-26. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-27. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-28. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-29. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-30. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-31. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-32. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-33. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-34. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-35. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-36. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-37. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-38. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-39. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-40. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-41. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-42. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-43. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-44. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-45. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-46. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-47. apps/web/src/app/blocks/notion-like-editor/page.tsx
+23. packages/core/src/components/blocks/notion-like-editor/editor-media.ts
+24. packages/core/src/components/blocks/notion-like-editor/media-element-parts.tsx
+25. packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+26. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+27. packages/core/src/components/blocks/notion-like-editor/editor-video.ts
+28. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
+29. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+30. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+31. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+32. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+33. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+34. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+35. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+36. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+37. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+38. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+39. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+40. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+41. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+42. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+43. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+44. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+45. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+46. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+47. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+48. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+49. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+50. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+51. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -407,6 +411,54 @@ export function checkImageNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path), ...naturalSizeIssues(node, path)];
+
+  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+export const VIDEO_MIN_WIDTH = 160;
+export const VIDEO_MAX_WIDTH = 1600;
+export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/ogg"] as const;
+export const VIDEO_ALIGNS = IMAGE_ALIGNS;
+
+export type VideoMimeType = (typeof VIDEO_MIME_TYPES)[number];
+
+// A sourceless video is an upload that has not finished. It loads as ok.
+// Playback position, paused, muted, and volume are not document fields.
+export function checkVideoNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path), ...naturalSizeIssues(node, path)];
+
+  if ("durationMs" in node && !positivePixel(node.durationMs)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  issues.push(...posterIssues(node, path));
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+function mediaSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   const issues: TableGridIssue[] = [];
   const hasAsset = "assetId" in node;
   const hasUrl = "url" in node;
@@ -437,6 +489,10 @@ export function checkImageNode(
     });
   }
 
+  return issues;
+}
+
+function naturalSizeIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   const hasWidth = "naturalWidth" in node;
   const hasHeight = "naturalHeight" in node;
   if (
@@ -444,21 +500,50 @@ export function checkImageNode(
     (hasWidth && !positivePixel(node.naturalWidth)) ||
     (hasHeight && !positivePixel(node.naturalHeight))
   ) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function posterIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const hasAsset = "posterAssetId" in node;
+  const hasUrl = "posterUrl" in node;
+
+  if (hasAsset && hasUrl) {
     issues.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+      message: `${formatBlockLabel(path)} has both posterAssetId and posterUrl. Restore from a backup or keep one poster.`,
     });
   }
 
-  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+  if (hasAsset && (typeof node.posterAssetId !== "string" || node.posterAssetId.length === 0)) {
     issues.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+      message: `${formatBlockLabel(path)} has an unsupported posterAssetId. Restore from a backup or remove the attribute.`,
     });
   }
 
-  if ("caption" in node) {
-    issues.push(...captionIssues(node.caption, path));
+  if (hasUrl && (typeof node.posterUrl !== "string" || !isSafeImageUrl(node.posterUrl))) {
+    const scheme =
+      typeof node.posterUrl === "string" &&
+      (node.posterUrl.startsWith("blob:") || node.posterUrl.startsWith("data:"))
+        ? node.posterUrl.slice(0, node.posterUrl.indexOf(":") + 1)
+        : undefined;
+    const detail =
+      scheme === undefined
+        ? "an unsupported poster url"
+        : `a poster url that starts with ${scheme}`;
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or replace that file.`,
+    });
   }
 
   return issues;
@@ -539,6 +624,32 @@ export const EDITOR_ELEMENT_RULES = [
     attrRanges: { width: { min: IMAGE_MIN_WIDTH, max: IMAGE_MAX_WIDTH } },
     validateChildren: (node, path) => checkImageNode(node, path),
   },
+  // Plate's video node is BaseVideoPlugin (@platejs/media): key KEYS.video, which is
+  // "video", void, and dangerouslyAllowAttributes width and height. The url field is
+  // the same element url insertImage writes. Caption is Plate's [{ text }] shape,
+  // written by setNodes in @platejs/caption. currentTime, paused, muted, and volume
+  // are playback state and are not attributes.
+  {
+    type: KEYS.video,
+    attrs: [
+      "id",
+      "assetId",
+      "url",
+      "mimeType",
+      "naturalWidth",
+      "naturalHeight",
+      "durationMs",
+      "width",
+      "align",
+      "caption",
+      "posterAssetId",
+      "posterUrl",
+    ],
+    isVoid: true,
+    attrValues: { align: VIDEO_ALIGNS, mimeType: VIDEO_MIME_TYPES },
+    attrRanges: { width: { min: VIDEO_MIN_WIDTH, max: VIDEO_MAX_WIDTH } },
+    validateChildren: (node, path) => checkVideoNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -562,6 +673,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       KEYS.img,
+      KEYS.video,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -1414,9 +1526,10 @@ function walkElement(
     }
 
     const attr = value[key];
-    // An image reports blob and data urls as unsupported below. Other blocks stay invalid.
+    // Image and video report blob and data urls as unsupported below. Other blocks stay invalid.
     if (
       type !== KEYS.img &&
+      type !== KEYS.video &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -1771,6 +1884,13 @@ import {
   pastedImageDroppedUrl,
   queuePastedImageUpload,
 } from "./editor-image";
+import {
+  VIDEO_BOTH_SOURCES,
+  pastedVideoDroppedUrl,
+  pastedVideoPosterRepair,
+  planPastedVideo,
+  queuePastedVideoUpload,
+} from "./editor-video";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -1980,6 +2100,40 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [image];
+}
+
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const plan = planPastedVideo(node);
+  if (plan.kind === "text") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [paragraph([{ text: plan.text }])];
+  }
+
+  if (plan.kind === "drop") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [];
+  }
+
+  if (pastedVideoDroppedUrl(node)) {
+    rememberImageRepair({ path: [], message: VIDEO_BOTH_SOURCES });
+  }
+
+  const posterRepair = pastedVideoPosterRepair(node);
+  if (posterRepair !== undefined) {
+    rememberImageRepair({ path: [], message: posterRepair });
+  }
+
+  const id = takeId(node, seen) ?? nanoid();
+  if (plan.upload) {
+    queuePastedVideoUpload(id, plan.upload);
+  }
+
+  const video = elementNode(KEYS.video, [{ text: "" }], id);
+  for (const [key, value] of Object.entries(plan.props)) {
+    video[key] = value;
+  }
+
+  return [video];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -2502,6 +2656,10 @@ function expandBlock(
       return pastedImage(node, seen);
     }
 
+    if (node.type === KEYS.video) {
+      return pastedVideo(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -2763,7 +2921,7 @@ import {
 import { CalloutPlugin } from "@platejs/callout/react";
 import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { ImagePlugin } from "@platejs/media/react";
+import { ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -2794,6 +2952,7 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { ImageElement } from "./image-element";
+import { VideoElement } from "./video-element";
 import {
   flushPastedImageUploads,
   handleImageDrop,
@@ -2801,6 +2960,9 @@ import {
   imageHtmlDeserializer,
   imageRuntimePlugin,
 } from "./editor-image";
+import { ensureVideoMedia, flushPastedVideoUploads, videoHtmlDeserializer } from "./editor-video";
+
+const videoRuntimePlugin = ensureVideoMedia().plugin;
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -3412,10 +3574,13 @@ function normalizeDisallowedChild(
     }
 
     const childPath = path.concat(index);
-    // A table cell only stores paragraphs. Lifting an image one level would
+    // A table cell only stores paragraphs. Lifting a media void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
-    if (child.type === KEYS.img && (node.type === KEYS.td || node.type === KEYS.th)) {
-      if (moveImageAfterTable(editor, path, childPath)) {
+    if (
+      (child.type === KEYS.img || child.type === KEYS.video) &&
+      (node.type === KEYS.td || node.type === KEYS.th)
+    ) {
+      if (moveMediaAfterTable(editor, path, childPath)) {
         return true;
       }
     }
@@ -4217,15 +4382,35 @@ const imagePlugin = ImagePlugin.configure({
   },
 }));
 
+const videoPlugin = VideoPlugin.configure({
+  node: { isVoid: true },
+  render: { node: VideoElement },
+  parsers: {
+    html: {
+      deserializer: videoHtmlDeserializer,
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
+  transforms: {
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedVideoUploads(editor);
+      }
+    },
+  },
+}));
+
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img],
+      allow: [KEYS.img, KEYS.video],
     },
   },
 });
 
-function moveImageAfterTable(
+function moveMediaAfterTable(
   editor: SlateEditor,
   cellPath: number[],
   childPath: number[],
@@ -4423,8 +4608,10 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listKeyboardPlugin,
     codeBlockPlugin,
     imagePlugin,
+    videoPlugin,
     captionPlugin,
     imageRuntimePlugin,
+    videoRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -8813,11 +9000,10 @@ export function HrElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+## packages/core/src/components/blocks/notion-like-editor/editor-media.ts
 ```ts
 import {
   ElementApi,
-  KEYS,
   PathApi,
   createSlatePlugin,
   nanoid,
@@ -8826,272 +9012,27 @@ import {
   type TRange,
 } from "platejs";
 
-export const imageHtmlDeserializer = {
-  rules: [{ validNodeName: "IMG" }],
-  parse({ element }: { element: HTMLElement }): TElement {
-    const node: TElement = { type: KEYS.img, children: [{ text: "" }] };
-    const src = element.getAttribute("src");
-    if (src !== null && src.length > 0) {
-      node.url = src;
-    }
-
-    const alt = element.getAttribute("alt");
-    if (alt !== null) {
-      node.alt = alt;
-    }
-
-    const caption = figureCaption(element);
-    if (caption !== undefined) {
-      node.caption = [{ text: caption }];
-    }
-
-    return node;
-  },
-};
-
-function figureCaption(element: HTMLElement): string | undefined {
-  const parent = element.parentElement;
-  if (parent === null || parent.tagName !== "FIGURE") {
-    return undefined;
-  }
-
-  for (const child of parent.children) {
-    if (child.tagName !== "FIGCAPTION") {
-      continue;
-    }
-
-    const text = child.textContent?.trim() ?? "";
-    return text.length > 0 ? text : undefined;
-  }
-
-  return undefined;
-}
-
 import { applyUploadToBlock } from "./asset-references";
 import { createUploadController, type UploadController } from "./upload-controller";
-import {
-  directText,
-  isPlainParagraph,
-  runEditorCommand,
-  type EditorCommand,
-} from "./editor-commands";
-import type { AssetProbe, AssetStore, UploadSource, UploadState } from "./editor-assets";
-import {
-  IMAGE_ALT_MAX,
-  IMAGE_ALIGNS,
-  IMAGE_MAX_WIDTH,
-  IMAGE_MIN_WIDTH,
-  isSafeImageUrl,
-  type ImageAlign,
-} from "./editor-document-schema";
+import { directText, isPlainParagraph, type EditorCommand } from "./editor-commands";
+import type {
+  AssetProbe,
+  AssetRecord,
+  AssetStore,
+  UploadSource,
+  UploadState,
+} from "./editor-assets";
+import { isSafeImageUrl } from "./editor-document-schema";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste";
 
-// The slash menu that would also call these commands is DEV-125.
-// This task's picker is the toolbar Replace button and Insert image on an empty image.
-
-export const IMAGE_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
-export const IMAGE_UNSAFE_URL = "An image with an unsafe URL was removed.";
-export const IMAGE_DATA_URL = "An image stored as base64 could not be kept. It was removed.";
-export const IMAGE_BOTH_SOURCES =
-  "An image URL was removed because the image already has an asset.";
-export const IMAGE_UPLOAD_INTERRUPTED = "Upload didn't finish";
-export const IMAGE_NOT_FOUND = "Image not found";
-export const IMAGE_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+// Anything that is not an image or a video stays here until file blocks exist.
+export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
 
 const RESIZE_STEP = 16;
 
-export const imageRuntimePlugin = createSlatePlugin({
-  key: "imageRuntime",
-  options: {
-    revision: 0,
-  },
-});
+export type MediaRole = "source" | "poster";
 
-type ImageRuntime = {
-  store: AssetStore | null;
-  controller: UploadController | null;
-  uploads: Map<string, UploadState>;
-  urls: Map<string, string>;
-  missing: Set<string>;
-  inflight: Set<string>;
-};
-
-type ImagePastePlan =
-  | { kind: "image"; props: Record<string, unknown>; upload?: UploadSource }
-  | { kind: "text"; text: string; repair: string }
-  | { kind: "drop"; repair: string };
-
-type AttachImageRuntimeOptions = {
-  probe?: AssetProbe;
-  createId?: () => string;
-  now?: () => string;
-};
-
-const runtimes = new WeakMap<SlateEditor, ImageRuntime>();
-const pastedUploads: { id: string; file: UploadSource }[] = [];
-
-export function attachImageRuntime(
-  editor: SlateEditor,
-  store: AssetStore | null,
-  options?: AttachImageRuntimeOptions,
-): () => void {
-  detachImageRuntime(editor);
-
-  const runtime: ImageRuntime = {
-    store,
-    controller: null,
-    uploads: new Map(),
-    urls: new Map(),
-    missing: new Set(),
-    inflight: new Set(),
-  };
-
-  if (store) {
-    runtime.controller = createUploadController({
-      store,
-      createId: options?.createId ?? nanoid,
-      now: options?.now ?? (() => new Date().toISOString()),
-      probe: options?.probe ?? probeImageSize,
-      onChange: (state) => {
-        acceptUploadState(editor, runtime, state);
-      },
-    });
-  }
-
-  runtimes.set(editor, runtime);
-  const restoreChange = watchImageRemoval(editor, runtime);
-  // A replaced runtime must re-run image effects. The new map is empty until they do.
-  bumpRuntime(editor);
-
-  return () => {
-    restoreChange();
-    detachImageRuntime(editor);
-  };
-}
-
-export function detachImageRuntime(editor: SlateEditor): void {
-  const runtime = runtimes.get(editor);
-  if (!runtime) {
-    return;
-  }
-
-  runtime.controller?.dispose();
-  for (const url of runtime.urls.values()) {
-    URL.revokeObjectURL(url);
-  }
-  runtime.urls.clear();
-  runtimes.delete(editor);
-}
-
-export async function probeImageSize(
-  blob: Blob,
-): Promise<{ width?: number; height?: number } | undefined> {
-  const create = globalThis.createImageBitmap;
-  if (typeof create !== "function") {
-    return undefined;
-  }
-
-  try {
-    const image = await create(blob);
-    const width = image.width;
-    const height = image.height;
-    image.close();
-    if (!isPositivePixel(width) || !isPositivePixel(height)) {
-      return undefined;
-    }
-
-    return { width, height };
-  } catch {
-    return undefined;
-  }
-}
-
-export function imageUploadState(editor: SlateEditor, blockId: string): UploadState | undefined {
-  const state = runtimes.get(editor)?.uploads.get(blockId);
-  return state ? { ...state } : undefined;
-}
-
-export function cachedAssetUrl(editor: SlateEditor, assetId: string): string | undefined {
-  return runtimes.get(editor)?.urls.get(assetId);
-}
-
-export function assetIsMissing(editor: SlateEditor, assetId: string): boolean {
-  return runtimes.get(editor)?.missing.has(assetId) === true;
-}
-
-// Resolves an asset id to an object URL for this editor. The URL is cached until the editor unmounts.
-export function resolveAssetURL(editor: SlateEditor, assetId: string): string | undefined {
-  const runtime = runtimes.get(editor);
-  if (!runtime) {
-    return undefined;
-  }
-
-  const cached = runtime.urls.get(assetId);
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  if (runtime.missing.has(assetId) || runtime.inflight.has(assetId)) {
-    return undefined;
-  }
-
-  runtime.inflight.add(assetId);
-  void loadAssetUrl(editor, runtime, assetId);
-  return undefined;
-}
-
-export function queuePastedImageUpload(id: string, file: UploadSource): void {
-  pastedUploads.push({ id, file });
-}
-
-export function flushPastedImageUploads(editor: SlateEditor): void {
-  const batch = pastedUploads.splice(0, pastedUploads.length);
-  for (const item of batch) {
-    beginImageUpload(editor, item.id, item.file);
-  }
-}
-
-export function planPastedImage(node: Record<string, unknown>): ImagePastePlan {
-  const alt =
-    typeof node.alt === "string" && node.alt.length <= IMAGE_ALT_MAX ? node.alt : undefined;
-  const assetId =
-    typeof node.assetId === "string" && node.assetId.length > 0 ? node.assetId : undefined;
-  const url = typeof node.url === "string" ? node.url : undefined;
-  const props = optionalImageProps(node, alt);
-
-  if (url !== undefined && isDataImageUrl(url)) {
-    const file = fileFromDataUrl(url);
-    if (!file) {
-      return alt === undefined || alt.length === 0
-        ? { kind: "drop", repair: IMAGE_DATA_URL }
-        : { kind: "text", text: alt, repair: IMAGE_DATA_URL };
-    }
-
-    return { kind: "image", props, upload: file };
-  }
-
-  if (assetId !== undefined && url !== undefined) {
-    return { kind: "image", props: { ...props, assetId }, upload: undefined };
-  }
-
-  if (url !== undefined && !isSafeImageUrl(url)) {
-    return alt === undefined || alt.length === 0
-      ? { kind: "drop", repair: IMAGE_UNSAFE_URL }
-      : { kind: "text", text: alt, repair: IMAGE_UNSAFE_URL };
-  }
-
-  if (assetId !== undefined) {
-    props.assetId = assetId;
-  }
-
-  if (url !== undefined) {
-    props.url = url;
-  }
-
-  return { kind: "image", props };
-}
-
-export type ImageDropEvent = {
+export type MediaDropEvent = {
   clientX: number;
   clientY: number;
   preventDefault: () => void;
@@ -9099,574 +9040,811 @@ export type ImageDropEvent = {
   view: Window | null;
 };
 
-export function handleImageInsertData(
-  editor: SlateEditor,
-  data: DataTransfer,
-  insertData: (data: DataTransfer) => void,
-): boolean {
-  const html = data.getData("text/html");
-  const files = transferFiles(data);
-  const images = files.filter(isImageUpload);
-  const others = files.filter((file) => !isImageUpload(file));
-  const table = html.toLowerCase().includes("<table");
+export type MediaPastePlan =
+  | { kind: "media"; props: Record<string, unknown>; upload?: UploadSource }
+  | { kind: "text"; text: string; repair: string }
+  | { kind: "drop"; repair: string };
 
-  if (images.length > 0 && !table) {
-    runEditorCommand(editor, insertImageFromFiles, images);
-    // This path does not sanitize a fragment, so it replaces any earlier repair list.
-    noteSkippedFiles(editor, others.length > 0, true);
-    return others.length > 0;
-  }
-
-  insertData(data);
-  const skipped = others.length > 0 || (images.length > 0 && table);
-  noteSkippedFiles(editor, skipped, false);
-  return skipped;
-}
-
-export function handleImageDrop(editor: SlateEditor, event: ImageDropEvent): boolean {
-  const data = event.dataTransfer;
-  if (!data) {
-    return false;
-  }
-
-  const files = transferFiles(data);
-  const images = files.filter(isImageUpload);
-  const others = files.filter((file) => !isImageUpload(file));
-  if (images.length === 0 && others.length === 0) {
-    return false;
-  }
-
-  event.preventDefault();
-  if (images.length > 0 && editor.dom.readOnly !== true) {
-    editor.tf.withNewBatch(() => {
-      selectDropPoint(editor, event);
-      insertImageFiles(editor, images, "local");
-    });
-    editor.tf.setSplittingOnce(true);
-  }
-
-  noteSkippedFiles(editor, others.length > 0, true);
-  return others.length > 0;
-}
-
-function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolean): void {
-  if (!skipped) {
-    if (replace) {
-      setPasteRepairs(editor, []);
-    }
-    return;
-  }
-
-  const current = replace ? [] : pasteRepairsOf(editor);
-  setPasteRepairs(editor, [...current, { path: [], message: IMAGE_FILE_SKIPPED }]);
-}
-
-export function beginImageUpload(editor: SlateEditor, blockId: string, file: UploadSource): void {
-  const runtime = runtimes.get(editor);
-  if (!runtime) {
-    return;
-  }
-
-  const current = runtime.uploads.get(blockId);
-  if (
-    current &&
-    runtime.controller &&
-    current.status !== "ready" &&
-    current.status !== "canceled"
-  ) {
-    runtime.controller.cancel(current.uploadId);
-  }
-
-  if (!runtime.controller) {
-    runtime.uploads.set(blockId, {
-      uploadId: nanoid(),
-      blockId,
-      kind: "image",
-      name: file.name,
-      status: "failed",
-      error: IMAGE_STORAGE_UNAVAILABLE,
-    });
-    bumpRuntime(editor);
-    return;
-  }
-
-  runtime.controller.start(file, { blockId, kind: "image" });
-}
-
-export function retryImageUpload(editor: SlateEditor, blockId: string): void {
-  const runtime = runtimes.get(editor);
-  const state = runtime?.uploads.get(blockId);
-  if (!runtime?.controller || !state || editor.dom.readOnly === true) {
-    return;
-  }
-
-  void runtime.controller.retry(state.uploadId);
-}
-
-export const insertImageFromFiles: EditorCommand<readonly UploadSource[]> = {
-  id: "block.insert.image",
-  label: "Image",
-  group: "insert",
-  run: (editor, files) => {
-    if (editor.dom.readOnly === true) {
-      return;
-    }
-
-    insertImageFiles(editor, files, "highest");
-  },
+type MediaMessages = {
+  unsafeUrl: string;
+  bothSources: string;
+  uploadInterrupted: string;
+  notFound: string;
+  storageUnavailable: string;
+  dataUrl?: string;
 };
 
-export const insertImageFromUrl: EditorCommand<string> = {
-  id: "block.insert.image-url",
-  label: "Image from URL",
-  group: "insert",
-  run: (editor, url) => {
-    if (editor.dom.readOnly === true) {
-      return;
-    }
-
-    const trimmed = url.trim();
-    if (!isSafeImageUrl(trimmed)) {
-      return;
-    }
-
-    insertImageFiles(editor, [], "highest", { id: nanoid(), url: trimmed });
-  },
+type ReadyWrite = {
+  props: Record<string, unknown>;
+  unset: readonly string[];
+  // fold: the asset id joins the insert or replace undo.
+  // own: the write is its own undo step.
+  save: "fold" | "own";
 };
 
-export const setImageAlign: EditorCommand<{ id: string; align: ImageAlign | null }> = {
-  id: "block.image.align",
-  label: "Align image",
-  group: "action",
-  run: (editor, payload) => {
-    const entry = writableImage(editor, payload.id);
-    if (!entry) {
-      return;
-    }
-
-    if (payload.align === null) {
-      editor.tf.unsetNodes("align", { at: entry[1] });
-      return;
-    }
-
-    if (!IMAGE_ALIGNS.some((align) => align === payload.align)) {
-      return;
-    }
-
-    editor.tf.setNodes({ align: payload.align }, { at: entry[1] });
-  },
-};
-
-export const setImageAlt: EditorCommand<{ id: string; alt: string | null }> = {
-  id: "block.image.alt",
-  label: "Alt text",
-  group: "action",
-  run: (editor, payload) => {
-    const entry = writableImage(editor, payload.id);
-    if (!entry) {
-      return;
-    }
-
-    if (payload.alt === null) {
-      editor.tf.unsetNodes("alt", { at: entry[1] });
-      return;
-    }
-
-    if (payload.alt.length > IMAGE_ALT_MAX) {
-      return;
-    }
-
-    editor.tf.setNodes({ alt: payload.alt }, { at: entry[1] });
-  },
-};
-
-export const setImageWidth: EditorCommand<{ id: string; width: number | null }> = {
-  id: "block.image.width",
-  label: "Image width",
-  group: "action",
-  run: (editor, payload) => {
-    const entry = writableImage(editor, payload.id);
-    if (!entry) {
-      return;
-    }
-
-    if (payload.width === null) {
-      editor.tf.unsetNodes("width", { at: entry[1] });
-      return;
-    }
-
-    if (!isPositivePixel(payload.width)) {
-      return;
-    }
-
-    editor.tf.setNodes(
-      { width: clampImageWidth(payload.width, IMAGE_MAX_WIDTH) },
-      { at: entry[1] },
-    );
-  },
-};
-
-export const removeImage: EditorCommand<string> = {
-  id: "block.image.remove",
-  label: "Remove image",
-  group: "action",
-  run: (editor, id) => {
-    const entry = writableImage(editor, id);
-    if (!entry) {
-      return;
-    }
-
-    cancelImageUpload(editor, id);
-    editor.tf.removeNodes({ at: entry[1], voids: true });
-  },
-};
-
-export const replaceImageFromFile: EditorCommand<{ id: string; file: UploadSource }> = {
-  id: "block.image.replace",
-  label: "Replace image",
-  group: "action",
-  run: (editor, payload) => {
-    const entry = writableImage(editor, payload.id);
-    if (!entry) {
-      return;
-    }
-
-    cancelImageUpload(editor, payload.id);
-    editor.tf.unsetNodes(["url", "assetId", "naturalWidth", "naturalHeight"], { at: entry[1] });
-    beginImageUpload(editor, payload.id, payload.file);
-  },
-};
-
-export function clampImageWidth(width: number, containerWidth: number): number {
-  const cap = Math.max(IMAGE_MIN_WIDTH, Math.min(IMAGE_MAX_WIDTH, Math.floor(containerWidth)));
-  return Math.min(cap, Math.max(IMAGE_MIN_WIDTH, Math.round(width)));
-}
-
-export function imageResizeStep(): number {
-  return RESIZE_STEP;
-}
-
-function insertImageFiles(
-  editor: SlateEditor,
-  files: readonly UploadSource[],
-  scope: "highest" | "local",
-  single?: Record<string, unknown>,
-): void {
-  if (single) {
-    const id = typeof single.id === "string" ? single.id : nanoid();
-    placeImage(editor, { ...single, id }, scope);
-    return;
-  }
-
-  for (const file of files) {
-    const id = nanoid();
-    placeImage(editor, { id }, scope);
-    beginImageUpload(editor, id, file);
-  }
-}
-
-function placeImage(
-  editor: SlateEditor,
-  props: Record<string, unknown>,
-  scope: "highest" | "local",
-): void {
-  const entry = scope === "highest" ? editor.api.block({ highest: true }) : editor.api.block();
-  if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
-    return;
-  }
-
-  const [node, path] = entry;
-  let imagePath = path;
-  const replace =
-    isPlainParagraph(node) &&
-    directText(node).length === 0 &&
-    (scope === "local" || path.length === 1);
-  if (replace) {
-    const drop = Object.keys(node).filter(
-      (key) => key !== "type" && key !== "children" && key !== "id",
-    );
-    if (drop.length > 0) {
-      editor.tf.unsetNodes(drop, { at: path });
-    }
-    editor.tf.setNodes({ type: KEYS.img, ...props }, { at: path });
-  } else {
-    const at = PathApi.next(path);
-    if (!at) {
-      return;
-    }
-
-    editor.tf.insertNodes(imageElement(props), { at, select: false });
-    imagePath = at;
-  }
-
-  const after = PathApi.next(imagePath);
-  if (!after) {
-    return;
-  }
-
-  const next = editor.api.node(after);
-  const nextNode = next?.[0];
-  if (
-    next &&
-    next[1].length === imagePath.length &&
-    ElementApi.isElement(nextNode) &&
-    isPlainParagraph(nextNode)
-  ) {
-    const start = editor.api.start(after);
-    if (start) {
-      editor.tf.select(start);
-    }
-    return;
-  }
-
-  editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: after, select: true });
-}
-
-function imageElement(props: Record<string, unknown>): TElement {
-  return {
-    type: KEYS.img,
-    children: [{ text: "" }],
-    ...props,
+export type MediaKindSpec = {
+  nodeType: string;
+  assetKind: AssetRecord["kind"];
+  pluginKey: string;
+  mimePrefix: string;
+  minWidth: number;
+  maxWidth: number;
+  aligns: readonly string[];
+  messages: MediaMessages;
+  replaceUnset: readonly string[];
+  commands: {
+    insertFiles: { id: string; label: string };
+    insertUrl: { id: string; label: string };
+    align: { id: string; label: string };
+    width: { id: string; label: string };
+    remove: { id: string; label: string };
+    replace: { id: string; label: string };
   };
-}
+  readProps: (node: Record<string, unknown>) => Record<string, unknown>;
+  fallbackText?: (node: Record<string, unknown>) => string | undefined;
+  dataUrlFile?: (url: string) => UploadSource | undefined;
+  rejectUrl?: (url: string) => string | undefined;
+  onRejectedUrl?: (editor: SlateEditor, url: string, message: string) => void;
+  applyReady: (record: AssetRecord, role: MediaRole) => ReadyWrite;
+  probe?: AssetProbe;
+};
 
-function writableImage(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
-  if (editor.dom.readOnly === true) {
+type CachedAsset = {
+  url: string;
+  objectUrl: boolean;
+  name?: string;
+};
+
+type MediaRuntime = {
+  store: AssetStore | null;
+  controller: UploadController | null;
+  uploads: Map<string, UploadState>;
+  roles: Map<string, MediaRole>;
+  cache: Map<string, CachedAsset>;
+  refreshed: Set<string>;
+  missing: Set<string>;
+  inflight: Set<string>;
+};
+
+type MediaRoute = {
+  mimePrefix: string;
+  insert: (editor: SlateEditor, files: readonly UploadSource[], scope: "highest" | "local") => void;
+};
+
+const routes: MediaRoute[] = [];
+
+export type MediaKind = ReturnType<typeof createMediaKind>;
+
+export function createMediaKind(spec: MediaKindSpec) {
+  const plugin = createSlatePlugin({
+    key: spec.pluginKey,
+    options: { revision: 0 },
+  });
+  const runtimes = new WeakMap<SlateEditor, MediaRuntime>();
+  const pastedUploads: { id: string; file: UploadSource }[] = [];
+
+  function bump(editor: SlateEditor): void {
+    const current = editor.getOption(plugin, "revision");
+    editor.setOption(plugin, "revision", current + 1);
+  }
+
+  function findEntry(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+    for (const [node, path] of editor.api.nodes({
+      at: [],
+      match: (candidate) =>
+        ElementApi.isElement(candidate) && candidate.type === spec.nodeType && candidate.id === id,
+    })) {
+      if (ElementApi.isElement(node)) {
+        return [node, path];
+      }
+    }
+
     return undefined;
   }
 
-  return imageEntry(editor, id);
-}
-
-function imageEntry(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
-  for (const [node, path] of editor.api.nodes({
-    at: [],
-    match: (candidate) =>
-      ElementApi.isElement(candidate) && candidate.type === KEYS.img && candidate.id === id,
-  })) {
-    if (ElementApi.isElement(node)) {
-      return [node, path];
+  function writable(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+    if (editor.dom.readOnly === true) {
+      return undefined;
     }
+
+    return findEntry(editor, id);
   }
 
-  return undefined;
-}
+  function attach(
+    editor: SlateEditor,
+    store: AssetStore | null,
+    options?: { probe?: AssetProbe; createId?: () => string; now?: () => string },
+  ): () => void {
+    detach(editor);
 
-function cancelImageUpload(editor: SlateEditor, blockId: string): void {
-  const runtime = runtimes.get(editor);
-  const state = runtime?.uploads.get(blockId);
-  if (!runtime?.controller || !state || state.status === "ready" || state.status === "canceled") {
-    runtime?.uploads.delete(blockId);
-    return;
+    const runtime: MediaRuntime = {
+      store,
+      controller: null,
+      uploads: new Map(),
+      roles: new Map(),
+      cache: new Map(),
+      refreshed: new Set(),
+      missing: new Set(),
+      inflight: new Set(),
+    };
+
+    if (store) {
+      runtime.controller = createUploadController({
+        store,
+        createId: options?.createId ?? nanoid,
+        now: options?.now ?? (() => new Date().toISOString()),
+        probe: options?.probe ?? spec.probe,
+        onChange: (state) => {
+          acceptUploadState(editor, runtime, state);
+        },
+      });
+    }
+
+    runtimes.set(editor, runtime);
+    const restoreChange = watchRemoval(editor, runtime);
+    // A replaced runtime must re-run media effects. The new map is empty until they do.
+    bump(editor);
+
+    return () => {
+      restoreChange();
+      detach(editor);
+    };
   }
 
-  runtime.controller.cancel(state.uploadId);
-  runtime.uploads.delete(blockId);
-  bumpRuntime(editor);
-}
-
-function acceptUploadState(editor: SlateEditor, runtime: ImageRuntime, state: UploadState): void {
-  if (state.status === "canceled") {
-    runtime.uploads.delete(state.blockId);
-    bumpRuntime(editor);
-    return;
-  }
-
-  runtime.uploads.set(state.blockId, state);
-  bumpRuntime(editor);
-  if (state.status !== "ready" || state.assetId === undefined || !runtime.store) {
-    return;
-  }
-
-  const assetId = state.assetId;
-  const blockId = state.blockId;
-  void runtime.store.get(assetId).then((stored) => {
-    if (!stored || runtimes.get(editor) !== runtime) {
+  function detach(editor: SlateEditor): void {
+    const runtime = runtimes.get(editor);
+    if (!runtime) {
       return;
     }
 
-    const props: Record<string, unknown> = { assetId };
-    if (isPositivePixel(stored.record.width) && isPositivePixel(stored.record.height)) {
-      props.naturalWidth = stored.record.width;
-      props.naturalHeight = stored.record.height;
+    runtime.controller?.dispose();
+    for (const cached of runtime.cache.values()) {
+      if (cached.objectUrl) {
+        URL.revokeObjectURL(cached.url);
+      }
+    }
+    runtime.cache.clear();
+    runtimes.delete(editor);
+  }
+
+  function uploadState(editor: SlateEditor, blockId: string): UploadState | undefined {
+    const state = runtimes.get(editor)?.uploads.get(blockId);
+    return state ? { ...state } : undefined;
+  }
+
+  function uploadRole(editor: SlateEditor, blockId: string): MediaRole | undefined {
+    return runtimes.get(editor)?.roles.get(blockId);
+  }
+
+  function cachedAssetUrl(editor: SlateEditor, assetId: string): string | undefined {
+    return runtimes.get(editor)?.cache.get(assetId)?.url;
+  }
+
+  function assetFileName(editor: SlateEditor, assetId: string): string | undefined {
+    return runtimes.get(editor)?.cache.get(assetId)?.name;
+  }
+
+  function assetIsMissing(editor: SlateEditor, assetId: string): boolean {
+    return runtimes.get(editor)?.missing.has(assetId) === true;
+  }
+
+  function assetIsAdapter(editor: SlateEditor, assetId: string): boolean {
+    const runtime = runtimes.get(editor);
+    if (runtime?.store?.resolveUrl === undefined) {
+      return false;
     }
 
-    const entry = imageEntry(editor, blockId);
-    if (!entry) {
+    const cached = runtime.cache.get(assetId);
+    return cached !== undefined && !cached.objectUrl;
+  }
+
+  function resolveAssetURL(editor: SlateEditor, assetId: string): string | undefined {
+    const runtime = runtimes.get(editor);
+    if (!runtime) {
+      return undefined;
+    }
+
+    const cached = runtime.cache.get(assetId);
+    if (cached !== undefined) {
+      return cached.url;
+    }
+
+    if (runtime.missing.has(assetId) || runtime.inflight.has(assetId)) {
+      return undefined;
+    }
+
+    runtime.inflight.add(assetId);
+    void loadAssetUrl(editor, runtime, assetId);
+    return undefined;
+  }
+
+  function refreshAssetURL(editor: SlateEditor, assetId: string): boolean {
+    const runtime = runtimes.get(editor);
+    const cached = runtime?.cache.get(assetId);
+    if (!runtime || !cached || cached.objectUrl || runtime.refreshed.has(assetId)) {
+      return false;
+    }
+
+    runtime.refreshed.add(assetId);
+    runtime.cache.delete(assetId);
+    runtime.missing.delete(assetId);
+    void loadAssetUrl(editor, runtime, assetId);
+    return true;
+  }
+
+  function queuePastedUpload(id: string, file: UploadSource): void {
+    pastedUploads.push({ id, file });
+  }
+
+  function flushPastedUploads(editor: SlateEditor): void {
+    const batch = pastedUploads.splice(0, pastedUploads.length);
+    for (const item of batch) {
+      beginUpload(editor, item.id, item.file, "source");
+    }
+  }
+
+  function planPasted(node: Record<string, unknown>): MediaPastePlan {
+    const props = spec.readProps(node);
+    const assetId =
+      typeof node.assetId === "string" && node.assetId.length > 0 ? node.assetId : undefined;
+    const url = typeof node.url === "string" ? node.url : undefined;
+    const fallback = spec.fallbackText?.(node);
+
+    if (url !== undefined && spec.dataUrlFile && isDataUrl(url)) {
+      const file = spec.dataUrlFile(url);
+      const repair = spec.messages.dataUrl ?? spec.messages.unsafeUrl;
+      if (!file) {
+        return fallback === undefined
+          ? { kind: "drop", repair }
+          : { kind: "text", text: fallback, repair };
+      }
+
+      return { kind: "media", props, upload: file };
+    }
+
+    if (assetId !== undefined && url !== undefined) {
+      return { kind: "media", props: { ...props, assetId } };
+    }
+
+    if (url !== undefined && spec.rejectUrl) {
+      const message = spec.rejectUrl(url);
+      if (message !== undefined) {
+        return fallback === undefined
+          ? { kind: "drop", repair: message }
+          : { kind: "text", text: fallback, repair: message };
+      }
+    }
+
+    if (url !== undefined && !isSafeImageUrl(url)) {
+      return fallback === undefined
+        ? { kind: "drop", repair: spec.messages.unsafeUrl }
+        : { kind: "text", text: fallback, repair: spec.messages.unsafeUrl };
+    }
+
+    if (assetId !== undefined) {
+      props.assetId = assetId;
+    }
+
+    if (url !== undefined) {
+      props.url = url;
+    }
+
+    return { kind: "media", props };
+  }
+
+  function pastedDroppedUrl(node: Record<string, unknown>): boolean {
+    return (
+      typeof node.assetId === "string" && node.assetId.length > 0 && typeof node.url === "string"
+    );
+  }
+
+  function beginUpload(
+    editor: SlateEditor,
+    blockId: string,
+    file: UploadSource,
+    role: MediaRole,
+  ): void {
+    const runtime = runtimes.get(editor);
+    if (!runtime) {
       return;
     }
 
-    const node = entry[0];
-    if (typeof node.assetId === "string" || typeof node.url === "string") {
+    const current = runtime.uploads.get(blockId);
+    if (
+      current &&
+      runtime.controller &&
+      current.status !== "ready" &&
+      current.status !== "canceled"
+    ) {
+      runtime.controller.cancel(current.uploadId);
+    }
+
+    runtime.roles.set(blockId, role);
+    if (!runtime.controller) {
+      runtime.uploads.set(blockId, {
+        uploadId: nanoid(),
+        blockId,
+        kind: role === "poster" ? "image" : spec.assetKind,
+        name: file.name,
+        status: "failed",
+        error: spec.messages.storageUnavailable,
+      });
+      bump(editor);
       return;
     }
 
-    if (applyUploadToBlock(editor, blockId, props)) {
-      // The write is not its own undo step. Fold it into the insert or replace
-      // so one undo restores the block that was there before the upload.
-      rememberAssetWrite(editor, blockId, props);
-    }
-    bumpRuntime(editor);
-  });
-}
-
-function isSetNodeOperation(value: unknown): value is {
-  type: "set_node";
-  path: number[];
-  properties: Record<string, unknown>;
-  newProperties: Record<string, unknown>;
-} {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("type" in value) ||
-    value.type !== "set_node"
-  ) {
-    return false;
+    runtime.controller.start(file, {
+      blockId,
+      kind: role === "poster" ? "image" : spec.assetKind,
+    });
   }
 
-  if (
-    !("path" in value) ||
-    !Array.isArray(value.path) ||
-    !value.path.every((step) => typeof step === "number")
-  ) {
-    return false;
-  }
-
-  return (
-    "properties" in value &&
-    typeof value.properties === "object" &&
-    value.properties !== null &&
-    "newProperties" in value &&
-    typeof value.newProperties === "object" &&
-    value.newProperties !== null
-  );
-}
-
-// Slate deletes a property on undo when it is in newProperties and absent from properties.
-function rememberAssetWrite(
-  editor: SlateEditor,
-  blockId: string,
-  props: Record<string, unknown>,
-): void {
-  const entry = imageEntry(editor, blockId);
-  const undos: unknown = editor.history.undos;
-  if (!entry || !Array.isArray(undos) || undos.length === 0) {
-    return;
-  }
-
-  const batch: unknown = undos[undos.length - 1];
-  if (
-    typeof batch !== "object" ||
-    batch === null ||
-    !("operations" in batch) ||
-    !Array.isArray(batch.operations)
-  ) {
-    return;
-  }
-
-  for (let index = batch.operations.length - 1; index >= 0; index -= 1) {
-    const operation: unknown = batch.operations[index];
-    if (!isSetNodeOperation(operation) || !PathApi.equals(operation.path, entry[1])) {
-      continue;
-    }
-
-    for (const [key, value] of Object.entries(props)) {
-      operation.newProperties[key] = value;
-    }
-    return;
-  }
-}
-
-function watchImageRemoval(editor: SlateEditor, runtime: ImageRuntime): () => void {
-  const onChange = editor.onChange;
-  if (typeof onChange !== "function") {
-    return () => undefined;
-  }
-
-  const wrapped = (options?: { operation?: unknown }): void => {
-    onChange(options);
-    if (runtimes.get(editor) !== runtime) {
+  function holdUpload(editor: SlateEditor, blockId: string): void {
+    const runtime = runtimes.get(editor);
+    const state = runtime?.uploads.get(blockId);
+    if (
+      !runtime?.controller ||
+      !state ||
+      (state.status !== "pending" && state.status !== "processing")
+    ) {
       return;
     }
 
-    for (const [blockId, state] of runtime.uploads) {
-      if (state.status === "ready" || state.status === "canceled") {
+    runtime.controller.hold(state.uploadId);
+  }
+
+  function retryUpload(editor: SlateEditor, blockId: string): void {
+    const runtime = runtimes.get(editor);
+    const state = runtime?.uploads.get(blockId);
+    if (!runtime?.controller || !state || editor.dom.readOnly === true) {
+      return;
+    }
+
+    void runtime.controller.retry(state.uploadId);
+  }
+
+  function insertFiles(
+    editor: SlateEditor,
+    files: readonly UploadSource[],
+    scope: "highest" | "local",
+  ): void {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    for (const file of files) {
+      const id = nanoid();
+      place(editor, { id }, scope);
+      beginUpload(editor, id, file, "source");
+    }
+  }
+
+  const insertFromFiles: EditorCommand<readonly UploadSource[]> = {
+    id: spec.commands.insertFiles.id,
+    label: spec.commands.insertFiles.label,
+    group: "insert",
+    run: (editor, files) => {
+      insertFiles(editor, files, "highest");
+    },
+  };
+
+  const insertFromUrl: EditorCommand<string> = {
+    id: spec.commands.insertUrl.id,
+    label: spec.commands.insertUrl.label,
+    group: "insert",
+    run: (editor, url) => {
+      if (editor.dom.readOnly === true) {
+        return;
+      }
+
+      const trimmed = url.trim();
+      const rejected = spec.rejectUrl?.(trimmed);
+      if (rejected !== undefined) {
+        spec.onRejectedUrl?.(editor, trimmed, rejected);
+        return;
+      }
+
+      if (!isSafeImageUrl(trimmed)) {
+        return;
+      }
+
+      place(editor, { id: nanoid(), url: trimmed }, "highest");
+    },
+  };
+
+  const setAlign: EditorCommand<{ id: string; align: string | null }> = {
+    id: spec.commands.align.id,
+    label: spec.commands.align.label,
+    group: "action",
+    run: (editor, payload) => {
+      const entry = writable(editor, payload.id);
+      if (!entry) {
+        return;
+      }
+
+      if (payload.align === null) {
+        editor.tf.unsetNodes("align", { at: entry[1] });
+        return;
+      }
+
+      if (!spec.aligns.some((align) => align === payload.align)) {
+        return;
+      }
+
+      editor.tf.setNodes({ align: payload.align }, { at: entry[1] });
+    },
+  };
+
+  const setWidth: EditorCommand<{ id: string; width: number | null }> = {
+    id: spec.commands.width.id,
+    label: spec.commands.width.label,
+    group: "action",
+    run: (editor, payload) => {
+      const entry = writable(editor, payload.id);
+      if (!entry) {
+        return;
+      }
+
+      if (payload.width === null) {
+        editor.tf.unsetNodes("width", { at: entry[1] });
+        return;
+      }
+
+      if (!isPositivePixel(payload.width)) {
+        return;
+      }
+
+      editor.tf.setNodes({ width: clampWidth(payload.width, spec.maxWidth) }, { at: entry[1] });
+    },
+  };
+
+  const remove: EditorCommand<string> = {
+    id: spec.commands.remove.id,
+    label: spec.commands.remove.label,
+    group: "action",
+    run: (editor, id) => {
+      const entry = writable(editor, id);
+      if (!entry) {
+        return;
+      }
+
+      cancelUpload(editor, id);
+      editor.tf.removeNodes({ at: entry[1], voids: true });
+    },
+  };
+
+  const replaceFromFile: EditorCommand<{ id: string; file: UploadSource }> = {
+    id: spec.commands.replace.id,
+    label: spec.commands.replace.label,
+    group: "action",
+    run: (editor, payload) => {
+      const entry = writable(editor, payload.id);
+      if (!entry) {
+        return;
+      }
+
+      cancelUpload(editor, payload.id);
+      editor.tf.unsetNodes([...spec.replaceUnset], { at: entry[1] });
+      beginUpload(editor, payload.id, payload.file, "source");
+    },
+  };
+
+  function clampWidth(width: number, containerWidth: number): number {
+    const cap = Math.max(spec.minWidth, Math.min(spec.maxWidth, Math.floor(containerWidth)));
+    return Math.min(cap, Math.max(spec.minWidth, Math.round(width)));
+  }
+
+  function place(
+    editor: SlateEditor,
+    props: Record<string, unknown>,
+    scope: "highest" | "local",
+  ): void {
+    const entry = scope === "highest" ? editor.api.block({ highest: true }) : editor.api.block();
+    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
+      return;
+    }
+
+    const [node, path] = entry;
+    let mediaPath = path;
+    const replaceEmpty =
+      isPlainParagraph(node) &&
+      directText(node).length === 0 &&
+      (scope === "local" || path.length === 1);
+    if (replaceEmpty) {
+      const drop = Object.keys(node).filter(
+        (key) => key !== "type" && key !== "children" && key !== "id",
+      );
+      if (drop.length > 0) {
+        editor.tf.unsetNodes(drop, { at: path });
+      }
+      editor.tf.setNodes({ type: spec.nodeType, ...props }, { at: path });
+    } else {
+      const at = PathApi.next(path);
+      if (!at) {
+        return;
+      }
+
+      editor.tf.insertNodes(mediaElement(props), { at, select: false });
+      mediaPath = at;
+    }
+
+    const after = PathApi.next(mediaPath);
+    if (!after) {
+      return;
+    }
+
+    const next = editor.api.node(after);
+    const nextNode = next?.[0];
+    if (
+      next &&
+      next[1].length === mediaPath.length &&
+      ElementApi.isElement(nextNode) &&
+      isPlainParagraph(nextNode)
+    ) {
+      const start = editor.api.start(after);
+      if (start) {
+        editor.tf.select(start);
+      }
+      return;
+    }
+
+    editor.tf.insertNodes({ type: "p", children: [{ text: "" }] }, { at: after, select: true });
+  }
+
+  function mediaElement(props: Record<string, unknown>): TElement {
+    return {
+      type: spec.nodeType,
+      children: [{ text: "" }],
+      ...props,
+    };
+  }
+
+  function cancelUpload(editor: SlateEditor, blockId: string): void {
+    const runtime = runtimes.get(editor);
+    const state = runtime?.uploads.get(blockId);
+    if (!runtime?.controller || !state || state.status === "ready" || state.status === "canceled") {
+      runtime?.uploads.delete(blockId);
+      runtime?.roles.delete(blockId);
+      return;
+    }
+
+    runtime.controller.cancel(state.uploadId);
+    runtime.uploads.delete(blockId);
+    runtime.roles.delete(blockId);
+    bump(editor);
+  }
+
+  function acceptUploadState(editor: SlateEditor, runtime: MediaRuntime, state: UploadState): void {
+    if (state.status === "canceled") {
+      runtime.uploads.delete(state.blockId);
+      runtime.roles.delete(state.blockId);
+      bump(editor);
+      return;
+    }
+
+    runtime.uploads.set(state.blockId, state);
+    bump(editor);
+    if (state.status !== "ready" || state.assetId === undefined || !runtime.store) {
+      return;
+    }
+
+    const assetId = state.assetId;
+    const blockId = state.blockId;
+    const role = runtime.roles.get(blockId) ?? "source";
+    void runtime.store.get(assetId).then((stored) => {
+      if (!stored || runtimes.get(editor) !== runtime) {
+        return;
+      }
+
+      const entry = findEntry(editor, blockId);
+      if (!entry) {
+        return;
+      }
+
+      const write = spec.applyReady(stored.record, role);
+      if (write.save === "own") {
+        editor.tf.withNewBatch(() => {
+          editor.tf.setNodes(write.props, { at: entry[1] });
+          if (write.unset.length > 0) {
+            editor.tf.unsetNodes([...write.unset], { at: entry[1] });
+          }
+        });
+        bump(editor);
+        return;
+      }
+
+      const node = entry[0];
+      if (typeof node.assetId === "string" || typeof node.url === "string") {
+        return;
+      }
+
+      if (applyUploadToBlock(editor, blockId, write.props)) {
+        // The write is not its own undo step. Fold it into the insert or replace
+        // so one undo restores the block that was there before the upload.
+        rememberAssetWrite(editor, blockId, write.props);
+      }
+      bump(editor);
+    });
+  }
+
+  function rememberAssetWrite(
+    editor: SlateEditor,
+    blockId: string,
+    props: Record<string, unknown>,
+  ): void {
+    const entry = findEntry(editor, blockId);
+    const undos: unknown = editor.history.undos;
+    if (!entry || !Array.isArray(undos) || undos.length === 0) {
+      return;
+    }
+
+    const batch: unknown = undos[undos.length - 1];
+    if (
+      typeof batch !== "object" ||
+      batch === null ||
+      !("operations" in batch) ||
+      !Array.isArray(batch.operations)
+    ) {
+      return;
+    }
+
+    for (let index = batch.operations.length - 1; index >= 0; index -= 1) {
+      const operation: unknown = batch.operations[index];
+      if (!isSetNodeOperation(operation) || !PathApi.equals(operation.path, entry[1])) {
         continue;
       }
 
-      if (!imageEntry(editor, blockId)) {
-        runtime.controller?.cancel(state.uploadId);
-        runtime.uploads.delete(blockId);
+      for (const [key, value] of Object.entries(props)) {
+        operation.newProperties[key] = value;
+      }
+      return;
+    }
+  }
+
+  function watchRemoval(editor: SlateEditor, runtime: MediaRuntime): () => void {
+    const onChange = editor.onChange;
+    if (typeof onChange !== "function") {
+      return () => undefined;
+    }
+
+    const wrapped = (options?: { operation?: unknown }): void => {
+      onChange(options);
+      if (runtimes.get(editor) !== runtime) {
+        return;
+      }
+
+      for (const [blockId, state] of runtime.uploads) {
+        if (state.status === "ready" || state.status === "canceled") {
+          continue;
+        }
+
+        if (!findEntry(editor, blockId)) {
+          runtime.controller?.cancel(state.uploadId);
+          runtime.uploads.delete(blockId);
+          runtime.roles.delete(blockId);
+        }
+      }
+    };
+
+    editor.onChange = wrapped;
+    return () => {
+      if (editor.onChange === wrapped) {
+        editor.onChange = onChange;
+      }
+    };
+  }
+
+  async function loadAssetUrl(
+    editor: SlateEditor,
+    runtime: MediaRuntime,
+    assetId: string,
+  ): Promise<void> {
+    try {
+      if (!runtime.store) {
+        runtime.missing.add(assetId);
+        return;
+      }
+
+      if (runtime.store.resolveUrl) {
+        const resolved = await runtime.store.resolveUrl(assetId);
+        if (runtimes.get(editor) !== runtime) {
+          return;
+        }
+
+        if (!isResolvedUrl(resolved)) {
+          runtime.missing.add(assetId);
+          return;
+        }
+
+        runtime.cache.set(assetId, { url: resolved.url, objectUrl: false });
+        return;
+      }
+
+      const stored = await runtime.store.get(assetId);
+      if (runtimes.get(editor) !== runtime) {
+        return;
+      }
+
+      if (!stored) {
+        runtime.missing.add(assetId);
+        return;
+      }
+
+      runtime.cache.set(assetId, {
+        url: URL.createObjectURL(stored.blob),
+        objectUrl: true,
+        name: stored.record.name,
+      });
+    } catch {
+      if (runtimes.get(editor) === runtime) {
+        runtime.missing.add(assetId);
+      }
+    } finally {
+      runtime.inflight.delete(assetId);
+      // A load that finishes after a new runtime is attached still has to wake that runtime.
+      if (runtimes.has(editor)) {
+        bump(editor);
       }
     }
-  };
-
-  editor.onChange = wrapped;
-  return () => {
-    if (editor.onChange === wrapped) {
-      editor.onChange = onChange;
-    }
-  };
-}
-
-async function loadAssetUrl(
-  editor: SlateEditor,
-  runtime: ImageRuntime,
-  assetId: string,
-): Promise<void> {
-  try {
-    if (!runtime.store) {
-      runtime.missing.add(assetId);
-      return;
-    }
-
-    const stored = await runtime.store.get(assetId);
-    if (runtimes.get(editor) !== runtime) {
-      return;
-    }
-
-    if (!stored) {
-      runtime.missing.add(assetId);
-      return;
-    }
-
-    runtime.urls.set(assetId, URL.createObjectURL(stored.blob));
-  } catch {
-    if (runtimes.get(editor) === runtime) {
-      runtime.missing.add(assetId);
-    }
-  } finally {
-    runtime.inflight.delete(assetId);
-    // A load that finishes after a new runtime is attached still has to wake that runtime.
-    if (runtimes.has(editor)) {
-      bumpRuntime(editor);
-    }
   }
+
+  const kind = {
+    spec,
+    plugin,
+    attach,
+    detach,
+    uploadState,
+    uploadRole,
+    cachedAssetUrl,
+    assetFileName,
+    assetIsMissing,
+    assetIsAdapter,
+    resolveAssetURL,
+    refreshAssetURL,
+    queuePastedUpload,
+    flushPastedUploads,
+    planPasted,
+    pastedDroppedUrl,
+    beginUpload,
+    holdUpload,
+    retryUpload,
+    insertFiles,
+    insertFromFiles,
+    insertFromUrl,
+    setAlign,
+    setWidth,
+    remove,
+    replaceFromFile,
+    clampWidth,
+    resizeStep: () => RESIZE_STEP,
+    writable,
+    messages: spec.messages,
+    minWidth: spec.minWidth,
+    maxWidth: spec.maxWidth,
+  };
+
+  registerMediaRoute({
+    mimePrefix: spec.mimePrefix,
+    insert: insertFiles,
+  });
+
+  return kind;
 }
 
-function bumpRuntime(editor: SlateEditor): void {
-  const current = editor.getOption(imageRuntimePlugin, "revision");
-  editor.setOption(imageRuntimePlugin, "revision", current + 1);
-}
-
-function optionalImageProps(
+export function readMediaLayoutProps(
   node: Record<string, unknown>,
-  alt: string | undefined,
+  minWidth: number,
+  maxWidth: number,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
-  if (alt !== undefined) {
-    props.alt = alt;
-  }
-
   if (node.align === "left" || node.align === "right") {
     props.align = node.align;
   }
 
   if (
     typeof node.width === "number" &&
-    node.width >= IMAGE_MIN_WIDTH &&
-    node.width <= IMAGE_MAX_WIDTH &&
+    node.width >= minWidth &&
+    node.width <= maxWidth &&
     Number.isInteger(node.width)
   ) {
     props.width = node.width;
@@ -9684,6 +9862,118 @@ function optionalImageProps(
   return props;
 }
 
+export function handleMediaInsertData(
+  editor: SlateEditor,
+  data: DataTransfer,
+  insertData: (data: DataTransfer) => void,
+): boolean {
+  const html = data.getData("text/html");
+  const files = transferFiles(data);
+  const matched = matchFiles(files);
+  const table = html.toLowerCase().includes("<table");
+  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+
+  if (mediaCount > 0 && !table) {
+    if (editor.dom.readOnly !== true) {
+      editor.tf.withNewBatch(() => {
+        for (const group of matched) {
+          group.route.insert(editor, group.files, "highest");
+        }
+      });
+      editor.tf.setSplittingOnce(true);
+    }
+    noteSkippedFiles(editor, files.length > mediaCount, true);
+    return files.length > mediaCount;
+  }
+
+  insertData(data);
+  const skipped = files.length > mediaCount || (mediaCount > 0 && table);
+  noteSkippedFiles(editor, skipped, false);
+  return skipped;
+}
+
+export function handleMediaDrop(editor: SlateEditor, event: MediaDropEvent): boolean {
+  const data = event.dataTransfer;
+  if (!data) {
+    return false;
+  }
+
+  const files = transferFiles(data);
+  if (files.length === 0) {
+    return false;
+  }
+
+  const matched = matchFiles(files);
+  const mediaCount = matched.reduce((sum, group) => sum + group.files.length, 0);
+  event.preventDefault();
+  if (mediaCount > 0 && editor.dom.readOnly !== true) {
+    editor.tf.withNewBatch(() => {
+      selectDropPoint(editor, event);
+      for (const group of matched) {
+        group.route.insert(editor, group.files, "local");
+      }
+    });
+    editor.tf.setSplittingOnce(true);
+  }
+
+  noteSkippedFiles(editor, files.length > mediaCount, true);
+  return files.length > mediaCount;
+}
+
+function registerMediaRoute(route: MediaRoute): void {
+  if (routes.some((item) => item.mimePrefix === route.mimePrefix)) {
+    return;
+  }
+
+  routes.push(route);
+}
+
+function matchFiles(
+  files: readonly UploadSource[],
+): { route: MediaRoute; files: UploadSource[] }[] {
+  const grouped: { route: MediaRoute; files: UploadSource[] }[] = [];
+  for (const file of files) {
+    const type = file.type.toLowerCase();
+    const route = routes.find((item) => type.startsWith(item.mimePrefix));
+    if (!route) {
+      continue;
+    }
+
+    const existing = grouped.find((group) => group.route === route);
+    if (existing) {
+      existing.files.push(file);
+    } else {
+      grouped.push({ route, files: [file] });
+    }
+  }
+
+  return grouped;
+}
+
+function noteSkippedFiles(editor: SlateEditor, skipped: boolean, replace: boolean): void {
+  if (!skipped) {
+    if (replace) {
+      setPasteRepairs(editor, []);
+    }
+    return;
+  }
+
+  const current = replace ? [] : pasteRepairsOf(editor);
+  setPasteRepairs(editor, [...current, { path: [], message: MEDIA_FILE_SKIPPED }]);
+}
+
+function isDataUrl(value: string): boolean {
+  return value.trim().toLowerCase().startsWith("data:");
+}
+
+function isResolvedUrl(value: unknown): value is { url: string; expiresAt?: number } {
+  if (typeof value !== "object" || value === null || !("url" in value)) {
+    return false;
+  }
+
+  return typeof value.url === "string" && isSafeImageUrl(value.url);
+}
+
 function isCaption(value: unknown): boolean {
   if (!Array.isArray(value) || value.length === 0) {
     return false;
@@ -9696,44 +9986,6 @@ function isCaption(value: unknown): boolean {
 
     return typeof item.text === "string" && !("children" in item);
   });
-}
-
-function isDataImageUrl(value: string): boolean {
-  return value.trim().toLowerCase().startsWith("data:");
-}
-
-function fileFromDataUrl(url: string): UploadSource | undefined {
-  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i.exec(url.trim());
-  const mime = match?.[1]?.toLowerCase();
-  const payload = match?.[2];
-  if (!mime || !payload) {
-    return undefined;
-  }
-
-  let binary: string;
-  try {
-    binary = atob(payload.replace(/\s/g, ""));
-  } catch {
-    return undefined;
-  }
-
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index) & 0xff;
-  }
-
-  const extension = mime.slice("image/".length).replace("+xml", "").replace("jpeg", "jpg");
-  const blob = new Blob([bytes], { type: mime });
-  return {
-    name: `pasted.${extension}`,
-    type: mime,
-    size: bytes.byteLength,
-    slice: (start, end) => blob.slice(start, end),
-  };
-}
-
-function isImageUpload(file: UploadSource): boolean {
-  return file.type.toLowerCase().startsWith("image/");
 }
 
 function isUploadSource(value: unknown): value is UploadSource {
@@ -9773,7 +10025,7 @@ function transferFiles(data: DataTransfer): UploadSource[] {
   return files;
 }
 
-function selectDropPoint(editor: SlateEditor, event: ImageDropEvent): void {
+function selectDropPoint(editor: SlateEditor, event: MediaDropEvent): void {
   const view = event.view;
   if (view === null) {
     return;
@@ -9825,34 +10077,51 @@ function isSlateRange(value: unknown): value is TRange {
   return isSlatePoint(value.anchor) && isSlatePoint(value.focus);
 }
 
+function isSetNodeOperation(value: unknown): value is {
+  type: "set_node";
+  path: number[];
+  properties: Record<string, unknown>;
+  newProperties: Record<string, unknown>;
+} {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("type" in value) ||
+    value.type !== "set_node"
+  ) {
+    return false;
+  }
+
+  if (
+    !("path" in value) ||
+    !Array.isArray(value.path) ||
+    !value.path.every((step) => typeof step === "number")
+  ) {
+    return false;
+  }
+
+  return (
+    "properties" in value &&
+    typeof value.properties === "object" &&
+    value.properties !== null &&
+    "newProperties" in value &&
+    typeof value.newProperties === "object" &&
+    value.newProperties !== null
+  );
+}
+
 function isPositivePixel(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 }
-
-// planPastedImage records the both-sources repair at the call site when both keys were present.
-export function pastedImageDroppedUrl(node: Record<string, unknown>): boolean {
-  return (
-    typeof node.assetId === "string" && node.assetId.length > 0 && typeof node.url === "string"
-  );
-}
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/media-element-parts.tsx
 ```tsx
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Caption, CaptionTextarea, showCaption } from "@platejs/caption/react";
-import { AlignCenter, AlignLeft, AlignRight, Captions, ImagePlus, Trash2 } from "lucide-react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { showCaption } from "@platejs/caption/react";
+import { AlignCenter, AlignLeft, AlignRight, Captions } from "lucide-react";
 import type { TElement } from "platejs";
-import {
-  PlateElement,
-  useEditorRef,
-  useElement,
-  useFocused,
-  usePluginOption,
-  useReadOnly,
-  useSelected,
-  type PlateElementProps,
-} from "platejs/react";
+import { useEditorRef, useElement, usePluginOption, useReadOnly } from "platejs/react";
 
 import {
   DropdownMenu,
@@ -9862,12 +10131,847 @@ import {
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+export const MEDIA_TOOLBAR_CLASS =
+  "absolute top-1 right-1 z-10 flex max-w-full flex-wrap gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+export const mediaIconButtonClass =
+  "text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs";
+
+export type MediaAlign = "left" | "right";
+
+type MediaEditor = ReturnType<typeof useEditorRef>;
+
+type RevisionPlugin = Parameters<typeof usePluginOption>[0];
+
+export function keepMediaSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+export function MediaAlignMenu({
+  label,
+  align,
+  onAlign,
+}: {
+  label: string;
+  align: MediaAlign | undefined;
+  onAlign: (editor: MediaEditor, align: MediaAlign | null) => void;
+}) {
+  const editor = useEditorRef();
+  const current = align ?? "center";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={label}
+        onMouseDown={keepMediaSelection}
+        className={mediaIconButtonClass}
+      >
+        <MediaAlignIcon align={current} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <MediaAlignItem align="left" editor={editor} onAlign={onAlign} />
+        <MediaAlignItem align={null} editor={editor} onAlign={onAlign} />
+        <MediaAlignItem align="right" editor={editor} onAlign={onAlign} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function MediaAlignItem({
+  align,
+  editor,
+  onAlign,
+}: {
+  align: MediaAlign | null;
+  editor: MediaEditor;
+  onAlign: (editor: MediaEditor, align: MediaAlign | null) => void;
+}) {
+  const label =
+    align === "left" ? "Align left" : align === "right" ? "Align right" : "Align center";
+  return (
+    <DropdownMenuItem
+      onMouseDown={keepMediaSelection}
+      onSelect={() => {
+        onAlign(editor, align);
+      }}
+    >
+      <MediaAlignIcon align={align ?? "center"} />
+      <span>{label}</span>
+    </DropdownMenuItem>
+  );
+}
+
+function MediaAlignIcon({ align }: { align: MediaAlign | "center" }) {
+  const className = "size-4";
+  if (align === "left") {
+    return <AlignLeft aria-hidden className={className} />;
+  }
+
+  if (align === "right") {
+    return <AlignRight aria-hidden className={className} />;
+  }
+
+  return <AlignCenter aria-hidden className={className} />;
+}
+
+export function MediaCaptionButton() {
+  const editor = useEditorRef();
+  const element = useElement();
+  return (
+    <button
+      type="button"
+      aria-label="Caption"
+      className={mediaIconButtonClass}
+      onMouseDown={keepMediaSelection}
+      onClick={() => {
+        showCaption(editor, element);
+      }}
+    >
+      <Captions aria-hidden className="size-4" />
+    </button>
+  );
+}
+
+export function MediaFileButton({
+  label,
+  accept,
+  icon,
+  onFile,
+}: {
+  label: string;
+  accept: string;
+  icon?: ReactNode;
+  onFile: (editor: MediaEditor, file: File) => void;
+}) {
+  const editor = useEditorRef();
+  const inputId = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={label}
+        className={mediaIconButtonClass}
+        onMouseDown={keepMediaSelection}
+        onClick={() => {
+          inputId.current?.click();
+        }}
+      >
+        {icon}
+        {label}
+      </button>
+      <input
+        ref={inputId}
+        type="file"
+        accept={accept}
+        className="sr-only"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.item(0);
+          event.target.value = "";
+          if (!file) {
+            return;
+          }
+
+          onFile(editor, file);
+        }}
+      />
+    </>
+  );
+}
+
+export function MediaIconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: (editor: MediaEditor) => void;
+  children: ReactNode;
+}) {
+  const editor = useEditorRef();
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className={mediaIconButtonClass}
+      onMouseDown={keepMediaSelection}
+      onClick={() => {
+        onClick(editor);
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MediaNotice({
+  message,
+  retry,
+  onRetry,
+  onRemove,
+  openUrl,
+  download,
+  children,
+}: {
+  message: string;
+  retry: boolean;
+  onRetry?: (editor: MediaEditor) => void;
+  onRemove?: (editor: MediaEditor) => void;
+  openUrl?: string;
+  download?: { href: string; name: string };
+  children?: ReactNode;
+}) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  return (
+    <div className="border-border bg-muted text-foreground flex max-w-full flex-col gap-2 rounded-md border p-3 text-sm">
+      <p className="break-all">{message}</p>
+      {openUrl !== undefined ? (
+        <a href={openUrl} target="_blank" rel="noopener noreferrer" className="underline">
+          Open original
+        </a>
+      ) : null}
+      {download !== undefined ? (
+        <a href={download.href} download={download.name} className="underline">
+          Download
+        </a>
+      ) : null}
+      {readOnly ? null : (
+        <div className="flex flex-wrap gap-2">
+          {retry && onRetry ? (
+            <button
+              type="button"
+              onMouseDown={keepMediaSelection}
+              onClick={() => {
+                onRetry(editor);
+              }}
+            >
+              Retry
+            </button>
+          ) : null}
+          {children}
+          {onRemove ? (
+            <button
+              type="button"
+              onMouseDown={keepMediaSelection}
+              onClick={() => {
+                onRemove(editor);
+              }}
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function MediaSkeleton({
+  marker,
+  ratio,
+}: {
+  marker: "image" | "video";
+  ratio: string | undefined;
+}) {
+  const style = { aspectRatio: ratio };
+  if (marker === "image") {
+    return <div data-image-skeleton="" className="bg-muted absolute inset-0" style={style} />;
+  }
+
+  return <div data-video-skeleton="" className="bg-muted absolute inset-0" style={style} />;
+}
+
+export function MediaResizeHandle({
+  side,
+  frame,
+  storedWidth,
+  previewWidth,
+  setPreviewWidth,
+  minWidth,
+  maxWidth,
+  label,
+  step,
+  clamp,
+  commit,
+}: {
+  side: "left" | "right";
+  frame: { current: HTMLElement | null };
+  storedWidth: number | undefined;
+  previewWidth: number | null;
+  setPreviewWidth: (width: number | null) => void;
+  minWidth: number;
+  maxWidth: number;
+  label: string;
+  step: number;
+  clamp: (width: number, containerWidth: number) => number;
+  commit: (editor: MediaEditor, width: number | null) => void;
+}) {
+  const editor = useEditorRef();
+  const current = previewWidth ?? storedWidth;
+  const max = containerCap(frame.current, maxWidth);
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuemin={minWidth}
+      aria-valuemax={max}
+      aria-valuenow={current ?? max}
+      aria-label={label}
+      tabIndex={0}
+      contentEditable={false}
+      className={cn(
+        "absolute top-0 z-10 h-full w-2 cursor-col-resize",
+        side === "left" ? "left-0" : "right-0",
+      )}
+      onPointerDown={(event) => {
+        startResize(
+          event,
+          side,
+          frame.current,
+          storedWidth,
+          minWidth,
+          maxWidth,
+          clamp,
+          setPreviewWidth,
+          (next) => {
+            commit(editor, next);
+          },
+        );
+      }}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        commit(editor, null);
+      }}
+      onKeyDown={(event) => {
+        const delta = resizeDelta(event.key, step);
+        if (delta === undefined) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const start = measuredWidth(frame.current, storedWidth, minWidth);
+        commit(editor, clamp(start + delta, containerCap(frame.current, maxWidth)));
+      }}
+    />
+  );
+}
+
+export function MediaProgress({ onCancel }: { onCancel: (editor: MediaEditor) => void }) {
+  const editor = useEditorRef();
+  return (
+    <div className="flex max-w-full flex-col gap-2">
+      <div role="progressbar" className="bg-muted h-1 w-full overflow-hidden rounded-full">
+        <div className="bg-foreground/40 h-full w-1/3 animate-pulse" />
+      </div>
+      <button
+        type="button"
+        onMouseDown={keepMediaSelection}
+        onClick={() => {
+          onCancel(editor);
+        }}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+export function useResolvedMedia(
+  assetId: string | undefined,
+  plugin: RevisionPlugin,
+  resolve: (editor: MediaEditor, assetId: string) => void,
+  cachedUrl: (editor: MediaEditor, assetId: string) => string | undefined,
+  isMissing: (editor: MediaEditor, assetId: string) => boolean,
+  isAdapter: (editor: MediaEditor, assetId: string) => boolean,
+): { url?: string; missing: boolean; adapter: boolean } {
+  "use no memo";
+  // This hook is compiled on its own. The same external map has to be read on every revision.
+
+  const editor = useEditorRef();
+  const revision = usePluginOption(plugin, "revision");
+  useEffect(() => {
+    if (assetId !== undefined) {
+      resolve(editor, assetId);
+    }
+  }, [assetId, editor, resolve, revision]);
+
+  if (assetId === undefined) {
+    return { missing: false, adapter: false };
+  }
+
+  return {
+    url: cachedUrl(editor, assetId),
+    missing: isMissing(editor, assetId),
+    adapter: isAdapter(editor, assetId),
+  };
+}
+
+export function useMediaUpload<T>(
+  blockId: string,
+  plugin: RevisionPlugin,
+  read: (editor: MediaEditor, blockId: string) => T,
+): T | undefined {
+  "use no memo";
+  // Upload status is plugin state, not a document change. A memoized read would skip failed and ready.
+
+  const editor = useEditorRef();
+  const revision = usePluginOption(plugin, "revision");
+  void revision;
+  return blockId.length === 0 ? undefined : read(editor, blockId);
+}
+
+export function mediaFrameState(state: {
+  pending: boolean;
+  failed: string | undefined;
+  missing: boolean;
+  failedUrl: boolean;
+  showMedia: boolean;
+  loaded: boolean;
+}): string {
+  if (state.pending || (state.showMedia && !state.loaded)) {
+    return "loading";
+  }
+
+  if (state.failed !== undefined || state.missing || state.failedUrl) {
+    return "error";
+  }
+
+  if (!state.showMedia) {
+    return "empty";
+  }
+
+  return "ready";
+}
+
+export function mediaStringAttr(element: TElement, key: string): string | undefined {
+  const value: unknown = Reflect.get(element, key);
+  return typeof value === "string" ? value : undefined;
+}
+
+export function mediaPixelAttr(element: TElement, key: string): number | undefined {
+  const value: unknown = Reflect.get(element, key);
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
+}
+
+export function mediaAlignAttr(element: TElement): MediaAlign | undefined {
+  const value = mediaStringAttr(element, "align");
+  return value === "left" || value === "right" ? value : undefined;
+}
+
+export function mediaCaptionText(element: TElement): string {
+  const caption: unknown = Reflect.get(element, "caption");
+  if (!Array.isArray(caption)) {
+    return "";
+  }
+
+  const first: unknown = caption[0];
+  if (typeof first !== "object" || first === null || !("text" in first)) {
+    return "";
+  }
+
+  return typeof first.text === "string" ? first.text : "";
+}
+
+export function mediaRatio(
+  width: number | undefined,
+  height: number | undefined,
+): string | undefined {
+  if (width === undefined || height === undefined) {
+    return undefined;
+  }
+
+  return `${String(width)} / ${String(height)}`;
+}
+
+function startResize(
+  event: ReactPointerEvent<HTMLDivElement>,
+  side: "left" | "right",
+  frame: HTMLElement | null,
+  storedWidth: number | undefined,
+  minWidth: number,
+  maxWidth: number,
+  clamp: (width: number, containerWidth: number) => number,
+  setPreviewWidth: (width: number | null) => void,
+  commit: (width: number) => void,
+): void {
+  if (event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  const handle = event.currentTarget;
+  const originX = event.clientX;
+  const initial = measuredWidth(frame, storedWidth, minWidth);
+  const cap = containerCap(frame, maxWidth);
+  let latest = initial;
+  const move = (pointer: PointerEvent): void => {
+    const delta = side === "right" ? pointer.clientX - originX : originX - pointer.clientX;
+    latest = clamp(initial + delta, cap);
+    setPreviewWidth(latest);
+  };
+  const stop = (): void => {
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", stop);
+    handle.removeEventListener("pointercancel", stop);
+    setPreviewWidth(null);
+    if (latest !== initial) {
+      commit(latest);
+    }
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", stop);
+  handle.addEventListener("pointercancel", stop);
+  if (event.isTrusted) {
+    handle.setPointerCapture(event.pointerId);
+  }
+}
+
+function resizeDelta(key: string, step: number): number | undefined {
+  if (key === "ArrowRight" || key === "ArrowUp") {
+    return step;
+  }
+
+  if (key === "ArrowLeft" || key === "ArrowDown") {
+    return -step;
+  }
+
+  return undefined;
+}
+
+function measuredWidth(
+  frame: HTMLElement | null,
+  storedWidth: number | undefined,
+  minWidth: number,
+): number {
+  if (storedWidth !== undefined) {
+    return storedWidth;
+  }
+
+  const measured = frame?.getBoundingClientRect().width ?? minWidth;
+  return measured > 0 ? measured : minWidth;
+}
+
+function containerCap(frame: HTMLElement | null, maxWidth: number): number {
+  const parent = frame?.parentElement?.getBoundingClientRect().width ?? maxWidth;
+  return parent > 0 ? parent : maxWidth;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+```ts
+import { KEYS, type TElement } from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import type { AssetRecord, UploadSource } from "./editor-assets";
+import {
+  IMAGE_ALT_MAX,
+  IMAGE_ALIGNS,
+  IMAGE_MAX_WIDTH,
+  IMAGE_MIN_WIDTH,
+} from "./editor-document-schema";
+import {
+  MEDIA_FILE_SKIPPED,
+  createMediaKind,
+  handleMediaDrop,
+  handleMediaInsertData,
+  readMediaLayoutProps,
+  type MediaDropEvent,
+  type MediaPastePlan,
+} from "./editor-media";
+
+// The slash menu that would also call these commands is DEV-125.
+// This task's picker is the toolbar Replace button and Insert image on an empty image.
+
+export const IMAGE_FILE_SKIPPED = MEDIA_FILE_SKIPPED;
+export const IMAGE_UNSAFE_URL = "An image with an unsafe URL was removed.";
+export const IMAGE_DATA_URL = "An image stored as base64 could not be kept. It was removed.";
+export const IMAGE_BOTH_SOURCES =
+  "An image URL was removed because the image already has an asset.";
+export const IMAGE_UPLOAD_INTERRUPTED = "Upload didn't finish";
+export const IMAGE_NOT_FOUND = "Image not found";
+export const IMAGE_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+
+export const imageHtmlDeserializer = {
+  rules: [{ validNodeName: "IMG" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const node: TElement = { type: KEYS.img, children: [{ text: "" }] };
+    const src = element.getAttribute("src");
+    if (src !== null && src.length > 0) {
+      node.url = src;
+    }
+
+    const alt = element.getAttribute("alt");
+    if (alt !== null) {
+      node.alt = alt;
+    }
+
+    const caption = figureCaption(element);
+    if (caption !== undefined) {
+      node.caption = [{ text: caption }];
+    }
+
+    return node;
+  },
+};
+
+function figureCaption(element: HTMLElement): string | undefined {
+  const parent = element.parentElement;
+  if (parent === null || parent.tagName !== "FIGURE") {
+    return undefined;
+  }
+
+  for (const child of parent.children) {
+    if (child.tagName !== "FIGCAPTION") {
+      continue;
+    }
+
+    const text = child.textContent?.trim() ?? "";
+    return text.length > 0 ? text : undefined;
+  }
+
+  return undefined;
+}
+
+function readImageProps(node: Record<string, unknown>): Record<string, unknown> {
+  const props = readMediaLayoutProps(node, IMAGE_MIN_WIDTH, IMAGE_MAX_WIDTH);
+  if (typeof node.alt === "string" && node.alt.length <= IMAGE_ALT_MAX) {
+    props.alt = node.alt;
+  }
+
+  return props;
+}
+
+function imageFallback(node: Record<string, unknown>): string | undefined {
+  const alt =
+    typeof node.alt === "string" && node.alt.length <= IMAGE_ALT_MAX ? node.alt : undefined;
+  if (alt === undefined || alt.length === 0) {
+    return undefined;
+  }
+
+  return alt;
+}
+
+function imageReady(record: AssetRecord) {
+  const props: Record<string, unknown> = { assetId: record.id };
+  if (isPositivePixel(record.width) && isPositivePixel(record.height)) {
+    props.naturalWidth = record.width;
+    props.naturalHeight = record.height;
+  }
+
+  return { props, unset: [], save: "fold" as const };
+}
+
+export const imageMedia = createMediaKind({
+  nodeType: KEYS.img,
+  assetKind: "image",
+  pluginKey: "imageRuntime",
+  mimePrefix: "image/",
+  minWidth: IMAGE_MIN_WIDTH,
+  maxWidth: IMAGE_MAX_WIDTH,
+  aligns: IMAGE_ALIGNS,
+  messages: {
+    unsafeUrl: IMAGE_UNSAFE_URL,
+    bothSources: IMAGE_BOTH_SOURCES,
+    uploadInterrupted: IMAGE_UPLOAD_INTERRUPTED,
+    notFound: IMAGE_NOT_FOUND,
+    storageUnavailable: IMAGE_STORAGE_UNAVAILABLE,
+    dataUrl: IMAGE_DATA_URL,
+  },
+  replaceUnset: ["url", "assetId", "naturalWidth", "naturalHeight"],
+  commands: {
+    insertFiles: { id: "block.insert.image", label: "Image" },
+    insertUrl: { id: "block.insert.image-url", label: "Image from URL" },
+    align: { id: "block.image.align", label: "Align image" },
+    width: { id: "block.image.width", label: "Image width" },
+    remove: { id: "block.image.remove", label: "Remove image" },
+    replace: { id: "block.image.replace", label: "Replace image" },
+  },
+  readProps: readImageProps,
+  fallbackText: imageFallback,
+  dataUrlFile: fileFromDataUrl,
+  applyReady: imageReady,
+  probe: probeImageSize,
+});
+
+export const imageRuntimePlugin = imageMedia.plugin;
+export const attachImageRuntime = imageMedia.attach;
+export const detachImageRuntime = imageMedia.detach;
+export const imageUploadState = imageMedia.uploadState;
+export const cachedAssetUrl = imageMedia.cachedAssetUrl;
+export const assetIsMissing = imageMedia.assetIsMissing;
+export const resolveAssetURL = imageMedia.resolveAssetURL;
+export const refreshImageURL = imageMedia.refreshAssetURL;
+export const assetIsAdapter = imageMedia.assetIsAdapter;
+export const queuePastedImageUpload = imageMedia.queuePastedUpload;
+export const flushPastedImageUploads = imageMedia.flushPastedUploads;
+export const beginImageUpload = (
+  editor: Parameters<typeof imageMedia.beginUpload>[0],
+  blockId: string,
+  file: UploadSource,
+) => {
+  imageMedia.beginUpload(editor, blockId, file, "source");
+};
+export const retryImageUpload = imageMedia.retryUpload;
+export const insertImageFromFiles = imageMedia.insertFromFiles;
+export const insertImageFromUrl = imageMedia.insertFromUrl;
+export const setImageAlign = imageMedia.setAlign;
+export const setImageWidth = imageMedia.setWidth;
+export const removeImage = imageMedia.remove;
+export const replaceImageFromFile = imageMedia.replaceFromFile;
+
+export type ImageDropEvent = MediaDropEvent;
+
+export function handleImageInsertData(
+  editor: Parameters<typeof handleMediaInsertData>[0],
+  data: DataTransfer,
+  insertData: (data: DataTransfer) => void,
+): boolean {
+  return handleMediaInsertData(editor, data, insertData);
+}
+
+export function handleImageDrop(
+  editor: Parameters<typeof handleImageInsertData>[0],
+  event: ImageDropEvent,
+): boolean {
+  return handleMediaDrop(editor, event);
+}
+
+export function clampImageWidth(width: number, containerWidth: number): number {
+  return imageMedia.clampWidth(width, containerWidth);
+}
+
+export function imageResizeStep(): number {
+  return imageMedia.resizeStep();
+}
+
+export function planPastedImage(node: Record<string, unknown>): ImagePastePlan {
+  const plan = imageMedia.planPasted(node);
+  if (plan.kind === "media") {
+    return { kind: "image", props: plan.props, upload: plan.upload };
+  }
+
+  return plan;
+}
+
+export type ImagePastePlan =
+  | { kind: "image"; props: Record<string, unknown>; upload?: UploadSource }
+  | Exclude<MediaPastePlan, { kind: "media" }>;
+
+// planPastedImage records the both-sources repair at the call site when both keys were present.
+export function pastedImageDroppedUrl(node: Record<string, unknown>): boolean {
+  return imageMedia.pastedDroppedUrl(node);
+}
+
+export const setImageAlt: EditorCommand<{ id: string; alt: string | null }> = {
+  id: "block.image.alt",
+  label: "Alt text",
+  group: "action",
+  run: (editor, payload) => {
+    const entry = imageMedia.writable(editor, payload.id);
+    if (!entry) {
+      return;
+    }
+
+    if (payload.alt === null) {
+      editor.tf.unsetNodes("alt", { at: entry[1] });
+      return;
+    }
+
+    if (payload.alt.length > IMAGE_ALT_MAX) {
+      return;
+    }
+
+    editor.tf.setNodes({ alt: payload.alt }, { at: entry[1] });
+  },
+};
+
+export async function probeImageSize(
+  blob: Blob,
+): Promise<{ width?: number; height?: number } | undefined> {
+  const create = globalThis.createImageBitmap;
+  if (typeof create !== "function") {
+    return undefined;
+  }
+
+  try {
+    const image = await create(blob);
+    const width = image.width;
+    const height = image.height;
+    image.close();
+    if (!isPositivePixel(width) || !isPositivePixel(height)) {
+      return undefined;
+    }
+
+    return { width, height };
+  } catch {
+    return undefined;
+  }
+}
+
+function fileFromDataUrl(url: string): UploadSource | undefined {
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i.exec(url.trim());
+  const mime = match?.[1]?.toLowerCase();
+  const payload = match?.[2];
+  if (!mime || !payload) {
+    return undefined;
+  }
+
+  let binary: string;
+  try {
+    binary = atob(payload.replace(/\s/g, ""));
+  } catch {
+    return undefined;
+  }
+
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index) & 0xff;
+  }
+
+  const extension = mime.slice("image/".length).replace("+xml", "").replace("jpeg", "jpg");
+  const blob = new Blob([bytes], { type: mime });
+  return {
+    name: `pasted.${extension}`,
+    type: mime,
+    size: bytes.byteLength,
+    slice: (start, end) => blob.slice(start, end),
+  };
+}
+
+function isPositivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Caption, CaptionTextarea } from "@platejs/caption/react";
+import { ImagePlus, Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
 import type { AssetStore } from "./editor-assets";
 import { runEditorCommand } from "./editor-commands";
 import { IMAGE_MAX_WIDTH, IMAGE_MIN_WIDTH, type ImageAlign } from "./editor-document-schema";
 import {
   IMAGE_NOT_FOUND,
   IMAGE_UPLOAD_INTERRUPTED,
+  assetIsAdapter,
   assetIsMissing,
   attachImageRuntime,
   beginImageUpload,
@@ -9876,6 +10980,7 @@ import {
   imageResizeStep,
   imageRuntimePlugin,
   imageUploadState,
+  refreshImageURL,
   removeImage,
   replaceImageFromFile,
   resolveAssetURL,
@@ -9885,9 +10990,24 @@ import {
   setImageWidth,
 } from "./editor-image";
 import { hrElementClassName } from "./hr-element";
-
-const TOOLBAR_CLASS =
-  "absolute top-1 right-1 z-10 flex max-w-full flex-wrap gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaAlignMenu,
+  MediaCaptionButton,
+  MediaFileButton,
+  MediaIconButton,
+  MediaNotice,
+  MediaResizeHandle,
+  MediaSkeleton,
+  mediaAlignAttr,
+  mediaCaptionText,
+  mediaFrameState,
+  mediaPixelAttr,
+  mediaRatio,
+  mediaStringAttr,
+  useMediaUpload,
+  useResolvedMedia,
+} from "./media-element-parts";
 
 export function ImageRuntime({ store }: { store: AssetStore | null }) {
   const editor = useEditorRef();
@@ -9899,20 +11019,28 @@ export function ImageElement(props: PlateElementProps) {
   "use no memo";
   // Asset URLs and upload progress live outside React. Memoizing the first read kept the skeleton up.
 
+  const editor = useEditorRef();
   const element = useElement();
   const readOnly = useReadOnly();
   const selected = useSelected();
   const focused = useFocused();
   const id = typeof element.id === "string" ? element.id : "";
-  const assetId = stringAttr(element, "assetId");
-  const url = stringAttr(element, "url");
-  const alt = stringAttr(element, "alt") ?? "";
-  const align = alignAttr(element);
-  const naturalWidth = pixelAttr(element, "naturalWidth");
-  const naturalHeight = pixelAttr(element, "naturalHeight");
-  const storedWidth = pixelAttr(element, "width");
-  const asset = useResolvedAsset(assetId);
-  const upload = useImageUpload(id);
+  const assetId = mediaStringAttr(element, "assetId");
+  const url = mediaStringAttr(element, "url");
+  const alt = mediaStringAttr(element, "alt") ?? "";
+  const align = mediaAlignAttr(element);
+  const naturalWidth = mediaPixelAttr(element, "naturalWidth");
+  const naturalHeight = mediaPixelAttr(element, "naturalHeight");
+  const storedWidth = mediaPixelAttr(element, "width");
+  const asset = useResolvedMedia(
+    assetId,
+    imageRuntimePlugin,
+    resolveAssetURL,
+    cachedAssetUrl,
+    assetIsMissing,
+    assetIsAdapter,
+  );
+  const upload = useMediaUpload(id, imageRuntimePlugin, imageUploadState);
   const [failedUrl, setFailedUrl] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const frame = useRef<HTMLElement>(null);
@@ -9931,10 +11059,8 @@ export function ImageElement(props: PlateElementProps) {
   const showImage = displayUrl !== undefined && !missing && !failedUrl && failed === undefined;
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? storedWidth;
-  const ratio =
-    naturalWidth !== undefined && naturalHeight !== undefined
-      ? `${String(naturalWidth)} / ${String(naturalHeight)}`
-      : undefined;
+  const ratio = mediaRatio(naturalWidth, naturalHeight);
+  const adapterFallback = failedUrl && url === undefined && asset.adapter;
 
   return (
     <PlateElement
@@ -9944,12 +11070,12 @@ export function ImageElement(props: PlateElementProps) {
       <figure
         ref={frame}
         contentEditable={false}
-        data-image-state={imageState({
+        data-image-state={mediaFrameState({
           pending,
           failed,
           missing,
           failedUrl,
-          showImage,
+          showMedia: showImage,
           loaded,
         })}
         className={cn(
@@ -9980,12 +11106,18 @@ export function ImageElement(props: PlateElementProps) {
               setLoaded(true);
             }}
             onError={() => {
+              if (assetId !== undefined && refreshImageURL(editor, assetId)) {
+                setFailedUrl(false);
+                setLoaded(false);
+                return;
+              }
+
               setFailedUrl(true);
             }}
           />
         ) : null}
-        {showImage && !loaded ? <Skeleton ratio={ratio} /> : null}
-        {pending ? <Skeleton ratio={ratio} /> : null}
+        {showImage && !loaded ? <MediaSkeleton marker="image" ratio={ratio} /> : null}
+        {pending ? <MediaSkeleton marker="image" ratio={ratio} /> : null}
         {failed !== undefined ? (
           <ImageNotice
             id={id}
@@ -9999,6 +11131,15 @@ export function ImageElement(props: PlateElementProps) {
         ) : null}
         {failedUrl && url !== undefined ? (
           <ImageNotice id={id} message={url} retry={false} insert={false} openUrl={url} />
+        ) : null}
+        {adapterFallback && displayUrl !== undefined ? (
+          <ImageNotice
+            id={id}
+            message={displayUrl}
+            retry={false}
+            insert={false}
+            openUrl={displayUrl}
+          />
         ) : null}
         {!showImage && !pending && failed === undefined && !missing && !failedUrl ? (
           <ImageNotice
@@ -10019,7 +11160,7 @@ export function ImageElement(props: PlateElementProps) {
             setDragWidth={setDragWidth}
           />
         ) : null}
-        {showImage || captionText(element).length > 0 ? (
+        {showImage || mediaCaptionText(element).length > 0 ? (
           <Caption>
             <CaptionTextarea placeholder="Write a caption…" />
           </Caption>
@@ -10051,92 +11192,62 @@ function ImageToolbar({
 
   return (
     <>
-      <div className={cn(TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
-        <AlignMenu id={id} align={align} />
+      <div className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
+        <MediaAlignMenu
+          label="Align image"
+          align={align}
+          onAlign={(editor, next) => {
+            runEditorCommand(editor, setImageAlign, { id, align: next });
+          }}
+        />
         <AltTextControl id={id} alt={alt} />
-        <CaptionButton />
-        <FileButton id={id} label="Replace" mode="replace" />
-        <IconButton label="Remove" onClick={(editor) => runEditorCommand(editor, removeImage, id)}>
+        <MediaCaptionButton />
+        <MediaFileButton
+          label="Replace"
+          accept="image/*"
+          onFile={(editor, file) => {
+            runEditorCommand(editor, replaceImageFromFile, { id, file });
+          }}
+        />
+        <MediaIconButton
+          label="Remove"
+          onClick={(editor) => runEditorCommand(editor, removeImage, id)}
+        >
           <Trash2 aria-hidden className="size-4" />
-        </IconButton>
+        </MediaIconButton>
       </div>
-      <ResizeHandle
+      <MediaResizeHandle
         side="left"
-        id={id}
         frame={frame}
         storedWidth={storedWidth}
         previewWidth={dragWidth}
         setPreviewWidth={setDragWidth}
+        minWidth={IMAGE_MIN_WIDTH}
+        maxWidth={IMAGE_MAX_WIDTH}
+        label="Resize image from the left"
+        step={imageResizeStep()}
+        clamp={clampImageWidth}
+        commit={(editor, width) => {
+          runEditorCommand(editor, setImageWidth, { id, width });
+        }}
       />
-      <ResizeHandle
+      <MediaResizeHandle
         side="right"
-        id={id}
         frame={frame}
         storedWidth={storedWidth}
         previewWidth={dragWidth}
         setPreviewWidth={setDragWidth}
+        minWidth={IMAGE_MIN_WIDTH}
+        maxWidth={IMAGE_MAX_WIDTH}
+        label="Resize image from the right"
+        step={imageResizeStep()}
+        clamp={clampImageWidth}
+        commit={(editor, width) => {
+          runEditorCommand(editor, setImageWidth, { id, width });
+        }}
       />
     </>
   );
-}
-
-function AlignMenu({ id, align }: { id: string; align: ImageAlign | undefined }) {
-  const editor = useEditorRef();
-  const current = align ?? "center";
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Align image"
-        onMouseDown={keepEditorSelection}
-        className={iconButtonClass}
-      >
-        <AlignIcon align={current} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <AlignItem id={id} align="left" editor={editor} />
-        <AlignItem id={id} align={null} editor={editor} />
-        <AlignItem id={id} align="right" editor={editor} />
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function AlignItem({
-  id,
-  align,
-  editor,
-}: {
-  id: string;
-  align: ImageAlign | null;
-  editor: ReturnType<typeof useEditorRef>;
-}) {
-  const label =
-    align === "left" ? "Align left" : align === "right" ? "Align right" : "Align center";
-  return (
-    <DropdownMenuItem
-      onMouseDown={keepEditorSelection}
-      onSelect={() => {
-        runEditorCommand(editor, setImageAlign, { id, align });
-      }}
-    >
-      <AlignIcon align={align ?? "center"} />
-      <span>{label}</span>
-    </DropdownMenuItem>
-  );
-}
-
-function AlignIcon({ align }: { align: ImageAlign | "center" }) {
-  const className = "size-4";
-  if (align === "left") {
-    return <AlignLeft aria-hidden className={className} />;
-  }
-
-  if (align === "right") {
-    return <AlignRight aria-hidden className={className} />;
-  }
-
-  return <AlignCenter aria-hidden className={className} />;
 }
 
 function AltTextControl({ id, alt }: { id: string; alt: string }) {
@@ -10147,8 +11258,10 @@ function AltTextControl({ id, alt }: { id: string; alt: string }) {
     return (
       <button
         type="button"
-        className={iconButtonClass}
-        onMouseDown={keepEditorSelection}
+        className="text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={() => {
           setDraft(alt);
           setOpen(true);
@@ -10187,99 +11300,6 @@ function AltTextControl({ id, alt }: { id: string; alt: string }) {
   );
 }
 
-function CaptionButton() {
-  const editor = useEditorRef();
-  const element = useElement();
-  return (
-    <button
-      type="button"
-      aria-label="Caption"
-      className={iconButtonClass}
-      onMouseDown={keepEditorSelection}
-      onClick={() => {
-        showCaption(editor, element);
-      }}
-    >
-      <Captions aria-hidden className="size-4" />
-    </button>
-  );
-}
-
-function FileButton({
-  id,
-  label,
-  mode,
-}: {
-  id: string;
-  label: string;
-  mode: "replace" | "insert";
-}) {
-  const editor = useEditorRef();
-  const input = useRef<HTMLInputElement>(null);
-  return (
-    <>
-      <button
-        type="button"
-        aria-label={label}
-        className={iconButtonClass}
-        onMouseDown={keepEditorSelection}
-        onClick={() => {
-          input.current?.click();
-        }}
-      >
-        {mode === "insert" ? <ImagePlus aria-hidden className="size-4" /> : null}
-        {label}
-      </button>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        tabIndex={-1}
-        onChange={(event) => {
-          const file = event.target.files?.item(0);
-          event.target.value = "";
-          if (!file) {
-            return;
-          }
-
-          if (mode === "replace") {
-            runEditorCommand(editor, replaceImageFromFile, { id, file });
-            return;
-          }
-
-          beginImageUpload(editor, id, file);
-        }}
-      />
-    </>
-  );
-}
-
-function IconButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: (editor: ReturnType<typeof useEditorRef>) => void;
-  children: React.ReactNode;
-}) {
-  const editor = useEditorRef();
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className={iconButtonClass}
-      onMouseDown={keepEditorSelection}
-      onClick={() => {
-        onClick(editor);
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 function ImageNotice({
   id,
   message,
@@ -10293,269 +11313,964 @@ function ImageNotice({
   insert: boolean;
   openUrl?: string;
 }) {
-  const editor = useEditorRef();
-  const readOnly = useReadOnly();
   return (
-    <div className="border-border bg-muted text-foreground flex max-w-full flex-col gap-2 rounded-md border p-3 text-sm">
-      <p className="break-all">{message}</p>
-      {openUrl !== undefined ? (
-        <a href={openUrl} target="_blank" rel="noopener noreferrer" className="underline">
-          Open original
-        </a>
+    <MediaNotice
+      message={message}
+      retry={retry}
+      openUrl={openUrl}
+      onRetry={(editor) => {
+        retryImageUpload(editor, id);
+      }}
+      onRemove={(editor) => {
+        runEditorCommand(editor, removeImage, id);
+      }}
+    >
+      {insert ? (
+        <MediaFileButton
+          label="Insert image"
+          accept="image/*"
+          icon={<ImagePlus aria-hidden className="size-4" />}
+          onFile={(editor, file) => {
+            beginImageUpload(editor, id, file);
+          }}
+        />
       ) : null}
-      {readOnly ? null : (
-        <div className="flex flex-wrap gap-2">
-          {retry ? (
-            <button
-              type="button"
-              onMouseDown={keepEditorSelection}
-              onClick={() => {
-                retryImageUpload(editor, id);
-              }}
-            >
-              Retry
-            </button>
-          ) : null}
-          {insert ? <FileButton id={id} label="Insert image" mode="insert" /> : null}
-          <button
-            type="button"
-            onMouseDown={keepEditorSelection}
-            onClick={() => {
-              runEditorCommand(editor, removeImage, id);
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      )}
-    </div>
+    </MediaNotice>
   );
 }
+```
 
-function Skeleton({ ratio }: { ratio: string | undefined }) {
-  return (
-    <div
-      data-image-skeleton=""
-      className="bg-muted absolute inset-0"
-      style={{ aspectRatio: ratio }}
-    />
-  );
-}
+## packages/core/src/components/blocks/notion-like-editor/editor-video.ts
+```ts
+import { KEYS, type TElement } from "platejs";
 
-function ResizeHandle({
-  side,
-  id,
-  frame,
-  storedWidth,
-  previewWidth,
-  setPreviewWidth,
-}: {
-  side: "left" | "right";
-  id: string;
-  frame: { current: HTMLElement | null };
-  storedWidth: number | undefined;
-  previewWidth: number | null;
-  setPreviewWidth: (width: number | null) => void;
-}) {
-  const editor = useEditorRef();
-  const current = previewWidth ?? storedWidth;
-  const max = containerCap(frame.current);
+import type { EditorCommand } from "./editor-commands";
+import type { AssetKind, AssetRecord, UploadSource } from "./editor-assets";
+import {
+  isSafeImageUrl,
+  VIDEO_ALIGNS,
+  VIDEO_MAX_WIDTH,
+  VIDEO_MIME_TYPES,
+  VIDEO_MIN_WIDTH,
+} from "./editor-document-schema";
+import { setPasteRepairs } from "./editor-paste";
+import { probeImageSize } from "./editor-image";
+import {
+  createMediaKind,
+  readMediaLayoutProps,
+  type MediaKind,
+  type MediaPastePlan,
+  type MediaRole,
+} from "./editor-media";
 
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-valuemin={IMAGE_MIN_WIDTH}
-      aria-valuemax={max}
-      aria-valuenow={current ?? max}
-      aria-label={side === "left" ? "Resize image from the left" : "Resize image from the right"}
-      tabIndex={0}
-      contentEditable={false}
-      className={cn(
-        "absolute top-0 z-10 h-full w-2 cursor-col-resize",
-        side === "left" ? "left-0" : "right-0",
-      )}
-      onPointerDown={(event) => {
-        startResize(event, side, frame.current, storedWidth, setPreviewWidth, (next) => {
-          runEditorCommand(editor, setImageWidth, { id, width: next });
-        });
-      }}
-      onDoubleClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        runEditorCommand(editor, setImageWidth, { id, width: null });
-      }}
-      onKeyDown={(event) => {
-        const delta = resizeDelta(event.key);
-        if (delta === undefined) {
-          return;
-        }
+export const VIDEO_UNSAFE_URL = "A video with an unsafe URL was removed.";
+export const VIDEO_BOTH_SOURCES = "A video URL was removed because the video already has an asset.";
+export const VIDEO_UPLOAD_INTERRUPTED = "Upload didn't finish";
+export const VIDEO_NOT_FOUND = "Video not found";
+export const VIDEO_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+export const VIDEO_EMBED_REJECTED = "YouTube and Vimeo embeds are a separate block.";
+export const VIDEO_CANT_PLAY = "This video can't play in this browser";
+export const VIDEO_POSTER_BOTH =
+  "A poster URL was removed because the poster already has an asset.";
+export const VIDEO_POSTER_UNSAFE = "A poster with an unsafe URL was removed.";
 
-        event.preventDefault();
-        event.stopPropagation();
-        const start = measuredWidth(frame.current, storedWidth);
-        runEditorCommand(editor, setImageWidth, {
-          id,
-          width: clampImageWidth(start + delta, containerCap(frame.current)),
-        });
-      }}
-    />
-  );
-}
+const PROBE_TIMEOUT_MS = 1000;
 
-function startResize(
-  event: ReactPointerEvent<HTMLDivElement>,
-  side: "left" | "right",
-  frame: HTMLElement | null,
-  storedWidth: number | undefined,
-  setPreviewWidth: (width: number | null) => void,
-  commit: (width: number) => void,
-): void {
-  if (event.button !== 0) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-  const handle = event.currentTarget;
-  const originX = event.clientX;
-  const initial = measuredWidth(frame, storedWidth);
-  const cap = containerCap(frame);
-  let latest = initial;
-  const move = (pointer: PointerEvent): void => {
-    const delta = side === "right" ? pointer.clientX - originX : originX - pointer.clientX;
-    latest = clampImageWidth(initial + delta, cap);
-    setPreviewWidth(latest);
-  };
-  const stop = (): void => {
-    handle.removeEventListener("pointermove", move);
-    handle.removeEventListener("pointerup", stop);
-    handle.removeEventListener("pointercancel", stop);
-    setPreviewWidth(null);
-    if (latest !== initial) {
-      commit(latest);
+export const videoHtmlDeserializer = {
+  rules: [{ validNodeName: "VIDEO" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const node: TElement = { type: KEYS.video, children: [{ text: "" }] };
+    const src = element.getAttribute("src") ?? nestedSourceAttr(element, "src");
+    if (src !== null && src.length > 0) {
+      node.url = src;
     }
-  };
-  handle.addEventListener("pointermove", move);
-  handle.addEventListener("pointerup", stop);
-  handle.addEventListener("pointercancel", stop);
-  if (event.isTrusted) {
-    handle.setPointerCapture(event.pointerId);
+
+    const mime = element.getAttribute("type") ?? nestedSourceAttr(element, "type");
+    if (mime !== null && isVideoMime(mime)) {
+      node.mimeType = mime;
+    }
+
+    const poster = element.getAttribute("poster");
+    if (poster !== null && poster.length > 0) {
+      node.posterUrl = poster;
+    }
+
+    const caption = figureCaption(element);
+    if (caption !== undefined) {
+      node.caption = [{ text: caption }];
+    }
+
+    return node;
+  },
+};
+
+let videoKind: MediaKind | undefined;
+
+// editor-paste imports this module while editor-media is still evaluating.
+// The route is registered on first use, after that module has finished.
+export function ensureVideoMedia(): MediaKind {
+  if (!videoKind) {
+    videoKind = createMediaKind({
+      nodeType: KEYS.video,
+      assetKind: "video",
+      pluginKey: "videoRuntime",
+      mimePrefix: "video/",
+      minWidth: VIDEO_MIN_WIDTH,
+      maxWidth: VIDEO_MAX_WIDTH,
+      aligns: VIDEO_ALIGNS,
+      messages: {
+        unsafeUrl: VIDEO_UNSAFE_URL,
+        bothSources: VIDEO_BOTH_SOURCES,
+        uploadInterrupted: VIDEO_UPLOAD_INTERRUPTED,
+        notFound: VIDEO_NOT_FOUND,
+        storageUnavailable: VIDEO_STORAGE_UNAVAILABLE,
+      },
+      replaceUnset: ["url", "assetId", "mimeType", "naturalWidth", "naturalHeight", "durationMs"],
+      commands: {
+        insertFiles: { id: "block.insert.video", label: "Video" },
+        insertUrl: { id: "block.insert.video-url", label: "Video from URL" },
+        align: { id: "block.video.align", label: "Align video" },
+        width: { id: "block.video.width", label: "Video width" },
+        remove: { id: "block.video.remove", label: "Remove video" },
+        replace: { id: "block.video.replace", label: "Replace video" },
+      },
+      readProps: readVideoProps,
+      rejectUrl: videoEmbedRejection,
+      onRejectedUrl: (editor, _url, message) => {
+        setPasteRepairs(editor, [{ path: [], message }]);
+      },
+      applyReady: videoReady,
+      probe: probeForKind,
+    });
   }
+
+  return videoKind;
 }
 
-function resizeDelta(key: string): number | undefined {
-  if (key === "ArrowRight" || key === "ArrowUp") {
-    return imageResizeStep();
+export const videoMedia = {
+  get spec() {
+    return ensureVideoMedia().spec;
+  },
+  get minWidth() {
+    return ensureVideoMedia().minWidth;
+  },
+  get plugin() {
+    return ensureVideoMedia().plugin;
+  },
+};
+
+export const attachVideoRuntime: MediaKind["attach"] = (editor, store, options) =>
+  ensureVideoMedia().attach(editor, store, options);
+export const detachVideoRuntime: MediaKind["detach"] = (editor) => {
+  ensureVideoMedia().detach(editor);
+};
+export const videoUploadState: MediaKind["uploadState"] = (editor, blockId) =>
+  ensureVideoMedia().uploadState(editor, blockId);
+export const videoUploadRole: MediaKind["uploadRole"] = (editor, blockId) =>
+  ensureVideoMedia().uploadRole(editor, blockId);
+export const cachedVideoUrl: MediaKind["cachedAssetUrl"] = (editor, assetId) =>
+  ensureVideoMedia().cachedAssetUrl(editor, assetId);
+export const videoFileName: MediaKind["assetFileName"] = (editor, assetId) =>
+  ensureVideoMedia().assetFileName(editor, assetId);
+export const videoAssetIsMissing: MediaKind["assetIsMissing"] = (editor, assetId) =>
+  ensureVideoMedia().assetIsMissing(editor, assetId);
+export const videoAssetIsAdapter: MediaKind["assetIsAdapter"] = (editor, assetId) =>
+  ensureVideoMedia().assetIsAdapter(editor, assetId);
+export const resolveVideoURL: MediaKind["resolveAssetURL"] = (editor, assetId) =>
+  ensureVideoMedia().resolveAssetURL(editor, assetId);
+export const refreshVideoURL: MediaKind["refreshAssetURL"] = (editor, assetId) =>
+  ensureVideoMedia().refreshAssetURL(editor, assetId);
+export const queuePastedVideoUpload: MediaKind["queuePastedUpload"] = (id, file) => {
+  ensureVideoMedia().queuePastedUpload(id, file);
+};
+export const flushPastedVideoUploads: MediaKind["flushPastedUploads"] = (editor) => {
+  ensureVideoMedia().flushPastedUploads(editor);
+};
+export const beginVideoUpload: MediaKind["beginUpload"] = (editor, blockId, file, role) => {
+  ensureVideoMedia().beginUpload(editor, blockId, file, role);
+};
+export const holdVideoUpload: MediaKind["holdUpload"] = (editor, blockId) => {
+  ensureVideoMedia().holdUpload(editor, blockId);
+};
+export const retryVideoUpload: MediaKind["retryUpload"] = (editor, blockId) => {
+  ensureVideoMedia().retryUpload(editor, blockId);
+};
+export const insertVideoFromFiles = {
+  id: "block.insert.video",
+  label: "Video",
+  group: "insert" as const,
+  run: (
+    editor: Parameters<MediaKind["insertFromFiles"]["run"]>[0],
+    files: readonly UploadSource[],
+  ) => {
+    ensureVideoMedia().insertFromFiles.run(editor, files);
+  },
+};
+export const insertVideoFromUrl = {
+  id: "block.insert.video-url",
+  label: "Video from URL",
+  group: "insert" as const,
+  run: (editor: Parameters<MediaKind["insertFromUrl"]["run"]>[0], url: string) => {
+    ensureVideoMedia().insertFromUrl.run(editor, url);
+  },
+};
+export const setVideoAlign: MediaKind["setAlign"] = {
+  id: "block.video.align",
+  label: "Align video",
+  group: "action",
+  run: (editor, payload) => {
+    ensureVideoMedia().setAlign.run(editor, payload);
+  },
+};
+export const setVideoWidth: MediaKind["setWidth"] = {
+  id: "block.video.width",
+  label: "Video width",
+  group: "action",
+  run: (editor, payload) => {
+    ensureVideoMedia().setWidth.run(editor, payload);
+  },
+};
+export const removeVideo: MediaKind["remove"] = {
+  id: "block.video.remove",
+  label: "Remove video",
+  group: "action",
+  run: (editor, id) => {
+    ensureVideoMedia().remove.run(editor, id);
+  },
+};
+export const replaceVideoFromFile: MediaKind["replaceFromFile"] = {
+  id: "block.video.replace",
+  label: "Replace video",
+  group: "action",
+  run: (editor, payload) => {
+    ensureVideoMedia().replaceFromFile.run(editor, payload);
+  },
+};
+export const planPastedVideo: MediaKind["planPasted"] = (node) =>
+  ensureVideoMedia().planPasted(node);
+export const pastedVideoDroppedUrl: MediaKind["pastedDroppedUrl"] = (node) =>
+  ensureVideoMedia().pastedDroppedUrl(node);
+
+export function pastedVideoPosterRepair(node: Record<string, unknown>): string | undefined {
+  const asset =
+    typeof node.posterAssetId === "string" && node.posterAssetId.length > 0
+      ? node.posterAssetId
+      : undefined;
+  const url = typeof node.posterUrl === "string" ? node.posterUrl : undefined;
+  if (asset !== undefined && url !== undefined) {
+    return VIDEO_POSTER_BOTH;
   }
 
-  if (key === "ArrowLeft" || key === "ArrowDown") {
-    return -imageResizeStep();
+  if (url !== undefined && !isSafeImageUrl(url)) {
+    return VIDEO_POSTER_UNSAFE;
   }
 
   return undefined;
 }
 
-function measuredWidth(frame: HTMLElement | null, storedWidth: number | undefined): number {
-  if (storedWidth !== undefined) {
-    return storedWidth;
-  }
-
-  const measured = frame?.getBoundingClientRect().width ?? IMAGE_MIN_WIDTH;
-  return measured > 0 ? measured : IMAGE_MIN_WIDTH;
-}
-
-function containerCap(frame: HTMLElement | null): number {
-  const parent = frame?.parentElement?.getBoundingClientRect().width ?? IMAGE_MAX_WIDTH;
-  return parent > 0 ? parent : IMAGE_MAX_WIDTH;
-}
-
-function useResolvedAsset(assetId: string | undefined): { url?: string; missing: boolean } {
-  "use no memo";
-  // This hook is compiled on its own. The same external map has to be read on every revision.
-
-  const editor = useEditorRef();
-  const revision = usePluginOption(imageRuntimePlugin, "revision");
-  useEffect(() => {
-    if (assetId !== undefined) {
-      resolveAssetURL(editor, assetId);
+export const setVideoPoster: EditorCommand<{ id: string; file: UploadSource }> = {
+  id: "block.video.poster",
+  label: "Set poster",
+  group: "action",
+  run: (editor, payload) => {
+    if (!ensureVideoMedia().writable(editor, payload.id)) {
+      return;
     }
-  }, [assetId, editor, revision]);
 
-  if (assetId === undefined) {
-    return { missing: false };
-  }
+    ensureVideoMedia().beginUpload(editor, payload.id, payload.file, "poster");
+  },
+};
 
-  return { url: cachedAssetUrl(editor, assetId), missing: assetIsMissing(editor, assetId) };
+export const removeVideoPoster: EditorCommand<string> = {
+  id: "block.video.poster.remove",
+  label: "Remove poster",
+  group: "action",
+  run: (editor, id) => {
+    const entry = ensureVideoMedia().writable(editor, id);
+    if (!entry) {
+      return;
+    }
+
+    editor.tf.unsetNodes(["posterAssetId", "posterUrl"], { at: entry[1] });
+  },
+};
+
+export function clampVideoWidth(width: number, containerWidth: number): number {
+  return ensureVideoMedia().clampWidth(width, containerWidth);
 }
 
-function useImageUpload(blockId: string) {
+export function videoResizeStep(): number {
+  return ensureVideoMedia().resizeStep();
+}
+
+export type VideoPastePlan = MediaPastePlan;
+
+export function videoEmbedRejection(url: string): string | undefined {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return undefined;
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === "youtube.com" ||
+    host === "youtu.be" ||
+    host.endsWith(".youtube.com") ||
+    host === "vimeo.com" ||
+    host.endsWith(".vimeo.com")
+  ) {
+    return VIDEO_EMBED_REJECTED;
+  }
+
+  return undefined;
+}
+
+export function probeVideoMetadata(
+  blob: Blob,
+): Promise<{ width?: number; height?: number; durationMs?: number } | undefined> {
+  if (typeof document === "undefined" || typeof URL.createObjectURL !== "function") {
+    return Promise.resolve(undefined);
+  }
+
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const video = document.createElement("video");
+    let settled = false;
+    const finish = (
+      value: { width?: number; height?: number; durationMs?: number } | undefined,
+    ): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      window.clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      try {
+        video.removeAttribute("src");
+        video.load();
+      } catch {
+        // The element only exists to read loadedmetadata.
+      }
+      resolve(value);
+    };
+    const timer = window.setTimeout(() => {
+      finish(undefined);
+    }, PROBE_TIMEOUT_MS);
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const result: { width?: number; height?: number; durationMs?: number } = {};
+      if (isPositivePixel(video.videoWidth) && isPositivePixel(video.videoHeight)) {
+        result.width = video.videoWidth;
+        result.height = video.videoHeight;
+      }
+
+      const durationMs = Number.isFinite(video.duration)
+        ? Math.round(video.duration * 1000)
+        : undefined;
+      if (isPositivePixel(durationMs)) {
+        result.durationMs = durationMs;
+      }
+
+      finish(result.width === undefined && result.durationMs === undefined ? undefined : result);
+    };
+    video.onerror = () => {
+      finish(undefined);
+    };
+    video.src = url;
+  });
+}
+
+function probeForKind(
+  blob: Blob,
+  kind: AssetKind,
+): Promise<{ width?: number; height?: number; durationMs?: number } | undefined> {
+  if (kind === "image") {
+    return probeImageSize(blob);
+  }
+
+  if (kind === "video") {
+    return probeVideoMetadata(blob);
+  }
+
+  return Promise.resolve(undefined);
+}
+
+function videoReady(record: AssetRecord, role: MediaRole) {
+  if (role === "poster") {
+    return {
+      props: { posterAssetId: record.id },
+      unset: ["posterUrl"],
+      save: "own" as const,
+    };
+  }
+
+  const props: Record<string, unknown> = {
+    assetId: record.id,
+    mimeType: record.mimeType,
+  };
+  if (isPositivePixel(record.width) && isPositivePixel(record.height)) {
+    props.naturalWidth = record.width;
+    props.naturalHeight = record.height;
+  }
+
+  if (isPositivePixel(record.durationMs)) {
+    props.durationMs = record.durationMs;
+  }
+
+  return { props, unset: [], save: "fold" as const };
+}
+
+function readVideoProps(node: Record<string, unknown>): Record<string, unknown> {
+  const props = readMediaLayoutProps(node, VIDEO_MIN_WIDTH, VIDEO_MAX_WIDTH);
+  if (typeof node.mimeType === "string" && isVideoMime(node.mimeType)) {
+    props.mimeType = node.mimeType;
+  }
+
+  if (isPositivePixel(node.durationMs)) {
+    props.durationMs = node.durationMs;
+  }
+
+  const posterAsset =
+    typeof node.posterAssetId === "string" && node.posterAssetId.length > 0
+      ? node.posterAssetId
+      : undefined;
+  const posterUrl = typeof node.posterUrl === "string" ? node.posterUrl : undefined;
+  if (posterAsset !== undefined) {
+    props.posterAssetId = posterAsset;
+  } else if (posterUrl !== undefined && isSafeImageUrl(posterUrl)) {
+    props.posterUrl = posterUrl;
+  }
+
+  return props;
+}
+
+function isVideoMime(value: string): boolean {
+  return VIDEO_MIME_TYPES.some((mime) => mime === value);
+}
+
+function nestedSourceAttr(element: HTMLElement, name: string): string | null {
+  for (const child of element.children) {
+    if (child.tagName !== "SOURCE") {
+      continue;
+    }
+
+    const value = child.getAttribute(name);
+    if (value !== null && value.length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function figureCaption(element: HTMLElement): string | undefined {
+  const parent = element.parentElement;
+  if (parent === null || parent.tagName !== "FIGURE") {
+    return undefined;
+  }
+
+  for (const child of parent.children) {
+    if (child.tagName !== "FIGCAPTION") {
+      continue;
+    }
+
+    const text = child.textContent?.trim() ?? "";
+    return text.length > 0 ? text : undefined;
+  }
+
+  return undefined;
+}
+
+function isPositivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/video-element.tsx
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Caption, CaptionTextarea } from "@platejs/caption/react";
+import { ImagePlus, Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import type { AssetStore } from "./editor-assets";
+import { runEditorCommand } from "./editor-commands";
+import { VIDEO_MAX_WIDTH, VIDEO_MIN_WIDTH } from "./editor-document-schema";
+import { hrElementClassName } from "./hr-element";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaAlignMenu,
+  MediaCaptionButton,
+  MediaFileButton,
+  MediaIconButton,
+  MediaNotice,
+  MediaProgress,
+  MediaResizeHandle,
+  MediaSkeleton,
+  mediaAlignAttr,
+  mediaCaptionText,
+  mediaFrameState,
+  mediaPixelAttr,
+  mediaRatio,
+  mediaStringAttr,
+  useMediaUpload,
+  useResolvedMedia,
+} from "./media-element-parts";
+import {
+  VIDEO_CANT_PLAY,
+  VIDEO_NOT_FOUND,
+  VIDEO_UPLOAD_INTERRUPTED,
+  attachVideoRuntime,
+  beginVideoUpload,
+  cachedVideoUrl,
+  clampVideoWidth,
+  holdVideoUpload,
+  refreshVideoURL,
+  removeVideo,
+  removeVideoPoster,
+  replaceVideoFromFile,
+  resolveVideoURL,
+  retryVideoUpload,
+  setVideoAlign,
+  setVideoPoster,
+  setVideoWidth,
+  videoAssetIsAdapter,
+  videoAssetIsMissing,
+  videoFileName,
+  videoResizeStep,
+  ensureVideoMedia,
+  videoUploadRole,
+  videoUploadState,
+} from "./editor-video";
+
+const PLAYBACK_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "mouseup",
+  "click",
+  "keydown",
+  "keyup",
+  "beforeinput",
+  "input",
+] as const;
+
+export function VideoRuntime({ store }: { store: AssetStore | null }) {
+  const editor = useEditorRef();
+  useEffect(() => attachVideoRuntime(editor, store), [editor, store]);
+  return null;
+}
+
+export function VideoElement(props: PlateElementProps) {
   "use no memo";
-  // Upload status is plugin state, not a document change. A memoized read would skip failed and ready.
+  // Asset URLs and upload progress live outside React. Memoizing the first read kept the skeleton up.
 
   const editor = useEditorRef();
-  const revision = usePluginOption(imageRuntimePlugin, "revision");
-  void revision;
-  return blockId.length === 0 ? undefined : imageUploadState(editor, blockId);
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const id = typeof element.id === "string" ? element.id : "";
+  const assetId = mediaStringAttr(element, "assetId");
+  const url = mediaStringAttr(element, "url");
+  const mimeType = mediaStringAttr(element, "mimeType");
+  const align = mediaAlignAttr(element);
+  const naturalWidth = mediaPixelAttr(element, "naturalWidth");
+  const naturalHeight = mediaPixelAttr(element, "naturalHeight");
+  const storedWidth = mediaPixelAttr(element, "width");
+  const posterAssetId = mediaStringAttr(element, "posterAssetId");
+  const posterUrl = mediaStringAttr(element, "posterUrl");
+  const asset = useResolvedMedia(
+    assetId,
+    ensureVideoMedia().plugin,
+    resolveVideoURL,
+    cachedVideoUrl,
+    videoAssetIsMissing,
+    videoAssetIsAdapter,
+  );
+  const posterAsset = useResolvedMedia(
+    posterAssetId,
+    ensureVideoMedia().plugin,
+    resolveVideoURL,
+    cachedVideoUrl,
+    videoAssetIsMissing,
+    videoAssetIsAdapter,
+  );
+  const upload = useMediaUpload(id, ensureVideoMedia().plugin, videoUploadState);
+  const role = id.length === 0 ? undefined : videoUploadRole(editor, id);
+  const posterUpload = role === "poster";
+  const [failedUrl, setFailedUrl] = useState(false);
+  const [posterBroken, setPosterBroken] = useState(false);
+  const [preload, setPreload] = useState<"none" | "metadata">("none");
+  const frame = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const displayUrl = assetId !== undefined ? asset.url : url;
+  const missing = assetId !== undefined && asset.missing;
+  const resolving = assetId !== undefined && displayUrl === undefined && !missing;
+  const sourcePending =
+    !posterUpload &&
+    (resolving ||
+      (assetId === undefined &&
+        url === undefined &&
+        (upload?.status === "pending" ||
+          upload?.status === "processing" ||
+          upload?.status === "ready")));
+  const sourceFailed = !posterUpload && upload?.status === "failed" ? upload.error : undefined;
+  const posterFailedUpload = posterUpload && upload?.status === "failed" ? upload.error : undefined;
+  const uploading =
+    upload?.status === "pending" || upload?.status === "processing" ? upload : undefined;
+  const showVideo =
+    displayUrl !== undefined &&
+    !missing &&
+    !failedUrl &&
+    sourceFailed === undefined &&
+    !sourcePending;
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const width = dragWidth ?? storedWidth;
+  const ratio = mediaRatio(naturalWidth, naturalHeight);
+  const posterDisplay = posterAssetId !== undefined ? posterAsset.url : posterUrl;
+  const fileName = assetId !== undefined ? videoFileName(editor, assetId) : undefined;
+
+  useIsolatedVideo(videoRef, displayUrl, mimeType, setFailedUrl);
+  useLazyPreload(videoRef, displayUrl, showVideo, setPreload);
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn("group relative py-2", hrElementClassName(selected, focused, readOnly))}
+    >
+      <figure
+        ref={frame}
+        contentEditable={false}
+        data-video-state={mediaFrameState({
+          pending: sourcePending,
+          failed: sourceFailed,
+          missing,
+          failedUrl,
+          showMedia: showVideo,
+          loaded: showVideo,
+        })}
+        className={cn(
+          "relative max-w-full",
+          align === "left" && "mr-auto",
+          align === "right" && "ml-auto",
+          align === undefined && "mx-auto",
+        )}
+        style={{
+          width: width === undefined ? "100%" : `${String(width)}px`,
+          maxWidth: "100%",
+          aspectRatio: ratio,
+        }}
+      >
+        {showVideo && displayUrl !== undefined ? (
+          <video
+            ref={videoRef}
+            src={displayUrl}
+            controls
+            playsInline
+            preload={preload}
+            poster={posterBroken || posterDisplay === undefined ? undefined : posterDisplay}
+            style={{ aspectRatio: ratio, width: "100%", height: "auto" }}
+            onError={() => {
+              if (assetId !== undefined && refreshVideoURL(editor, assetId)) {
+                setFailedUrl(false);
+                return;
+              }
+
+              setFailedUrl(true);
+            }}
+          />
+        ) : null}
+        {posterDisplay !== undefined && !posterBroken ? (
+          // The poster is probed on its own. A failed poster must not fire the video error path.
+          // eslint-disable-next-line @next/next/no-img-element -- poster probe
+          <img
+            data-video-poster=""
+            alt=""
+            src={posterDisplay}
+            className="hidden"
+            onError={() => {
+              setPosterBroken(true);
+            }}
+          />
+        ) : null}
+        {sourcePending ? <MediaSkeleton marker="video" ratio={ratio} /> : null}
+        {uploading && !readOnly ? (
+          <MediaProgress
+            onCancel={(current) => {
+              holdVideoUpload(current, id);
+            }}
+          />
+        ) : null}
+        {sourceFailed !== undefined ? (
+          <MediaNotice
+            message={sourceFailed}
+            retry={sourceFailed !== "Choose the file again."}
+            onRetry={(current) => {
+              retryVideoUpload(current, id);
+            }}
+            onRemove={(current) => {
+              runEditorCommand(current, removeVideo, id);
+            }}
+          />
+        ) : null}
+        {posterFailedUpload !== undefined && showVideo ? (
+          <MediaNotice
+            message={posterFailedUpload}
+            retry={posterFailedUpload !== "Choose the file again."}
+            onRetry={(current) => {
+              retryVideoUpload(current, id);
+            }}
+          />
+        ) : null}
+        {missing ? (
+          <MediaNotice
+            message={VIDEO_NOT_FOUND}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeVideo, id);
+            }}
+          />
+        ) : null}
+        {failedUrl &&
+        showVideo === false &&
+        sourceFailed === undefined &&
+        !sourcePending &&
+        !missing ? (
+          <MediaNotice
+            message={VIDEO_CANT_PLAY}
+            retry={false}
+            openUrl={url}
+            download={
+              assetId !== undefined && displayUrl !== undefined
+                ? { href: displayUrl, name: fileName ?? "video" }
+                : undefined
+            }
+            onRemove={
+              readOnly
+                ? undefined
+                : (current) => {
+                    runEditorCommand(current, removeVideo, id);
+                  }
+            }
+          />
+        ) : null}
+        {!showVideo && !sourcePending && sourceFailed === undefined && !missing && !failedUrl ? (
+          <MediaNotice
+            message={VIDEO_UPLOAD_INTERRUPTED}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeVideo, id);
+            }}
+          >
+            {readOnly ? null : (
+              <MediaFileButton
+                label="Insert video"
+                accept="video/*"
+                onFile={(current, file) => {
+                  beginVideoUpload(current, id, file, "source");
+                }}
+              />
+            )}
+          </MediaNotice>
+        ) : null}
+        {showVideo && !readOnly ? (
+          <VideoToolbar
+            id={id}
+            align={align}
+            hasPoster={posterAssetId !== undefined || posterUrl !== undefined}
+            frame={frame}
+            storedWidth={storedWidth}
+            dragWidth={dragWidth}
+            setDragWidth={setDragWidth}
+          />
+        ) : null}
+        {showVideo || mediaCaptionText(element).length > 0 ? (
+          <Caption>
+            <CaptionTextarea placeholder="Write a caption…" />
+          </Caption>
+        ) : null}
+      </figure>
+      {props.children}
+    </PlateElement>
+  );
 }
 
-function imageState(state: {
-  pending: boolean;
-  failed: string | undefined;
-  missing: boolean;
-  failedUrl: boolean;
-  showImage: boolean;
-  loaded: boolean;
-}): string {
-  if (state.pending || (state.showImage && !state.loaded)) {
-    return "loading";
-  }
+function VideoToolbar({
+  id,
+  align,
+  hasPoster,
+  frame,
+  storedWidth,
+  dragWidth,
+  setDragWidth,
+}: {
+  id: string;
+  align: "left" | "right" | undefined;
+  hasPoster: boolean;
+  frame: { current: HTMLElement | null };
+  storedWidth: number | undefined;
+  dragWidth: number | null;
+  setDragWidth: (width: number | null) => void;
+}) {
+  const selected = useSelected();
 
-  if (state.failed !== undefined || state.missing || state.failedUrl) {
-    return "error";
-  }
-
-  if (!state.showImage) {
-    return "empty";
-  }
-
-  return "ready";
+  return (
+    <>
+      <div className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
+        <MediaAlignMenu
+          label="Align video"
+          align={align}
+          onAlign={(editor, next) => {
+            runEditorCommand(editor, setVideoAlign, { id, align: next });
+          }}
+        />
+        <MediaCaptionButton />
+        <MediaFileButton
+          label="Set poster…"
+          accept="image/*"
+          icon={<ImagePlus aria-hidden className="size-4" />}
+          onFile={(editor, file) => {
+            runEditorCommand(editor, setVideoPoster, { id, file });
+          }}
+        />
+        {hasPoster ? (
+          <MediaIconButton
+            label="Remove poster"
+            onClick={(editor) => {
+              runEditorCommand(editor, removeVideoPoster, id);
+            }}
+          >
+            <span>Remove poster</span>
+          </MediaIconButton>
+        ) : null}
+        <MediaFileButton
+          label="Replace video"
+          accept="video/*"
+          onFile={(editor, file) => {
+            runEditorCommand(editor, replaceVideoFromFile, { id, file });
+          }}
+        />
+        <MediaIconButton
+          label="Remove"
+          onClick={(editor) => {
+            runEditorCommand(editor, removeVideo, id);
+          }}
+        >
+          <Trash2 aria-hidden className="size-4" />
+        </MediaIconButton>
+      </div>
+      <MediaResizeHandle
+        side="left"
+        frame={frame}
+        storedWidth={storedWidth}
+        previewWidth={dragWidth}
+        setPreviewWidth={setDragWidth}
+        minWidth={VIDEO_MIN_WIDTH}
+        maxWidth={VIDEO_MAX_WIDTH}
+        label="Resize video from the left"
+        step={videoResizeStep()}
+        clamp={clampVideoWidth}
+        commit={(editor, next) => {
+          runEditorCommand(editor, setVideoWidth, { id, width: next });
+        }}
+      />
+      <MediaResizeHandle
+        side="right"
+        frame={frame}
+        storedWidth={storedWidth}
+        previewWidth={dragWidth}
+        setPreviewWidth={setDragWidth}
+        minWidth={VIDEO_MIN_WIDTH}
+        maxWidth={VIDEO_MAX_WIDTH}
+        label="Resize video from the right"
+        step={videoResizeStep()}
+        clamp={clampVideoWidth}
+        commit={(editor, next) => {
+          runEditorCommand(editor, setVideoWidth, { id, width: next });
+        }}
+      />
+    </>
+  );
 }
 
-function keepEditorSelection(event: { preventDefault: () => void }): void {
-  event.preventDefault();
+function useIsolatedVideo(
+  videoRef: { current: HTMLVideoElement | null },
+  displayUrl: string | undefined,
+  mimeType: string | undefined,
+  setFailedUrl: (failed: boolean) => void,
+): void {
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node) {
+      return;
+    }
+
+    // Slate listens on the editable ancestor during bubble. Stopping here leaves
+    // the browser's own video controls (play, seek, volume) intact.
+    const stop = (event: Event): void => {
+      event.stopPropagation();
+    };
+    for (const name of PLAYBACK_EVENTS) {
+      node.addEventListener(name, stop);
+    }
+
+    if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
+      setFailedUrl(true);
+    }
+
+    return () => {
+      for (const name of PLAYBACK_EVENTS) {
+        node.removeEventListener(name, stop);
+      }
+    };
+  }, [displayUrl, mimeType, setFailedUrl, videoRef]);
 }
 
-const iconButtonClass =
-  "text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs";
+function useLazyPreload(
+  videoRef: { current: HTMLVideoElement | null },
+  displayUrl: string | undefined,
+  active: boolean,
+  setPreload: (value: "none" | "metadata") => void,
+): void {
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node || !active) {
+      return;
+    }
 
-function stringAttr(element: TElement, key: string): string | undefined {
-  const value: unknown = Reflect.get(element, key);
-  return typeof value === "string" ? value : undefined;
-}
+    if (typeof IntersectionObserver !== "function") {
+      setPreload("metadata");
+      return;
+    }
 
-function pixelAttr(element: TElement, key: string): number | undefined {
-  const value: unknown = Reflect.get(element, key);
-  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
-}
-
-function alignAttr(element: TElement): ImageAlign | undefined {
-  const value = stringAttr(element, "align");
-  return value === "left" || value === "right" ? value : undefined;
-}
-
-function captionText(element: TElement): string {
-  const caption: unknown = Reflect.get(element, "caption");
-  if (!Array.isArray(caption)) {
-    return "";
-  }
-
-  const first: unknown = caption[0];
-  if (typeof first !== "object" || first === null || !("text" in first)) {
-    return "";
-  }
-
-  return typeof first.text === "string" ? first.text : "";
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setPreload("metadata");
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, displayUrl, setPreload, videoRef]);
 }
 ```
 
@@ -11919,11 +13634,18 @@ export type UploadState = {
   error?: string;
 };
 
+export type ResolvedAssetUrl = {
+  url: string;
+  expiresAt?: number;
+};
+
 export type AssetStore = {
   put: (record: AssetRecord, blob: Blob) => Promise<void>;
   get: (id: string) => Promise<{ record: AssetRecord; blob: Blob } | null>;
   delete: (id: string) => Promise<void>;
   list: () => Promise<AssetRecord[]>;
+  // Signed-url adapters. IndexedDB keeps using object URLs and omits this.
+  resolveUrl?: (assetId: string) => Promise<ResolvedAssetUrl>;
 };
 
 const MIB = 1024 * 1024;
@@ -12032,17 +13754,23 @@ function validateImage(bytes: Uint8Array): UploadValidation {
 }
 
 function validateVideo(bytes: Uint8Array): UploadValidation {
+  // WebM and Matroska share the EBML header. Both are stored as video/webm.
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) {
     return { ok: true, mimeType: "video/webm" };
   }
 
+  if (ascii(bytes, 0, 4) === "OggS") {
+    return { ok: true, mimeType: "video/ogg" };
+  }
+
+  // ISO BMFF. The major brand sits at byte 8. Audio brands belong to audio.
   if (hasFtyp(bytes) && !AUDIO_BRANDS.has(majorBrand(bytes))) {
     return { ok: true, mimeType: "video/mp4" };
   }
 
   return {
     ok: false,
-    error: "This file is not an MP4 or WebM video.",
+    error: "This file is not an MP4, WebM, or Ogg video.",
   };
 }
 
@@ -12158,6 +13886,9 @@ type UploadEntry = {
 export type UploadController = {
   start: (file: UploadSource, target: { blockId: string; kind: UploadState["kind"] }) => string;
   cancel: (uploadId: string) => void;
+  // Stops the upload but keeps the file, so Retry can run without a new picker.
+  // cancel() still drops the file. Delete-during-upload uses that path.
+  hold: (uploadId: string) => void;
   retry: (uploadId: string) => Promise<void>;
   get: (uploadId: string) => UploadState | undefined;
   dispose: () => void;
@@ -12212,6 +13943,21 @@ export function createUploadController(options: UploadControllerOptions): Upload
     entry.canceled = true;
     entry.file = undefined;
     patch(uploadId, { status: "canceled", error: undefined });
+  }
+
+  function hold(uploadId: string): void {
+    const entry = uploads.get(uploadId);
+    if (
+      !entry ||
+      entry.state.status === "ready" ||
+      entry.state.status === "canceled" ||
+      entry.state.status === "failed"
+    ) {
+      return;
+    }
+
+    entry.canceled = true;
+    patch(uploadId, { status: "failed", error: "Upload canceled." });
   }
 
   async function retry(uploadId: string): Promise<void> {
@@ -12360,6 +14106,7 @@ export function createUploadController(options: UploadControllerOptions): Upload
   return {
     start,
     cancel,
+    hold,
     retry,
     get(uploadId) {
       const state = uploads.get(uploadId)?.state;
@@ -12471,6 +14218,10 @@ function walk(node: unknown, ids: Set<string>): void {
 
   if ("assetId" in node && typeof node.assetId === "string") {
     ids.add(node.assetId);
+  }
+
+  if ("posterAssetId" in node && typeof node.posterAssetId === "string") {
+    ids.add(node.posterAssetId);
   }
 
   if ("children" in node) {
@@ -13562,6 +15313,7 @@ import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { ImageRuntime } from "./image-element";
+import { VideoRuntime } from "./video-element";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -13589,6 +15341,7 @@ export function EditorSurface({
       }}
     >
       <ImageRuntime store={assetStore} />
+      <VideoRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -14957,7 +16710,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h3",
     id: "demo-images",
-    children: [{ text: "Images" }],
+    children: [{ text: "Images and video" }],
   },
   {
     type: "img",
@@ -14967,6 +16720,17 @@ export const DEMO_DOCUMENT_VALUE = [
     naturalHeight: 400,
     alt: "A small window looking onto a violet hill and a pale sun",
     caption: [{ text: "A drawing stored with the block, not an uploaded file." }],
+    children: [{ text: "" }],
+  },
+  {
+    type: "video",
+    id: "demo-video",
+    url: "/blocks/notion-like-editor/video-demo.webm",
+    mimeType: "video/webm",
+    naturalWidth: 160,
+    naturalHeight: 90,
+    durationMs: 1000,
+    caption: [{ text: "A one-second drawing, recorded in the browser." }],
     children: [{ text: "" }],
   },
   {
@@ -15203,12 +16967,28 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-media.ts",
+    code: readSource(`${BLOCK_DIR}/editor-media.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/media-element-parts.tsx",
+    code: readSource(`${BLOCK_DIR}/media-element-parts.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-image.ts",
     code: readSource(`${BLOCK_DIR}/editor-image.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/image-element.tsx",
     code: readSource(`${BLOCK_DIR}/image-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-video.ts",
+    code: readSource(`${BLOCK_DIR}/editor-video.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/video-element.tsx",
+    code: readSource(`${BLOCK_DIR}/video-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

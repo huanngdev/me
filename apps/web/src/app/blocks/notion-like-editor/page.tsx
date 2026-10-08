@@ -108,12 +108,28 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-media.ts",
+    code: readSource(`${BLOCK_DIR}/editor-media.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/media-element-parts.tsx",
+    code: readSource(`${BLOCK_DIR}/media-element-parts.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-image.ts",
     code: readSource(`${BLOCK_DIR}/editor-image.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/image-element.tsx",
     code: readSource(`${BLOCK_DIR}/image-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-video.ts",
+    code: readSource(`${BLOCK_DIR}/editor-video.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/video-element.tsx",
+    code: readSource(`${BLOCK_DIR}/video-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

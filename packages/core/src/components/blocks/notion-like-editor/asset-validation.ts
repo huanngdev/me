@@ -80,17 +80,23 @@ function validateImage(bytes: Uint8Array): UploadValidation {
 }
 
 function validateVideo(bytes: Uint8Array): UploadValidation {
+  // WebM and Matroska share the EBML header. Both are stored as video/webm.
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) {
     return { ok: true, mimeType: "video/webm" };
   }
 
+  if (ascii(bytes, 0, 4) === "OggS") {
+    return { ok: true, mimeType: "video/ogg" };
+  }
+
+  // ISO BMFF. The major brand sits at byte 8. Audio brands belong to audio.
   if (hasFtyp(bytes) && !AUDIO_BRANDS.has(majorBrand(bytes))) {
     return { ok: true, mimeType: "video/mp4" };
   }
 
   return {
     ok: false,
-    error: "This file is not an MP4 or WebM video.",
+    error: "This file is not an MP4, WebM, or Ogg video.",
   };
 }
 

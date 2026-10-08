@@ -34,6 +34,13 @@ import {
   pastedImageDroppedUrl,
   queuePastedImageUpload,
 } from "./editor-image";
+import {
+  VIDEO_BOTH_SOURCES,
+  pastedVideoDroppedUrl,
+  pastedVideoPosterRepair,
+  planPastedVideo,
+  queuePastedVideoUpload,
+} from "./editor-video";
 import type { EditorValue } from "./editor-value";
 
 export type PasteSanitizeOptions = {
@@ -243,6 +250,40 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [image];
+}
+
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const plan = planPastedVideo(node);
+  if (plan.kind === "text") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [paragraph([{ text: plan.text }])];
+  }
+
+  if (plan.kind === "drop") {
+    rememberImageRepair({ path: [], message: plan.repair });
+    return [];
+  }
+
+  if (pastedVideoDroppedUrl(node)) {
+    rememberImageRepair({ path: [], message: VIDEO_BOTH_SOURCES });
+  }
+
+  const posterRepair = pastedVideoPosterRepair(node);
+  if (posterRepair !== undefined) {
+    rememberImageRepair({ path: [], message: posterRepair });
+  }
+
+  const id = takeId(node, seen) ?? nanoid();
+  if (plan.upload) {
+    queuePastedVideoUpload(id, plan.upload);
+  }
+
+  const video = elementNode(KEYS.video, [{ text: "" }], id);
+  for (const [key, value] of Object.entries(plan.props)) {
+    video[key] = value;
+  }
+
+  return [video];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -763,6 +804,10 @@ function expandBlock(
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === KEYS.img) {
       return pastedImage(node, seen);
+    }
+
+    if (node.type === KEYS.video) {
+      return pastedVideo(node, seen);
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

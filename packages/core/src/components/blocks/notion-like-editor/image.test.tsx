@@ -1045,6 +1045,50 @@ describe("image rendering", () => {
     expect(field(mounted.editor.children[0], "width")).toBeUndefined();
     await mounted.cleanup();
   });
+
+  test("an adapter image refreshes its url once, then shows the fallback", async () => {
+    const memory = createMemoryAssetStore();
+    const urls = ["https://cdn.example/one.png", "https://cdn.example/two.png"];
+    let calls = 0;
+    const store: AssetStore = {
+      put: (record, blob) => memory.store.put(record, blob),
+      get: (id) => memory.store.get(id),
+      delete: (id) => memory.store.delete(id),
+      list: () => memory.store.list(),
+      resolveUrl: () => {
+        const url = urls[Math.min(calls, urls.length - 1)] ?? urls[0];
+        calls += 1;
+        return Promise.resolve({ url });
+      },
+    };
+    const mounted = await mountImage([image("pic", { assetId: "asset-1", alt: "Hill" })], {
+      store,
+    });
+    await act(async () => {
+      await settle();
+    });
+    const first = mounted.host.querySelector("img");
+    expect(first?.getAttribute("src")).toBe("https://cdn.example/one.png");
+    expect(calls).toBe(1);
+
+    await act(async () => {
+      first?.dispatchEvent(new Event("error"));
+      await settle();
+    });
+    const second = mounted.host.querySelector("img");
+    expect(second?.getAttribute("src")).toBe("https://cdn.example/two.png");
+    expect(calls).toBe(2);
+    expect(mounted.host.textContent).not.toContain("Open original");
+
+    await act(async () => {
+      second?.dispatchEvent(new Event("error"));
+      await settle();
+    });
+    expect(mounted.host.textContent).toContain("https://cdn.example/two.png");
+    expect(mounted.host.querySelector("a")?.textContent).toBe("Open original");
+    expect(calls).toBe(2);
+    await mounted.cleanup();
+  });
 });
 
 describe("image keyboard", () => {

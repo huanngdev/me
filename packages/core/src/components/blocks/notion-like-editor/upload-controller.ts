@@ -26,6 +26,9 @@ type UploadEntry = {
 export type UploadController = {
   start: (file: UploadSource, target: { blockId: string; kind: UploadState["kind"] }) => string;
   cancel: (uploadId: string) => void;
+  // Stops the upload but keeps the file, so Retry can run without a new picker.
+  // cancel() still drops the file. Delete-during-upload uses that path.
+  hold: (uploadId: string) => void;
   retry: (uploadId: string) => Promise<void>;
   get: (uploadId: string) => UploadState | undefined;
   dispose: () => void;
@@ -80,6 +83,21 @@ export function createUploadController(options: UploadControllerOptions): Upload
     entry.canceled = true;
     entry.file = undefined;
     patch(uploadId, { status: "canceled", error: undefined });
+  }
+
+  function hold(uploadId: string): void {
+    const entry = uploads.get(uploadId);
+    if (
+      !entry ||
+      entry.state.status === "ready" ||
+      entry.state.status === "canceled" ||
+      entry.state.status === "failed"
+    ) {
+      return;
+    }
+
+    entry.canceled = true;
+    patch(uploadId, { status: "failed", error: "Upload canceled." });
   }
 
   async function retry(uploadId: string): Promise<void> {
@@ -228,6 +246,7 @@ export function createUploadController(options: UploadControllerOptions): Upload
   return {
     start,
     cancel,
+    hold,
     retry,
     get(uploadId) {
       const state = uploads.get(uploadId)?.state;

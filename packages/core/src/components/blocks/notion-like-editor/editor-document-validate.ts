@@ -253,9 +253,10 @@ function walkElement(
     }
 
     const attr = value[key];
-    // An image reports blob and data urls as unsupported below. Other blocks stay invalid.
+    // Image and video report blob and data urls as unsupported below. Other blocks stay invalid.
     if (
       type !== KEYS.img &&
+      type !== KEYS.video &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))

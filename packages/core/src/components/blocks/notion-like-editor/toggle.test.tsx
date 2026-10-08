@@ -226,6 +226,7 @@ describe("toggle schema", () => {
       "callout",
       "hr",
       "img",
+      "video",
       "code_block",
       "table",
     ]);

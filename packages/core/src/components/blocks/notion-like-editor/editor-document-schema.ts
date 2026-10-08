@@ -333,6 +333,54 @@ export function checkImageNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path), ...naturalSizeIssues(node, path)];
+
+  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+export const VIDEO_MIN_WIDTH = 160;
+export const VIDEO_MAX_WIDTH = 1600;
+export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/ogg"] as const;
+export const VIDEO_ALIGNS = IMAGE_ALIGNS;
+
+export type VideoMimeType = (typeof VIDEO_MIME_TYPES)[number];
+
+// A sourceless video is an upload that has not finished. It loads as ok.
+// Playback position, paused, muted, and volume are not document fields.
+export function checkVideoNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path), ...naturalSizeIssues(node, path)];
+
+  if ("durationMs" in node && !positivePixel(node.durationMs)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  issues.push(...posterIssues(node, path));
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+function mediaSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   const issues: TableGridIssue[] = [];
   const hasAsset = "assetId" in node;
   const hasUrl = "url" in node;
@@ -363,6 +411,10 @@ export function checkImageNode(
     });
   }
 
+  return issues;
+}
+
+function naturalSizeIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   const hasWidth = "naturalWidth" in node;
   const hasHeight = "naturalHeight" in node;
   if (
@@ -370,21 +422,50 @@ export function checkImageNode(
     (hasWidth && !positivePixel(node.naturalWidth)) ||
     (hasHeight && !positivePixel(node.naturalHeight))
   ) {
+    return [
+      {
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function posterIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  const hasAsset = "posterAssetId" in node;
+  const hasUrl = "posterUrl" in node;
+
+  if (hasAsset && hasUrl) {
     issues.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported natural size. Restore from a backup or remove the attribute.`,
+      message: `${formatBlockLabel(path)} has both posterAssetId and posterUrl. Restore from a backup or keep one poster.`,
     });
   }
 
-  if ("alt" in node && (typeof node.alt !== "string" || node.alt.length > IMAGE_ALT_MAX)) {
+  if (hasAsset && (typeof node.posterAssetId !== "string" || node.posterAssetId.length === 0)) {
     issues.push({
       path,
-      message: `${formatBlockLabel(path)} has an unsupported alt. Restore from a backup or remove the attribute.`,
+      message: `${formatBlockLabel(path)} has an unsupported posterAssetId. Restore from a backup or remove the attribute.`,
     });
   }
 
-  if ("caption" in node) {
-    issues.push(...captionIssues(node.caption, path));
+  if (hasUrl && (typeof node.posterUrl !== "string" || !isSafeImageUrl(node.posterUrl))) {
+    const scheme =
+      typeof node.posterUrl === "string" &&
+      (node.posterUrl.startsWith("blob:") || node.posterUrl.startsWith("data:"))
+        ? node.posterUrl.slice(0, node.posterUrl.indexOf(":") + 1)
+        : undefined;
+    const detail =
+      scheme === undefined
+        ? "an unsupported poster url"
+        : `a poster url that starts with ${scheme}`;
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has ${detail}. Restore from a backup or replace that file.`,
+    });
   }
 
   return issues;
@@ -465,6 +546,32 @@ export const EDITOR_ELEMENT_RULES = [
     attrRanges: { width: { min: IMAGE_MIN_WIDTH, max: IMAGE_MAX_WIDTH } },
     validateChildren: (node, path) => checkImageNode(node, path),
   },
+  // Plate's video node is BaseVideoPlugin (@platejs/media): key KEYS.video, which is
+  // "video", void, and dangerouslyAllowAttributes width and height. The url field is
+  // the same element url insertImage writes. Caption is Plate's [{ text }] shape,
+  // written by setNodes in @platejs/caption. currentTime, paused, muted, and volume
+  // are playback state and are not attributes.
+  {
+    type: KEYS.video,
+    attrs: [
+      "id",
+      "assetId",
+      "url",
+      "mimeType",
+      "naturalWidth",
+      "naturalHeight",
+      "durationMs",
+      "width",
+      "align",
+      "caption",
+      "posterAssetId",
+      "posterUrl",
+    ],
+    isVoid: true,
+    attrValues: { align: VIDEO_ALIGNS, mimeType: VIDEO_MIME_TYPES },
+    attrRanges: { width: { min: VIDEO_MIN_WIDTH, max: VIDEO_MAX_WIDTH } },
+    validateChildren: (node, path) => checkVideoNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -488,6 +595,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       KEYS.img,
+      KEYS.video,
       KEYS.codeBlock,
       KEYS.table,
     ],

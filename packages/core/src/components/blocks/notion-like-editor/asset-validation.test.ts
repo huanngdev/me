@@ -115,7 +115,7 @@ describe("upload validation", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "This file is not an MP4 or WebM video.",
+      error: "This file is not an MP4, WebM, or Ogg video.",
     });
   });
 
@@ -124,7 +124,20 @@ describe("upload validation", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "This file is not an MP4 or WebM video.",
+      error: "This file is not an MP4, WebM, or Ogg video.",
+    });
+  });
+
+  test("an Ogg file is video when uploaded as video and audio when uploaded as audio", async () => {
+    expect(
+      await validateUpload(source(ogg, "clip.ogv", "application/octet-stream"), "video"),
+    ).toEqual({
+      ok: true,
+      mimeType: "video/ogg",
+    });
+    expect(await validateUpload(source(ogg, "song.ogg", ""), "audio")).toEqual({
+      ok: true,
+      mimeType: "audio/ogg",
     });
   });
 

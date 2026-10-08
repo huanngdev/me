@@ -74,6 +74,10 @@ function walk(node: unknown, ids: Set<string>): void {
     ids.add(node.assetId);
   }
 
+  if ("posterAssetId" in node && typeof node.posterAssetId === "string") {
+    ids.add(node.posterAssetId);
+  }
+
   if ("children" in node) {
     walk(node.children, ids);
   }
