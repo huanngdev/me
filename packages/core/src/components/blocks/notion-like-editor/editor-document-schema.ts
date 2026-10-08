@@ -942,6 +942,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
   },
+  // Plate's toc node (@platejs/toc 53.0.0, key "toc") is a void. The outline is
+  // derived on render. maxDepth is 1, 2, or 3, and absence means 3.
+  {
+    type: KEYS.toc,
+    attrs: ["id", "maxDepth"],
+    attrValues: { maxDepth: [1, 2, 3] },
+    isVoid: true,
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -972,6 +980,7 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       KEYS.codeBlock,
       KEYS.table,
+      KEYS.toc,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -1058,6 +1067,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.mediaEmbed,
       BOOKMARK_KEY,
       KEYS.table,
+      KEYS.toc,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];

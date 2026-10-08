@@ -27,6 +27,7 @@ import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/medi
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
+import { TocPlugin } from "@platejs/toc/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
 import { insertTableRow } from "@platejs/table";
@@ -57,6 +58,7 @@ import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "./column-element";
+import { TocElement } from "./toc-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -729,7 +731,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.audio ||
         child.type === KEYS.file ||
         child.type === KEYS.mediaEmbed ||
-        child.type === BOOKMARK_KEY) &&
+        child.type === BOOKMARK_KEY ||
+        child.type === KEYS.toc) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1591,6 +1594,10 @@ const bookmarkPlugin = createSlatePlugin({
   render: { node: BookmarkElement },
 });
 
+const tocPlugin = TocPlugin.configure({
+  render: { node: TocElement },
+});
+
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
   handlers: {
@@ -1852,6 +1859,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     filePlugin,
     mediaEmbedPlugin,
     bookmarkPlugin,
+    tocPlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,

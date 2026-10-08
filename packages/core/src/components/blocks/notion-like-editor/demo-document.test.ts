@@ -87,6 +87,20 @@ describe("demo document", () => {
     expect(textOf(DEMO_DOCUMENT_VALUE[0] ?? { children: [] })).toBe("Notion-like editor");
   });
 
+  test("the demo table of contents sits after the intro", () => {
+    const intro = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-unicode");
+    const toc = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toc");
+    const headings = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-headings");
+    if (!toc) {
+      throw new Error("Missing the demo table of contents.");
+    }
+
+    expect(toc.type).toBe("toc");
+    expect("maxDepth" in toc).toBe(false);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(toc)).toBe(intro + 1);
+    expect(headings).toBe(DEMO_DOCUMENT_VALUE.indexOf(toc) + 1);
+  });
+
   test("the demo document parses with no repairs", () => {
     const parsed = expectOk(parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE)));
 

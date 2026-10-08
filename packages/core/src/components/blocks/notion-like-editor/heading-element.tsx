@@ -1,4 +1,4 @@
-import { PlateElement, type PlateElementProps } from "platejs/react";
+import { PlateElement, useReadOnly, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
 const HEADING_SIZE = {
@@ -13,10 +13,15 @@ const HEADING_MARGIN = {
   h3: "mt-4",
 } as const;
 
+// scroll-mt-24 is the in-page anchor offset used on component pages. The site
+// header is sticky top-1 with an h-14 bar, and scrollIntoView({ block: "start" })
+// then keeps a heading below that bar.
+const HEADING_SCROLL = "scroll-mt-24";
+
 export const HEADING_STYLES = {
-  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0`,
-  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0`,
-  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0`,
+  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
 } as const;
 
 function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
@@ -63,12 +68,21 @@ function blockAnchor(element: PlateElementProps["element"]): string | undefined 
 export function HeadingElement({ attributes, element, ...props }: PlateElementProps) {
   const anchorId = blockAnchor(element);
   const tag = headingTag(element.type);
+  const readOnly = useReadOnly();
+  // A tabindex inside the editable surface takes the click away from Slate.
+  // Read-only navigation focuses the heading without moving the selection.
+  const anchorAttributes =
+    anchorId === undefined
+      ? attributes
+      : readOnly
+        ? { ...attributes, id: anchorId, tabIndex: -1 }
+        : { ...attributes, id: anchorId };
 
   return (
     <PlateElement
       {...props}
       element={element}
-      attributes={anchorId === undefined ? attributes : { ...attributes, id: anchorId }}
+      attributes={anchorAttributes}
       as={tag}
       className={HEADING_STYLES[tag]}
     />

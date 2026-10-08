@@ -193,6 +193,8 @@ describe.each([1, 2, 3])("heading %i", (value) => {
     expect(html).toContain("font-medium");
     expect(html).toContain("leading-tight");
     expect(html).toContain("first:mt-0");
+    expect(html).toContain("scroll-mt-24");
+    expect(html).not.toContain("tabindex");
     expect(html).not.toContain("font-bold");
     expect(html).not.toContain("font-semibold");
     for (const size of ["text-3xl", "text-2xl", "text-xl"] as const) {

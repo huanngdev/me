@@ -233,6 +233,7 @@ describe("toggle schema", () => {
       "bookmark",
       "code_block",
       "table",
+      "toc",
     ]);
     expect(firstChildType("toggle")).toBe("p");
     expect(maxNesting("toggle")).toBe(3);

@@ -916,6 +916,12 @@ function expandBlock(
       return pastedBookmark(node, seen);
     }
 
+    if (node.type === KEYS.toc) {
+      const toc = elementNode(KEYS.toc, [{ text: "" }], takeId(node, seen));
+      copyAllowedAttrs(node, toc);
+      return [toc];
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 

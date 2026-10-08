@@ -46,35 +46,37 @@
 36. packages/core/src/components/blocks/notion-like-editor/bookmark-element.tsx
 37. packages/core/src/components/blocks/notion-like-editor/editor-columns.ts
 38. packages/core/src/components/blocks/notion-like-editor/column-element.tsx
-39. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-40. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-41. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-42. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-43. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-44. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-45. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-46. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-47. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-48. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-49. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-50. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-51. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-52. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-53. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-54. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-55. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-56. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-57. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-58. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-59. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-60. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-61. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-62. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-63. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-64. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-65. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-66. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-67. apps/web/src/app/blocks/notion-like-editor/page.tsx
+39. packages/core/src/components/blocks/notion-like-editor/editor-toc.ts
+40. packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
+41. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+42. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+43. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+44. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+45. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+46. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+47. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+48. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+49. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+50. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+51. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+52. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+53. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+54. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+55. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+56. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+57. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+58. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+59. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+60. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+61. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+62. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+63. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+64. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+65. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+66. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+67. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+69. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -1036,6 +1038,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
   },
+  // Plate's toc node (@platejs/toc 53.0.0, key "toc") is a void. The outline is
+  // derived on render. maxDepth is 1, 2, or 3, and absence means 3.
+  {
+    type: KEYS.toc,
+    attrs: ["id", "maxDepth"],
+    attrValues: { maxDepth: [1, 2, 3] },
+    isVoid: true,
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -1066,6 +1076,7 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       KEYS.codeBlock,
       KEYS.table,
+      KEYS.toc,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -1152,6 +1163,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.mediaEmbed,
       BOOKMARK_KEY,
       KEYS.table,
+      KEYS.toc,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];
@@ -3191,6 +3203,12 @@ function expandBlock(
       return pastedBookmark(node, seen);
     }
 
+    if (node.type === KEYS.toc) {
+      const toc = elementNode(KEYS.toc, [{ text: "" }], takeId(node, seen));
+      copyAllowedAttrs(node, toc);
+      return [toc];
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -3478,6 +3496,7 @@ import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/medi
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
+import { TocPlugin } from "@platejs/toc/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
 import { insertTableRow } from "@platejs/table";
@@ -3508,6 +3527,7 @@ import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "./column-element";
+import { TocElement } from "./toc-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -4180,7 +4200,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.audio ||
         child.type === KEYS.file ||
         child.type === KEYS.mediaEmbed ||
-        child.type === BOOKMARK_KEY) &&
+        child.type === BOOKMARK_KEY ||
+        child.type === KEYS.toc) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -5042,6 +5063,10 @@ const bookmarkPlugin = createSlatePlugin({
   render: { node: BookmarkElement },
 });
 
+const tocPlugin = TocPlugin.configure({
+  render: { node: TocElement },
+});
+
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
   handlers: {
@@ -5303,6 +5328,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     filePlugin,
     mediaEmbedPlugin,
     bookmarkPlugin,
+    tocPlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,
@@ -5845,7 +5871,7 @@ export function openNewToggles(editor: SlateEditor, before: ReadonlySet<string>)
 
 ## packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
 ```tsx
-import { PlateElement, type PlateElementProps } from "platejs/react";
+import { PlateElement, useReadOnly, type PlateElementProps } from "platejs/react";
 
 // A plugin className cannot derive a DOM id from the block id.
 const HEADING_SIZE = {
@@ -5860,10 +5886,15 @@ const HEADING_MARGIN = {
   h3: "mt-4",
 } as const;
 
+// scroll-mt-24 is the in-page anchor offset used on component pages. The site
+// header is sticky top-1 with an h-14 bar, and scrollIntoView({ block: "start" })
+// then keeps a heading below that bar.
+const HEADING_SCROLL = "scroll-mt-24";
+
 export const HEADING_STYLES = {
-  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0`,
-  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0`,
-  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0`,
+  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
 } as const;
 
 function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
@@ -5910,12 +5941,21 @@ function blockAnchor(element: PlateElementProps["element"]): string | undefined 
 export function HeadingElement({ attributes, element, ...props }: PlateElementProps) {
   const anchorId = blockAnchor(element);
   const tag = headingTag(element.type);
+  const readOnly = useReadOnly();
+  // A tabindex inside the editable surface takes the click away from Slate.
+  // Read-only navigation focuses the heading without moving the selection.
+  const anchorAttributes =
+    anchorId === undefined
+      ? attributes
+      : readOnly
+        ? { ...attributes, id: anchorId, tabIndex: -1 }
+        : { ...attributes, id: anchorId };
 
   return (
     <PlateElement
       {...props}
       element={element}
-      attributes={anchorId === undefined ? attributes : { ...attributes, id: anchorId }}
+      attributes={anchorAttributes}
       as={tag}
       className={HEADING_STYLES[tag]}
     />
@@ -16598,6 +16638,464 @@ export function ColumnGroupElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-toc.ts
+```ts
+import { ElementApi, KEYS, NodeApi, PathApi, type SlateEditor, type TElement } from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { headingAnchorId } from "./heading-element";
+import { toggleOpen } from "./editor-toggle";
+
+export const TOC_DEPTHS = [1, 2, 3] as const;
+export type TocDepth = (typeof TOC_DEPTHS)[number];
+export const TOC_DEFAULT_DEPTH: TocDepth = 3;
+export const TOC_EMPTY_PLACEHOLDER = "Add headings to build a table of contents.";
+export const TOC_UNTITLED = "Untitled";
+
+export type TocEntry = {
+  id: string;
+  depth: TocDepth;
+  title: string;
+  path: number[];
+};
+
+// @platejs/toc 53.0.0 getHeadingList drops an empty title, keeps raw NodeApi.string,
+// and lists h4–h6. onContentScroll uses behavior "instant" and does not move the
+// caret or open a toggle. This outline is the document's h1–h3 blocks instead.
+export function isTocDepth(value: unknown): value is TocDepth {
+  return value === 1 || value === 2 || value === 3;
+}
+
+export function storedTocDepth(node: TElement): TocDepth {
+  return isTocDepth(node.maxDepth) ? node.maxDepth : TOC_DEFAULT_DEPTH;
+}
+
+export function headingPlainText(node: TElement): string {
+  return NodeApi.string(node).replace(/\s+/g, " ").trim();
+}
+
+function headingDepth(type: string): TocDepth | undefined {
+  if (type === KEYS.h1) {
+    return 1;
+  }
+  if (type === KEYS.h2) {
+    return 2;
+  }
+  if (type === KEYS.h3) {
+    return 3;
+  }
+  return undefined;
+}
+
+export function tocEntries(editor: SlateEditor, maxDepth: TocDepth): TocEntry[] {
+  const entries: TocEntry[] = [];
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) => {
+      if (!ElementApi.isElement(candidate) || typeof candidate.type !== "string") {
+        return false;
+      }
+      const depth = headingDepth(candidate.type);
+      return depth !== undefined && depth <= maxDepth;
+    },
+  })) {
+    if (!ElementApi.isElement(node) || typeof node.id !== "string" || node.id.length === 0) {
+      continue;
+    }
+    const depth = typeof node.type === "string" ? headingDepth(node.type) : undefined;
+    if (depth === undefined) {
+      continue;
+    }
+    entries.push({
+      id: node.id,
+      depth,
+      title: headingPlainText(node),
+      path: [...path],
+    });
+  }
+  return entries;
+}
+
+export function shallowestDepth(entries: readonly TocEntry[]): TocDepth {
+  let shallowest: TocDepth = TOC_DEFAULT_DEPTH;
+  for (const entry of entries) {
+    if (entry.depth < shallowest) {
+      shallowest = entry.depth;
+    }
+  }
+  return shallowest;
+}
+
+export function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function openClosedAncestors(editor: SlateEditor, path: readonly number[]): void {
+  for (let length = 1; length < path.length; length += 1) {
+    const parent = editor.api.node(path.slice(0, length));
+    if (!parent || !ElementApi.isElement(parent[0]) || parent[0].type !== KEYS.toggle) {
+      continue;
+    }
+    const id = parent[0].id;
+    if (typeof id !== "string" || id.length === 0) {
+      continue;
+    }
+    toggleOpen(editor, id, true);
+  }
+}
+
+function scrollingParent(element: HTMLElement): HTMLElement | null {
+  let parent = element.parentElement;
+  while (parent) {
+    const overflow = getComputedStyle(parent).overflowY;
+    if (
+      (overflow === "auto" || overflow === "scroll") &&
+      parent.scrollHeight > parent.clientHeight + 1
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
+function placeCaret(editor: SlateEditor, entry: TocEntry, readOnly: boolean): void {
+  const element = document.getElementById(headingAnchorId(entry.id));
+  if (readOnly) {
+    if (!element) {
+      return;
+    }
+    element.tabIndex = -1;
+    element.setAttribute("tabindex", "-1");
+    element.focus({ preventScroll: true });
+    return;
+  }
+  const start = editor.api.start(entry.path);
+  if (!start) {
+    return;
+  }
+  // Selecting without focus updates the model only. The visible caret needs the editor focused.
+  editor.tf.withoutSaving(() => {
+    editor.tf.select(start, { focus: true });
+  });
+}
+
+function revealTarget(editor: SlateEditor, entry: TocEntry, readOnly: boolean): void {
+  const behavior = prefersReducedMotion() ? "auto" : "smooth";
+  const element = document.getElementById(headingAnchorId(entry.id));
+  const scroller = element && behavior === "smooth" ? scrollingParent(element) : null;
+  if (element) {
+    element.scrollIntoView({ behavior, block: "start" });
+  }
+  // Slate scrolls a new selection with scrollMode "if-needed". Doing that while a
+  // smooth scroll is running pulls the heading to the middle of the pane. Wait
+  // until the scroll finishes, when the heading is already in view.
+  if (scroller) {
+    let placed = false;
+    const place = () => {
+      if (placed) {
+        return;
+      }
+      placed = true;
+      placeCaret(editor, entry, readOnly);
+    };
+    let moved = false;
+    const mark = () => {
+      moved = true;
+    };
+    scroller.addEventListener("scroll", mark);
+    scroller.addEventListener(
+      "scrollend",
+      () => {
+        scroller.removeEventListener("scroll", mark);
+        place();
+      },
+      { once: true },
+    );
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!moved) {
+          scroller.removeEventListener("scroll", mark);
+          place();
+        }
+      });
+    });
+    return;
+  }
+  placeCaret(editor, entry, readOnly);
+}
+
+export function activateTocEntry(editor: SlateEditor, entry: TocEntry, readOnly: boolean): void {
+  openClosedAncestors(editor, entry.path);
+  const reveal = () => {
+    revealTarget(editor, entry, readOnly);
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(reveal);
+    return;
+  }
+  reveal();
+}
+
+function tocNode(): TElement {
+  return { type: KEYS.toc, children: [{ text: "" }] };
+}
+
+export function insertTocBlock(editor: SlateEditor): void {
+  const current = editor.api.block({ highest: true });
+  if (!current) {
+    editor.tf.insertNodes(tocNode(), { at: [0], select: true });
+    return;
+  }
+  const at = PathApi.next(current[1]);
+  if (!at) {
+    return;
+  }
+  editor.tf.insertNodes(tocNode(), { at, select: true });
+}
+
+export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
+  const entry = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
+    voids: true,
+  });
+  if (!entry || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+  return [entry[0], entry[1]];
+}
+
+export function setTocDepth(editor: SlateEditor, path: number[], depth: TocDepth): void {
+  const node = editor.api.node(path);
+  if (!node || !ElementApi.isElement(node[0]) || node[0].type !== KEYS.toc) {
+    return;
+  }
+  const current = isTocDepth(node[0].maxDepth) ? node[0].maxDepth : undefined;
+  const stored = depth === TOC_DEFAULT_DEPTH ? undefined : depth;
+  if (current === stored) {
+    return;
+  }
+  if (stored === undefined) {
+    editor.tf.unsetNodes("maxDepth", { at: path });
+    return;
+  }
+  editor.tf.setNodes({ maxDepth: stored }, { at: path });
+}
+
+export function removeToc(editor: SlateEditor, path: number[]): void {
+  editor.tf.removeNodes({ at: path, voids: true });
+  if (editor.children.length === 0) {
+    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: [0] });
+  }
+}
+
+export const insertToc: EditorCommand = {
+  id: "block.insert.toc",
+  label: "Table of contents",
+  group: "insert",
+  run: (editor) => {
+    insertTocBlock(editor);
+  },
+};
+
+export const setTocDepthCommand: EditorCommand<TocDepth> = {
+  id: "block.toc.set-depth",
+  label: "Table of contents depth",
+  group: "action",
+  isEnabled: (editor) => tocAbove(editor) !== undefined,
+  run: (editor, depth) => {
+    const entry = tocAbove(editor);
+    if (!entry) {
+      return;
+    }
+    setTocDepth(editor, entry[1], depth);
+  },
+};
+
+export const removeTocCommand: EditorCommand = {
+  id: "block.toc.remove",
+  label: "Remove",
+  group: "action",
+  isEnabled: (editor) => tocAbove(editor) !== undefined,
+  run: (editor) => {
+    const entry = tocAbove(editor);
+    if (!entry) {
+      return;
+    }
+    removeToc(editor, entry[1]);
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
+```tsx
+import { type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  PlateElement,
+  useEditorRef,
+  useEditorSelector,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import {
+  TOC_EMPTY_PLACEHOLDER,
+  TOC_UNTITLED,
+  activateTocEntry,
+  isTocDepth,
+  removeToc,
+  setTocDepth,
+  shallowestDepth,
+  storedTocDepth,
+  tocEntries,
+  type TocEntry,
+} from "./editor-toc";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  keepMediaSelection,
+  mediaIconButtonClass,
+} from "./media-element-parts";
+
+const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
+
+function indentClass(level: number): string {
+  if (level === 1) {
+    return TOC_INDENT_CLASS[1];
+  }
+  if (level >= 2) {
+    return TOC_INDENT_CLASS[2];
+  }
+  return TOC_INDENT_CLASS[0];
+}
+
+export function TocElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const depth = storedTocDepth(props.element);
+  const entries = useEditorSelector(() => tocEntries(editor, depth), [depth]);
+  const shallowest = shallowestDepth(entries);
+  const path = editor.api.findPath(props.element);
+
+  function runOnToc(run: () => void): void {
+    if (!path) {
+      return;
+    }
+    const start = editor.api.start(path);
+    editor.tf.withNewBatch(() => {
+      if (start) {
+        editor.tf.select(start);
+      }
+      run();
+    });
+    editor.tf.setSplittingOnce(true);
+  }
+
+  function activate(entry: TocEntry): void {
+    activateTocEntry(editor, entry, readOnly);
+  }
+
+  function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, entry: TocEntry): void {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    activate(entry);
+  }
+
+  return (
+    <PlateElement {...props} className="group relative my-2">
+      <div contentEditable={false}>
+        {entries.length === 0 ? (
+          readOnly ? null : (
+            <p data-toc-empty className="text-muted-foreground text-sm">
+              {TOC_EMPTY_PLACEHOLDER}
+            </p>
+          )
+        ) : (
+          <nav aria-label="Table of contents" data-toc-depth={depth}>
+            <ol className="m-0 list-none space-y-1 p-0">
+              {entries.map((entry) => {
+                const untitled = entry.title.length === 0;
+                return (
+                  <li key={entry.id} className={indentClass(entry.depth - shallowest)}>
+                    <button
+                      type="button"
+                      data-toc-target={entry.id}
+                      data-toc-indent={entry.depth - shallowest}
+                      data-toc-untitled={untitled ? "true" : undefined}
+                      className={cn(
+                        "text-foreground hover:bg-muted w-full rounded-sm px-1 py-0.5 text-left text-sm break-words",
+                        untitled && "text-muted-foreground",
+                      )}
+                      onMouseDown={keepMediaSelection}
+                      onClick={() => {
+                        activate(entry);
+                      }}
+                      onKeyDown={(event) => {
+                        onKeyDown(event, entry);
+                      }}
+                    >
+                      {untitled ? TOC_UNTITLED : entry.title}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        )}
+        {readOnly || !path ? null : (
+          <div
+            data-toc-toolbar
+            className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
+          >
+            <select
+              aria-label="Table of contents depth"
+              className={mediaIconButtonClass}
+              value={String(depth)}
+              onMouseDown={keepMediaSelection}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (!isTocDepth(next)) {
+                  return;
+                }
+                runOnToc(() => {
+                  setTocDepth(editor, path, next);
+                });
+              }}
+            >
+              <option value="1">H1 only</option>
+              <option value="2">H1–H2</option>
+              <option value="3">H1–H3</option>
+            </select>
+            <button
+              type="button"
+              aria-label="Remove"
+              className={mediaIconButtonClass}
+              onMouseDown={keepMediaSelection}
+              onClick={() => {
+                runOnToc(() => {
+                  removeToc(editor, path);
+                });
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
@@ -21626,6 +22124,11 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
   },
   {
+    type: "toc",
+    id: "demo-toc",
+    children: [{ text: "" }],
+  },
+  {
     type: "h2",
     id: "demo-headings",
     children: [{ text: "Headings" }],
@@ -23049,6 +23552,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/column-element.tsx",
     code: readSource(`${BLOCK_DIR}/column-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-toc.ts",
+    code: readSource(`${BLOCK_DIR}/editor-toc.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/toc-element.tsx",
+    code: readSource(`${BLOCK_DIR}/toc-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",

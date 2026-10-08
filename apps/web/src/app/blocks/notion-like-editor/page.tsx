@@ -172,6 +172,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/column-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-toc.ts",
+    code: readSource(`${BLOCK_DIR}/editor-toc.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/toc-element.tsx",
+    code: readSource(`${BLOCK_DIR}/toc-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
