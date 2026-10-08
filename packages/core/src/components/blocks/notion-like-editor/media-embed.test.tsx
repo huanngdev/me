@@ -660,11 +660,14 @@ describe("embed paste", () => {
     await mounted.cleanup();
   });
 
-  test("other URLs, extra text, code, and table cells do not offer an embed", () => {
+  test("a non-video URL offers bookmark but not embed, and extra text, code, and table cells do not offer a menu", () => {
     const plain = plateEditor([paragraph("", "empty")]);
     plain.tf.select(caret([0, 0], 0));
     pasteText(plain, "https://example.com/video");
-    expect(offerOf(plain)).toBeUndefined();
+    expect(offerOf(plain)?.url).toBe("https://example.com/video");
+    expect(
+      pasteUrlActions.find((action) => action.id === "embed")?.match("https://example.com/video"),
+    ).toBe(false);
     expect(texts(plain)).toEqual(["https://example.com/video"]);
 
     const mixed = plateEditor([paragraph("", "empty")]);
@@ -805,9 +808,10 @@ describe("embed containers and keyboard", () => {
 
 describe("paste url actions", () => {
   test("the menu is a list DEV-109 can extend", () => {
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Embed video"]);
-    expect(pasteUrlActions[0]?.match(WATCH)).toBe(true);
-    expect(pasteUrlActions[0]?.match("https://example.com/video")).toBe(false);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed video"]);
+    const embedAction = pasteUrlActions.find((action) => action.id === "embed");
+    expect(embedAction?.match(WATCH)).toBe(true);
+    expect(embedAction?.match("https://example.com/video")).toBe(false);
   });
 });
 

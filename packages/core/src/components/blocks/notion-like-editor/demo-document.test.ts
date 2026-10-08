@@ -442,6 +442,10 @@ describe("demo document", () => {
     const file = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-file");
     const pdf = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-pdf");
     const embed = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-embed");
+    const bookmark = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-bookmark");
+    const bookmarkFallback = DEMO_DOCUMENT_VALUE.find(
+      (item) => item.id === "demo-bookmark-fallback",
+    );
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -473,6 +477,10 @@ describe("demo document", () => {
       pdf.type !== "file" ||
       !embed ||
       embed.type !== "media_embed" ||
+      !bookmark ||
+      bookmark.type !== "bookmark" ||
+      !bookmarkFallback ||
+      bookmarkFallback.type !== "bookmark" ||
       !release ||
       release.type !== "table" ||
       !paste
@@ -570,6 +578,19 @@ describe("demo document", () => {
     expect(field(embed, "caption")).toEqual([
       { text: "Me at the zoo, the first video uploaded to YouTube." },
     ]);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(bookmark)).toBe(DEMO_DOCUMENT_VALUE.indexOf(embed) + 1);
+    expect(field(bookmark, "url")).toBe("https://platejs.org/docs");
+    expect(field(bookmark, "title")).toBe("Plate");
+    expect(field(bookmark, "description")).toBe("The rich-text editor framework for React.");
+    expect(field(bookmark, "siteName")).toBe("Plate");
+    expect(field(bookmark, "imageUrl")).toBe("/blocks/notion-like-editor/bookmark-demo.svg");
+    expect(field(bookmark, "fetchedAt")).toBe("2026-10-08T00:00:00.000Z");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmark) + 1,
+    );
+    expect(field(bookmarkFallback, "url")).toBe("https://example.com/not-in-the-preview-list");
+    expect(field(bookmarkFallback, "title")).toBeUndefined();
+    expect(field(bookmarkFallback, "fetchedAt")).toBeUndefined();
     const demoPdfBytes = new Uint8Array(await demoPdf.arrayBuffer());
     expect(Array.from(demoPdfBytes.slice(0, 5))).toEqual([0x25, 0x50, 0x44, 0x46, 0x2d]);
     const demoAudio = Bun.file(
@@ -578,7 +599,9 @@ describe("demo document", () => {
     const demoAudioSize = demoAudio.size;
     expect(demoAudioSize).toBeGreaterThan(44);
     expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(embed) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 1,
+    );
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

@@ -1044,6 +1044,23 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "bookmark",
+    id: "demo-bookmark",
+    url: "https://platejs.org/docs",
+    title: "Plate",
+    description: "The rich-text editor framework for React.",
+    siteName: "Plate",
+    imageUrl: "/blocks/notion-like-editor/bookmark-demo.svg",
+    fetchedAt: "2026-10-08T00:00:00.000Z",
+    children: [{ text: "" }],
+  },
+  {
+    type: "bookmark",
+    id: "demo-bookmark-fallback",
+    url: "https://example.com/not-in-the-preview-list",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

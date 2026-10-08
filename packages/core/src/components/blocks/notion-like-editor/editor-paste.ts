@@ -53,6 +53,12 @@ import {
   planPastedFile,
   queuePastedFileUpload,
 } from "./editor-file";
+import {
+  BOOKMARK_KEY,
+  BOOKMARK_PASTE_DROPPED,
+  bookmarkElement,
+  storedBookmark,
+} from "./editor-bookmark-url";
 import { EMBED_PASTE_DROPPED } from "./editor-embed";
 import { embedElement, parseEmbedUrl, storedEmbed } from "./editor-embed-url";
 import type { EditorValue } from "./editor-value";
@@ -334,6 +340,17 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
   });
+}
+
+function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
+  void seen;
+  const stored = storedBookmark(node);
+  if (stored === undefined) {
+    rememberImageRepair({ path: [], message: BOOKMARK_PASTE_DROPPED });
+    return [];
+  }
+
+  return [bookmarkElement(stored, nanoid())];
 }
 
 function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
@@ -893,6 +910,10 @@ function expandBlock(
 
     if (node.type === KEYS.mediaEmbed) {
       return pastedEmbed(node, seen);
+    }
+
+    if (node.type === BOOKMARK_KEY) {
+      return pastedBookmark(node, seen);
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

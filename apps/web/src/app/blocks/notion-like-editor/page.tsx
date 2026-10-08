@@ -140,12 +140,28 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-embed-url.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-paste-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste-url.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-embed.ts",
     code: readSource(`${BLOCK_DIR}/editor-embed.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/embed-element.tsx",
     code: readSource(`${BLOCK_DIR}/embed-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-bookmark-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-bookmark-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-bookmark.ts",
+    code: readSource(`${BLOCK_DIR}/editor-bookmark.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/bookmark-element.tsx",
+    code: readSource(`${BLOCK_DIR}/bookmark-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
@@ -250,6 +266,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/demo-document.ts",
     code: readSource(`${BLOCK_DIR}/demo-document.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/demo-link-preview.ts",
+    code: readSource(`${BLOCK_DIR}/demo-link-preview.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

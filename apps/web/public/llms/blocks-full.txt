@@ -2422,36 +2422,41 @@ export default function ErrorPageBlockPage() {
 28. packages/core/src/components/blocks/notion-like-editor/editor-video.ts
 29. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
 30. packages/core/src/components/blocks/notion-like-editor/editor-embed-url.ts
-31. packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
-32. packages/core/src/components/blocks/notion-like-editor/embed-element.tsx
-33. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-34. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-35. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-37. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-39. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-40. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-41. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-42. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-43. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-44. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-45. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-46. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-47. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-48. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-49. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-50. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-51. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-52. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-53. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-54. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-55. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-56. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-57. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-58. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-59. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-60. apps/web/src/app/blocks/notion-like-editor/page.tsx
+31. packages/core/src/components/blocks/notion-like-editor/editor-paste-url.ts
+32. packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
+33. packages/core/src/components/blocks/notion-like-editor/embed-element.tsx
+34. packages/core/src/components/blocks/notion-like-editor/editor-bookmark-url.ts
+35. packages/core/src/components/blocks/notion-like-editor/editor-bookmark.ts
+36. packages/core/src/components/blocks/notion-like-editor/bookmark-element.tsx
+37. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+38. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+39. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+40. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+41. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+42. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+43. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+44. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+45. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+46. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+47. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+48. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+49. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+50. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+51. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+52. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+53. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+54. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+55. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+56. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+57. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+58. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+59. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+60. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+61. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+62. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+63. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+64. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+65. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2472,6 +2477,16 @@ export const EMPTY_EDITOR_VALUE = [
 import { KEYS } from "platejs";
 
 import { formatBlockLabel } from "./editor-document";
+import {
+  BOOKMARK_DESCRIPTION_MAX,
+  BOOKMARK_KEY,
+  BOOKMARK_SITE_NAME_MAX,
+  BOOKMARK_TITLE_MAX,
+  isBookmarkFetchedAt,
+  isStoredBookmarkText,
+  normalizeBookmarkImageUrl,
+  storedBookmarkUrl,
+} from "./editor-bookmark-url";
 import {
   EMBED_URL_MAX,
   isEmbedHash,
@@ -2967,6 +2982,59 @@ export function checkEmbedNode(
   return issues;
 }
 
+export function checkBookmarkNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  if (storedBookmarkUrl(node.url) === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported url. Restore from a backup or remove the block.`,
+    });
+  }
+
+  bookmarkTextIssue(issues, node, path, "title", BOOKMARK_TITLE_MAX);
+  bookmarkTextIssue(issues, node, path, "description", BOOKMARK_DESCRIPTION_MAX);
+  bookmarkTextIssue(issues, node, path, "siteName", BOOKMARK_SITE_NAME_MAX);
+
+  if ("imageUrl" in node) {
+    const imageUrl = node.imageUrl;
+    if (typeof imageUrl !== "string" || normalizeBookmarkImageUrl(imageUrl) !== imageUrl) {
+      issues.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported imageUrl. Restore from a backup or remove the attribute.`,
+      });
+    }
+  }
+
+  if ("fetchedAt" in node && !isBookmarkFetchedAt(node.fetchedAt)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported fetchedAt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  return issues;
+}
+
+function bookmarkTextIssue(
+  issues: TableGridIssue[],
+  node: Record<string, unknown>,
+  path: number[],
+  key: string,
+  limit: number,
+): void {
+  if (!(key in node) || isStoredBookmarkText(node[key], limit)) {
+    return;
+  }
+
+  issues.push({
+    path,
+    message: `${formatBlockLabel(path)} has an unsupported ${key}. Restore from a backup or remove the attribute.`,
+  });
+}
+
 function embedSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   if (!("sourceUrl" in node)) {
     return [
@@ -3342,6 +3410,14 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { provider: ["youtube", "vimeo"] },
     validateChildren: (node, path) => checkEmbedNode(node, path),
   },
+  // Custom void. Plate has no bookmark plugin. The url is the link. The other
+  // fields are a sanitized preview cache and can be missing without losing it.
+  {
+    type: BOOKMARK_KEY,
+    attrs: ["id", "url", "title", "description", "siteName", "imageUrl", "fetchedAt"],
+    isVoid: true,
+    validateChildren: (node, path) => checkBookmarkNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -3369,6 +3445,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.audio,
       KEYS.file,
       KEYS.mediaEmbed,
+      BOOKMARK_KEY,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -4600,6 +4677,12 @@ import {
   planPastedFile,
   queuePastedFileUpload,
 } from "./editor-file";
+import {
+  BOOKMARK_KEY,
+  BOOKMARK_PASTE_DROPPED,
+  bookmarkElement,
+  storedBookmark,
+} from "./editor-bookmark-url";
 import { EMBED_PASTE_DROPPED } from "./editor-embed";
 import { embedElement, parseEmbedUrl, storedEmbed } from "./editor-embed-url";
 import type { EditorValue } from "./editor-value";
@@ -4881,6 +4964,17 @@ function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
     bothSourcesMessage: AUDIO_BOTH_SOURCES,
     queueUpload: queuePastedAudioUpload,
   });
+}
+
+function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
+  void seen;
+  const stored = storedBookmark(node);
+  if (stored === undefined) {
+    rememberImageRepair({ path: [], message: BOOKMARK_PASTE_DROPPED });
+    return [];
+  }
+
+  return [bookmarkElement(stored, nanoid())];
 }
 
 function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
@@ -5442,6 +5536,10 @@ function expandBlock(
       return pastedEmbed(node, seen);
     }
 
+    if (node.type === BOOKMARK_KEY) {
+      return pastedBookmark(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -5756,11 +5854,14 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
+import { BookmarkElement } from "./bookmark-element";
+import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
 import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
-import { embedHtmlDeserializer, pasteUrlPlugin } from "./editor-embed";
+import { embedHtmlDeserializer } from "./editor-embed";
+import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
   handleImageDrop,
@@ -6393,7 +6494,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.video ||
         child.type === KEYS.audio ||
         child.type === KEYS.file ||
-        child.type === KEYS.mediaEmbed) &&
+        child.type === KEYS.mediaEmbed ||
+        child.type === BOOKMARK_KEY) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -7249,6 +7351,12 @@ const mediaEmbedPlugin = createSlatePlugin({
   },
 });
 
+const bookmarkPlugin = createSlatePlugin({
+  key: BOOKMARK_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: BookmarkElement },
+});
+
 const filePlugin = FilePlugin.configure({
   node: { isVoid: true },
   render: { node: FileElement },
@@ -7474,6 +7582,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     audioPlugin,
     filePlugin,
     mediaEmbedPlugin,
+    bookmarkPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
@@ -15801,7 +15910,7 @@ function normalizedHttps(url: URL): string {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
+## packages/core/src/components/blocks/notion-like-editor/editor-paste-url.ts
 ```ts
 import {
   ElementApi,
@@ -15816,12 +15925,6 @@ import {
 
 import type { EditorCommand } from "./editor-commands";
 import { selectionInCodeBlock } from "./editor-code";
-import { embedElement, parseEmbedUrl, type ParsedEmbed } from "./editor-embed-url";
-import { setPasteRepairs } from "./editor-paste-repairs";
-
-export const EMBED_INVALID_URL = "That link is not a YouTube or Vimeo video.";
-export const EMBED_PASTE_DROPPED =
-  "An embed was removed because it is not a YouTube or Vimeo video.";
 
 export type PasteUrlOffer = {
   url: string;
@@ -15838,18 +15941,10 @@ export type PasteUrlAction = {
   run: (editor: SlateEditor, offer: PasteUrlOffer) => void;
 };
 
-// DEV-109 adds a bookmark action here. The menu lists every action whose match
-// accepts the pasted URL. Each run is a later undo step than the paste.
-export const pasteUrlActions: PasteUrlAction[] = [
-  {
-    id: "embed",
-    label: "Embed video",
-    match: (url) => parseEmbedUrl(url) !== undefined,
-    run: (editor, offer) => {
-      replacePastedUrl(editor, offer);
-    },
-  },
-];
+// Blocks register here. Bookmark unshifts so it stays first. Embed pushes.
+// The menu lists every action whose match accepts the pasted URL.
+// Each run is a later undo step than the paste.
+export const pasteUrlActions: PasteUrlAction[] = [];
 
 function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
   return typeof value === "function";
@@ -15948,39 +16043,6 @@ export function clearPasteUrlOffer(editor: SlateEditor): void {
   }
 }
 
-export const embedHtmlDeserializer = {
-  isElement: true,
-  rules: [{ validNodeName: "IFRAME" }],
-  parse({ element }: { element: HTMLElement }): TElement {
-    const src = element.getAttribute("src") ?? "";
-    const parsed = parseEmbedUrl(src);
-    if (parsed === undefined) {
-      return { type: KEYS.mediaEmbed, embedDrop: true, children: [{ text: "" }] };
-    }
-
-    return embedElement(parsed);
-  },
-};
-
-export const insertEmbedFromUrl: EditorCommand<string> = {
-  id: "block.insert.embed",
-  label: "Embed video",
-  group: "insert",
-  run: (editor, url) => {
-    if (editor.dom.readOnly === true) {
-      return;
-    }
-
-    const parsed = parseEmbedUrl(url);
-    if (parsed === undefined) {
-      setPasteRepairs(editor, [{ path: [], message: EMBED_INVALID_URL }]);
-      return;
-    }
-
-    placeEmbed(editor, parsed);
-  },
-};
-
 export const applyPasteUrlAction: EditorCommand<string> = {
   id: "block.paste-url.apply",
   label: "Apply pasted link",
@@ -16001,77 +16063,13 @@ export const applyPasteUrlAction: EditorCommand<string> = {
   },
 };
 
-export const convertEmbedToText: EditorCommand<string> = {
-  id: "block.embed.to-text",
-  label: "Convert to text",
-  group: "action",
-  run: (editor, id) => {
-    const entry = writableEmbed(editor, id);
-    if (entry === undefined) {
-      return;
-    }
-
-    const sourceUrl = entry[0].sourceUrl;
-    if (typeof sourceUrl !== "string") {
-      return;
-    }
-
-    editor.tf.removeNodes({ at: entry[1] });
-    editor.tf.insertNodes(
-      { type: KEYS.p, id: nanoid(), children: [{ text: sourceUrl }] },
-      { at: entry[1], select: true },
-    );
-  },
-};
-
-export const removeEmbed: EditorCommand<string> = {
-  id: "block.embed.remove",
-  label: "Remove",
-  group: "action",
-  run: (editor, id) => {
-    const entry = writableEmbed(editor, id);
-    if (entry === undefined) {
-      return;
-    }
-
-    editor.tf.removeNodes({ at: entry[1] });
-    if (editor.children.length === 0) {
-      editor.tf.insertNodes(
-        { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
-        { at: [0], select: true },
-      );
-    }
-  },
-};
-
-function placeEmbed(editor: SlateEditor, parsed: ParsedEmbed): void {
-  const entry = editor.api.block({ highest: true });
-  if (entry === undefined || !ElementApi.isElement(entry[0])) {
-    return;
-  }
-
-  const [node, path] = entry;
-  const element = embedElement(parsed, nanoid());
-  const replaceEmpty =
-    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
-  if (replaceEmpty) {
-    editor.tf.removeNodes({ at: path });
-    editor.tf.insertNodes(element, { at: path, select: true });
-    return;
-  }
-
-  const at = PathApi.next(path);
-  if (at === undefined) {
-    return;
-  }
-
-  editor.tf.insertNodes(element, { at, select: true });
-}
-
-function replacePastedUrl(editor: SlateEditor, offer: PasteUrlOffer): void {
-  const parsed = parseEmbedUrl(offer.url);
+export function replacePastedUrlWith(
+  editor: SlateEditor,
+  offer: PasteUrlOffer,
+  element: TElement,
+): void {
   const textEntry = editor.api.node(offer.path);
-  if (parsed === undefined || textEntry === undefined || !TextApi.isText(textEntry[0])) {
+  if (textEntry === undefined || !TextApi.isText(textEntry[0])) {
     return;
   }
 
@@ -16084,7 +16082,7 @@ function replacePastedUrl(editor: SlateEditor, offer: PasteUrlOffer): void {
   const onlyUrl = block.type === KEYS.p && editor.api.string(block).trim() === offer.url;
   if (onlyUrl) {
     editor.tf.removeNodes({ at: blockPath });
-    editor.tf.insertNodes(embedElement(parsed, nanoid()), { at: blockPath, select: true });
+    editor.tf.insertNodes(element, { at: blockPath, select: true });
     return;
   }
 
@@ -16099,25 +16097,15 @@ function replacePastedUrl(editor: SlateEditor, offer: PasteUrlOffer): void {
     return;
   }
 
-  editor.tf.insertNodes(embedElement(parsed, nanoid()), { at: after, select: true });
+  editor.tf.insertNodes(element, { at: after, select: true });
 }
 
-function writableEmbed(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
-  if (editor.dom.readOnly === true) {
-    return undefined;
-  }
-
-  for (const [node, path] of editor.api.nodes({
-    at: [],
-    match: (candidate) =>
-      ElementApi.isElement(candidate) && candidate.type === KEYS.mediaEmbed && candidate.id === id,
-  })) {
-    if (ElementApi.isElement(node)) {
-      return [node, path];
-    }
-  }
-
-  return undefined;
+export function replaceVoidWithParagraph(editor: SlateEditor, path: number[], text: string): void {
+  editor.tf.removeNodes({ at: path });
+  editor.tf.insertNodes(
+    { type: KEYS.p, id: nanoid(), children: [{ text }] },
+    { at: path, select: true },
+  );
 }
 
 function pasteOfferUrl(editor: SlateEditor, plain: string, html: string): string | undefined {
@@ -16236,6 +16224,161 @@ function htmlWithoutScripts(html: string): string {
   }
 
   return document.body.innerHTML;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-embed.ts
+```ts
+import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { embedElement, parseEmbedUrl, type ParsedEmbed } from "./editor-embed-url";
+import { setPasteRepairs } from "./editor-paste-repairs";
+import {
+  pasteUrlActions as pasteUrlActionList,
+  replacePastedUrlWith,
+  replaceVoidWithParagraph,
+} from "./editor-paste-url";
+
+export const EMBED_INVALID_URL = "That link is not a YouTube or Vimeo video.";
+export const EMBED_PASTE_DROPPED =
+  "An embed was removed because it is not a YouTube or Vimeo video.";
+
+export {
+  applyPasteUrlAction,
+  clearPasteUrlOffer,
+  pasteUrlActions,
+  pasteUrlPlugin,
+  type PasteUrlAction,
+  type PasteUrlOffer,
+} from "./editor-paste-url";
+
+pasteUrlActionList.push({
+  id: "embed",
+  label: "Embed video",
+  match: (url) => parseEmbedUrl(url) !== undefined,
+  run: (editor, offer) => {
+    const parsed = parseEmbedUrl(offer.url);
+    if (parsed === undefined) {
+      return;
+    }
+
+    replacePastedUrlWith(editor, offer, embedElement(parsed, nanoid()));
+  },
+});
+
+export const embedHtmlDeserializer = {
+  isElement: true,
+  rules: [{ validNodeName: "IFRAME" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const src = element.getAttribute("src") ?? "";
+    const parsed = parseEmbedUrl(src);
+    if (parsed === undefined) {
+      return { type: KEYS.mediaEmbed, embedDrop: true, children: [{ text: "" }] };
+    }
+
+    return embedElement(parsed);
+  },
+};
+
+export const insertEmbedFromUrl: EditorCommand<string> = {
+  id: "block.insert.embed",
+  label: "Embed video",
+  group: "insert",
+  run: (editor, url) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    const parsed = parseEmbedUrl(url);
+    if (parsed === undefined) {
+      setPasteRepairs(editor, [{ path: [], message: EMBED_INVALID_URL }]);
+      return;
+    }
+
+    placeEmbed(editor, parsed);
+  },
+};
+
+export const convertEmbedToText: EditorCommand<string> = {
+  id: "block.embed.to-text",
+  label: "Convert to text",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableEmbed(editor, id);
+    if (entry === undefined) {
+      return;
+    }
+
+    const sourceUrl = entry[0].sourceUrl;
+    if (typeof sourceUrl !== "string") {
+      return;
+    }
+
+    replaceVoidWithParagraph(editor, entry[1], sourceUrl);
+  },
+};
+
+export const removeEmbed: EditorCommand<string> = {
+  id: "block.embed.remove",
+  label: "Remove",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableEmbed(editor, id);
+    if (entry === undefined) {
+      return;
+    }
+
+    editor.tf.removeNodes({ at: entry[1] });
+    if (editor.children.length === 0) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
+        { at: [0], select: true },
+      );
+    }
+  },
+};
+
+function placeEmbed(editor: SlateEditor, parsed: ParsedEmbed): void {
+  const entry = editor.api.block({ highest: true });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return;
+  }
+
+  const [node, path] = entry;
+  const element = embedElement(parsed, nanoid());
+  const replaceEmpty =
+    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
+  if (replaceEmpty) {
+    editor.tf.removeNodes({ at: path });
+    editor.tf.insertNodes(element, { at: path, select: true });
+    return;
+  }
+
+  const at = PathApi.next(path);
+  if (at === undefined) {
+    return;
+  }
+
+  editor.tf.insertNodes(element, { at, select: true });
+}
+
+function writableEmbed(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  if (editor.dom.readOnly === true) {
+    return undefined;
+  }
+
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) =>
+      ElementApi.isElement(candidate) && candidate.type === KEYS.mediaEmbed && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return [node, path];
+    }
+  }
+
+  return undefined;
 }
 ```
 
@@ -16539,6 +16682,831 @@ function mediaStart(value: unknown): number | undefined {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-bookmark-url.ts
+```ts
+import type { TElement } from "platejs";
+
+export const BOOKMARK_KEY = "bookmark";
+
+export const BOOKMARK_URL_MAX = 2048;
+export const BOOKMARK_TITLE_MAX = 300;
+export const BOOKMARK_DESCRIPTION_MAX = 500;
+export const BOOKMARK_SITE_NAME_MAX = 100;
+
+export const BOOKMARK_INVALID_URL = "That link is not an http or https URL.";
+export const BOOKMARK_PASTE_DROPPED =
+  "A bookmark was removed because its link is not an http or https URL.";
+
+const ELLIPSIS = "…";
+
+export type BookmarkFields = {
+  url: string;
+  title?: string;
+  description?: string;
+  siteName?: string;
+  imageUrl?: string;
+  fetchedAt?: string;
+};
+
+export type LinkPreview = {
+  title?: string;
+  description?: string;
+  siteName?: string;
+  imageUrl?: string;
+};
+
+// A server fetchPreview must block private, loopback, and link-local addresses after DNS,
+// re-check every redirect (≤ 3), cap the body at 512 KB and the time at 5 s, and parse only text/html.
+// This editor never fetches the URL itself.
+export type LinkPreviewAdapter = {
+  fetchPreview: (url: string, signal: AbortSignal) => Promise<LinkPreview | null>;
+};
+
+export function sanitizeBookmarkText(value: string, limit: number): string | undefined {
+  const normalized = value.normalize("NFC");
+  let stripped = "";
+  for (const char of normalized) {
+    const code = char.codePointAt(0);
+    if (code === undefined || code <= 0x1f || code === 0x7f) {
+      continue;
+    }
+
+    if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+      continue;
+    }
+
+    stripped += char;
+  }
+
+  const collapsed = stripped.replace(/\s+/g, " ").trim();
+  if (collapsed.length === 0 || limit < 1) {
+    return undefined;
+  }
+
+  const points = [...collapsed];
+  if (points.length <= limit) {
+    return collapsed;
+  }
+
+  return `${points.slice(0, limit - 1).join("")}${ELLIPSIS}`;
+}
+
+export function normalizeBookmarkUrl(input: string): string | undefined {
+  const trimmed = input.trim();
+  if (trimmed.length === 0 || trimmed.length > BOOKMARK_URL_MAX) {
+    return undefined;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return undefined;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return undefined;
+  }
+
+  if (url.username.length > 0 || url.password.length > 0) {
+    return undefined;
+  }
+
+  if (url.href.length > BOOKMARK_URL_MAX) {
+    return undefined;
+  }
+
+  return url.href;
+}
+
+export function normalizeBookmarkImageUrl(input: string): string | undefined {
+  if (input.length === 0 || input.length > BOOKMARK_URL_MAX || input !== input.trim()) {
+    return undefined;
+  }
+
+  if (input.startsWith("/")) {
+    if (input.startsWith("//") || hasBookmarkControl(input)) {
+      return undefined;
+    }
+
+    return input;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    return undefined;
+  }
+
+  if (url.protocol !== "https:" || url.username.length > 0 || url.password.length > 0) {
+    return undefined;
+  }
+
+  if (url.href.length > BOOKMARK_URL_MAX || url.href !== input) {
+    return undefined;
+  }
+
+  return url.href;
+}
+
+export function isBookmarkFetchedAt(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+export function isStoredBookmarkText(value: unknown, limit: number): boolean {
+  return typeof value === "string" && sanitizeBookmarkText(value, limit) === value;
+}
+
+export function storedBookmarkUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = normalizeBookmarkUrl(value);
+  if (normalized !== value) {
+    return undefined;
+  }
+
+  return value;
+}
+
+export function bookmarkElement(fields: BookmarkFields, id?: string): TElement {
+  const node: TElement = {
+    type: BOOKMARK_KEY,
+    url: fields.url,
+    children: [{ text: "" }],
+  };
+  if (id !== undefined) {
+    node.id = id;
+  }
+
+  assignBookmarkField(node, "title", fields.title);
+  assignBookmarkField(node, "description", fields.description);
+  assignBookmarkField(node, "siteName", fields.siteName);
+  assignBookmarkField(node, "imageUrl", fields.imageUrl);
+  assignBookmarkField(node, "fetchedAt", fields.fetchedAt);
+  return node;
+}
+
+export function storedBookmark(node: Record<string, unknown>): BookmarkFields | undefined {
+  const url = storedBookmarkUrl(node.url);
+  if (url === undefined) {
+    return undefined;
+  }
+
+  const title = readStoredText(node, "title", BOOKMARK_TITLE_MAX);
+  const description = readStoredText(node, "description", BOOKMARK_DESCRIPTION_MAX);
+  const siteName = readStoredText(node, "siteName", BOOKMARK_SITE_NAME_MAX);
+  if (title === false || description === false || siteName === false) {
+    return undefined;
+  }
+
+  let imageUrl: string | undefined;
+  if ("imageUrl" in node) {
+    if (typeof node.imageUrl !== "string") {
+      return undefined;
+    }
+
+    const normalized = normalizeBookmarkImageUrl(node.imageUrl);
+    if (normalized !== node.imageUrl) {
+      return undefined;
+    }
+
+    imageUrl = normalized;
+  }
+
+  let fetchedAt: string | undefined;
+  if ("fetchedAt" in node) {
+    if (!isBookmarkFetchedAt(node.fetchedAt)) {
+      return undefined;
+    }
+
+    fetchedAt = node.fetchedAt;
+  }
+
+  return {
+    url,
+    title,
+    description,
+    siteName,
+    imageUrl,
+    fetchedAt,
+  };
+}
+
+export function bookmarkPreviewFields(preview: LinkPreview): Omit<BookmarkFields, "url"> {
+  return {
+    title: readPreviewText(preview.title, BOOKMARK_TITLE_MAX),
+    description: readPreviewText(preview.description, BOOKMARK_DESCRIPTION_MAX),
+    siteName: readPreviewText(preview.siteName, BOOKMARK_SITE_NAME_MAX),
+    imageUrl:
+      typeof preview.imageUrl === "string"
+        ? normalizeBookmarkImageUrl(preview.imageUrl)
+        : undefined,
+  };
+}
+
+export function bookmarkDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function assignBookmarkField(node: TElement, key: string, value: string | undefined): void {
+  if (value !== undefined) {
+    node[key] = value;
+  }
+}
+
+function readStoredText(
+  node: Record<string, unknown>,
+  key: string,
+  limit: number,
+): string | undefined | false {
+  if (!(key in node)) {
+    return undefined;
+  }
+
+  if (!isStoredBookmarkText(node[key], limit)) {
+    return false;
+  }
+
+  if (typeof node[key] !== "string") {
+    return false;
+  }
+
+  return node[key];
+}
+
+function readPreviewText(value: string | undefined, limit: number): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return sanitizeBookmarkText(value, limit);
+}
+
+function hasBookmarkControl(value: string): boolean {
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    if (code === undefined || code <= 0x1f || code === 0x7f || code === 0x20) {
+      return true;
+    }
+  }
+
+  return false;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-bookmark.ts
+```ts
+import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import {
+  BOOKMARK_INVALID_URL,
+  BOOKMARK_KEY,
+  bookmarkElement,
+  bookmarkPreviewFields,
+  normalizeBookmarkUrl,
+  type LinkPreview,
+} from "./editor-bookmark-url";
+import { setPasteRepairs } from "./editor-paste-repairs";
+import {
+  pasteUrlActions,
+  replacePastedUrlWith,
+  replaceVoidWithParagraph,
+} from "./editor-paste-url";
+
+const METADATA_KEYS = ["title", "description", "siteName", "imageUrl"] as const;
+
+pasteUrlActions.unshift({
+  id: "bookmark",
+  label: "Bookmark",
+  match: () => true,
+  run: (editor, offer) => {
+    const url = normalizeBookmarkUrl(offer.url);
+    if (url === undefined) {
+      setPasteRepairs(editor, [{ path: [], message: BOOKMARK_INVALID_URL }]);
+      return;
+    }
+
+    replacePastedUrlWith(editor, offer, bookmarkElement({ url }, nanoid()));
+  },
+});
+
+export const insertBookmarkFromUrl: EditorCommand<string> = {
+  id: "block.insert.bookmark",
+  label: "Bookmark",
+  group: "insert",
+  run: (editor, url) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    const normalized = normalizeBookmarkUrl(url);
+    if (normalized === undefined) {
+      setPasteRepairs(editor, [{ path: [], message: BOOKMARK_INVALID_URL }]);
+      return;
+    }
+
+    placeBookmark(editor, normalized);
+  },
+};
+
+export const convertBookmarkToText: EditorCommand<string> = {
+  id: "block.bookmark.to-text",
+  label: "Convert to text",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableBookmark(editor, id);
+    if (entry === undefined || typeof entry[0].url !== "string") {
+      return;
+    }
+
+    replaceVoidWithParagraph(editor, entry[1], entry[0].url);
+  },
+};
+
+export const removeBookmark: EditorCommand<string> = {
+  id: "block.bookmark.remove",
+  label: "Remove",
+  group: "action",
+  run: (editor, id) => {
+    const entry = writableBookmark(editor, id);
+    if (entry === undefined) {
+      return;
+    }
+
+    editor.tf.removeNodes({ at: entry[1] });
+    if (editor.children.length === 0) {
+      editor.tf.insertNodes(
+        { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
+        { at: [0], select: true },
+      );
+    }
+  },
+};
+
+// Cached preview metadata is not a user edit. Undo still removes the insert that created the block.
+export function applyBookmarkPreview(
+  editor: SlateEditor,
+  blockId: string,
+  url: string,
+  preview: LinkPreview,
+): boolean {
+  const entry = writableBookmark(editor, blockId);
+  if (entry === undefined || entry[0].url !== url) {
+    return false;
+  }
+
+  const fields = bookmarkPreviewFields(preview);
+  const props: Record<string, string> = { fetchedAt: new Date().toISOString() };
+  if (fields.title !== undefined) {
+    props.title = fields.title;
+  }
+  if (fields.description !== undefined) {
+    props.description = fields.description;
+  }
+  if (fields.siteName !== undefined) {
+    props.siteName = fields.siteName;
+  }
+  if (fields.imageUrl !== undefined) {
+    props.imageUrl = fields.imageUrl;
+  }
+
+  const [, path] = entry;
+  const drop = METADATA_KEYS.filter((key) => !(key in props));
+  editor.tf.withoutSaving(() => {
+    editor.tf.setNodes(props, { at: path });
+    if (drop.length > 0) {
+      editor.tf.unsetNodes([...drop], { at: path });
+    }
+  });
+  return true;
+}
+
+function placeBookmark(editor: SlateEditor, url: string): void {
+  const entry = editor.api.block({ highest: true });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return;
+  }
+
+  const [node, path] = entry;
+  const element = bookmarkElement({ url }, nanoid());
+  const replaceEmpty =
+    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
+  if (replaceEmpty) {
+    editor.tf.removeNodes({ at: path });
+    editor.tf.insertNodes(element, { at: path, select: true });
+    return;
+  }
+
+  const at = PathApi.next(path);
+  if (at === undefined) {
+    return;
+  }
+
+  editor.tf.insertNodes(element, { at, select: true });
+}
+
+function writableBookmark(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  if (editor.dom.readOnly === true) {
+    return undefined;
+  }
+
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    match: (candidate) =>
+      ElementApi.isElement(candidate) && candidate.type === BOOKMARK_KEY && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return [node, path];
+    }
+  }
+
+  return undefined;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/bookmark-element.tsx
+```tsx
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { ExternalLink, Globe, Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { applyBookmarkPreview, convertBookmarkToText, removeBookmark } from "./editor-bookmark";
+import { bookmarkDomain, type LinkPreviewAdapter } from "./editor-bookmark-url";
+import { runEditorCommand } from "./editor-commands";
+import { hrElementClassName } from "./hr-element";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaIconButton,
+  mediaIconButtonClass,
+  mediaStringAttr,
+  keepMediaSelection,
+} from "./media-element-parts";
+
+export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
+export const BOOKMARK_CARD_CLASS =
+  "border-border bg-background flex h-28 w-full min-w-0 flex-col gap-3 overflow-hidden rounded-md border p-3 sm:flex-row";
+
+const LinkPreviewContext = createContext<LinkPreviewAdapter | null>(null);
+
+let previewTimeoutMs = BOOKMARK_PREVIEW_TIMEOUT_MS;
+
+export function setBookmarkPreviewTimeoutMs(ms: number): () => void {
+  const previous = previewTimeoutMs;
+  previewTimeoutMs = ms;
+  return () => {
+    previewTimeoutMs = previous;
+  };
+}
+
+export function LinkPreviewProvider({
+  adapter,
+  children,
+}: {
+  adapter: LinkPreviewAdapter | null;
+  children: ReactNode;
+}) {
+  return <LinkPreviewContext.Provider value={adapter}>{children}</LinkPreviewContext.Provider>;
+}
+
+type BookmarkPhase = "loading" | "ready" | "fallback" | "unavailable";
+
+export function BookmarkElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const adapter = useContext(LinkPreviewContext);
+  const id = typeof element.id === "string" ? element.id : "";
+  const url = mediaStringAttr(element, "url") ?? "";
+  const title = mediaStringAttr(element, "title");
+  const description = mediaStringAttr(element, "description");
+  const siteName = mediaStringAttr(element, "siteName");
+  const imageUrl = mediaStringAttr(element, "imageUrl");
+  const fetchedAt = mediaStringAttr(element, "fetchedAt");
+  const domain = bookmarkDomain(url);
+  const heading = title ?? domain;
+  const site = siteName ?? domain;
+  const storedAt = useRef(fetchedAt);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [phase, setPhase] = useState<BookmarkPhase>(
+    fetchedAt !== undefined ? "ready" : adapter ? "loading" : "fallback",
+  );
+
+  useEffect(() => {
+    storedAt.current = fetchedAt;
+  }, [fetchedAt]);
+
+  useEffect(() => {
+    if (adapter === null || url.length === 0 || id.length === 0) {
+      return;
+    }
+
+    if (storedAt.current !== undefined && attempt === 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    setPhase("loading");
+
+    const finish = (next: BookmarkPhase): void => {
+      if (!active) {
+        return;
+      }
+
+      setPhase(next);
+    };
+
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, previewTimeoutMs);
+    controller.signal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      finish("unavailable");
+    });
+
+    void adapter
+      .fetchPreview(url, controller.signal)
+      .then((preview) => {
+        if (!active) {
+          return;
+        }
+
+        clearTimeout(timer);
+        if (controller.signal.aborted) {
+          finish("unavailable");
+          return;
+        }
+        if (preview === null) {
+          finish("fallback");
+          return;
+        }
+
+        const wrote = applyBookmarkPreview(editor, id, url, preview);
+        finish(wrote ? "ready" : "unavailable");
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        clearTimeout(timer);
+        finish("unavailable");
+      });
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [adapter, attempt, editor, id, url]);
+
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node || readOnly) {
+      return;
+    }
+
+    const onMouseDown = (event: MouseEvent): void => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof Element && target.closest("a, button")) {
+        return;
+      }
+
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.select(path);
+      }
+    };
+    node.addEventListener("mousedown", onMouseDown);
+    return () => {
+      node.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [editor, element, readOnly]);
+
+  const body = (
+    <BookmarkBody
+      description={description}
+      domain={domain}
+      heading={heading}
+      imageUrl={phase === "loading" ? undefined : imageUrl}
+      loading={phase === "loading"}
+      site={site}
+      unavailable={phase === "unavailable"}
+      url={url}
+    />
+  );
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn("group relative py-1", hrElementClassName(selected, focused, readOnly))}
+    >
+      <div className="relative" contentEditable={false}>
+        {readOnly ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            data-bookmark-card=""
+            data-bookmark-status={phase}
+            data-bookmark-url={url}
+            className={cn(BOOKMARK_CARD_CLASS, "text-foreground no-underline")}
+          >
+            {body}
+          </a>
+        ) : (
+          <div
+            ref={cardRef}
+            data-bookmark-card=""
+            data-bookmark-status={phase}
+            data-bookmark-url={url}
+            className={BOOKMARK_CARD_CLASS}
+          >
+            {body}
+          </div>
+        )}
+        {readOnly ? null : (
+          <BookmarkToolbar
+            id={id}
+            showRefresh={adapter !== null}
+            url={url}
+            onRefresh={() => {
+              setAttempt((current) => current + 1);
+            }}
+          />
+        )}
+      </div>
+      {props.children}
+    </PlateElement>
+  );
+}
+
+function BookmarkBody({
+  description,
+  domain,
+  heading,
+  imageUrl,
+  loading,
+  site,
+  unavailable,
+  url,
+}: {
+  description: string | undefined;
+  domain: string;
+  heading: string;
+  imageUrl: string | undefined;
+  loading: boolean;
+  site: string;
+  unavailable: boolean;
+  url: string;
+}) {
+  if (loading) {
+    return <div data-bookmark-skeleton="" className="bg-muted h-28 w-full rounded-md" />;
+  }
+
+  return (
+    <>
+      <BookmarkThumbnail imageUrl={imageUrl} />
+      {imageUrl === undefined ? (
+        <div className="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-md">
+          <Globe aria-hidden className="size-5" />
+          <span className="sr-only">{domain}</span>
+        </div>
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="min-w-0 truncate text-sm">{heading}</p>
+        {description !== undefined ? (
+          <p className="text-muted-foreground line-clamp-2 min-w-0 text-xs">{description}</p>
+        ) : null}
+        <p className="text-muted-foreground min-w-0 truncate text-xs">{site}</p>
+        <p className="text-muted-foreground min-w-0 text-xs [overflow-wrap:anywhere]">{url}</p>
+        {unavailable ? (
+          <p data-bookmark-unavailable="" className="text-muted-foreground text-xs">
+            Preview unavailable
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function BookmarkThumbnail({ imageUrl }: { imageUrl: string | undefined }) {
+  const [broken, setBroken] = useState(false);
+  if (imageUrl === undefined || broken) {
+    return null;
+  }
+
+  return (
+    <div
+      data-bookmark-thumbnail=""
+      className="bg-muted h-16 w-24 shrink-0 overflow-hidden rounded-md"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- remote or same-origin preview */}
+      <img
+        src={imageUrl}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="size-full object-cover"
+        onError={() => {
+          setBroken(true);
+        }}
+      />
+    </div>
+  );
+}
+
+function BookmarkToolbar({
+  id,
+  onRefresh,
+  showRefresh,
+  url,
+}: {
+  id: string;
+  onRefresh: () => void;
+  showRefresh: boolean;
+  url: string;
+}) {
+  const editor = useEditorRef();
+  const selected = useSelected();
+
+  return (
+    <div
+      data-bookmark-toolbar=""
+      className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
+    >
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        aria-label="Open"
+        className={mediaIconButtonClass}
+        onMouseDown={keepMediaSelection}
+      >
+        <ExternalLink aria-hidden className="size-4" />
+        Open
+      </a>
+      {showRefresh ? (
+        <MediaIconButton
+          label="Refresh preview"
+          onClick={() => {
+            onRefresh();
+          }}
+        >
+          Refresh preview
+        </MediaIconButton>
+      ) : null}
+      <MediaIconButton
+        label="Convert to text"
+        onClick={(current) => {
+          runEditorCommand(current, convertBookmarkToText, id);
+        }}
+      >
+        Convert to text
+      </MediaIconButton>
+      <MediaIconButton
+        label="Remove"
+        onClick={() => {
+          runEditorCommand(editor, removeBookmark, id);
+        }}
+      >
+        <Trash2 aria-hidden className="size-4" />
+      </MediaIconButton>
+    </div>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
@@ -16552,7 +17520,7 @@ import {
   clearPasteUrlOffer,
   pasteUrlActions,
   pasteUrlPlugin,
-} from "./editor-embed";
+} from "./editor-paste-url";
 
 export function PasteUrlMenu() {
   const editor = useEditorRef();
@@ -21092,6 +22060,8 @@ import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
+import { LinkPreviewProvider } from "./bookmark-element";
+import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
 import { PasteUrlMenu } from "./paste-url-menu";
@@ -21104,6 +22074,7 @@ type EditorSurfaceProps = {
   onValueChange?: (value: EditorValue) => void;
   className: string;
   assetStore?: AssetStore | null;
+  linkPreview?: LinkPreviewAdapter | null;
 };
 
 export function EditorSurface({
@@ -21113,6 +22084,7 @@ export function EditorSurface({
   onValueChange,
   className,
   assetStore = null,
+  linkPreview = null,
 }: EditorSurfaceProps) {
   return (
     <Plate
@@ -21122,27 +22094,29 @@ export function EditorSurface({
         onValueChange?.(value);
       }}
     >
-      <ImageRuntime store={assetStore} />
-      <VideoRuntime store={assetStore} />
-      <AudioRuntime store={assetStore} />
-      <FileRuntime store={assetStore} />
-      <PasteUrlMenu />
-      <PlateContent
-        placeholder={readOnly ? undefined : placeholder}
-        // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-        // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-        // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-        className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-        renderPlaceholder={(placeholderProps) => (
-          <span
-            {...placeholderProps.attributes}
-            className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-            style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-          >
-            {placeholderProps.children}
-          </span>
-        )}
-      />
+      <LinkPreviewProvider adapter={linkPreview}>
+        <ImageRuntime store={assetStore} />
+        <VideoRuntime store={assetStore} />
+        <AudioRuntime store={assetStore} />
+        <FileRuntime store={assetStore} />
+        <PasteUrlMenu />
+        <PlateContent
+          placeholder={readOnly ? undefined : placeholder}
+          // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+          // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+          // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+          className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+          renderPlaceholder={(placeholderProps) => (
+            <span
+              {...placeholderProps.attributes}
+              className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+              style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+            >
+              {placeholderProps.children}
+            </span>
+          )}
+        />
+      </LinkPreviewProvider>
     </Plate>
   );
 }
@@ -21344,6 +22318,7 @@ export function MemoryEditor({
   placeholder = "Type something…",
   className,
   assetStore = null,
+  linkPreview = null,
 }: NotionLikeEditorBlockProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -21355,6 +22330,7 @@ export function MemoryEditor({
         placeholder={placeholder}
         onValueChange={onChange}
         assetStore={assetStore}
+        linkPreview={linkPreview}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
@@ -21370,6 +22346,7 @@ import { EditorSaveStatus } from "./editor-save-status";
 import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "./editor-autosave";
 import type { AssetStore } from "./editor-assets";
+import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import type { EditorValue } from "./editor-value";
 import { useNotionLikeEditor } from "./use-notion-like-editor";
 
@@ -21384,6 +22361,7 @@ type ReadyEditorProps = {
   message?: string;
   onRetry: () => void;
   assetStore?: AssetStore | null;
+  linkPreview?: LinkPreviewAdapter | null;
 };
 
 export function ReadyEditor({
@@ -21397,6 +22375,7 @@ export function ReadyEditor({
   message,
   onRetry,
   assetStore = null,
+  linkPreview = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -21414,6 +22393,7 @@ export function ReadyEditor({
           onContentChange(value);
         }}
         assetStore={assetStore}
+        linkPreview={linkPreview}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
       />
     </div>
@@ -21443,6 +22423,7 @@ export function PersistedEditor({
   className,
   adapter,
   assetStore = null,
+  linkPreview = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -21468,6 +22449,7 @@ export function PersistedEditor({
           onChange={onChange}
           onContentChange={session.onContentChange}
           assetStore={assetStore}
+          linkPreview={linkPreview}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -21485,6 +22467,7 @@ export function PersistedEditor({
 "use client";
 
 import type { AssetStore } from "./editor-assets";
+import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import type { EditorValue } from "./editor-value";
 import { MemoryEditor } from "./memory-editor";
@@ -21499,6 +22482,7 @@ export type NotionLikeEditorBlockProps = {
   className?: string;
   adapter?: EditorPersistenceAdapter;
   assetStore?: AssetStore | null;
+  linkPreview?: LinkPreviewAdapter | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -22558,6 +23542,23 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "bookmark",
+    id: "demo-bookmark",
+    url: "https://platejs.org/docs",
+    title: "Plate",
+    description: "The rich-text editor framework for React.",
+    siteName: "Plate",
+    imageUrl: "/blocks/notion-like-editor/bookmark-demo.svg",
+    fetchedAt: "2026-10-08T00:00:00.000Z",
+    children: [{ text: "" }],
+  },
+  {
+    type: "bookmark",
+    id: "demo-bookmark-fallback",
+    url: "https://example.com/not-in-the-preview-list",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -22596,6 +23597,63 @@ export function demoDocumentId(value: EditorValue): string {
 export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+```ts
+import type { LinkPreview, LinkPreviewAdapter } from "./editor-bookmark-url";
+
+const DEMO_PREVIEW_DELAY_MS = 400;
+
+const FIXTURES: Record<string, LinkPreview> = {
+  "https://platejs.org/docs": {
+    title: "Plate",
+    description: "The rich-text editor framework for React.",
+    siteName: "Plate",
+    imageUrl: "/blocks/notion-like-editor/bookmark-demo.svg",
+  },
+  "https://github.com/udecode/plate": {
+    title: "udecode/plate",
+    description: "The rich-text editor framework for React.",
+    siteName: "GitHub",
+    imageUrl: "/blocks/notion-like-editor/bookmark-demo.svg",
+  },
+};
+
+export const demoLinkPreviewAdapter: LinkPreviewAdapter = {
+  fetchPreview(url, signal) {
+    return wait(DEMO_PREVIEW_DELAY_MS, signal).then(() => fixtureFor(url));
+  },
+};
+
+function fixtureFor(url: string): LinkPreview | null {
+  return FIXTURES[url] ?? null;
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(abortError());
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function abortError(): Error {
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
 ```tsx
 "use client";
@@ -22603,6 +23661,7 @@ export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
 import { useSyncExternalStore } from "react";
 
 import type { AssetStore } from "./editor-assets";
+import { demoLinkPreviewAdapter } from "./demo-link-preview";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createIndexedDbAssetStore } from "./indexed-db-asset-store";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
@@ -22674,6 +23733,7 @@ export function NotionLikeEditorDemo() {
       adapter={adapter}
       initialValue={DEMO_DOCUMENT_VALUE}
       assetStore={getDemoStore()}
+      linkPreview={demoLinkPreviewAdapter}
     />
   );
 }
@@ -22823,12 +23883,28 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-embed-url.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-paste-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste-url.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-embed.ts",
     code: readSource(`${BLOCK_DIR}/editor-embed.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/embed-element.tsx",
     code: readSource(`${BLOCK_DIR}/embed-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-bookmark-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-bookmark-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-bookmark.ts",
+    code: readSource(`${BLOCK_DIR}/editor-bookmark.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/bookmark-element.tsx",
+    code: readSource(`${BLOCK_DIR}/bookmark-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
@@ -22933,6 +24009,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/demo-document.ts",
     code: readSource(`${BLOCK_DIR}/demo-document.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/demo-link-preview.ts",
+    code: readSource(`${BLOCK_DIR}/demo-link-preview.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

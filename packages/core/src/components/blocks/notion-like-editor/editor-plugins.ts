@@ -54,11 +54,14 @@ import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
+import { BookmarkElement } from "./bookmark-element";
+import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
 import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
-import { embedHtmlDeserializer, pasteUrlPlugin } from "./editor-embed";
+import { embedHtmlDeserializer } from "./editor-embed";
+import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
   handleImageDrop,
@@ -691,7 +694,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.video ||
         child.type === KEYS.audio ||
         child.type === KEYS.file ||
-        child.type === KEYS.mediaEmbed) &&
+        child.type === KEYS.mediaEmbed ||
+        child.type === BOOKMARK_KEY) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1547,6 +1551,12 @@ const mediaEmbedPlugin = createSlatePlugin({
   },
 });
 
+const bookmarkPlugin = createSlatePlugin({
+  key: BOOKMARK_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: BookmarkElement },
+});
+
 const filePlugin = FilePlugin.configure({
   node: { isVoid: true },
   render: { node: FileElement },
@@ -1772,6 +1782,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     audioPlugin,
     filePlugin,
     mediaEmbedPlugin,
+    bookmarkPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,

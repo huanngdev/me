@@ -9,7 +9,7 @@ import {
   clearPasteUrlOffer,
   pasteUrlActions,
   pasteUrlPlugin,
-} from "./editor-embed";
+} from "./editor-paste-url";
 
 export function PasteUrlMenu() {
   const editor = useEditorRef();

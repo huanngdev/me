@@ -2,6 +2,16 @@ import { KEYS } from "platejs";
 
 import { formatBlockLabel } from "./editor-document";
 import {
+  BOOKMARK_DESCRIPTION_MAX,
+  BOOKMARK_KEY,
+  BOOKMARK_SITE_NAME_MAX,
+  BOOKMARK_TITLE_MAX,
+  isBookmarkFetchedAt,
+  isStoredBookmarkText,
+  normalizeBookmarkImageUrl,
+  storedBookmarkUrl,
+} from "./editor-bookmark-url";
+import {
   EMBED_URL_MAX,
   isEmbedHash,
   isEmbedVideoId,
@@ -496,6 +506,59 @@ export function checkEmbedNode(
   return issues;
 }
 
+export function checkBookmarkNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues: TableGridIssue[] = [];
+  if (storedBookmarkUrl(node.url) === undefined) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported url. Restore from a backup or remove the block.`,
+    });
+  }
+
+  bookmarkTextIssue(issues, node, path, "title", BOOKMARK_TITLE_MAX);
+  bookmarkTextIssue(issues, node, path, "description", BOOKMARK_DESCRIPTION_MAX);
+  bookmarkTextIssue(issues, node, path, "siteName", BOOKMARK_SITE_NAME_MAX);
+
+  if ("imageUrl" in node) {
+    const imageUrl = node.imageUrl;
+    if (typeof imageUrl !== "string" || normalizeBookmarkImageUrl(imageUrl) !== imageUrl) {
+      issues.push({
+        path,
+        message: `${formatBlockLabel(path)} has an unsupported imageUrl. Restore from a backup or remove the attribute.`,
+      });
+    }
+  }
+
+  if ("fetchedAt" in node && !isBookmarkFetchedAt(node.fetchedAt)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported fetchedAt. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  return issues;
+}
+
+function bookmarkTextIssue(
+  issues: TableGridIssue[],
+  node: Record<string, unknown>,
+  path: number[],
+  key: string,
+  limit: number,
+): void {
+  if (!(key in node) || isStoredBookmarkText(node[key], limit)) {
+    return;
+  }
+
+  issues.push({
+    path,
+    message: `${formatBlockLabel(path)} has an unsupported ${key}. Restore from a backup or remove the attribute.`,
+  });
+}
+
 function embedSourceIssues(node: Record<string, unknown>, path: number[]): TableGridIssue[] {
   if (!("sourceUrl" in node)) {
     return [
@@ -871,6 +934,14 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { provider: ["youtube", "vimeo"] },
     validateChildren: (node, path) => checkEmbedNode(node, path),
   },
+  // Custom void. Plate has no bookmark plugin. The url is the link. The other
+  // fields are a sanitized preview cache and can be missing without losing it.
+  {
+    type: BOOKMARK_KEY,
+    attrs: ["id", "url", "title", "description", "siteName", "imageUrl", "fetchedAt"],
+    isVoid: true,
+    validateChildren: (node, path) => checkBookmarkNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -898,6 +969,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.audio,
       KEYS.file,
       KEYS.mediaEmbed,
+      BOOKMARK_KEY,
       KEYS.codeBlock,
       KEYS.table,
     ],
