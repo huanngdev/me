@@ -184,10 +184,7 @@ function readRepo(relativePath: string): string {
   return readAbsolute(path.join(ROOT, relativePath));
 }
 
-function publishKind(
-  kind: LlmsCatalogEntry["kind"],
-  read: (relativePath: string) => string,
-): void {
+function publishKind(kind: LlmsCatalogEntry["kind"], read: (relativePath: string) => string): void {
   const meta = metaFor(kind);
   const documents: string[] = [];
   for (const entry of LLMS_CATALOG) {
