@@ -41,7 +41,16 @@ import {
   planPastedVideo,
   queuePastedVideoUpload,
 } from "./editor-video";
+import {
+  AUDIO_BOTH_SOURCES,
+  pastedAudioDroppedUrl,
+  planPastedAudio,
+  queuePastedAudioUpload,
+} from "./editor-audio";
 import type { EditorValue } from "./editor-value";
+import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+
+export { pasteRepairsOf, setPasteRepairs };
 
 export type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
@@ -49,8 +58,6 @@ export type PasteSanitizeOptions = {
   /** Truncation and other paste repairs. The same list is what the editor reports. */
   repairs?: Repair[];
 };
-
-const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
 
 let activePasteRepairs: Repair[] | undefined;
 
@@ -65,14 +72,6 @@ function rememberImageRepair(repair: Repair): void {
 
 function clearPendingImageRepairs(): void {
   pendingImageRepairs = [];
-}
-
-export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
-  pasteRepairLog.set(editor, [...repairs]);
-}
-
-export function pasteRepairsOf(editor: SlateEditor): readonly Repair[] {
-  return pasteRepairLog.get(editor) ?? [];
 }
 
 type IsInline = (node: Record<string, unknown>) => boolean;
@@ -252,8 +251,19 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   return [image];
 }
 
-function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
-  const plan = planPastedVideo(node);
+function pastedMedia(
+  node: TElement,
+  seen: Set<string>,
+  options: {
+    type: string;
+    plan: typeof planPastedVideo;
+    droppedUrl: typeof pastedVideoDroppedUrl;
+    bothSourcesMessage: string;
+    queueUpload: typeof queuePastedVideoUpload;
+    extraRepair?: typeof pastedVideoPosterRepair;
+  },
+): TElement[] {
+  const plan = options.plan(node);
   if (plan.kind === "text") {
     rememberImageRepair({ path: [], message: plan.repair });
     return [paragraph([{ text: plan.text }])];
@@ -264,26 +274,47 @@ function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
     return [];
   }
 
-  if (pastedVideoDroppedUrl(node)) {
-    rememberImageRepair({ path: [], message: VIDEO_BOTH_SOURCES });
+  if (options.droppedUrl(node)) {
+    rememberImageRepair({ path: [], message: options.bothSourcesMessage });
   }
 
-  const posterRepair = pastedVideoPosterRepair(node);
-  if (posterRepair !== undefined) {
-    rememberImageRepair({ path: [], message: posterRepair });
+  const extraRepair = options.extraRepair?.(node);
+  if (extraRepair !== undefined) {
+    rememberImageRepair({ path: [], message: extraRepair });
   }
 
   const id = takeId(node, seen) ?? nanoid();
   if (plan.upload) {
-    queuePastedVideoUpload(id, plan.upload);
+    options.queueUpload(id, plan.upload);
   }
 
-  const video = elementNode(KEYS.video, [{ text: "" }], id);
+  const element = elementNode(options.type, [{ text: "" }], id);
   for (const [key, value] of Object.entries(plan.props)) {
-    video[key] = value;
+    element[key] = value;
   }
 
-  return [video];
+  return [element];
+}
+
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.video,
+    plan: planPastedVideo,
+    droppedUrl: pastedVideoDroppedUrl,
+    bothSourcesMessage: VIDEO_BOTH_SOURCES,
+    queueUpload: queuePastedVideoUpload,
+    extraRepair: pastedVideoPosterRepair,
+  });
+}
+
+function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.audio,
+    plan: planPastedAudio,
+    droppedUrl: pastedAudioDroppedUrl,
+    bothSourcesMessage: AUDIO_BOTH_SOURCES,
+    queueUpload: queuePastedAudioUpload,
+  });
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -808,6 +839,10 @@ function expandBlock(
 
     if (node.type === KEYS.video) {
       return pastedVideo(node, seen);
+    }
+
+    if (node.type === KEYS.audio) {
+      return pastedAudio(node, seen);
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

@@ -33,6 +33,8 @@ import {
   mediaPixelAttr,
   mediaRatio,
   mediaStringAttr,
+  useIsolatedMediaPlayback,
+  useLazyMediaPreload,
   useMediaUpload,
   useResolvedMedia,
 } from "./media-element-parts";
@@ -62,18 +64,6 @@ import {
   videoUploadRole,
   videoUploadState,
 } from "./editor-video";
-
-const PLAYBACK_EVENTS = [
-  "pointerdown",
-  "pointerup",
-  "mousedown",
-  "mouseup",
-  "click",
-  "keydown",
-  "keyup",
-  "beforeinput",
-  "input",
-] as const;
 
 export function VideoRuntime({ store }: { store: AssetStore | null }) {
   const editor = useEditorRef();
@@ -151,8 +141,8 @@ export function VideoElement(props: PlateElementProps) {
   const posterDisplay = posterAssetId !== undefined ? posterAsset.url : posterUrl;
   const fileName = assetId !== undefined ? videoFileName(editor, assetId) : undefined;
 
-  useIsolatedVideo(videoRef, displayUrl, mimeType, setFailedUrl);
-  useLazyPreload(videoRef, displayUrl, showVideo, setPreload);
+  useIsolatedMediaPlayback(videoRef, displayUrl, mimeType, setFailedUrl);
+  useLazyMediaPreload(videoRef, displayUrl, showVideo, setPreload);
 
   return (
     <PlateElement
@@ -412,70 +402,4 @@ function VideoToolbar({
       />
     </>
   );
-}
-
-function useIsolatedVideo(
-  videoRef: { current: HTMLVideoElement | null },
-  displayUrl: string | undefined,
-  mimeType: string | undefined,
-  setFailedUrl: (failed: boolean) => void,
-): void {
-  useEffect(() => {
-    const node = videoRef.current;
-    if (!node) {
-      return;
-    }
-
-    // Slate listens on the editable ancestor during bubble. Stopping here leaves
-    // the browser's own video controls (play, seek, volume) intact.
-    const stop = (event: Event): void => {
-      event.stopPropagation();
-    };
-    for (const name of PLAYBACK_EVENTS) {
-      node.addEventListener(name, stop);
-    }
-
-    if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
-      setFailedUrl(true);
-    }
-
-    return () => {
-      for (const name of PLAYBACK_EVENTS) {
-        node.removeEventListener(name, stop);
-      }
-    };
-  }, [displayUrl, mimeType, setFailedUrl, videoRef]);
-}
-
-function useLazyPreload(
-  videoRef: { current: HTMLVideoElement | null },
-  displayUrl: string | undefined,
-  active: boolean,
-  setPreload: (value: "none" | "metadata") => void,
-): void {
-  useEffect(() => {
-    const node = videoRef.current;
-    if (!node || !active) {
-      return;
-    }
-
-    if (typeof IntersectionObserver !== "function") {
-      setPreload("metadata");
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setPreload("metadata");
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "100% 0px" },
-    );
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
-    };
-  }, [active, displayUrl, setPreload, videoRef]);
 }

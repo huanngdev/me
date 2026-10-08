@@ -981,7 +981,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h3",
     id: "demo-images",
-    children: [{ text: "Images and video" }],
+    children: [{ text: "Images, video, and audio" }],
   },
   {
     type: "img",
@@ -1002,6 +1002,16 @@ export const DEMO_DOCUMENT_VALUE = [
     naturalHeight: 90,
     durationMs: 1000,
     caption: [{ text: "A one-second drawing, recorded in the browser." }],
+    children: [{ text: "" }],
+  },
+  {
+    type: "audio",
+    id: "demo-audio",
+    url: "/blocks/notion-like-editor/audio-demo.wav",
+    mimeType: "audio/wav",
+    name: "audio-demo.wav",
+    durationMs: 1000,
+    caption: [{ text: "A one-second tone, written into a WAV file." }],
     children: [{ text: "" }],
   },
   {

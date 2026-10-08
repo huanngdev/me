@@ -23,7 +23,7 @@ import {
 import { CalloutPlugin } from "@platejs/callout/react";
 import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { ImagePlugin, VideoPlugin } from "@platejs/media/react";
+import { AudioPlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -53,6 +53,7 @@ import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
+import { AudioElement } from "./audio-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
 import {
@@ -62,9 +63,11 @@ import {
   imageHtmlDeserializer,
   imageRuntimePlugin,
 } from "./editor-image";
+import { audioHtmlDeserializer, ensureAudioMedia, flushPastedAudioUploads } from "./editor-audio";
 import { ensureVideoMedia, flushPastedVideoUploads, videoHtmlDeserializer } from "./editor-video";
 
 const videoRuntimePlugin = ensureVideoMedia().plugin;
+const audioRuntimePlugin = ensureAudioMedia().plugin;
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -679,7 +682,7 @@ function normalizeDisallowedChild(
     // A table cell only stores paragraphs. Lifting a media void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
-      (child.type === KEYS.img || child.type === KEYS.video) &&
+      (child.type === KEYS.img || child.type === KEYS.video || child.type === KEYS.audio) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1504,10 +1507,30 @@ const videoPlugin = VideoPlugin.configure({
   },
 }));
 
+const audioPlugin = AudioPlugin.configure({
+  node: { isVoid: true },
+  render: { node: AudioElement },
+  parsers: {
+    html: {
+      deserializer: audioHtmlDeserializer,
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
+  transforms: {
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedAudioUploads(editor);
+      }
+    },
+  },
+}));
+
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img, KEYS.video],
+      allow: [KEYS.img, KEYS.video, KEYS.audio],
     },
   },
 });
@@ -1711,9 +1734,11 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codeBlockPlugin,
     imagePlugin,
     videoPlugin,
+    audioPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
+    audioRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,

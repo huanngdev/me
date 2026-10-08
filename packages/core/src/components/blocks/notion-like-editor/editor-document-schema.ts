@@ -356,6 +356,32 @@ export const VIDEO_ALIGNS = IMAGE_ALIGNS;
 
 export type VideoMimeType = (typeof VIDEO_MIME_TYPES)[number];
 
+export const AUDIO_NAME_MAX = 255;
+export const AUDIO_MIME_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"] as const;
+export const AUDIO_ALIGNS = IMAGE_ALIGNS;
+
+export type AudioMimeType = (typeof AUDIO_MIME_TYPES)[number];
+
+// A stored file name is already trimmed. Control characters and a length past 255 are rejected.
+export function isStoredAudioName(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > AUDIO_NAME_MAX) {
+    return false;
+  }
+
+  if (value !== value.trim()) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // A sourceless video is an upload that has not finished. It loads as ok.
 // Playback position, paused, muted, and volume are not document fields.
 export function checkVideoNode(
@@ -372,6 +398,35 @@ export function checkVideoNode(
   }
 
   issues.push(...posterIssues(node, path));
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+// A sourceless audio node is an upload that has not finished. It loads as ok.
+// Playback position, paused, muted, volume, and width are not document fields.
+export function checkAudioNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path)];
+
+  if ("name" in node && !isStoredAudioName(node.name)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported name. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("durationMs" in node && !positivePixel(node.durationMs)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
 
   if ("caption" in node) {
     issues.push(...captionIssues(node.caption, path));
@@ -572,6 +627,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrRanges: { width: { min: VIDEO_MIN_WIDTH, max: VIDEO_MAX_WIDTH } },
     validateChildren: (node, path) => checkVideoNode(node, path),
   },
+  // Plate's audio node is BaseAudioPlugin (@platejs/media 53.1.4): key KEYS.audio, which is
+  // "audio", void, and an element. Unlike BaseVideoPlugin it has no dangerouslyAllowAttributes,
+  // so width and height are not node fields. The url field is the same element url insertImage
+  // writes. Caption is Plate's [{ text }] shape, written by setNodes in @platejs/caption.
+  // currentTime, paused, muted, volume, and playbackRate are playback state and are not stored.
+  // The native control is a full-width bar, so width is rejected rather than resized.
+  {
+    type: KEYS.audio,
+    attrs: ["id", "assetId", "url", "mimeType", "name", "durationMs", "align", "caption"],
+    isVoid: true,
+    attrValues: { align: AUDIO_ALIGNS, mimeType: AUDIO_MIME_TYPES },
+    validateChildren: (node, path) => checkAudioNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -596,6 +664,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.img,
       KEYS.video,
+      KEYS.audio,
       KEYS.codeBlock,
       KEYS.table,
     ],

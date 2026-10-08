@@ -252,9 +252,13 @@ export function MediaSkeleton({
   marker,
   ratio,
 }: {
-  marker: "image" | "video";
+  marker: "image" | "video" | "audio";
   ratio: string | undefined;
 }) {
+  if (marker === "audio") {
+    return <div data-audio-skeleton="" className="bg-muted h-14 w-full" />;
+  }
+
   const style = { aspectRatio: ratio };
   if (marker === "image") {
     return <div data-image-skeleton="" className="bg-muted absolute inset-0" style={style} />;
@@ -540,4 +544,82 @@ function measuredWidth(
 function containerCap(frame: HTMLElement | null, maxWidth: number): number {
   const parent = frame?.parentElement?.getBoundingClientRect().width ?? maxWidth;
   return parent > 0 ? parent : maxWidth;
+}
+
+const MEDIA_PLAYBACK_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "mouseup",
+  "click",
+  "keydown",
+  "keyup",
+  "beforeinput",
+  "input",
+] as const;
+
+export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
+  mediaRef: { current: T | null },
+  displayUrl: string | undefined,
+  mimeType: string | undefined,
+  setFailedUrl: (failed: boolean) => void,
+): void {
+  useEffect(() => {
+    const node = mediaRef.current;
+    if (!node) {
+      return;
+    }
+
+    // Slate listens on the editable ancestor during bubble. Stopping here leaves
+    // the browser's own media controls (play, seek, volume) intact.
+    const stop = (event: Event): void => {
+      event.stopPropagation();
+    };
+    for (const name of MEDIA_PLAYBACK_EVENTS) {
+      node.addEventListener(name, stop);
+    }
+
+    if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
+      setFailedUrl(true);
+    }
+
+    return () => {
+      for (const name of MEDIA_PLAYBACK_EVENTS) {
+        node.removeEventListener(name, stop);
+      }
+    };
+  }, [displayUrl, mimeType, setFailedUrl, mediaRef]);
+}
+
+export function useLazyMediaPreload<T extends HTMLMediaElement>(
+  mediaRef: { current: T | null },
+  displayUrl: string | undefined,
+  active: boolean,
+  setPreload: (value: "none" | "metadata") => void,
+): void {
+  useEffect(() => {
+    const node = mediaRef.current;
+    if (!node || !active) {
+      return;
+    }
+
+    if (typeof IntersectionObserver !== "function") {
+      setPreload("metadata");
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setPreload("metadata");
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, displayUrl, setPreload, mediaRef]);
 }

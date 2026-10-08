@@ -2399,50 +2399,53 @@ export default function ErrorPageBlockPage() {
 5. packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
 6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
 7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
-8. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-9. packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
-10. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
-11. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
-12. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
-13. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
-14. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
-15. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/editor-table.ts
-17. packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
-18. packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
-19. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
-21. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
-22. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/editor-media.ts
-24. packages/core/src/components/blocks/notion-like-editor/media-element-parts.tsx
-25. packages/core/src/components/blocks/notion-like-editor/editor-image.ts
-26. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
-27. packages/core/src/components/blocks/notion-like-editor/editor-video.ts
-28. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
-29. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-30. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-31. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-32. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-33. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-34. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-35. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-36. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-37. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-38. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-39. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-40. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-41. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-42. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-43. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-44. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-45. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-46. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-47. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-48. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-49. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-50. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-51. apps/web/src/app/blocks/notion-like-editor/page.tsx
+8. packages/core/src/components/blocks/notion-like-editor/editor-paste-repairs.ts
+9. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
+10. packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
+11. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
+12. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
+13. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
+14. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
+15. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
+16. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/editor-table.ts
+18. packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
+19. packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
+20. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
+21. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
+22. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+24. packages/core/src/components/blocks/notion-like-editor/editor-media.ts
+25. packages/core/src/components/blocks/notion-like-editor/media-element-parts.tsx
+26. packages/core/src/components/blocks/notion-like-editor/editor-image.ts
+27. packages/core/src/components/blocks/notion-like-editor/image-element.tsx
+28. packages/core/src/components/blocks/notion-like-editor/editor-video.ts
+29. packages/core/src/components/blocks/notion-like-editor/video-element.tsx
+30. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+31. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+32. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+33. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+34. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+35. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+36. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+37. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+38. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+39. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+40. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+41. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+42. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+43. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+44. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+45. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+46. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+47. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+48. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+49. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+50. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+51. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+52. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+53. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+54. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2818,6 +2821,32 @@ export const VIDEO_ALIGNS = IMAGE_ALIGNS;
 
 export type VideoMimeType = (typeof VIDEO_MIME_TYPES)[number];
 
+export const AUDIO_NAME_MAX = 255;
+export const AUDIO_MIME_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"] as const;
+export const AUDIO_ALIGNS = IMAGE_ALIGNS;
+
+export type AudioMimeType = (typeof AUDIO_MIME_TYPES)[number];
+
+// A stored file name is already trimmed. Control characters and a length past 255 are rejected.
+export function isStoredAudioName(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > AUDIO_NAME_MAX) {
+    return false;
+  }
+
+  if (value !== value.trim()) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // A sourceless video is an upload that has not finished. It loads as ok.
 // Playback position, paused, muted, and volume are not document fields.
 export function checkVideoNode(
@@ -2834,6 +2863,35 @@ export function checkVideoNode(
   }
 
   issues.push(...posterIssues(node, path));
+
+  if ("caption" in node) {
+    issues.push(...captionIssues(node.caption, path));
+  }
+
+  return issues;
+}
+
+// A sourceless audio node is an upload that has not finished. It loads as ok.
+// Playback position, paused, muted, volume, and width are not document fields.
+export function checkAudioNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  const issues = [...mediaSourceIssues(node, path)];
+
+  if ("name" in node && !isStoredAudioName(node.name)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported name. Restore from a backup or remove the attribute.`,
+    });
+  }
+
+  if ("durationMs" in node && !positivePixel(node.durationMs)) {
+    issues.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported duration. Restore from a backup or remove the attribute.`,
+    });
+  }
 
   if ("caption" in node) {
     issues.push(...captionIssues(node.caption, path));
@@ -3034,6 +3092,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrRanges: { width: { min: VIDEO_MIN_WIDTH, max: VIDEO_MAX_WIDTH } },
     validateChildren: (node, path) => checkVideoNode(node, path),
   },
+  // Plate's audio node is BaseAudioPlugin (@platejs/media 53.1.4): key KEYS.audio, which is
+  // "audio", void, and an element. Unlike BaseVideoPlugin it has no dangerouslyAllowAttributes,
+  // so width and height are not node fields. The url field is the same element url insertImage
+  // writes. Caption is Plate's [{ text }] shape, written by setNodes in @platejs/caption.
+  // currentTime, paused, muted, volume, and playbackRate are playback state and are not stored.
+  // The native control is a full-width bar, so width is rejected rather than resized.
+  {
+    type: KEYS.audio,
+    attrs: ["id", "assetId", "url", "mimeType", "name", "durationMs", "align", "caption"],
+    isVoid: true,
+    attrValues: { align: AUDIO_ALIGNS, mimeType: AUDIO_MIME_TYPES },
+    validateChildren: (node, path) => checkAudioNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -3058,6 +3129,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.img,
       KEYS.video,
+      KEYS.audio,
       KEYS.codeBlock,
       KEYS.table,
     ],
@@ -3910,10 +3982,11 @@ function walkElement(
     }
 
     const attr = value[key];
-    // Image and video report blob and data urls as unsupported below. Other blocks stay invalid.
+    // Image, video, and audio report blob and data urls as unsupported below. Other blocks stay invalid.
     if (
       type !== KEYS.img &&
       type !== KEYS.video &&
+      type !== KEYS.audio &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -4275,7 +4348,16 @@ import {
   planPastedVideo,
   queuePastedVideoUpload,
 } from "./editor-video";
+import {
+  AUDIO_BOTH_SOURCES,
+  pastedAudioDroppedUrl,
+  planPastedAudio,
+  queuePastedAudioUpload,
+} from "./editor-audio";
 import type { EditorValue } from "./editor-value";
+import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+
+export { pasteRepairsOf, setPasteRepairs };
 
 export type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
@@ -4283,8 +4365,6 @@ export type PasteSanitizeOptions = {
   /** Truncation and other paste repairs. The same list is what the editor reports. */
   repairs?: Repair[];
 };
-
-const pasteRepairLog = new WeakMap<SlateEditor, Repair[]>();
 
 let activePasteRepairs: Repair[] | undefined;
 
@@ -4299,14 +4379,6 @@ function rememberImageRepair(repair: Repair): void {
 
 function clearPendingImageRepairs(): void {
   pendingImageRepairs = [];
-}
-
-export function setPasteRepairs(editor: SlateEditor, repairs: readonly Repair[]): void {
-  pasteRepairLog.set(editor, [...repairs]);
-}
-
-export function pasteRepairsOf(editor: SlateEditor): readonly Repair[] {
-  return pasteRepairLog.get(editor) ?? [];
 }
 
 type IsInline = (node: Record<string, unknown>) => boolean;
@@ -4486,8 +4558,19 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   return [image];
 }
 
-function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
-  const plan = planPastedVideo(node);
+function pastedMedia(
+  node: TElement,
+  seen: Set<string>,
+  options: {
+    type: string;
+    plan: typeof planPastedVideo;
+    droppedUrl: typeof pastedVideoDroppedUrl;
+    bothSourcesMessage: string;
+    queueUpload: typeof queuePastedVideoUpload;
+    extraRepair?: typeof pastedVideoPosterRepair;
+  },
+): TElement[] {
+  const plan = options.plan(node);
   if (plan.kind === "text") {
     rememberImageRepair({ path: [], message: plan.repair });
     return [paragraph([{ text: plan.text }])];
@@ -4498,26 +4581,47 @@ function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
     return [];
   }
 
-  if (pastedVideoDroppedUrl(node)) {
-    rememberImageRepair({ path: [], message: VIDEO_BOTH_SOURCES });
+  if (options.droppedUrl(node)) {
+    rememberImageRepair({ path: [], message: options.bothSourcesMessage });
   }
 
-  const posterRepair = pastedVideoPosterRepair(node);
-  if (posterRepair !== undefined) {
-    rememberImageRepair({ path: [], message: posterRepair });
+  const extraRepair = options.extraRepair?.(node);
+  if (extraRepair !== undefined) {
+    rememberImageRepair({ path: [], message: extraRepair });
   }
 
   const id = takeId(node, seen) ?? nanoid();
   if (plan.upload) {
-    queuePastedVideoUpload(id, plan.upload);
+    options.queueUpload(id, plan.upload);
   }
 
-  const video = elementNode(KEYS.video, [{ text: "" }], id);
+  const element = elementNode(options.type, [{ text: "" }], id);
   for (const [key, value] of Object.entries(plan.props)) {
-    video[key] = value;
+    element[key] = value;
   }
 
-  return [video];
+  return [element];
+}
+
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.video,
+    plan: planPastedVideo,
+    droppedUrl: pastedVideoDroppedUrl,
+    bothSourcesMessage: VIDEO_BOTH_SOURCES,
+    queueUpload: queuePastedVideoUpload,
+    extraRepair: pastedVideoPosterRepair,
+  });
+}
+
+function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
+  return pastedMedia(node, seen, {
+    type: KEYS.audio,
+    plan: planPastedAudio,
+    droppedUrl: pastedAudioDroppedUrl,
+    bothSourcesMessage: AUDIO_BOTH_SOURCES,
+    queueUpload: queuePastedAudioUpload,
+  });
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -5044,6 +5148,10 @@ function expandBlock(
       return pastedVideo(node, seen);
     }
 
+    if (node.type === KEYS.audio) {
+      return pastedAudio(node, seen);
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -5278,6 +5386,28 @@ export const PasteFallbackPlugin = createSlatePlugin({
 }));
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-paste-repairs.ts
+```ts
+import type { SlateEditor } from "platejs";
+
+type PasteRepair = {
+  path: number[];
+  message: string;
+};
+
+// editor-media records skipped files, and editor-paste imports every media kind.
+// The log lives here so that cycle does not read MEDIA_FILE_SKIPPED before it exists.
+const pasteRepairLog = new WeakMap<SlateEditor, PasteRepair[]>();
+
+export function setPasteRepairs(editor: SlateEditor, repairs: readonly PasteRepair[]): void {
+  pasteRepairLog.set(editor, [...repairs]);
+}
+
+export function pasteRepairsOf(editor: SlateEditor): readonly PasteRepair[] {
+  return pasteRepairLog.get(editor) ?? [];
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
 ````ts
 import {
@@ -5305,7 +5435,7 @@ import {
 import { CalloutPlugin } from "@platejs/callout/react";
 import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { ImagePlugin, VideoPlugin } from "@platejs/media/react";
+import { AudioPlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
@@ -5335,6 +5465,7 @@ import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
+import { AudioElement } from "./audio-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
 import {
@@ -5344,9 +5475,11 @@ import {
   imageHtmlDeserializer,
   imageRuntimePlugin,
 } from "./editor-image";
+import { audioHtmlDeserializer, ensureAudioMedia, flushPastedAudioUploads } from "./editor-audio";
 import { ensureVideoMedia, flushPastedVideoUploads, videoHtmlDeserializer } from "./editor-video";
 
 const videoRuntimePlugin = ensureVideoMedia().plugin;
+const audioRuntimePlugin = ensureAudioMedia().plugin;
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -5961,7 +6094,7 @@ function normalizeDisallowedChild(
     // A table cell only stores paragraphs. Lifting a media void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
-      (child.type === KEYS.img || child.type === KEYS.video) &&
+      (child.type === KEYS.img || child.type === KEYS.video || child.type === KEYS.audio) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -6786,10 +6919,30 @@ const videoPlugin = VideoPlugin.configure({
   },
 }));
 
+const audioPlugin = AudioPlugin.configure({
+  node: { isVoid: true },
+  render: { node: AudioElement },
+  parsers: {
+    html: {
+      deserializer: audioHtmlDeserializer,
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
+  transforms: {
+    insertFragment(fragment, options) {
+      try {
+        insertFragment(fragment, options);
+      } finally {
+        flushPastedAudioUploads(editor);
+      }
+    },
+  },
+}));
+
 const captionPlugin = CaptionPlugin.configure({
   options: {
     query: {
-      allow: [KEYS.img, KEYS.video],
+      allow: [KEYS.img, KEYS.video, KEYS.audio],
     },
   },
 });
@@ -6993,9 +7146,11 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codeBlockPlugin,
     imagePlugin,
     videoPlugin,
+    audioPlugin,
     captionPlugin,
     imageRuntimePlugin,
     videoRuntimePlugin,
+    audioRuntimePlugin,
     tablePlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -11407,9 +11562,9 @@ import type {
   UploadState,
 } from "./editor-assets";
 import { isSafeImageUrl } from "./editor-document-schema";
-import { pasteRepairsOf, setPasteRepairs } from "./editor-paste";
+import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
-// Anything that is not an image or a video stays here until file blocks exist.
+// Anything that is not an image, a video, or audio stays here until file blocks exist.
 export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
 
 const RESIZE_STEP = 16;
@@ -11451,8 +11606,9 @@ export type MediaKindSpec = {
   assetKind: AssetRecord["kind"];
   pluginKey: string;
   mimePrefix: string;
-  minWidth: number;
-  maxWidth: number;
+  // Absent for a kind that does not resize. Audio is a full-width bar.
+  minWidth?: number;
+  maxWidth?: number;
   aligns: readonly string[];
   messages: MediaMessages;
   replaceUnset: readonly string[];
@@ -11460,7 +11616,7 @@ export type MediaKindSpec = {
     insertFiles: { id: string; label: string };
     insertUrl: { id: string; label: string };
     align: { id: string; label: string };
-    width: { id: string; label: string };
+    width?: { id: string; label: string };
     remove: { id: string; label: string };
     replace: { id: string; label: string };
   };
@@ -11859,11 +12015,17 @@ export function createMediaKind(spec: MediaKindSpec) {
     },
   };
 
+  const widthCommand = spec.commands.width;
   const setWidth: EditorCommand<{ id: string; width: number | null }> = {
-    id: spec.commands.width.id,
-    label: spec.commands.width.label,
+    id: widthCommand?.id ?? "block.media.width",
+    label: widthCommand?.label ?? "Media width",
     group: "action",
     run: (editor, payload) => {
+      const maxWidth = spec.maxWidth;
+      if (widthCommand === undefined || spec.minWidth === undefined || maxWidth === undefined) {
+        return;
+      }
+
       const entry = writable(editor, payload.id);
       if (!entry) {
         return;
@@ -11878,7 +12040,7 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      editor.tf.setNodes({ width: clampWidth(payload.width, spec.maxWidth) }, { at: entry[1] });
+      editor.tf.setNodes({ width: clampWidth(payload.width, maxWidth) }, { at: entry[1] });
     },
   };
 
@@ -11914,8 +12076,14 @@ export function createMediaKind(spec: MediaKindSpec) {
   };
 
   function clampWidth(width: number, containerWidth: number): number {
-    const cap = Math.max(spec.minWidth, Math.min(spec.maxWidth, Math.floor(containerWidth)));
-    return Math.min(cap, Math.max(spec.minWidth, Math.round(width)));
+    const minWidth = spec.minWidth;
+    const maxWidth = spec.maxWidth;
+    if (minWidth === undefined || maxWidth === undefined) {
+      return Math.round(width);
+    }
+
+    const cap = Math.max(minWidth, Math.min(maxWidth, Math.floor(containerWidth)));
+    return Math.min(cap, Math.max(minWidth, Math.round(width)));
   }
 
   function place(
@@ -12215,15 +12383,25 @@ export function createMediaKind(spec: MediaKindSpec) {
   return kind;
 }
 
+export function readMediaAlignCaption(node: Record<string, unknown>): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  if (node.align === "left" || node.align === "right") {
+    props.align = node.align;
+  }
+
+  if (isCaption(node.caption)) {
+    props.caption = node.caption;
+  }
+
+  return props;
+}
+
 export function readMediaLayoutProps(
   node: Record<string, unknown>,
   minWidth: number,
   maxWidth: number,
 ): Record<string, unknown> {
-  const props: Record<string, unknown> = {};
-  if (node.align === "left" || node.align === "right") {
-    props.align = node.align;
-  }
+  const props = readMediaAlignCaption(node);
 
   if (
     typeof node.width === "number" &&
@@ -12237,10 +12415,6 @@ export function readMediaLayoutProps(
   if (isPositivePixel(node.naturalWidth) && isPositivePixel(node.naturalHeight)) {
     props.naturalWidth = node.naturalWidth;
     props.naturalHeight = node.naturalHeight;
-  }
-
-  if (isCaption(node.caption)) {
-    props.caption = node.caption;
   }
 
   return props;
@@ -12755,9 +12929,13 @@ export function MediaSkeleton({
   marker,
   ratio,
 }: {
-  marker: "image" | "video";
+  marker: "image" | "video" | "audio";
   ratio: string | undefined;
 }) {
+  if (marker === "audio") {
+    return <div data-audio-skeleton="" className="bg-muted h-14 w-full" />;
+  }
+
   const style = { aspectRatio: ratio };
   if (marker === "image") {
     return <div data-image-skeleton="" className="bg-muted absolute inset-0" style={style} />;
@@ -13043,6 +13221,84 @@ function measuredWidth(
 function containerCap(frame: HTMLElement | null, maxWidth: number): number {
   const parent = frame?.parentElement?.getBoundingClientRect().width ?? maxWidth;
   return parent > 0 ? parent : maxWidth;
+}
+
+const MEDIA_PLAYBACK_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "mouseup",
+  "click",
+  "keydown",
+  "keyup",
+  "beforeinput",
+  "input",
+] as const;
+
+export function useIsolatedMediaPlayback<T extends HTMLMediaElement>(
+  mediaRef: { current: T | null },
+  displayUrl: string | undefined,
+  mimeType: string | undefined,
+  setFailedUrl: (failed: boolean) => void,
+): void {
+  useEffect(() => {
+    const node = mediaRef.current;
+    if (!node) {
+      return;
+    }
+
+    // Slate listens on the editable ancestor during bubble. Stopping here leaves
+    // the browser's own media controls (play, seek, volume) intact.
+    const stop = (event: Event): void => {
+      event.stopPropagation();
+    };
+    for (const name of MEDIA_PLAYBACK_EVENTS) {
+      node.addEventListener(name, stop);
+    }
+
+    if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
+      setFailedUrl(true);
+    }
+
+    return () => {
+      for (const name of MEDIA_PLAYBACK_EVENTS) {
+        node.removeEventListener(name, stop);
+      }
+    };
+  }, [displayUrl, mimeType, setFailedUrl, mediaRef]);
+}
+
+export function useLazyMediaPreload<T extends HTMLMediaElement>(
+  mediaRef: { current: T | null },
+  displayUrl: string | undefined,
+  active: boolean,
+  setPreload: (value: "none" | "metadata") => void,
+): void {
+  useEffect(() => {
+    const node = mediaRef.current;
+    if (!node || !active) {
+      return;
+    }
+
+    if (typeof IntersectionObserver !== "function") {
+      setPreload("metadata");
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setPreload("metadata");
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, displayUrl, setPreload, mediaRef]);
 }
 ```
 
@@ -14210,6 +14466,8 @@ import {
   mediaPixelAttr,
   mediaRatio,
   mediaStringAttr,
+  useIsolatedMediaPlayback,
+  useLazyMediaPreload,
   useMediaUpload,
   useResolvedMedia,
 } from "./media-element-parts";
@@ -14239,18 +14497,6 @@ import {
   videoUploadRole,
   videoUploadState,
 } from "./editor-video";
-
-const PLAYBACK_EVENTS = [
-  "pointerdown",
-  "pointerup",
-  "mousedown",
-  "mouseup",
-  "click",
-  "keydown",
-  "keyup",
-  "beforeinput",
-  "input",
-] as const;
 
 export function VideoRuntime({ store }: { store: AssetStore | null }) {
   const editor = useEditorRef();
@@ -14328,8 +14574,8 @@ export function VideoElement(props: PlateElementProps) {
   const posterDisplay = posterAssetId !== undefined ? posterAsset.url : posterUrl;
   const fileName = assetId !== undefined ? videoFileName(editor, assetId) : undefined;
 
-  useIsolatedVideo(videoRef, displayUrl, mimeType, setFailedUrl);
-  useLazyPreload(videoRef, displayUrl, showVideo, setPreload);
+  useIsolatedMediaPlayback(videoRef, displayUrl, mimeType, setFailedUrl);
+  useLazyMediaPreload(videoRef, displayUrl, showVideo, setPreload);
 
   return (
     <PlateElement
@@ -14590,71 +14836,648 @@ function VideoToolbar({
     </>
   );
 }
+```
 
-function useIsolatedVideo(
-  videoRef: { current: HTMLVideoElement | null },
-  displayUrl: string | undefined,
-  mimeType: string | undefined,
-  setFailedUrl: (failed: boolean) => void,
-): void {
-  useEffect(() => {
-    const node = videoRef.current;
-    if (!node) {
-      return;
+## packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+```ts
+import { KEYS, type TElement } from "platejs";
+
+import type { AssetKind, AssetRecord, UploadSource } from "./editor-assets";
+import {
+  AUDIO_ALIGNS,
+  AUDIO_MIME_TYPES,
+  isSafeImageUrl,
+  isStoredAudioName,
+} from "./editor-document-schema";
+import {
+  createMediaKind,
+  readMediaAlignCaption,
+  type MediaKind,
+  type MediaPastePlan,
+  type MediaRole,
+} from "./editor-media";
+
+export const AUDIO_UNSAFE_URL = "An audio file with an unsafe URL was removed.";
+export const AUDIO_BOTH_SOURCES =
+  "An audio URL was removed because the audio already has an asset.";
+export const AUDIO_UPLOAD_INTERRUPTED = "Upload didn't finish";
+export const AUDIO_NOT_FOUND = "Audio not found";
+export const AUDIO_STORAGE_UNAVAILABLE = "Browser storage for files is unavailable.";
+export const AUDIO_CANT_PLAY = "This audio can't play in this browser";
+
+const PROBE_TIMEOUT_MS = 1000;
+
+export const audioHtmlDeserializer = {
+  rules: [{ validNodeName: "AUDIO" }],
+  parse({ element }: { element: HTMLElement }): TElement {
+    const node: TElement = { type: KEYS.audio, children: [{ text: "" }] };
+    const src = element.getAttribute("src") ?? nestedSourceAttr(element, "src");
+    if (src !== null && src.length > 0) {
+      node.url = src;
     }
 
-    // Slate listens on the editable ancestor during bubble. Stopping here leaves
-    // the browser's own video controls (play, seek, volume) intact.
-    const stop = (event: Event): void => {
-      event.stopPropagation();
-    };
-    for (const name of PLAYBACK_EVENTS) {
-      node.addEventListener(name, stop);
+    const mime = element.getAttribute("type") ?? nestedSourceAttr(element, "type");
+    if (mime !== null && isAudioMime(mime)) {
+      node.mimeType = mime;
     }
 
-    if (mimeType !== undefined && node.canPlayType(mimeType) === "") {
-      setFailedUrl(true);
+    const caption = figureCaption(element);
+    if (caption !== undefined) {
+      node.caption = [{ text: caption }];
     }
 
-    return () => {
-      for (const name of PLAYBACK_EVENTS) {
-        node.removeEventListener(name, stop);
-      }
-    };
-  }, [displayUrl, mimeType, setFailedUrl, videoRef]);
+    return node;
+  },
+};
+
+let audioKind: MediaKind | undefined;
+
+// editor-paste imports this module while editor-media is still evaluating.
+// The route is registered on first use, after that module has finished.
+export function ensureAudioMedia(): MediaKind {
+  if (!audioKind) {
+    audioKind = createMediaKind({
+      nodeType: KEYS.audio,
+      assetKind: "audio",
+      pluginKey: "audioRuntime",
+      mimePrefix: "audio/",
+      aligns: AUDIO_ALIGNS,
+      messages: {
+        unsafeUrl: AUDIO_UNSAFE_URL,
+        bothSources: AUDIO_BOTH_SOURCES,
+        uploadInterrupted: AUDIO_UPLOAD_INTERRUPTED,
+        notFound: AUDIO_NOT_FOUND,
+        storageUnavailable: AUDIO_STORAGE_UNAVAILABLE,
+      },
+      replaceUnset: ["url", "assetId", "mimeType", "durationMs", "name"],
+      commands: {
+        insertFiles: { id: "block.insert.audio", label: "Audio" },
+        insertUrl: { id: "block.insert.audio-url", label: "Audio from URL" },
+        align: { id: "block.audio.align", label: "Align audio" },
+        remove: { id: "block.audio.remove", label: "Remove audio" },
+        replace: { id: "block.audio.replace", label: "Replace audio" },
+      },
+      readProps: readAudioProps,
+      applyReady: audioReady,
+      probe: probeForKind,
+    });
+  }
+
+  return audioKind;
 }
 
-function useLazyPreload(
-  videoRef: { current: HTMLVideoElement | null },
-  displayUrl: string | undefined,
-  active: boolean,
-  setPreload: (value: "none" | "metadata") => void,
-): void {
-  useEffect(() => {
-    const node = videoRef.current;
-    if (!node || !active) {
-      return;
-    }
+export const audioMedia = {
+  get spec() {
+    return ensureAudioMedia().spec;
+  },
+  get plugin() {
+    return ensureAudioMedia().plugin;
+  },
+};
 
-    if (typeof IntersectionObserver !== "function") {
-      setPreload("metadata");
-      return;
-    }
+export const attachAudioRuntime: MediaKind["attach"] = (editor, store, options) =>
+  ensureAudioMedia().attach(editor, store, options);
+export const audioUploadState: MediaKind["uploadState"] = (editor, blockId) =>
+  ensureAudioMedia().uploadState(editor, blockId);
+export const cachedAudioUrl: MediaKind["cachedAssetUrl"] = (editor, assetId) =>
+  ensureAudioMedia().cachedAssetUrl(editor, assetId);
+export const audioFileName: MediaKind["assetFileName"] = (editor, assetId) =>
+  ensureAudioMedia().assetFileName(editor, assetId);
+export const audioAssetIsMissing: MediaKind["assetIsMissing"] = (editor, assetId) =>
+  ensureAudioMedia().assetIsMissing(editor, assetId);
+export const audioAssetIsAdapter: MediaKind["assetIsAdapter"] = (editor, assetId) =>
+  ensureAudioMedia().assetIsAdapter(editor, assetId);
+export const resolveAudioURL: MediaKind["resolveAssetURL"] = (editor, assetId) =>
+  ensureAudioMedia().resolveAssetURL(editor, assetId);
+export const refreshAudioURL: MediaKind["refreshAssetURL"] = (editor, assetId) =>
+  ensureAudioMedia().refreshAssetURL(editor, assetId);
+export const queuePastedAudioUpload: MediaKind["queuePastedUpload"] = (id, file) => {
+  ensureAudioMedia().queuePastedUpload(id, file);
+};
+export const flushPastedAudioUploads: MediaKind["flushPastedUploads"] = (editor) => {
+  ensureAudioMedia().flushPastedUploads(editor);
+};
+export const beginAudioUpload: MediaKind["beginUpload"] = (editor, blockId, file, role) => {
+  ensureAudioMedia().beginUpload(editor, blockId, file, role);
+};
+export const holdAudioUpload: MediaKind["holdUpload"] = (editor, blockId) => {
+  ensureAudioMedia().holdUpload(editor, blockId);
+};
+export const retryAudioUpload: MediaKind["retryUpload"] = (editor, blockId) => {
+  ensureAudioMedia().retryUpload(editor, blockId);
+};
+export const insertAudioFromFiles = {
+  id: "block.insert.audio",
+  label: "Audio",
+  group: "insert" as const,
+  run: (
+    editor: Parameters<MediaKind["insertFromFiles"]["run"]>[0],
+    files: readonly UploadSource[],
+  ) => {
+    ensureAudioMedia().insertFromFiles.run(editor, files);
+  },
+};
+export const insertAudioFromUrl = {
+  id: "block.insert.audio-url",
+  label: "Audio from URL",
+  group: "insert" as const,
+  run: (editor: Parameters<MediaKind["insertFromUrl"]["run"]>[0], url: string) => {
+    ensureAudioMedia().insertFromUrl.run(editor, url);
+  },
+};
+export const setAudioAlign: MediaKind["setAlign"] = {
+  id: "block.audio.align",
+  label: "Align audio",
+  group: "action",
+  run: (editor, payload) => {
+    ensureAudioMedia().setAlign.run(editor, payload);
+  },
+};
+export const removeAudio: MediaKind["remove"] = {
+  id: "block.audio.remove",
+  label: "Remove audio",
+  group: "action",
+  run: (editor, id) => {
+    ensureAudioMedia().remove.run(editor, id);
+  },
+};
+export const replaceAudioFromFile: MediaKind["replaceFromFile"] = {
+  id: "block.audio.replace",
+  label: "Replace audio",
+  group: "action",
+  run: (editor, payload) => {
+    ensureAudioMedia().replaceFromFile.run(editor, payload);
+  },
+};
+export const planPastedAudio: MediaKind["planPasted"] = (node) =>
+  ensureAudioMedia().planPasted(node);
+export const pastedAudioDroppedUrl: MediaKind["pastedDroppedUrl"] = (node) =>
+  ensureAudioMedia().pastedDroppedUrl(node);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setPreload("metadata");
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "100% 0px" },
-    );
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
+export type AudioPastePlan = MediaPastePlan;
+
+export function storedAudioName(value: string): string | undefined {
+  const trimmed = value.trim();
+  return isStoredAudioName(trimmed) ? trimmed : undefined;
+}
+
+export function formatAudioDuration(durationMs: number): string {
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60);
+  const paddedSeconds = String(seconds).padStart(2, "0");
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const hourMinutes = minutes % 60;
+    return `${String(hours)}:${String(hourMinutes).padStart(2, "0")}:${paddedSeconds}`;
+  }
+
+  return `${String(minutes)}:${paddedSeconds}`;
+}
+
+export function audioDisplayName(name: string | undefined, url: string | undefined): string {
+  if (name !== undefined && isStoredAudioName(name)) {
+    return name;
+  }
+
+  const segment = urlPathSegment(url);
+  return segment ?? "Audio";
+}
+
+export function probeAudioDuration(blob: Blob): Promise<{ durationMs?: number } | undefined> {
+  if (typeof document === "undefined" || typeof URL.createObjectURL !== "function") {
+    return Promise.resolve(undefined);
+  }
+
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const audio = document.createElement("audio");
+    let settled = false;
+    const finish = (value: { durationMs?: number } | undefined): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      window.clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      try {
+        audio.removeAttribute("src");
+        audio.load();
+      } catch {
+        // The element only exists to read loadedmetadata.
+      }
+      resolve(value);
     };
-  }, [active, displayUrl, setPreload, videoRef]);
+    const timer = window.setTimeout(() => {
+      finish(undefined);
+    }, PROBE_TIMEOUT_MS);
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => {
+      const durationMs = Number.isFinite(audio.duration)
+        ? Math.round(audio.duration * 1000)
+        : undefined;
+      finish(isPositivePixel(durationMs) ? { durationMs } : undefined);
+    };
+    audio.onerror = () => {
+      finish(undefined);
+    };
+    audio.src = url;
+  });
+}
+
+function probeForKind(
+  blob: Blob,
+  kind: AssetKind,
+): Promise<{ width?: number; height?: number; durationMs?: number } | undefined> {
+  if (kind === "audio") {
+    return probeAudioDuration(blob);
+  }
+
+  return Promise.resolve(undefined);
+}
+
+function audioReady(record: AssetRecord, _role: MediaRole) {
+  const props: Record<string, unknown> = {
+    assetId: record.id,
+    mimeType: record.mimeType,
+  };
+  const name = storedAudioName(record.name);
+  if (name !== undefined) {
+    props.name = name;
+  }
+
+  if (isPositivePixel(record.durationMs)) {
+    props.durationMs = record.durationMs;
+  }
+
+  return { props, unset: [], save: "fold" as const };
+}
+
+function readAudioProps(node: Record<string, unknown>): Record<string, unknown> {
+  const props = readMediaAlignCaption(node);
+  if (typeof node.mimeType === "string" && isAudioMime(node.mimeType)) {
+    props.mimeType = node.mimeType;
+  }
+
+  if (isPositivePixel(node.durationMs)) {
+    props.durationMs = node.durationMs;
+  }
+
+  if (isStoredAudioName(node.name)) {
+    props.name = node.name;
+  }
+
+  return props;
+}
+
+function isAudioMime(value: string): boolean {
+  return AUDIO_MIME_TYPES.some((mime) => mime === value);
+}
+
+function nestedSourceAttr(element: HTMLElement, name: string): string | null {
+  for (const child of element.children) {
+    if (child.tagName !== "SOURCE") {
+      continue;
+    }
+
+    const value = child.getAttribute(name);
+    if (value !== null && value.length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function figureCaption(element: HTMLElement): string | undefined {
+  const parent = element.parentElement;
+  if (parent === null || parent.tagName !== "FIGURE") {
+    return undefined;
+  }
+
+  for (const child of parent.children) {
+    if (child.tagName !== "FIGCAPTION") {
+      continue;
+    }
+
+    const text = child.textContent?.trim() ?? "";
+    return text.length > 0 ? text : undefined;
+  }
+
+  return undefined;
+}
+
+function urlPathSegment(url: string | undefined): string | undefined {
+  if (url === undefined || !isSafeImageUrl(url)) {
+    return undefined;
+  }
+
+  const path = url.split("?")[0]?.split("#")[0] ?? "";
+  const raw = path.split("/").pop() ?? "";
+  if (raw.length === 0) {
+    return undefined;
+  }
+
+  try {
+    const decoded = decodeURIComponent(raw);
+    return decoded.length > 0 ? decoded : undefined;
+  } catch {
+    return raw;
+  }
+}
+
+function isPositivePixel(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Caption, CaptionTextarea } from "@platejs/caption/react";
+import { Trash2 } from "lucide-react";
+import {
+  PlateElement,
+  useEditorRef,
+  useElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import type { AssetStore } from "./editor-assets";
+import { runEditorCommand } from "./editor-commands";
+import { hrElementClassName } from "./hr-element";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  MediaAlignMenu,
+  MediaCaptionButton,
+  MediaFileButton,
+  MediaIconButton,
+  MediaNotice,
+  MediaProgress,
+  MediaSkeleton,
+  mediaAlignAttr,
+  mediaCaptionText,
+  mediaFrameState,
+  mediaPixelAttr,
+  mediaStringAttr,
+  useIsolatedMediaPlayback,
+  useLazyMediaPreload,
+  useMediaUpload,
+  useResolvedMedia,
+} from "./media-element-parts";
+import {
+  AUDIO_CANT_PLAY,
+  AUDIO_NOT_FOUND,
+  AUDIO_UPLOAD_INTERRUPTED,
+  attachAudioRuntime,
+  audioAssetIsAdapter,
+  audioAssetIsMissing,
+  audioDisplayName,
+  audioFileName,
+  audioUploadState,
+  beginAudioUpload,
+  cachedAudioUrl,
+  ensureAudioMedia,
+  formatAudioDuration,
+  holdAudioUpload,
+  refreshAudioURL,
+  removeAudio,
+  replaceAudioFromFile,
+  resolveAudioURL,
+  retryAudioUpload,
+  setAudioAlign,
+} from "./editor-audio";
+
+export function AudioRuntime({ store }: { store: AssetStore | null }) {
+  const editor = useEditorRef();
+  useEffect(() => attachAudioRuntime(editor, store), [editor, store]);
+  return null;
+}
+
+export function AudioElement(props: PlateElementProps) {
+  "use no memo";
+  // Asset URLs and upload progress live outside React. Memoizing the first read kept the skeleton up.
+
+  const editor = useEditorRef();
+  const element = useElement();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const id = typeof element.id === "string" ? element.id : "";
+  const assetId = mediaStringAttr(element, "assetId");
+  const url = mediaStringAttr(element, "url");
+  const mimeType = mediaStringAttr(element, "mimeType");
+  const align = mediaAlignAttr(element);
+  const storedName = mediaStringAttr(element, "name");
+  const durationMs = mediaPixelAttr(element, "durationMs");
+  const asset = useResolvedMedia(
+    assetId,
+    ensureAudioMedia().plugin,
+    resolveAudioURL,
+    cachedAudioUrl,
+    audioAssetIsMissing,
+    audioAssetIsAdapter,
+  );
+  const upload = useMediaUpload(id, ensureAudioMedia().plugin, audioUploadState);
+  const [failedUrl, setFailedUrl] = useState(false);
+  const [preload, setPreload] = useState<"none" | "metadata">("none");
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const displayUrl = assetId !== undefined ? asset.url : url;
+  const missing = assetId !== undefined && asset.missing;
+  const resolving = assetId !== undefined && displayUrl === undefined && !missing;
+  const sourcePending =
+    resolving ||
+    (assetId === undefined &&
+      url === undefined &&
+      (upload?.status === "pending" ||
+        upload?.status === "processing" ||
+        upload?.status === "ready"));
+  const sourceFailed = upload?.status === "failed" ? upload.error : undefined;
+  const uploading =
+    upload?.status === "pending" || upload?.status === "processing" ? upload : undefined;
+  const showAudio =
+    displayUrl !== undefined &&
+    !missing &&
+    !failedUrl &&
+    sourceFailed === undefined &&
+    !sourcePending;
+  const cachedName = assetId !== undefined ? audioFileName(editor, assetId) : undefined;
+  const label = audioDisplayName(storedName, url);
+  const durationLabel = durationMs === undefined ? undefined : formatAudioDuration(durationMs);
+
+  useIsolatedMediaPlayback(audioRef, displayUrl, mimeType, setFailedUrl);
+  useLazyMediaPreload(audioRef, displayUrl, showAudio, setPreload);
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn(
+        "group relative max-w-full py-2",
+        hrElementClassName(selected, focused, readOnly),
+      )}
+    >
+      <figure
+        contentEditable={false}
+        data-audio-state={mediaFrameState({
+          pending: sourcePending,
+          failed: sourceFailed,
+          missing,
+          failedUrl,
+          showMedia: showAudio,
+          loaded: showAudio,
+        })}
+        className={cn(
+          "relative max-w-full overflow-hidden",
+          align === "left" && "mr-auto",
+          align === "right" && "ml-auto",
+        )}
+      >
+        {showAudio && displayUrl !== undefined ? (
+          <div className="flex w-full min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 items-baseline gap-3">
+              <p className="text-foreground min-w-0 truncate text-sm" title={label}>
+                {label}
+              </p>
+              {durationLabel !== undefined ? (
+                <p className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">
+                  {durationLabel}
+                </p>
+              ) : null}
+            </div>
+            <div className="h-14 w-full overflow-hidden">
+              <audio
+                ref={audioRef}
+                src={displayUrl}
+                controls
+                preload={preload}
+                className="block h-14 w-full"
+                onError={() => {
+                  if (assetId !== undefined && refreshAudioURL(editor, assetId)) {
+                    setFailedUrl(false);
+                    return;
+                  }
+
+                  setFailedUrl(true);
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+        {sourcePending ? <MediaSkeleton marker="audio" ratio={undefined} /> : null}
+        {uploading && !readOnly ? (
+          <MediaProgress
+            onCancel={(current) => {
+              holdAudioUpload(current, id);
+            }}
+          />
+        ) : null}
+        {sourceFailed !== undefined ? (
+          <MediaNotice
+            message={sourceFailed}
+            retry={sourceFailed !== "Choose the file again."}
+            onRetry={(current) => {
+              retryAudioUpload(current, id);
+            }}
+            onRemove={(current) => {
+              runEditorCommand(current, removeAudio, id);
+            }}
+          />
+        ) : null}
+        {missing ? (
+          <MediaNotice
+            message={AUDIO_NOT_FOUND}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeAudio, id);
+            }}
+          />
+        ) : null}
+        {failedUrl && !showAudio && sourceFailed === undefined && !sourcePending && !missing ? (
+          <MediaNotice
+            message={AUDIO_CANT_PLAY}
+            retry={false}
+            openUrl={url}
+            download={
+              assetId !== undefined && displayUrl !== undefined
+                ? { href: displayUrl, name: storedName ?? cachedName ?? "audio" }
+                : undefined
+            }
+            onRemove={
+              readOnly
+                ? undefined
+                : (current) => {
+                    runEditorCommand(current, removeAudio, id);
+                  }
+            }
+          />
+        ) : null}
+        {!showAudio && !sourcePending && sourceFailed === undefined && !missing && !failedUrl ? (
+          <MediaNotice
+            message={AUDIO_UPLOAD_INTERRUPTED}
+            retry={false}
+            onRemove={(current) => {
+              runEditorCommand(current, removeAudio, id);
+            }}
+          >
+            {readOnly ? null : (
+              <MediaFileButton
+                label="Insert audio"
+                accept="audio/*"
+                onFile={(current, file) => {
+                  beginAudioUpload(current, id, file, "source");
+                }}
+              />
+            )}
+          </MediaNotice>
+        ) : null}
+        {showAudio && !readOnly ? <AudioToolbar id={id} align={align} /> : null}
+        {showAudio || mediaCaptionText(element).length > 0 ? (
+          <Caption>
+            <CaptionTextarea placeholder="Write a caption…" />
+          </Caption>
+        ) : null}
+      </figure>
+      {props.children}
+    </PlateElement>
+  );
+}
+
+function AudioToolbar({ id, align }: { id: string; align: "left" | "right" | undefined }) {
+  const selected = useSelected();
+
+  return (
+    <div className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}>
+      <MediaAlignMenu
+        label="Align audio"
+        align={align}
+        onAlign={(editor, next) => {
+          runEditorCommand(editor, setAudioAlign, { id, align: next });
+        }}
+      />
+      <MediaCaptionButton />
+      <MediaFileButton
+        label="Replace audio"
+        accept="audio/*"
+        onFile={(editor, file) => {
+          runEditorCommand(editor, replaceAudioFromFile, { id, file });
+        }}
+      />
+      <MediaIconButton
+        label="Remove"
+        onClick={(editor) => {
+          runEditorCommand(editor, removeAudio, id);
+        }}
+      >
+        <Trash2 aria-hidden className="size-4" />
+      </MediaIconButton>
+    </div>
+  );
 }
 ```
 
@@ -17696,6 +18519,7 @@ import { cn } from "@/lib/utils";
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
+import { AudioRuntime } from "./audio-element";
 import { ImageRuntime } from "./image-element";
 import { VideoRuntime } from "./video-element";
 
@@ -17726,6 +18550,7 @@ export function EditorSurface({
     >
       <ImageRuntime store={assetStore} />
       <VideoRuntime store={assetStore} />
+      <AudioRuntime store={assetStore} />
       <PlateContent
         placeholder={readOnly ? undefined : placeholder}
         // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -19094,7 +19919,7 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "h3",
     id: "demo-images",
-    children: [{ text: "Images and video" }],
+    children: [{ text: "Images, video, and audio" }],
   },
   {
     type: "img",
@@ -19115,6 +19940,16 @@ export const DEMO_DOCUMENT_VALUE = [
     naturalHeight: 90,
     durationMs: 1000,
     caption: [{ text: "A one-second drawing, recorded in the browser." }],
+    children: [{ text: "" }],
+  },
+  {
+    type: "audio",
+    id: "demo-audio",
+    url: "/blocks/notion-like-editor/audio-demo.wav",
+    mimeType: "audio/wav",
+    name: "audio-demo.wav",
+    durationMs: 1000,
+    caption: [{ text: "A one-second tone, written into a WAV file." }],
     children: [{ text: "" }],
   },
   {
@@ -19291,6 +20126,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-paste.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-paste-repairs.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste-repairs.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
@@ -19373,6 +20212,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/video-element.tsx",
     code: readSource(`${BLOCK_DIR}/video-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-audio.ts",
+    code: readSource(`${BLOCK_DIR}/editor-audio.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/audio-element.tsx",
+    code: readSource(`${BLOCK_DIR}/audio-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",

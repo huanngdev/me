@@ -19,9 +19,9 @@ import type {
   UploadState,
 } from "./editor-assets";
 import { isSafeImageUrl } from "./editor-document-schema";
-import { pasteRepairsOf, setPasteRepairs } from "./editor-paste";
+import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
-// Anything that is not an image or a video stays here until file blocks exist.
+// Anything that is not an image, a video, or audio stays here until file blocks exist.
 export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
 
 const RESIZE_STEP = 16;
@@ -63,8 +63,9 @@ export type MediaKindSpec = {
   assetKind: AssetRecord["kind"];
   pluginKey: string;
   mimePrefix: string;
-  minWidth: number;
-  maxWidth: number;
+  // Absent for a kind that does not resize. Audio is a full-width bar.
+  minWidth?: number;
+  maxWidth?: number;
   aligns: readonly string[];
   messages: MediaMessages;
   replaceUnset: readonly string[];
@@ -72,7 +73,7 @@ export type MediaKindSpec = {
     insertFiles: { id: string; label: string };
     insertUrl: { id: string; label: string };
     align: { id: string; label: string };
-    width: { id: string; label: string };
+    width?: { id: string; label: string };
     remove: { id: string; label: string };
     replace: { id: string; label: string };
   };
@@ -471,11 +472,17 @@ export function createMediaKind(spec: MediaKindSpec) {
     },
   };
 
+  const widthCommand = spec.commands.width;
   const setWidth: EditorCommand<{ id: string; width: number | null }> = {
-    id: spec.commands.width.id,
-    label: spec.commands.width.label,
+    id: widthCommand?.id ?? "block.media.width",
+    label: widthCommand?.label ?? "Media width",
     group: "action",
     run: (editor, payload) => {
+      const maxWidth = spec.maxWidth;
+      if (widthCommand === undefined || spec.minWidth === undefined || maxWidth === undefined) {
+        return;
+      }
+
       const entry = writable(editor, payload.id);
       if (!entry) {
         return;
@@ -490,7 +497,7 @@ export function createMediaKind(spec: MediaKindSpec) {
         return;
       }
 
-      editor.tf.setNodes({ width: clampWidth(payload.width, spec.maxWidth) }, { at: entry[1] });
+      editor.tf.setNodes({ width: clampWidth(payload.width, maxWidth) }, { at: entry[1] });
     },
   };
 
@@ -526,8 +533,14 @@ export function createMediaKind(spec: MediaKindSpec) {
   };
 
   function clampWidth(width: number, containerWidth: number): number {
-    const cap = Math.max(spec.minWidth, Math.min(spec.maxWidth, Math.floor(containerWidth)));
-    return Math.min(cap, Math.max(spec.minWidth, Math.round(width)));
+    const minWidth = spec.minWidth;
+    const maxWidth = spec.maxWidth;
+    if (minWidth === undefined || maxWidth === undefined) {
+      return Math.round(width);
+    }
+
+    const cap = Math.max(minWidth, Math.min(maxWidth, Math.floor(containerWidth)));
+    return Math.min(cap, Math.max(minWidth, Math.round(width)));
   }
 
   function place(
@@ -827,15 +840,25 @@ export function createMediaKind(spec: MediaKindSpec) {
   return kind;
 }
 
+export function readMediaAlignCaption(node: Record<string, unknown>): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  if (node.align === "left" || node.align === "right") {
+    props.align = node.align;
+  }
+
+  if (isCaption(node.caption)) {
+    props.caption = node.caption;
+  }
+
+  return props;
+}
+
 export function readMediaLayoutProps(
   node: Record<string, unknown>,
   minWidth: number,
   maxWidth: number,
 ): Record<string, unknown> {
-  const props: Record<string, unknown> = {};
-  if (node.align === "left" || node.align === "right") {
-    props.align = node.align;
-  }
+  const props = readMediaAlignCaption(node);
 
   if (
     typeof node.width === "number" &&
@@ -849,10 +872,6 @@ export function readMediaLayoutProps(
   if (isPositivePixel(node.naturalWidth) && isPositivePixel(node.naturalHeight)) {
     props.naturalWidth = node.naturalWidth;
     props.naturalHeight = node.naturalHeight;
-  }
-
-  if (isCaption(node.caption)) {
-    props.caption = node.caption;
   }
 
   return props;

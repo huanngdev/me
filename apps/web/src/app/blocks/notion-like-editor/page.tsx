@@ -48,6 +48,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-paste.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-paste-repairs.ts",
+    code: readSource(`${BLOCK_DIR}/editor-paste-repairs.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
@@ -130,6 +134,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/video-element.tsx",
     code: readSource(`${BLOCK_DIR}/video-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-audio.ts",
+    code: readSource(`${BLOCK_DIR}/editor-audio.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/audio-element.tsx",
+    code: readSource(`${BLOCK_DIR}/audio-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-selection.ts",
