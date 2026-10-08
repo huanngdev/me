@@ -3,10 +3,11 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 
 import { clickSoftSound } from "../lib/click-soft";
 import { playSound } from "../lib/sound-engine";
+import { switchThemeWithReveal } from "../lib/theme-transition";
 import { Button } from "./button";
 
 export function ThemeToggle() {
@@ -24,9 +25,13 @@ export function ThemeToggle() {
   const nextTheme = iconTheme === "dark" ? "light" : "dark";
   const icon = iconTheme === "dark" ? "sun" : "moon";
 
-  function toggleTheme() {
+  function toggleTheme(event: MouseEvent<HTMLButtonElement>) {
     void playSound(clickSoftSound.dataUri, { volume: 0.5 }).catch(() => {});
-    setTheme(nextTheme);
+    const rect = event.currentTarget.getBoundingClientRect();
+    switchThemeWithReveal(() => setTheme(nextTheme), {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
   }
 
   return (
