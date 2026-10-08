@@ -400,20 +400,12 @@
   body {
     @apply bg-background text-foreground;
   }
-  body,
-  header {
-    transition:
-      background-color 200ms ease-out,
-      border-color 200ms ease-out,
-      color 200ms ease-out;
-  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {
     @apply font-sans;
-    transition: background-color 200ms ease-out;
   }
 }
 
@@ -447,6 +439,12 @@
 .contribution-cell.contribution-glimmer {
   filter: brightness(1.35);
   box-shadow: 0 0 8px rgb(98 200 120 / 60%);
+}
+
+:root[data-theme-transition="reveal"]::view-transition-old(root),
+:root[data-theme-transition="reveal"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {

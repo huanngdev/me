@@ -5,10 +5,17 @@ import * as React from "react";
 
 import { syncThemePaletteFromDom } from "../../lib/theme-palette";
 import { getThemePaletteScript } from "../../lib/theme-palette-config";
+import { switchThemeWithReveal } from "../../lib/theme-transition";
 
 function ThemeProvider({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem {...props}>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      {...props}
+    >
       <script dangerouslySetInnerHTML={{ __html: getThemePaletteScript() }} />
       <ThemeHotkey />
       <ThemePaletteSync />
@@ -59,7 +66,9 @@ function ThemeHotkey() {
         return;
       }
 
-      setTheme(resolvedTheme === "dark" ? "light" : "dark");
+      switchThemeWithReveal(() => {
+        setTheme(resolvedTheme === "dark" ? "light" : "dark");
+      });
     }
 
     window.addEventListener("keydown", onKeyDown);
