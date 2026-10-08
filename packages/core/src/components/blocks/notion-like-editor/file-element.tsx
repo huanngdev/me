@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Caption, CaptionTextarea } from "@platejs/caption/react";
 import { File, FileArchive, FileText, Trash2 } from "lucide-react";
 import {
@@ -11,6 +11,15 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/dialog";
 import { cn } from "@/lib/utils";
 
 import { formatBytes } from "./asset-validation";
@@ -48,12 +57,17 @@ import {
   MediaIconButton,
   MediaNotice,
   MediaProgress,
+  keepMediaSelection,
   mediaCaptionText,
   mediaFrameState,
   mediaStringAttr,
   useMediaUpload,
   useResolvedMedia,
 } from "./media-element-parts";
+
+const PDF_PREVIEW_UNAVAILABLE = "This browser can't preview PDFs";
+const PDF_DIALOG_CLASS =
+  "flex h-[min(85vh,calc(100dvh-2rem))] w-[min(90vw,calc(100%-2rem))] max-w-[min(90vw,calc(100%-2rem))] flex-col gap-3 overflow-hidden sm:max-w-[min(90vw,calc(100%-2rem))]";
 
 export function FileRuntime({ store }: { store: AssetStore | null }) {
   const editor = useEditorRef();
@@ -107,6 +121,15 @@ export function FileElement(props: PlateElementProps) {
   const openHref =
     showFile && displayUrl !== undefined && isSafeImageUrl(displayUrl) ? displayUrl : undefined;
   const downloadHref = showFile && displayUrl !== undefined ? displayUrl : undefined;
+  const previewUrl =
+    assetId !== undefined &&
+    mimeType === "application/pdf" &&
+    !fileAssetIsAdapter(editor, assetId) &&
+    downloadHref !== undefined &&
+    downloadHref.startsWith("blob:") &&
+    pdfViewerEnabled()
+      ? downloadHref
+      : undefined;
 
   useEffect(() => {
     if (assetId === undefined) {
@@ -151,6 +174,7 @@ export function FileElement(props: PlateElementProps) {
             extension={extension}
             downloadHref={downloadHref}
             openHref={openHref}
+            previewUrl={previewUrl}
           />
         ) : null}
         {sourcePending ? (
@@ -230,6 +254,7 @@ function FileRow({
   extension,
   downloadHref,
   openHref,
+  previewUrl,
 }: {
   name: string;
   mimeType: string | undefined;
@@ -237,6 +262,7 @@ function FileRow({
   extension: string | undefined;
   downloadHref: string;
   openHref: string | undefined;
+  previewUrl: string | undefined;
 }) {
   const details = [byteSize === undefined ? undefined : formatBytes(byteSize), extension].filter(
     (part) => part !== undefined,
@@ -259,10 +285,174 @@ function FileRow({
               Open
             </a>
           ) : null}
+          {previewUrl !== undefined ? (
+            <PdfPreview name={name} byteSize={byteSize} objectUrl={previewUrl} />
+          ) : null}
         </div>
       </div>
     </div>
   );
+}
+
+function PdfPreview({
+  name,
+  byteSize,
+  objectUrl,
+}: {
+  name: string;
+  byteSize: number | undefined;
+  objectUrl: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="underline"
+          onMouseDown={keepMediaSelection}
+          onClick={(event) => {
+            // Slate selects the void on click unless this event stops before the editor.
+            event.stopPropagation();
+            event.currentTarget.focus();
+          }}
+        >
+          Preview
+        </button>
+      </DialogTrigger>
+      <PdfPreviewDialog name={name} byteSize={byteSize} objectUrl={objectUrl} />
+    </Dialog>
+  );
+}
+
+function PdfPreviewDialog({
+  name,
+  byteSize,
+  objectUrl,
+}: {
+  name: string;
+  byteSize: number | undefined;
+  objectUrl: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const size = byteSize === undefined ? undefined : formatBytes(byteSize);
+
+  // No sandbox on the frame: Chrome's PDF viewer refuses one, and this blob is our sniffed PDF.
+  return (
+    <DialogContent showCloseButton={false} className={PDF_DIALOG_CLASS}>
+      <DialogHeader className="min-w-0 pr-0">
+        <DialogTitle className="min-w-0 [overflow-wrap:anywhere]">{name}</DialogTitle>
+        <DialogDescription className={size === undefined ? "sr-only" : "font-mono text-xs"}>
+          {size ?? `Preview of ${name}`}
+        </DialogDescription>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+          <a href={objectUrl} download={name} rel="noopener noreferrer" className="underline">
+            Download
+          </a>
+          <a href={objectUrl} target="_blank" rel="noopener noreferrer" className="underline">
+            Open in new tab
+          </a>
+          <DialogClose asChild>
+            <button type="button" className="underline">
+              Close
+            </button>
+          </DialogClose>
+        </div>
+      </DialogHeader>
+      {failed ? (
+        <PdfPreviewFallback name={name} objectUrl={objectUrl} />
+      ) : (
+        <PdfFrame
+          src={objectUrl}
+          title={`Preview of ${name}`}
+          onFail={() => {
+            setFailed(true);
+          }}
+        />
+      )}
+    </DialogContent>
+  );
+}
+
+function PdfFrame({ src, title, onFail }: { src: string; title: string; onFail: () => void }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) {
+      return;
+    }
+
+    const fail = () => {
+      onFail();
+    };
+    frame.addEventListener("error", fail);
+    return () => {
+      frame.removeEventListener("error", fail);
+    };
+  }, [onFail, src]);
+
+  return (
+    <iframe
+      ref={frameRef}
+      src={src}
+      title={title}
+      className="bg-background min-h-0 w-full flex-1 border-0"
+      onLoad={(event) => {
+        if (pdfFrameLoadedNothing(event.currentTarget)) {
+          onFail();
+        }
+      }}
+    />
+  );
+}
+
+function PdfPreviewFallback({ name, objectUrl }: { name: string; objectUrl: string }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-start justify-center gap-3">
+      <p>{PDF_PREVIEW_UNAVAILABLE}</p>
+      <a href={objectUrl} download={name} rel="noopener noreferrer" className="underline">
+        Download
+      </a>
+    </div>
+  );
+}
+
+function pdfViewerEnabled(): boolean {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const enabled: unknown = Reflect.get(navigator, "pdfViewerEnabled");
+  return enabled === true;
+}
+
+// Chrome's PDF plugin keeps a blob URL or throws when the frame is read.
+// Nothing loaded only when navigation left that blob for an empty document.
+function pdfFrameLoadedNothing(frame: HTMLIFrameElement): boolean {
+  let loaded: Document | null;
+  try {
+    loaded = frame.contentDocument;
+  } catch {
+    return false;
+  }
+
+  if (
+    !loaded ||
+    loaded.URL === "about:blank" ||
+    loaded.URL.startsWith("blob:") ||
+    loaded.contentType === "application/pdf"
+  ) {
+    return false;
+  }
+
+  const body = loaded.body;
+  if (!body || body.querySelector("embed, object") !== null) {
+    return false;
+  }
+
+  return (body.textContent ?? "").trim().length === 0;
 }
 
 function FileTypeIcon({ name, mimeType }: { name: string; mimeType: string | undefined }) {

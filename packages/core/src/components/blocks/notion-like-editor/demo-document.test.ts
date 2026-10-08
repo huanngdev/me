@@ -248,7 +248,7 @@ describe("demo document", () => {
     expect(textStyles.id).toBe("demo-text-styles");
   });
 
-  test("the lists heading follows the block styles section", () => {
+  test("the lists heading follows the block styles section", async () => {
     const lineHeight = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-line-height");
     const lists = DEMO_DOCUMENT_VALUE[lineHeight + 1];
     const first = DEMO_DOCUMENT_VALUE[lineHeight + 2];
@@ -440,6 +440,7 @@ describe("demo document", () => {
     const video = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-video");
     const audio = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-audio");
     const file = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-file");
+    const pdf = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-pdf");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     if (
       !toggles ||
@@ -467,6 +468,8 @@ describe("demo document", () => {
       audio.type !== "audio" ||
       !file ||
       file.type !== "file" ||
+      !pdf ||
+      pdf.type !== "file" ||
       !release ||
       release.type !== "table" ||
       !paste
@@ -544,13 +547,27 @@ describe("demo document", () => {
     const demoFileSize = demoFile.size;
     expect(field(file, "byteSize")).toBe(demoFileSize);
     expect(demoFileSize).toBeLessThanOrEqual(2048);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(pdf)).toBe(DEMO_DOCUMENT_VALUE.indexOf(file) + 1);
+    expect(field(pdf, "url")).toBe("/blocks/notion-like-editor/pdf-demo.pdf");
+    expect(field(pdf, "mimeType")).toBe("application/pdf");
+    expect(field(pdf, "name")).toBe("pdf-demo.pdf");
+    expect(field(pdf, "assetId")).toBeUndefined();
+    expect(field(pdf, "caption")).toEqual([{ text: "A one-page PDF. Paste a PDF to preview it." }]);
+    const demoPdf = Bun.file(
+      `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/pdf-demo.pdf`,
+    );
+    const demoPdfSize = demoPdf.size;
+    expect(field(pdf, "byteSize")).toBe(demoPdfSize);
+    expect(demoPdfSize).toBeLessThanOrEqual(2048);
+    const demoPdfBytes = new Uint8Array(await demoPdf.arrayBuffer());
+    expect(Array.from(demoPdfBytes.slice(0, 5))).toEqual([0x25, 0x50, 0x44, 0x46, 0x2d]);
     const demoAudio = Bun.file(
       `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/audio-demo.wav`,
     );
     const demoAudioSize = demoAudio.size;
     expect(demoAudioSize).toBeGreaterThan(44);
     expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(file) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(DEMO_DOCUMENT_VALUE.indexOf(pdf) + 1);
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
       "demo-toggle-1",

@@ -10,6 +10,8 @@ const installed: Record<string, unknown> = {
   Node: dom.Node,
   Element: dom.Element,
   HTMLElement: dom.HTMLElement,
+  HTMLInputElement: dom.HTMLInputElement,
+  HTMLIFrameElement: dom.HTMLIFrameElement,
   Event: dom.Event,
   CustomEvent: dom.CustomEvent,
   FocusEvent: dom.FocusEvent,

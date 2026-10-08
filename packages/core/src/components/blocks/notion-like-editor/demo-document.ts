@@ -1025,6 +1025,16 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "file",
+    id: "demo-pdf",
+    url: "/blocks/notion-like-editor/pdf-demo.pdf",
+    mimeType: "application/pdf",
+    name: "pdf-demo.pdf",
+    byteSize: 591,
+    caption: [{ text: "A one-page PDF. Paste a PDF to preview it." }],
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

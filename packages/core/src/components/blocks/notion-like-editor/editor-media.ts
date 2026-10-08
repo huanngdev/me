@@ -25,6 +25,15 @@ import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 // Used only when the file route is not registered. A registered file block takes every other file.
 export const MEDIA_FILE_SKIPPED = "This file was not inserted. File blocks are not available yet.";
 
+// IndexedDB can return sniffed PDF bytes with an empty type. The viewer accepts application/pdf only.
+function pdfTypedBlob(record: AssetRecord, blob: Blob): Blob {
+  if (record.mimeType === "application/pdf" && blob.type !== "application/pdf") {
+    return new Blob([blob], { type: "application/pdf" });
+  }
+
+  return blob;
+}
+
 const MEDIA_NAME_MAX = 255;
 
 const RESIZE_STEP = 16;
@@ -847,7 +856,7 @@ export function createMediaKind(spec: MediaKindSpec) {
       }
 
       runtime.cache.set(assetId, {
-        url: URL.createObjectURL(stored.blob),
+        url: URL.createObjectURL(pdfTypedBlob(stored.record, stored.blob)),
         objectUrl: true,
         name: stored.record.name,
       });
@@ -1028,7 +1037,6 @@ function registerMediaRoute(route: MediaRoute): void {
 }
 
 // Image, video, and audio keep their own blocks, including when the bytes fail that kind's sniff.
-// application/pdf is a file block until DEV-107 gives it a preview block.
 export function mediaRouteForFile(file: UploadSource): MediaRoute | undefined {
   const type = file.type.trim().toLowerCase();
   const specific = routes.find(
@@ -1038,6 +1046,7 @@ export function mediaRouteForFile(file: UploadSource): MediaRoute | undefined {
     return specific;
   }
 
+  // PDFs stay on the file block; preview is a dialog, not another node type.
   if (type === "application/pdf") {
     return routes.find((route) => route.nodeType === KEYS.file);
   }
