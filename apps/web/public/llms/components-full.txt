@@ -1,0 +1,2182 @@
+# Components
+
+> Full source. Prefer https://www.huanngdev.site/llms/components/<slug>.txt when you only need one component.
+
+# GitHub Contributions 3D
+
+> An interactive Three.js contribution calendar with six themes.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/github-contributions-3d
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/github-contributions-3d.utils.ts
+2. packages/core/src/components/github-contributions-3d.tsx
+
+## packages/core/src/components/github-contributions-3d.utils.ts
+```ts
+import type { ContributionDay } from "./github-contributions-3d";
+
+const DAY_IN_MS = 86_400_000;
+const DAYS_PER_WEEK = 7;
+
+export type ContributionCell = ContributionDay & {
+  dayIndex: number;
+  height: number;
+  weekIndex: number;
+};
+
+export const createContributionCells = (data: ContributionDay[]): ContributionCell[] => {
+  if (data.length === 0) return [];
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  const firstDate = sorted[0];
+  if (!firstDate) return [];
+
+  const firstTimestamp = Date.parse(`${firstDate.date}T00:00:00Z`);
+  const firstDay = new Date(firstTimestamp).getUTCDay();
+
+  return sorted.map((day) => {
+    const date = new Date(`${day.date}T00:00:00Z`);
+    const elapsedDays = Math.round((date.getTime() - firstTimestamp) / DAY_IN_MS);
+
+    return {
+      ...day,
+      dayIndex: date.getUTCDay(),
+      height: day.count === 0 ? 0.12 : Math.min(6.5, 0.22 + Math.log10(day.count / 2 + 1) * 2.8),
+      weekIndex: Math.floor((firstDay + elapsedDays) / DAYS_PER_WEEK),
+    };
+  });
+};
+```
+
+## packages/core/src/components/github-contributions-3d.tsx
+```tsx
+"use client";
+
+import { Instances, Instance, OrbitControls, RoundedBox } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { useEffect, useState } from "react";
+
+import { cn } from "../lib/utils";
+import { createContributionCells, type ContributionCell } from "./github-contributions-3d.utils";
+
+export type ContributionDay = {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+};
+
+export type ContributionVariant =
+  "green" | "season" | "night-view" | "night-green" | "night-rainbow" | "gitblock";
+
+export type GitHubContributions3DProps = {
+  data: ContributionDay[];
+  name: string;
+  variant?: ContributionVariant;
+  className?: string;
+};
+
+const THEME = {
+  green: {
+    background: "#ffffff",
+    base: "#e5e7eb",
+    colors: ["#efefef", "#d8e887", "#8cc569", "#47a042", "#1d6a23"],
+  },
+  "night-view": {
+    background: "#00000f",
+    base: "#101b36",
+    colors: [
+      "rgb(25,60,130)",
+      "rgb(25,90,210)",
+      "rgb(25,120,220)",
+      "rgb(25,150,230)",
+      "rgb(25,165,240)",
+    ],
+  },
+  "night-green": {
+    background: "#00000f",
+    base: "#171c19",
+    colors: ["#444444", "#1b7d28", "#24a736", "#2dd143", "#57da69"],
+  },
+  gitblock: {
+    background: "#ffffff",
+    base: "#e5e7eb",
+    colors: [
+      "#f8f8f8",
+      "hsl(125,52%,50%)",
+      "hsl(242,100%,65%)",
+      "hsl(48,100%,50%)",
+      "hsl(350,100%,50%)",
+    ],
+  },
+} as const;
+
+const SEASON_COLORS = {
+  spring: ["#efefef", "#ffe7ff", "#edaeda", "#e492ca", "#ba7aad"],
+  summer: ["#efefef", "#d8e887", "#8cc569", "#47a042", "#1d6a23"],
+  autumn: ["#efefef", "#ffed4a", "#ffc402", "#fe9400", "#fa6100"],
+  winter: ["#efefef", "#999999", "#cccccc", "#dddddd", "#eeeeee"],
+} as const;
+
+const CELL_SIZE = 0.78;
+const BASE_HEIGHT = 0.34;
+const CAMERA_TARGET = [0, 1.1, 0] as const;
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+  year: "numeric",
+});
+
+const getSeasonColor = (cell: ContributionCell) => {
+  const month = new Date(`${cell.date}T00:00:00Z`).getUTCMonth();
+  if (month >= 2 && month <= 4) return SEASON_COLORS.spring[cell.level];
+  if (month >= 5 && month <= 7) return SEASON_COLORS.summer[cell.level];
+  if (month >= 8 && month <= 10) return SEASON_COLORS.autumn[cell.level];
+  return SEASON_COLORS.winter[cell.level];
+};
+
+const getColor = (cell: ContributionCell, variant: ContributionVariant) => {
+  if (variant === "season") return getSeasonColor(cell);
+
+  if (variant === "night-rainbow") {
+    const lightness = [20, 30, 35, 40, 50][cell.level];
+    const hue = (((cell.weekIndex * -7) % 360) + 360) % 360;
+    return `hsl(${hue}, 50%, ${lightness}%)`;
+  }
+
+  return THEME[variant].colors[cell.level];
+};
+
+const getThemeSurface = (variant: ContributionVariant) => {
+  if (variant === "season") return THEME.green;
+  if (variant === "night-rainbow") return THEME["night-view"];
+  return THEME[variant];
+};
+
+const getLabelColor = (variant: ContributionVariant) => {
+  if (variant === "season") return SEASON_COLORS.spring[4];
+  if (variant === "night-rainbow") return "hsl(200, 50%, 70%)";
+  return THEME[variant].colors[4];
+};
+
+function useWebGLSupport() {
+  const [supported, setSupported] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const canvas = document.createElement("canvas");
+      setSupported(Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl")));
+    });
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  return supported;
+}
+
+function ResponsiveCamera() {
+  const { camera, invalidate, size } = useThree();
+
+  useEffect(() => {
+    const [x, y, z] = size.width < 640 ? [22, 59, 89] : [14, 38, 58];
+    camera.position.set(x, y, z);
+    camera.lookAt(...CAMERA_TARGET);
+    camera.updateProjectionMatrix();
+    invalidate();
+  }, [camera, invalidate, size.width]);
+
+  return null;
+}
+
+function Scene({ cells, variant }: { cells: ContributionCell[]; variant: ContributionVariant }) {
+  const weekCount = Math.max(...cells.map((cell) => cell.weekIndex), 0) + 1;
+  const baseWidth = weekCount - 1 + CELL_SIZE;
+  const baseDepth = 6 + CELL_SIZE;
+  const surface = getThemeSurface(variant);
+
+  return (
+    <>
+      <color attach="background" args={[surface.background]} />
+      <ResponsiveCamera />
+      <hemisphereLight args={["#ffffff", "#556070", 1.6]} />
+      <directionalLight
+        castShadow
+        intensity={3.1}
+        position={[-12, 18, 10]}
+        shadow-bias={-0.0004}
+        shadow-camera-bottom={-8}
+        shadow-camera-far={70}
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={12}
+        shadow-mapSize-height={1024}
+        shadow-mapSize-width={1024}
+      />
+
+      <group position={[-(weekCount - 1) / 2, 0, -3]}>
+        <Instances castShadow limit={cells.length} range={cells.length} receiveShadow>
+          <boxGeometry args={[CELL_SIZE, 1, CELL_SIZE]} />
+          <meshStandardMaterial metalness={0.04} roughness={0.56} />
+          {cells.map((cell) => (
+            <Instance
+              key={cell.date}
+              color={getColor(cell, variant)}
+              position={[cell.weekIndex, cell.height / 2, cell.dayIndex]}
+              scale={[1, cell.height, 1]}
+            />
+          ))}
+        </Instances>
+      </group>
+
+      <RoundedBox
+        args={[baseWidth, BASE_HEIGHT, baseDepth]}
+        position={[0, -BASE_HEIGHT / 2, 0]}
+        radius={0.16}
+        receiveShadow
+        smoothness={4}
+      >
+        <meshStandardMaterial color={surface.base} metalness={0.02} roughness={0.78} />
+      </RoundedBox>
+
+      <OrbitControls
+        enablePan={false}
+        makeDefault
+        maxDistance={130}
+        maxPolarAngle={Math.PI / 2.15}
+        minDistance={38}
+        minPolarAngle={Math.PI / 5}
+        target={CAMERA_TARGET}
+      />
+    </>
+  );
+}
+
+export function GitHubContributions3D({
+  data,
+  name,
+  variant = "green",
+  className,
+}: GitHubContributions3DProps) {
+  const webGLSupported = useWebGLSupport();
+  const cells = createContributionCells(data);
+  const total = data.reduce((sum, day) => sum + day.count, 0);
+  const firstDate = cells[0]?.date;
+  const lastDate = cells.at(-1)?.date;
+  const dateRange =
+    firstDate && lastDate
+      ? `${DATE_FORMATTER.format(new Date(`${firstDate}T00:00:00Z`))} – ${DATE_FORMATTER.format(
+          new Date(`${lastDate}T00:00:00Z`),
+        )}`
+      : "";
+
+  if (webGLSupported === false) {
+    return (
+      <div
+        className={cn(
+          "bg-muted flex min-h-80 items-center justify-center rounded-lg border p-6",
+          className,
+        )}
+      >
+        <p className="text-muted-foreground text-center text-sm">
+          This browser cannot display the WebGL preview.
+        </p>
+      </div>
+    );
+  }
+
+  if (cells.length === 0) {
+    return (
+      <div
+        className={cn(
+          "bg-muted flex min-h-80 items-center justify-center rounded-lg border p-6",
+          className,
+        )}
+      >
+        <p className="text-muted-foreground text-center text-sm">
+          No contribution data to display.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`${name}, ${total.toLocaleString("en-US")} GitHub contributions from ${dateRange}, shown with the ${variant} theme`}
+      className={cn(
+        "bg-muted/30 relative h-80 w-full overflow-hidden rounded-lg border sm:h-112",
+        className,
+      )}
+      role="img"
+    >
+      {webGLSupported && (
+        <Canvas
+          camera={{ far: 180, fov: 36, near: 0.1, position: [14, 38, 58] }}
+          dpr={[1, 1.5]}
+          frameloop="demand"
+          gl={{ antialias: true, alpha: false }}
+          shadows
+        >
+          <Scene cells={cells} variant={variant} />
+        </Canvas>
+      )}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-3 left-3 font-mono leading-tight drop-shadow-sm"
+        style={{ color: getLabelColor(variant) }}
+      >
+        <p className="text-xs font-medium">{name}</p>
+        <p className="mt-1 text-[10px] opacity-80 sm:text-xs">{dateRange}</p>
+      </div>
+      <p className="text-muted-foreground bg-background/70 pointer-events-none absolute right-3 bottom-2 hidden rounded px-2 py-1 text-xs sm:block">
+        Drag to rotate · Scroll to zoom
+      </p>
+    </div>
+  );
+}
+```
+
+---
+
+# Tags Input
+
+> A composable tags input built on shadcn primitives.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/shadcn-tags-input
+- Registry: https://www.huanngdev.site/r/shadcn-tags-input.json
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/shadcn-tags-input/tags-input.tsx
+
+## packages/core/src/components/shadcn-tags-input/tags-input.tsx
+```tsx
+"use client";
+
+import * as React from "react";
+import { X } from "lucide-react";
+
+import { Badge } from "../badge";
+import { cn } from "../../lib/utils";
+
+export type UseTagsInputOptions = {
+  value?: string[];
+  defaultValue?: string[];
+  onChange?: (value: string[]) => void;
+  maxTags?: number;
+  minLength?: number;
+  maxLength?: number;
+  allowDuplicates?: boolean;
+  trim?: boolean;
+  validate?: (tag: string, tags: string[]) => true | string;
+};
+
+export type UseTagsInputReturn = {
+  tags: string[];
+  setTags: (value: string[]) => void;
+  addTag: (tag: string) => true | string;
+  removeTag: (index: number) => void;
+  clear: () => void;
+};
+
+export function useTagsInput({
+  value,
+  defaultValue,
+  onChange,
+  maxTags,
+  minLength = 1,
+  maxLength,
+  allowDuplicates = false,
+  trim = true,
+  validate,
+}: UseTagsInputOptions = {}): UseTagsInputReturn {
+  const isControlled = value !== undefined;
+  const [internal, setInternal] = React.useState<string[]>(defaultValue ?? []);
+  const tags = isControlled ? value : internal;
+
+  const commit = React.useCallback(
+    (next: string[]) => {
+      if (!isControlled) setInternal(next);
+      onChange?.(next);
+    },
+    [isControlled, onChange],
+  );
+
+  const setTags = React.useCallback((next: string[]) => commit(next), [commit]);
+
+  const addTag = React.useCallback(
+    (raw: string): true | string => {
+      const tag = trim ? raw.trim() : raw;
+      if (tag.length < minLength)
+        return `Tag must be at least ${minLength} character${minLength === 1 ? "" : "s"}`;
+      if (maxLength && tag.length > maxLength) return `Tag must be at most ${maxLength} characters`;
+      if (!allowDuplicates && tags.includes(tag)) return "Tag already exists";
+      if (maxTags && tags.length >= maxTags) return `Maximum ${maxTags} tags allowed`;
+      if (validate) {
+        const result = validate(tag, tags);
+        if (result !== true) return result;
+      }
+      commit([...tags, tag]);
+      return true;
+    },
+    [tags, trim, minLength, maxLength, allowDuplicates, maxTags, validate, commit],
+  );
+
+  const removeTag = React.useCallback(
+    (index: number) => {
+      if (index < 0 || index >= tags.length) return;
+      const next = tags.slice();
+      next.splice(index, 1);
+      commit(next);
+    },
+    [tags, commit],
+  );
+
+  const clear = React.useCallback(() => commit([]), [commit]);
+
+  return { tags, setTags, addTag, removeTag, clear };
+}
+
+export type TagsInputProps = Omit<React.ComponentProps<"div">, "onChange" | "defaultValue"> &
+  Pick<
+    UseTagsInputOptions,
+    | "value"
+    | "defaultValue"
+    | "onChange"
+    | "maxTags"
+    | "minLength"
+    | "maxLength"
+    | "allowDuplicates"
+    | "trim"
+    | "validate"
+  > & {
+    placeholder?: string;
+    disabled?: boolean;
+    delimiters?: string[];
+    onTagAdd?: (tag: string) => void;
+    onTagRemove?: (tag: string, index: number) => void;
+    onValidationError?: (message: string) => void;
+    "aria-invalid"?: boolean;
+    name?: string;
+  };
+
+export function TagsInput({
+  value,
+  defaultValue,
+  onChange,
+  maxTags,
+  minLength,
+  maxLength,
+  allowDuplicates,
+  trim,
+  validate,
+  placeholder = "Add a tag...",
+  disabled = false,
+  delimiters = ["Enter", ","],
+  onTagAdd,
+  onTagRemove,
+  onValidationError,
+  className,
+  name,
+  "aria-invalid": ariaInvalid,
+  ...props
+}: TagsInputProps) {
+  const { tags, addTag, removeTag } = useTagsInput({
+    value,
+    defaultValue,
+    onChange,
+    maxTags,
+    minLength,
+    maxLength,
+    allowDuplicates,
+    trim,
+    validate,
+  });
+  const [input, setInput] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const commitInput = (raw: string) => {
+    if (!raw.trim()) return;
+    const result = addTag(raw);
+    if (result === true) {
+      onTagAdd?.(trim === false ? raw : raw.trim());
+      setInput("");
+    } else {
+      onValidationError?.(result);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (delimiters.includes(event.key)) {
+      event.preventDefault();
+      commitInput(input);
+      return;
+    }
+    if (event.key === "Backspace" && input === "" && tags.length > 0) {
+      const lastTag = tags[tags.length - 1];
+      removeTag(tags.length - 1);
+      onTagRemove?.(lastTag!, tags.length - 1);
+    }
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData("text");
+    if (!pasted.includes(",") && !pasted.includes("\n")) return;
+    event.preventDefault();
+    const parts = pasted
+      .split(/[,\n]/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    for (const part of parts) commitInput(part);
+  };
+
+  return (
+    <div
+      data-slot="tags-input"
+      data-disabled={disabled || undefined}
+      aria-invalid={ariaInvalid}
+      onClick={() => inputRef.current?.focus()}
+      className={cn(
+        "border-input focus-within:border-ring focus-within:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 flex min-h-8 w-full flex-wrap items-center gap-1 rounded-lg border bg-transparent px-1.5 py-1 text-sm transition-colors outline-none focus-within:ring-3 aria-invalid:ring-3 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+        className,
+      )}
+      {...props}
+    >
+      {tags.map((tag, i) => (
+        <Badge key={`${tag}-${i}`} variant="secondary" className="data-[icon=inline-end]:pr-1">
+          <span>{tag}</span>
+          {!disabled && (
+            <button
+              type="button"
+              data-icon="inline-end"
+              aria-label={`Remove ${tag}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(i);
+                onTagRemove?.(tag, i);
+              }}
+              className="hover:bg-foreground/10 focus-visible:ring-ring/50 inline-flex size-3.5 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <X className="size-2.5" />
+            </button>
+          )}
+        </Badge>
+      ))}
+      <input
+        ref={inputRef}
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        disabled={disabled}
+        placeholder={tags.length === 0 ? placeholder : undefined}
+        className="placeholder:text-muted-foreground min-w-[8ch] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none disabled:cursor-not-allowed"
+      />
+      {name && <input type="hidden" name={name} value={JSON.stringify(tags)} />}
+    </div>
+  );
+}
+```
+
+---
+
+# Scroll Minimap
+
+> A compact scrollspy navigator for long content.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/scroll-minimap
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/scroll-minimap.tsx
+
+## packages/core/src/components/scroll-minimap.tsx
+```tsx
+"use client";
+
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { cn } from "../lib/utils";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card";
+
+export type ScrollMinimapItem = {
+  label: ReactNode;
+  href: `#${string}`;
+  depth?: number;
+  description?: ReactNode;
+};
+
+export type ScrollMinimapProps = {
+  items: ScrollMinimapItem[];
+  direction?: "left" | "right";
+  className?: string;
+  ariaLabel?: string;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
+  onNavigate?: (item: ScrollMinimapItem) => void;
+  onItemEnter?: (item: ScrollMinimapItem) => void;
+};
+
+export function ScrollMinimap({
+  items,
+  direction = "left",
+  className,
+  ariaLabel = "Section navigation",
+  scrollContainerRef,
+  onNavigate,
+  onItemEnter,
+}: ScrollMinimapProps) {
+  const itemIds = useMemo(() => items.map((item) => item.href.slice(1)), [items]);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const activeId = useActiveSection(itemIds, scrollContainerRef);
+
+  if (!items.length) return null;
+
+  return (
+    <nav aria-label={ariaLabel} className={cn("w-12", className)}>
+      <ul
+        className="flex max-h-[50dvh] cursor-pointer flex-col items-stretch py-3"
+        onMouseLeave={() => setHoveredIndex(null)}
+      >
+        {items.map((item, index) => (
+          <li key={item.href} className="flex w-full items-center">
+            <HoverCard open={hoveredIndex === index}>
+              <HoverCardTrigger asChild>
+                <a
+                  href={item.href}
+                  aria-label={
+                    typeof item.label === "string" ? `Go to ${item.label}` : "Go to section"
+                  }
+                  aria-current={item.href === `#${activeId}` ? "location" : undefined}
+                  data-active={item.href === `#${activeId}`}
+                  className={cn(
+                    "group focus-visible:ring-ring/50 flex w-12 cursor-pointer items-center rounded-sm bg-transparent py-1 focus-visible:ring-2 focus-visible:outline-none",
+                    direction === "right" && "justify-end",
+                    item.depth === 3 && (direction === "left" ? "ml-2" : "mr-2"),
+                    item.depth && item.depth >= 4 && (direction === "left" ? "ml-4" : "mr-4"),
+                  )}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    scrollToItem(item.href, scrollContainerRef?.current);
+                    onNavigate?.(item);
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredIndex(index);
+                    onItemEnter?.(item);
+                  }}
+                  onFocus={() => {
+                    setHoveredIndex(index);
+                    onItemEnter?.(item);
+                  }}
+                  onBlur={() => setHoveredIndex(null)}
+                >
+                  <span
+                    className={cn(
+                      "bg-muted-foreground/35 block h-0.5 origin-left rounded-full",
+                      "transition-[width,background-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      "group-hover:bg-primary group-focus-visible:bg-primary group-hover:scale-y-150 group-focus-visible:scale-y-150",
+                      "group-data-[active=true]:bg-primary motion-reduce:transition-none",
+                      direction === "right" && "origin-right",
+                      getProximityWidth(index, hoveredIndex),
+                    )}
+                  />
+                </a>
+              </HoverCardTrigger>
+              <HoverCardContent
+                side={direction === "left" ? "right" : "left"}
+                align="center"
+                sideOffset={14}
+                className="w-auto max-w-64 gap-1 px-3 py-2 duration-200"
+              >
+                <p className="line-clamp-2 text-sm font-medium">{item.label}</p>
+                <p className="text-muted-foreground text-xs">
+                  {item.description ?? "Jump to this section"}
+                </p>
+              </HoverCardContent>
+            </HoverCard>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function getProximityWidth(index: number, hoveredIndex: number | null) {
+  if (hoveredIndex === null) return "w-3";
+
+  const distance = Math.abs(index - hoveredIndex);
+  if (distance === 0) return "w-10";
+  if (distance === 1) return "w-8";
+  if (distance === 2) return "w-6";
+  if (distance === 3) return "w-5";
+  if (distance === 4) return "w-4";
+  return "w-3";
+}
+
+function useActiveSection(itemIds: string[], scrollContainerRef?: RefObject<HTMLElement | null>) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const headings = itemIds
+      .map((id) => document.getElementById(id))
+      .filter((element): element is HTMLElement => element !== null);
+    if (!headings.length) return;
+
+    const scrollContainer = scrollContainerRef?.current;
+    const eventTarget = scrollContainer ?? window;
+    let frame: number | null = null;
+
+    const updateActiveSection = () => {
+      const containerRect = scrollContainer?.getBoundingClientRect();
+      const marker = containerRect
+        ? containerRect.top + containerRect.height * 0.3
+        : window.innerHeight * 0.3;
+      let currentId = headings[0]?.id ?? null;
+
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top > marker) break;
+        currentId = heading.id;
+      }
+
+      const atEnd = scrollContainer
+        ? scrollContainer.scrollTop + scrollContainer.clientHeight >=
+          scrollContainer.scrollHeight - 2
+        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atEnd) currentId = headings.at(-1)?.id ?? currentId;
+
+      setActiveId((previousId) => (previousId === currentId ? previousId : currentId));
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        updateActiveSection();
+      });
+    };
+
+    updateActiveSection();
+    eventTarget.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      eventTarget.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [itemIds, scrollContainerRef]);
+
+  return activeId;
+}
+
+function scrollToItem(href: `#${string}`, scrollContainer?: HTMLElement | null) {
+  const target = document.getElementById(href.slice(1));
+  if (!target) return;
+
+  history.pushState(null, "", href);
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+
+  if (!scrollContainer) {
+    target.scrollIntoView({ behavior });
+    return;
+  }
+
+  const targetTop =
+    target.getBoundingClientRect().top -
+    scrollContainer.getBoundingClientRect().top +
+    scrollContainer.scrollTop;
+  scrollContainer.scrollTo({ top: targetTop, behavior });
+}
+```
+
+---
+
+# Video Player
+
+> A headless media player with shadcn controls.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/video-player
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/video-player/use-video-player.ts
+2. packages/core/src/components/video-player/video-player.tsx
+
+## packages/core/src/components/video-player/use-video-player.ts
+```ts
+"use client";
+
+import type { MouseEvent, PointerEvent } from "react";
+import { useState } from "react";
+import { useMediaRemote, useMediaStore } from "@vidstack/react";
+
+const FALLBACK_DURATION = 0;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function formatMediaTime(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return "0:00";
+
+  const totalSeconds = Math.floor(value);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+type VideoPlayerController = {
+  media: ReturnType<typeof useMediaStore>;
+  seekMin: number;
+  seekMax: number;
+  seekValue: number;
+  bufferedPercent: number;
+  togglePlayback: (event: MouseEvent<HTMLButtonElement>) => void;
+  seekBy: (seconds: number, event: MouseEvent<HTMLButtonElement>) => void;
+  previewSeek: (values: number[]) => void;
+  commitSeek: (values: number[]) => void;
+  startPointerSeek: (event: PointerEvent<HTMLElement>) => void;
+  movePointerSeek: (event: PointerEvent<HTMLElement>) => void;
+  finishPointerSeek: (event: PointerEvent<HTMLElement>) => void;
+  changeVolume: (values: number[]) => void;
+  toggleMuted: (event: MouseEvent<HTMLButtonElement>) => void;
+  toggleFullscreen: (event: MouseEvent<HTMLButtonElement>) => void;
+  togglePictureInPicture: (event: MouseEvent<HTMLButtonElement>) => void;
+  changePlaybackRate: (rate: number) => void;
+  changeQuality: (index: number) => void;
+  changeAudioTrack: (index: number) => void;
+  changeTextTrack: (trackId: string | null) => void;
+  toggleCaptions: (event: MouseEvent<HTMLButtonElement>) => void;
+  toggleLoop: () => void;
+  seekToLiveEdge: () => void;
+  requestAirPlay: () => void;
+  requestGoogleCast: () => void;
+  handleMenuOpenChange: (open: boolean) => void;
+};
+
+export function useVideoPlayer(): VideoPlayerController {
+  const remote = useMediaRemote();
+  const media = useMediaStore();
+  const [pendingSeek, setPendingSeek] = useState<number | null>(null);
+  const [preferredCaptionId, setPreferredCaptionId] = useState<string | null>(null);
+
+  const seekMin = media.live && media.isLiveDVR ? media.seekableStart : 0;
+  const seekMax = Number.isFinite(media.duration)
+    ? media.duration
+    : Number.isFinite(media.seekableEnd)
+      ? media.seekableEnd
+      : FALLBACK_DURATION;
+  const seekValue = clamp(pendingSeek ?? media.currentTime, seekMin, Math.max(seekMin, seekMax));
+  const seekWindow = Math.max(seekMax - seekMin, 0);
+  const bufferedPercent =
+    seekWindow > 0 ? clamp(((media.bufferedEnd - seekMin) / seekWindow) * 100, 0, 100) : 0;
+
+  function togglePlayback(event: MouseEvent<HTMLButtonElement>): void {
+    remote.togglePaused(event.nativeEvent);
+  }
+
+  function seekBy(seconds: number, event: MouseEvent<HTMLButtonElement>): void {
+    remote.seek(clamp(media.currentTime + seconds, seekMin, seekMax), event.nativeEvent);
+  }
+
+  function previewSeek(values: number[]): void {
+    const nextTime = values[0] ?? seekMin;
+    setPendingSeek(nextTime);
+    remote.seeking(nextTime);
+  }
+
+  function commitSeek(values: number[]): void {
+    remote.seek(values[0] ?? seekMin);
+    setPendingSeek(null);
+  }
+
+  function seekFromPointerPosition(event: PointerEvent<HTMLElement>): void {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || seekMax <= seekMin) return;
+
+    const progress = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    remote.seek(seekMin + progress * (seekMax - seekMin), event.nativeEvent);
+  }
+
+  function startPointerSeek(event: PointerEvent<HTMLElement>): void {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    seekFromPointerPosition(event);
+  }
+
+  function movePointerSeek(event: PointerEvent<HTMLElement>): void {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) seekFromPointerPosition(event);
+  }
+
+  function finishPointerSeek(event: PointerEvent<HTMLElement>): void {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+
+    seekFromPointerPosition(event);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function changeVolume(values: number[]): void {
+    const nextVolume = clamp((values[0] ?? 0) / 100, 0, 1);
+    if (nextVolume > 0 && media.muted) remote.unmute();
+    remote.changeVolume(nextVolume);
+  }
+
+  function toggleMuted(event: MouseEvent<HTMLButtonElement>): void {
+    remote.toggleMuted(event.nativeEvent);
+  }
+
+  function toggleFullscreen(event: MouseEvent<HTMLButtonElement>): void {
+    remote.toggleFullscreen("prefer-media", event.nativeEvent);
+  }
+
+  function togglePictureInPicture(event: MouseEvent<HTMLButtonElement>): void {
+    remote.togglePictureInPicture(event.nativeEvent);
+  }
+
+  function changePlaybackRate(rate: number): void {
+    remote.changePlaybackRate(rate);
+  }
+
+  function changeQuality(index: number): void {
+    if (index < 0) {
+      remote.requestAutoQuality();
+      return;
+    }
+
+    remote.changeQuality(index);
+  }
+
+  function changeAudioTrack(index: number): void {
+    remote.changeAudioTrack(index);
+  }
+
+  function changeTextTrack(trackId: string | null): void {
+    if (trackId === null) {
+      if (media.textTrack) setPreferredCaptionId(media.textTrack.id);
+      remote.disableCaptions();
+      return;
+    }
+
+    const trackIndex = media.textTracks.findIndex((track) => track.id === trackId);
+    if (trackIndex >= 0) {
+      setPreferredCaptionId(trackId);
+      remote.changeTextTrackMode(trackIndex, "showing");
+    }
+  }
+
+  function toggleCaptions(event: MouseEvent<HTMLButtonElement>): void {
+    if (media.textTrack) {
+      setPreferredCaptionId(media.textTrack.id);
+      remote.disableCaptions(event.nativeEvent);
+      return;
+    }
+
+    const preferredTrackIndex = media.textTracks.findIndex(
+      (track) => track.id === preferredCaptionId,
+    );
+    const fallbackTrackIndex = media.textTracks.findIndex(
+      (track) => track.kind === "captions" || track.kind === "subtitles",
+    );
+    const trackIndex = preferredTrackIndex >= 0 ? preferredTrackIndex : fallbackTrackIndex;
+
+    if (trackIndex >= 0) {
+      setPreferredCaptionId(media.textTracks[trackIndex]?.id ?? null);
+      remote.changeTextTrackMode(trackIndex, "showing", event.nativeEvent);
+    }
+  }
+
+  function toggleLoop(): void {
+    remote.userPrefersLoopChange(!media.loop);
+  }
+
+  function seekToLiveEdge(): void {
+    remote.seekToLiveEdge();
+  }
+
+  function requestAirPlay(): void {
+    remote.requestAirPlay();
+  }
+
+  function requestGoogleCast(): void {
+    remote.requestGoogleCast();
+  }
+
+  function handleMenuOpenChange(open: boolean): void {
+    if (open) remote.pauseControls();
+    else remote.resumeControls();
+  }
+
+  return {
+    media,
+    seekMin,
+    seekMax,
+    seekValue,
+    bufferedPercent,
+    togglePlayback,
+    seekBy,
+    previewSeek,
+    commitSeek,
+    startPointerSeek,
+    movePointerSeek,
+    finishPointerSeek,
+    changeVolume,
+    toggleMuted,
+    toggleFullscreen,
+    togglePictureInPicture,
+    changePlaybackRate,
+    changeQuality,
+    changeAudioTrack,
+    changeTextTrack,
+    toggleCaptions,
+    toggleLoop,
+    seekToLiveEdge,
+    requestAirPlay,
+    requestGoogleCast,
+    handleMenuOpenChange,
+  };
+}
+```
+
+## packages/core/src/components/video-player/video-player.tsx
+```tsx
+"use client";
+
+import type { ComponentProps, ReactNode } from "react";
+import {
+  Captions as CaptionsDisplay,
+  ChapterTitle,
+  Controls,
+  Gesture,
+  isDASHProvider,
+  isHLSProvider,
+  MediaAnnouncer,
+  MediaPlayer,
+  MediaProvider,
+  Poster,
+  Track,
+  type MediaPlayerProps,
+  type MediaProviderAdapter,
+  type TrackProps,
+} from "@vidstack/react";
+import {
+  Airplay,
+  Captions,
+  Cast,
+  Download,
+  FastForward,
+  Gauge,
+  Languages,
+  LoaderCircle,
+  Maximize,
+  Minimize,
+  Pause,
+  PictureInPicture2,
+  Play,
+  Radio,
+  Rewind,
+  RotateCcw,
+  Settings,
+  Volume1,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+
+import { Button } from "../button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "../dropdown-menu";
+import { Slider } from "../slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
+import { cn } from "../../lib/utils";
+import { formatMediaTime, useVideoPlayer } from "./use-video-player";
+
+const DEFAULT_PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+
+export type VideoPlayerTrack = Omit<TrackProps, "id"> & {
+  id: string;
+};
+
+export type VideoPlayerProps = Omit<
+  MediaPlayerProps,
+  "children" | "className" | "controls" | "src" | "title"
+> & {
+  src: MediaPlayerProps["src"];
+  title: string;
+  tracks?: VideoPlayerTrack[];
+  playbackRates?: readonly number[];
+  skipSeconds?: number;
+  download?: boolean | string;
+  className?: string;
+};
+
+function configureMediaProvider(provider: MediaProviderAdapter | null): void {
+  if (isHLSProvider(provider)) provider.library = () => import("hls.js");
+  if (isDASHProvider(provider)) provider.library = () => import("dashjs");
+}
+
+function getDownloadHref(
+  source: VideoPlayerProps["src"],
+  download: VideoPlayerProps["download"],
+): string | null {
+  if (typeof download === "string") return download;
+  if (!download) return null;
+
+  const firstSource = Array.isArray(source) ? source[0] : source;
+  if (typeof firstSource === "string") return firstSource;
+  if (!firstSource || typeof firstSource.src !== "string") return null;
+  if (firstSource.type === "video/youtube" || firstSource.type === "video/vimeo") return null;
+
+  return firstSource.src;
+}
+
+function PlayerButton({
+  label,
+  children,
+  className,
+  ...props
+}: ComponentProps<typeof Button> & {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={label}
+          className={cn("text-white drop-shadow-sm hover:bg-black/40 hover:text-white", className)}
+          {...props}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function SettingsMenu({
+  player,
+  playbackRates,
+  downloadHref,
+}: {
+  player: ReturnType<typeof useVideoPlayer>;
+  playbackRates: readonly number[];
+  downloadHref: string | null;
+}) {
+  const captions = player.media.textTracks.filter(
+    (track) => track.kind === "captions" || track.kind === "subtitles",
+  );
+
+  return (
+    <DropdownMenu onOpenChange={player.handleMenuOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Playback settings"
+          className="text-white drop-shadow-sm hover:bg-black/40 hover:text-white"
+        >
+          <Settings />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" side="top" sideOffset={8} className="min-w-56">
+        <DropdownMenuLabel>Playback</DropdownMenuLabel>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="min-h-11">
+            <Gauge />
+            Speed
+            <span className="text-muted-foreground ml-auto font-mono text-xs">
+              {player.media.playbackRate}×
+            </span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="min-w-36">
+            <DropdownMenuRadioGroup value={String(player.media.playbackRate)}>
+              {playbackRates.map((rate) => (
+                <DropdownMenuRadioItem
+                  key={rate}
+                  value={String(rate)}
+                  className="min-h-11"
+                  disabled={!player.media.canSetPlaybackRate}
+                  onSelect={() => player.changePlaybackRate(rate)}
+                >
+                  {rate === 1 ? "Normal" : `${rate}×`}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {player.media.qualities.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="min-h-11">
+              <Radio />
+              Quality
+              <span className="text-muted-foreground ml-auto font-mono text-xs">
+                {player.media.autoQuality
+                  ? "Auto"
+                  : player.media.quality
+                    ? `${player.media.quality.height}p`
+                    : "—"}
+              </span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-36">
+              <DropdownMenuRadioGroup
+                value={player.media.autoQuality ? "auto" : (player.media.quality?.id ?? "auto")}
+              >
+                <DropdownMenuRadioItem
+                  value="auto"
+                  className="min-h-11"
+                  onSelect={() => player.changeQuality(-1)}
+                >
+                  Auto
+                </DropdownMenuRadioItem>
+                {player.media.qualities.map((quality, index) => (
+                  <DropdownMenuRadioItem
+                    key={quality.id}
+                    value={quality.id}
+                    className="min-h-11"
+                    disabled={!player.media.canSetQuality}
+                    onSelect={() => player.changeQuality(index)}
+                  >
+                    {quality.height}p
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        {captions.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="min-h-11">
+              <Languages />
+              Captions
+              <span className="text-muted-foreground ml-auto max-w-20 truncate text-xs">
+                {player.media.textTrack?.label || "Off"}
+              </span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-40">
+              <DropdownMenuRadioGroup value={player.media.textTrack?.id ?? "off"}>
+                <DropdownMenuRadioItem
+                  value="off"
+                  className="min-h-11"
+                  onSelect={() => player.changeTextTrack(null)}
+                >
+                  Off
+                </DropdownMenuRadioItem>
+                {captions.map((track) => (
+                  <DropdownMenuRadioItem
+                    key={track.id}
+                    value={track.id}
+                    className="min-h-11"
+                    onSelect={() => player.changeTextTrack(track.id)}
+                  >
+                    {track.label || track.language || "Captions"}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        {player.media.audioTracks.length > 1 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="min-h-11">
+              <Volume2 />
+              Audio
+              <span className="text-muted-foreground ml-auto max-w-20 truncate text-xs">
+                {player.media.audioTrack?.label || "Default"}
+              </span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-40">
+              <DropdownMenuRadioGroup value={player.media.audioTrack?.id ?? ""}>
+                {player.media.audioTracks.map((track, index) => (
+                  <DropdownMenuRadioItem
+                    key={track.id}
+                    value={track.id}
+                    className="min-h-11"
+                    onSelect={() => player.changeAudioTrack(index)}
+                  >
+                    {track.label || track.language || `Track ${index + 1}`}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        <DropdownMenuCheckboxItem
+          checked={player.media.loop}
+          className="min-h-11"
+          onCheckedChange={player.toggleLoop}
+        >
+          <RotateCcw />
+          Loop
+        </DropdownMenuCheckboxItem>
+
+        {(player.media.canAirPlay || player.media.canGoogleCast || downloadHref) && (
+          <DropdownMenuSeparator />
+        )}
+
+        {player.media.canAirPlay && (
+          <DropdownMenuItem className="min-h-11" onSelect={player.requestAirPlay}>
+            <Airplay />
+            AirPlay
+          </DropdownMenuItem>
+        )}
+        {player.media.canGoogleCast && (
+          <DropdownMenuItem className="min-h-11" onSelect={player.requestGoogleCast}>
+            <Cast />
+            Google Cast
+          </DropdownMenuItem>
+        )}
+        {downloadHref && (
+          <DropdownMenuItem asChild className="min-h-11">
+            <a href={downloadHref} download>
+              <Download />
+              Download
+            </a>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function Timeline({ player }: { player: ReturnType<typeof useVideoPlayer> }) {
+  return (
+    <div className="relative flex h-11 items-center">
+      <div className="pointer-events-none absolute right-0 left-0 h-1 overflow-hidden rounded-full bg-black/40">
+        <div
+          className="h-full origin-left bg-white/50"
+          style={{ width: `${player.bufferedPercent}%` }}
+        />
+      </div>
+      <Slider
+        aria-label="Video progress"
+        min={player.seekMin}
+        max={Math.max(player.seekMax, player.seekMin + 0.01)}
+        step={0.1}
+        value={[player.seekValue]}
+        disabled={!player.media.canSeek}
+        onValueChange={player.previewSeek}
+        onValueCommit={player.commitSeek}
+        onPointerDownCapture={player.startPointerSeek}
+        onPointerMoveCapture={player.movePointerSeek}
+        onPointerUpCapture={player.finishPointerSeek}
+        onPointerCancelCapture={player.finishPointerSeek}
+        className="relative z-10 h-11 cursor-pointer [&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:border-white [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-track]]:bg-transparent"
+      />
+    </div>
+  );
+}
+
+function PlayerControls({
+  player,
+  playbackRates,
+  skipSeconds,
+  downloadHref,
+}: {
+  player: ReturnType<typeof useVideoPlayer>;
+  playbackRates: readonly number[];
+  skipSeconds: number;
+  downloadHref: string | null;
+}) {
+  const volumeLabel = player.media.muted ? "Unmute" : "Mute";
+  const VolumeIcon = player.media.muted ? VolumeX : player.media.volume < 0.5 ? Volume1 : Volume2;
+
+  return (
+    <TooltipProvider>
+      <Controls.Root className="pointer-events-none absolute inset-0 z-20 flex flex-col text-white opacity-0 transition-opacity duration-200 data-[visible]:opacity-100 motion-reduce:transition-none">
+        <Controls.Group className="pointer-events-none flex min-h-11 items-center px-3 drop-shadow-sm in-data-[visible]:pointer-events-auto">
+          <span className="truncate text-sm font-medium">{player.media.title}</span>
+          <ChapterTitle className="text-muted-foreground ml-2 hidden truncate text-xs sm:block" />
+        </Controls.Group>
+
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Button
+            type="button"
+            size="icon"
+            aria-label={player.media.ended ? "Replay" : player.media.paused ? "Play" : "Pause"}
+            onClick={player.togglePlayback}
+            className="pointer-events-none size-14 rounded-full border-white/30 bg-black/50 text-white hover:bg-black/70 hover:text-white in-data-[visible]:pointer-events-auto"
+          >
+            {player.media.ended ? (
+              <RotateCcw className="size-6" />
+            ) : player.media.paused ? (
+              <Play className="size-6 fill-current" />
+            ) : (
+              <Pause className="size-6 fill-current" />
+            )}
+          </Button>
+        </div>
+
+        <Controls.Group className="pointer-events-none mt-auto px-2 pb-1 in-data-[visible]:pointer-events-auto sm:px-3">
+          <Timeline player={player} />
+          <div className="flex min-w-0 items-center">
+            <PlayerButton
+              label={player.media.ended ? "Replay" : player.media.paused ? "Play" : "Pause"}
+              onClick={player.togglePlayback}
+            >
+              {player.media.ended ? (
+                <RotateCcw />
+              ) : player.media.paused ? (
+                <Play className="fill-current" />
+              ) : (
+                <Pause className="fill-current" />
+              )}
+            </PlayerButton>
+
+            <PlayerButton
+              label={`Back ${skipSeconds} seconds`}
+              onClick={(event) => player.seekBy(-skipSeconds, event)}
+              className="hidden sm:inline-flex"
+              disabled={!player.media.canSeek}
+            >
+              <Rewind />
+            </PlayerButton>
+            <PlayerButton
+              label={`Forward ${skipSeconds} seconds`}
+              onClick={(event) => player.seekBy(skipSeconds, event)}
+              className="hidden sm:inline-flex"
+              disabled={!player.media.canSeek}
+            >
+              <FastForward />
+            </PlayerButton>
+
+            <span className="hidden shrink-0 px-1 font-mono text-xs text-white tabular-nums drop-shadow-sm md:inline">
+              {formatMediaTime(player.media.currentTime)} / {formatMediaTime(player.media.duration)}
+            </span>
+
+            <div className="hidden items-center sm:flex">
+              <PlayerButton label={volumeLabel} onClick={player.toggleMuted}>
+                <VolumeIcon />
+              </PlayerButton>
+              <Slider
+                aria-label="Volume"
+                min={0}
+                max={100}
+                step={1}
+                value={[player.media.muted ? 0 : player.media.volume * 100]}
+                disabled={!player.media.canSetVolume}
+                onValueChange={player.changeVolume}
+                className="w-20"
+              />
+            </div>
+
+            <div className="flex-1" />
+
+            {player.media.live && (
+              <Button
+                type="button"
+                variant={player.media.liveEdge ? "secondary" : "ghost"}
+                size="sm"
+                onClick={player.seekToLiveEdge}
+                className="mr-1 h-11 px-2"
+              >
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    player.media.liveEdge ? "bg-destructive" : "bg-muted-foreground",
+                  )}
+                />
+                Live
+              </Button>
+            )}
+
+            {player.media.hasCaptions && (
+              <PlayerButton
+                label={player.media.textTrack ? "Turn captions off" : "Turn captions on"}
+                aria-pressed={Boolean(player.media.textTrack)}
+                onClick={player.toggleCaptions}
+                className={cn(
+                  "hidden sm:inline-flex",
+                  player.media.textTrack &&
+                    "bg-white text-black hover:bg-white/90 hover:text-black",
+                )}
+              >
+                <Captions />
+              </PlayerButton>
+            )}
+
+            <SettingsMenu
+              player={player}
+              playbackRates={playbackRates}
+              downloadHref={downloadHref}
+            />
+
+            {player.media.canPictureInPicture && (
+              <PlayerButton
+                label={
+                  player.media.pictureInPicture ? "Exit picture in picture" : "Picture in picture"
+                }
+                onClick={player.togglePictureInPicture}
+                className="hidden sm:inline-flex"
+              >
+                <PictureInPicture2 />
+              </PlayerButton>
+            )}
+
+            {player.media.canFullscreen && (
+              <PlayerButton
+                label={player.media.fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                onClick={player.toggleFullscreen}
+              >
+                {player.media.fullscreen ? <Minimize /> : <Maximize />}
+              </PlayerButton>
+            )}
+          </div>
+        </Controls.Group>
+      </Controls.Root>
+    </TooltipProvider>
+  );
+}
+
+export function VideoPlayer({
+  src,
+  title,
+  tracks = [],
+  playbackRates = DEFAULT_PLAYBACK_RATES,
+  skipSeconds = 10,
+  download = false,
+  className,
+  aspectRatio = "16/9",
+  crossOrigin = true,
+  load = "visible",
+  posterLoad = "visible",
+  playsInline = true,
+  preload = "metadata",
+  keyTarget = "player",
+  keyShortcuts = {
+    togglePaused: "k Space",
+    toggleMuted: "m",
+    toggleFullscreen: "f",
+    togglePictureInPicture: "i",
+    toggleCaptions: "c",
+    seekBackward: "j J ArrowLeft",
+    seekForward: "l L ArrowRight",
+    volumeUp: "ArrowUp",
+    volumeDown: "ArrowDown",
+    speedUp: ">",
+    slowDown: "<",
+  },
+  onProviderChange,
+  ...playerProps
+}: VideoPlayerProps) {
+  const downloadHref = getDownloadHref(src, download);
+
+  function handleProviderChange(
+    provider: MediaProviderAdapter | null,
+    nativeEvent: Parameters<NonNullable<MediaPlayerProps["onProviderChange"]>>[1],
+  ): void {
+    configureMediaProvider(provider);
+    onProviderChange?.(provider, nativeEvent);
+  }
+
+  return (
+    <MediaPlayer
+      src={src}
+      title={title}
+      aspectRatio={aspectRatio}
+      crossOrigin={crossOrigin}
+      load={load}
+      posterLoad={posterLoad}
+      playsInline={playsInline}
+      preload={preload}
+      keyTarget={keyTarget}
+      keyShortcuts={keyShortcuts}
+      onProviderChange={handleProviderChange}
+      className={cn(
+        "group/video-player bg-foreground text-background focus-visible:ring-ring/50 relative isolate block w-full overflow-hidden rounded-lg border outline-none focus-visible:ring-3",
+        className,
+      )}
+      {...playerProps}
+    >
+      <MediaProvider>
+        {playerProps.poster && (
+          <Poster
+            src={playerProps.poster}
+            alt=""
+            className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-200 data-[visible]:opacity-100 motion-reduce:transition-none"
+          />
+        )}
+        {tracks.map((track) => (
+          <Track key={track.id} {...track} />
+        ))}
+      </MediaProvider>
+
+      <MediaAnnouncer />
+      <CaptionsDisplay className="vds-captions" />
+      <Gesture event="pointerup" action="toggle:paused" className="absolute inset-0 z-10" />
+      <Gesture event="dblpointerup" action="toggle:fullscreen" className="absolute inset-0 z-10" />
+
+      <PlayerStateOverlay />
+      <PlayerControlsShell
+        playbackRates={playbackRates}
+        skipSeconds={skipSeconds}
+        downloadHref={downloadHref}
+      />
+    </MediaPlayer>
+  );
+}
+
+function PlayerStateOverlay() {
+  const player = useVideoPlayer();
+
+  if (player.media.error) {
+    return (
+      <div className="bg-background/90 text-foreground absolute inset-0 z-30 flex items-center justify-center p-6 text-center">
+        <div className="space-y-2">
+          <p className="font-medium">Unable to play this video</p>
+          <p className="text-muted-foreground max-w-sm text-sm">
+            {player.media.error.message || "Check the source URL, media format, and CORS headers."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (player.media.waiting) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <LoaderCircle
+          aria-label="Buffering"
+          className="bg-background/80 text-foreground size-11 animate-spin rounded-full p-2 motion-reduce:animate-none"
+        />
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function PlayerControlsShell({
+  playbackRates,
+  skipSeconds,
+  downloadHref,
+}: {
+  playbackRates: readonly number[];
+  skipSeconds: number;
+  downloadHref: string | null;
+}) {
+  const player = useVideoPlayer();
+
+  return (
+    <PlayerControls
+      player={player}
+      playbackRates={playbackRates}
+      skipSeconds={skipSeconds}
+      downloadHref={downloadHref}
+    />
+  );
+}
+```
+
+---
+
+# Zod Data Table
+
+> A typed TanStack table generated from a Zod object schema.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/zod-data-table
+- Registry: https://www.huanngdev.site/r/zod-data-table.json
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/zod-data-table/zod-data-table.tsx
+
+## packages/core/src/components/zod-data-table/zod-data-table.tsx
+```tsx
+"use client";
+
+import * as React from "react";
+import { tableFeatures, useTable, type ColumnDef } from "@tanstack/react-table";
+import type { z } from "zod";
+
+import { cn } from "../../lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
+
+const FEATURES = tableFeatures({});
+
+type ColumnKey<TRow> = Extract<keyof TRow, string>;
+
+export type ZodDataTableColumnContext<TRow, TKey extends ColumnKey<TRow>> = {
+  value: TRow[TKey];
+  row: TRow;
+  rowIndex: number;
+};
+
+export type ZodDataTableColumn<TRow, TKey extends ColumnKey<TRow>> = {
+  header?: React.ReactNode;
+  hidden?: boolean;
+  cell?: (context: ZodDataTableColumnContext<TRow, TKey>) => React.ReactNode;
+};
+
+export type ZodDataTableColumns<TRow> = {
+  [TKey in ColumnKey<TRow>]?: ZodDataTableColumn<TRow, TKey>;
+};
+
+export type ZodDataTableProps<TSchema extends z.ZodObject> = {
+  schema: TSchema;
+  data: Array<z.output<TSchema>>;
+  columns?: ZodDataTableColumns<z.output<TSchema>>;
+  emptyMessage?: string;
+  className?: string;
+};
+
+export function humanizeColumnKey(key: string): string {
+  return key
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+export function formatZodDataTableValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value !== "object") return String(value);
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function getSchemaKeys<TSchema extends z.ZodObject>(
+  schema: TSchema,
+): Array<ColumnKey<z.output<TSchema>>> {
+  // Object.keys is the runtime boundary between the Zod shape and its inferred output keys.
+  return Object.keys(schema.shape) as Array<ColumnKey<z.output<TSchema>>>;
+}
+
+function createColumn<
+  TSchema extends z.ZodObject,
+  TRow extends z.output<TSchema>,
+  TKey extends ColumnKey<TRow>,
+>(
+  schema: TSchema,
+  key: TKey,
+  column: ZodDataTableColumn<TRow, TKey> | undefined,
+): ColumnDef<typeof FEATURES, TRow, unknown> | null {
+  if (column?.hidden) return null;
+
+  const metadataTitle = schema.shape[key]?.meta()?.title;
+  const header = column?.header ?? metadataTitle ?? humanizeColumnKey(key);
+
+  return {
+    accessorKey: key,
+    header: typeof header === "string" ? header : () => header,
+    cell: (context) => {
+      const value = context.row.original[key];
+
+      if (column?.cell) {
+        return column.cell({
+          value,
+          row: context.row.original,
+          rowIndex: context.row.index,
+        });
+      }
+
+      return formatZodDataTableValue(value);
+    },
+  };
+}
+
+function createColumns<TSchema extends z.ZodObject>(
+  schema: TSchema,
+  columns: ZodDataTableColumns<z.output<TSchema>> | undefined,
+): Array<ColumnDef<typeof FEATURES, z.output<TSchema>, unknown>> {
+  return getSchemaKeys(schema).flatMap((key) => {
+    const column = createColumn(schema, key, columns?.[key]);
+    return column ? [column] : [];
+  });
+}
+
+export function ZodDataTable<TSchema extends z.ZodObject>({
+  schema,
+  data,
+  columns: columnOverrides,
+  emptyMessage = "No results.",
+  className,
+}: ZodDataTableProps<TSchema>) {
+  const columns = React.useMemo(
+    () => createColumns(schema, columnOverrides),
+    [schema, columnOverrides],
+  );
+  const table = useTable({ features: FEATURES, columns, data });
+
+  if (columns.length === 0) {
+    return (
+      <div
+        data-slot="zod-data-table"
+        className={cn("text-muted-foreground rounded-lg border p-6 text-center text-sm", className)}
+      >
+        No columns to display.
+      </div>
+    );
+  }
+
+  return (
+    <div data-slot="zod-data-table" className={cn("overflow-hidden rounded-lg border", className)}>
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length > 0 ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getAllCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                {emptyMessage}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+```
+
+---
+
+# Tile Treemap
+
+> Divide a single box into proportionally sized, color-coded tiles.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/tile-treemap
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/tile-treemap.utils.ts
+2. packages/core/src/components/tile-treemap.tsx
+
+## packages/core/src/components/tile-treemap.utils.ts
+```ts
+export type TreemapRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type WeightedItem = {
+  index: number;
+  area: number;
+};
+
+const EMPTY_RECT: TreemapRect = { x: 0, y: 0, width: 0, height: 0 };
+
+export function toPercentages(values: number[]): number[] {
+  const total = values.reduce((sum, value) => sum + Math.max(value, 0), 0);
+  if (total <= 0) return values.map(() => 0);
+  return values.map((value) => (Math.max(value, 0) / total) * 100);
+}
+
+export function squarify(values: number[], width: number, height: number): TreemapRect[] {
+  const rects = values.map(() => ({ ...EMPTY_RECT }));
+  const total = values.reduce((sum, value) => sum + Math.max(value, 0), 0);
+  if (total <= 0 || width <= 0 || height <= 0) return rects;
+
+  const scale = (width * height) / total;
+  const items: WeightedItem[] = values
+    .map((value, index) => ({ index, area: Math.max(value, 0) * scale }))
+    .filter((item) => item.area > 0)
+    .sort((a, b) => b.area - a.area);
+
+  let frame = { x: 0, y: 0, width, height };
+  let row: WeightedItem[] = [];
+  let cursor = 0;
+
+  while (cursor < items.length) {
+    const item = items[cursor];
+    if (!item) break;
+
+    if (row.length === 0) {
+      row.push(item);
+      cursor += 1;
+      continue;
+    }
+
+    const side = Math.min(frame.width, frame.height);
+    const currentWorst = worstAspectRatio(
+      row.map((entry) => entry.area),
+      side,
+    );
+    const nextWorst = worstAspectRatio([...row.map((entry) => entry.area), item.area], side);
+
+    if (nextWorst <= currentWorst) {
+      row.push(item);
+      cursor += 1;
+      continue;
+    }
+
+    frame = placeRow(row, frame, rects);
+    row = [];
+  }
+
+  if (row.length > 0) placeRow(row, frame, rects);
+
+  return rects;
+}
+
+function worstAspectRatio(areas: number[], side: number): number {
+  const rowArea = areas.reduce((sum, area) => sum + area, 0);
+  if (rowArea <= 0 || side <= 0) return Number.POSITIVE_INFINITY;
+
+  const thickness = rowArea / side;
+  let worst = 1;
+
+  for (const area of areas) {
+    const length = area / thickness;
+    if (length <= 0) return Number.POSITIVE_INFINITY;
+    worst = Math.max(worst, thickness / length, length / thickness);
+  }
+
+  return worst;
+}
+
+function placeRow(row: WeightedItem[], frame: TreemapRect, rects: TreemapRect[]): TreemapRect {
+  const rowArea = row.reduce((sum, item) => sum + item.area, 0);
+  const horizontal = frame.width >= frame.height;
+  const side = horizontal ? frame.height : frame.width;
+  const thickness = rowArea / side;
+  let offset = 0;
+
+  for (const item of row) {
+    const length = item.area / thickness;
+    rects[item.index] = horizontal
+      ? { x: frame.x, y: frame.y + offset, width: thickness, height: length }
+      : { x: frame.x + offset, y: frame.y, width: length, height: thickness };
+    offset += length;
+  }
+
+  return horizontal
+    ? {
+        x: frame.x + thickness,
+        y: frame.y,
+        width: Math.max(frame.width - thickness, 0),
+        height: frame.height,
+      }
+    : {
+        x: frame.x,
+        y: frame.y + thickness,
+        width: frame.width,
+        height: Math.max(frame.height - thickness, 0),
+      };
+}
+```
+
+## packages/core/src/components/tile-treemap.tsx
+```tsx
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { cn } from "../lib/utils";
+import { squarify, toPercentages } from "./tile-treemap.utils";
+
+export type TileTreemapItem = {
+  label: string;
+  value: number;
+  color?: string;
+};
+
+export type TileTreemapProps = {
+  data: TileTreemapItem[];
+  height?: number;
+  className?: string;
+  valueFormatter?: (value: number, percentage: number) => string;
+  hoverScale?: number;
+};
+
+const CHART_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
+  "var(--chart-7)",
+  "var(--chart-8)",
+];
+
+const DEFAULT_ASPECT_RATIO = "16 / 10";
+const LABEL_MIN_WIDTH = 64;
+const LABEL_MIN_HEIGHT = 40;
+const PERCENT_MIN_WIDTH = 48;
+const PERCENT_MIN_HEIGHT = 28;
+
+export function TileTreemap({
+  data,
+  height,
+  className,
+  valueFormatter,
+  hoverScale = 1.01,
+}: TileTreemapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const observer = new ResizeObserver(() => {
+      setSize((current) =>
+        current.width === element.clientWidth && current.height === element.clientHeight
+          ? current
+          : { width: element.clientWidth, height: element.clientHeight },
+      );
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const { rects, percentages } = useMemo(() => {
+    const values = data.map((item) => item.value);
+    return {
+      rects: squarify(values, size.width, size.height),
+      percentages: toPercentages(values),
+    };
+  }, [data, size.width, size.height]);
+
+  if (data.length === 0 || !data.some((item) => item.value > 0)) {
+    return (
+      <div
+        className={cn(
+          "bg-muted/40 text-muted-foreground flex min-h-40 items-center justify-center rounded-lg border text-sm",
+          className,
+        )}
+      >
+        No data to display.
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative w-full", className)}
+      style={height ? { height } : { aspectRatio: DEFAULT_ASPECT_RATIO }}
+    >
+      {size.width > 0 &&
+        size.height > 0 &&
+        data.map((item, index) => {
+          const rect = rects[index];
+          if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+
+          const percentage = percentages[index] ?? 0;
+          const color = item.color ?? CHART_COLORS[index % CHART_COLORS.length];
+          const formatted = valueFormatter
+            ? valueFormatter(item.value, percentage)
+            : `${percentage.toFixed(1)}%`;
+          const showLabel = rect.width >= LABEL_MIN_WIDTH && rect.height >= LABEL_MIN_HEIGHT;
+          const showPercentage =
+            rect.width >= PERCENT_MIN_WIDTH && rect.height >= PERCENT_MIN_HEIGHT;
+
+          return (
+            <motion.div
+              key={`${item.label}-${index}`}
+              aria-label={`${item.label}: ${item.value} (${percentage.toFixed(1)}%)`}
+              className="group absolute p-1 focus-visible:outline-none"
+              role="img"
+              style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
+              tabIndex={0}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  duration: 0.3,
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: Math.min(index, 12) * 0.03,
+                },
+              }}
+              whileHover={
+                reduceMotion ? undefined : { scale: hoverScale, transition: { duration: 0.18 } }
+              }
+              whileFocus={
+                reduceMotion ? undefined : { scale: hoverScale, transition: { duration: 0.18 } }
+              }
+            >
+              <div
+                className="group-focus-visible:ring-ring/60 flex size-full flex-col justify-end overflow-hidden rounded-lg p-2 transition-[filter] duration-150 ease-out group-hover:brightness-110 group-focus-visible:ring-2"
+                style={{ backgroundColor: color }}
+              >
+                {showLabel && (
+                  <span className="text-background truncate text-xs font-medium">{item.label}</span>
+                )}
+                {showPercentage && (
+                  <span className="text-background/80 font-mono text-[11px] tabular-nums">
+                    {formatted}
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+    </div>
+  );
+}
+```

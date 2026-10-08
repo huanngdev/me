@@ -9,6 +9,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,mdx,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,mdx,json,css}\"",
     "check-types": "turbo run check-types",
+    "llms": "bun scripts/llms/build-llms.ts",
+    "llms:check": "bun scripts/llms/check-llms.ts",
     "commitlint": "commitlint --edit",
     "prepare": "husky"
   },

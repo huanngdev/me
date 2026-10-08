@@ -6,6 +6,8 @@ import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-f
 import { Blocks, House } from "lucide-react";
 import type { Metadata } from "next";
 
+import { readLlmsDocument } from "@/lib/read-llms-document";
+
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
   : process.cwd();
@@ -47,6 +49,7 @@ export default function ErrorPageBlockPage() {
     <BlockPreviewFrame
       name="error-page"
       files={BLOCK_FILES}
+      llmText={readLlmsDocument("blocks", "error-page")}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <ErrorPageBlock

@@ -1,0 +1,14 @@
+# Components
+
+> Source for the portfolio component showcase. Each link is one component. File contents are copied byte-for-byte from the repository.
+
+- [GitHub Contributions 3D](https://www.huanngdev.site/llms/components/github-contributions-3d.txt): An interactive Three.js contribution calendar with six themes.
+- [Tags Input](https://www.huanngdev.site/llms/components/shadcn-tags-input.txt): A composable tags input built on shadcn primitives.
+- [Scroll Minimap](https://www.huanngdev.site/llms/components/scroll-minimap.txt): A compact scrollspy navigator for long content.
+- [Video Player](https://www.huanngdev.site/llms/components/video-player.txt): A headless media player with shadcn controls.
+- [Zod Data Table](https://www.huanngdev.site/llms/components/zod-data-table.txt): A typed TanStack table generated from a Zod object schema.
+- [Tile Treemap](https://www.huanngdev.site/llms/components/tile-treemap.txt): Divide a single box into proportionally sized, color-coded tiles.
+
+## Optional
+
+- [All components](https://www.huanngdev.site/llms/components-full.txt): Every component source file in one document.

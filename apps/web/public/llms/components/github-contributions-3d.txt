@@ -1,0 +1,336 @@
+# GitHub Contributions 3D
+
+> An interactive Three.js contribution calendar with six themes.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/github-contributions-3d
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/github-contributions-3d.utils.ts
+2. packages/core/src/components/github-contributions-3d.tsx
+
+## packages/core/src/components/github-contributions-3d.utils.ts
+```ts
+import type { ContributionDay } from "./github-contributions-3d";
+
+const DAY_IN_MS = 86_400_000;
+const DAYS_PER_WEEK = 7;
+
+export type ContributionCell = ContributionDay & {
+  dayIndex: number;
+  height: number;
+  weekIndex: number;
+};
+
+export const createContributionCells = (data: ContributionDay[]): ContributionCell[] => {
+  if (data.length === 0) return [];
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  const firstDate = sorted[0];
+  if (!firstDate) return [];
+
+  const firstTimestamp = Date.parse(`${firstDate.date}T00:00:00Z`);
+  const firstDay = new Date(firstTimestamp).getUTCDay();
+
+  return sorted.map((day) => {
+    const date = new Date(`${day.date}T00:00:00Z`);
+    const elapsedDays = Math.round((date.getTime() - firstTimestamp) / DAY_IN_MS);
+
+    return {
+      ...day,
+      dayIndex: date.getUTCDay(),
+      height: day.count === 0 ? 0.12 : Math.min(6.5, 0.22 + Math.log10(day.count / 2 + 1) * 2.8),
+      weekIndex: Math.floor((firstDay + elapsedDays) / DAYS_PER_WEEK),
+    };
+  });
+};
+```
+
+## packages/core/src/components/github-contributions-3d.tsx
+```tsx
+"use client";
+
+import { Instances, Instance, OrbitControls, RoundedBox } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { useEffect, useState } from "react";
+
+import { cn } from "../lib/utils";
+import { createContributionCells, type ContributionCell } from "./github-contributions-3d.utils";
+
+export type ContributionDay = {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+};
+
+export type ContributionVariant =
+  "green" | "season" | "night-view" | "night-green" | "night-rainbow" | "gitblock";
+
+export type GitHubContributions3DProps = {
+  data: ContributionDay[];
+  name: string;
+  variant?: ContributionVariant;
+  className?: string;
+};
+
+const THEME = {
+  green: {
+    background: "#ffffff",
+    base: "#e5e7eb",
+    colors: ["#efefef", "#d8e887", "#8cc569", "#47a042", "#1d6a23"],
+  },
+  "night-view": {
+    background: "#00000f",
+    base: "#101b36",
+    colors: [
+      "rgb(25,60,130)",
+      "rgb(25,90,210)",
+      "rgb(25,120,220)",
+      "rgb(25,150,230)",
+      "rgb(25,165,240)",
+    ],
+  },
+  "night-green": {
+    background: "#00000f",
+    base: "#171c19",
+    colors: ["#444444", "#1b7d28", "#24a736", "#2dd143", "#57da69"],
+  },
+  gitblock: {
+    background: "#ffffff",
+    base: "#e5e7eb",
+    colors: [
+      "#f8f8f8",
+      "hsl(125,52%,50%)",
+      "hsl(242,100%,65%)",
+      "hsl(48,100%,50%)",
+      "hsl(350,100%,50%)",
+    ],
+  },
+} as const;
+
+const SEASON_COLORS = {
+  spring: ["#efefef", "#ffe7ff", "#edaeda", "#e492ca", "#ba7aad"],
+  summer: ["#efefef", "#d8e887", "#8cc569", "#47a042", "#1d6a23"],
+  autumn: ["#efefef", "#ffed4a", "#ffc402", "#fe9400", "#fa6100"],
+  winter: ["#efefef", "#999999", "#cccccc", "#dddddd", "#eeeeee"],
+} as const;
+
+const CELL_SIZE = 0.78;
+const BASE_HEIGHT = 0.34;
+const CAMERA_TARGET = [0, 1.1, 0] as const;
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+  year: "numeric",
+});
+
+const getSeasonColor = (cell: ContributionCell) => {
+  const month = new Date(`${cell.date}T00:00:00Z`).getUTCMonth();
+  if (month >= 2 && month <= 4) return SEASON_COLORS.spring[cell.level];
+  if (month >= 5 && month <= 7) return SEASON_COLORS.summer[cell.level];
+  if (month >= 8 && month <= 10) return SEASON_COLORS.autumn[cell.level];
+  return SEASON_COLORS.winter[cell.level];
+};
+
+const getColor = (cell: ContributionCell, variant: ContributionVariant) => {
+  if (variant === "season") return getSeasonColor(cell);
+
+  if (variant === "night-rainbow") {
+    const lightness = [20, 30, 35, 40, 50][cell.level];
+    const hue = (((cell.weekIndex * -7) % 360) + 360) % 360;
+    return `hsl(${hue}, 50%, ${lightness}%)`;
+  }
+
+  return THEME[variant].colors[cell.level];
+};
+
+const getThemeSurface = (variant: ContributionVariant) => {
+  if (variant === "season") return THEME.green;
+  if (variant === "night-rainbow") return THEME["night-view"];
+  return THEME[variant];
+};
+
+const getLabelColor = (variant: ContributionVariant) => {
+  if (variant === "season") return SEASON_COLORS.spring[4];
+  if (variant === "night-rainbow") return "hsl(200, 50%, 70%)";
+  return THEME[variant].colors[4];
+};
+
+function useWebGLSupport() {
+  const [supported, setSupported] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const canvas = document.createElement("canvas");
+      setSupported(Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl")));
+    });
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  return supported;
+}
+
+function ResponsiveCamera() {
+  const { camera, invalidate, size } = useThree();
+
+  useEffect(() => {
+    const [x, y, z] = size.width < 640 ? [22, 59, 89] : [14, 38, 58];
+    camera.position.set(x, y, z);
+    camera.lookAt(...CAMERA_TARGET);
+    camera.updateProjectionMatrix();
+    invalidate();
+  }, [camera, invalidate, size.width]);
+
+  return null;
+}
+
+function Scene({ cells, variant }: { cells: ContributionCell[]; variant: ContributionVariant }) {
+  const weekCount = Math.max(...cells.map((cell) => cell.weekIndex), 0) + 1;
+  const baseWidth = weekCount - 1 + CELL_SIZE;
+  const baseDepth = 6 + CELL_SIZE;
+  const surface = getThemeSurface(variant);
+
+  return (
+    <>
+      <color attach="background" args={[surface.background]} />
+      <ResponsiveCamera />
+      <hemisphereLight args={["#ffffff", "#556070", 1.6]} />
+      <directionalLight
+        castShadow
+        intensity={3.1}
+        position={[-12, 18, 10]}
+        shadow-bias={-0.0004}
+        shadow-camera-bottom={-8}
+        shadow-camera-far={70}
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={12}
+        shadow-mapSize-height={1024}
+        shadow-mapSize-width={1024}
+      />
+
+      <group position={[-(weekCount - 1) / 2, 0, -3]}>
+        <Instances castShadow limit={cells.length} range={cells.length} receiveShadow>
+          <boxGeometry args={[CELL_SIZE, 1, CELL_SIZE]} />
+          <meshStandardMaterial metalness={0.04} roughness={0.56} />
+          {cells.map((cell) => (
+            <Instance
+              key={cell.date}
+              color={getColor(cell, variant)}
+              position={[cell.weekIndex, cell.height / 2, cell.dayIndex]}
+              scale={[1, cell.height, 1]}
+            />
+          ))}
+        </Instances>
+      </group>
+
+      <RoundedBox
+        args={[baseWidth, BASE_HEIGHT, baseDepth]}
+        position={[0, -BASE_HEIGHT / 2, 0]}
+        radius={0.16}
+        receiveShadow
+        smoothness={4}
+      >
+        <meshStandardMaterial color={surface.base} metalness={0.02} roughness={0.78} />
+      </RoundedBox>
+
+      <OrbitControls
+        enablePan={false}
+        makeDefault
+        maxDistance={130}
+        maxPolarAngle={Math.PI / 2.15}
+        minDistance={38}
+        minPolarAngle={Math.PI / 5}
+        target={CAMERA_TARGET}
+      />
+    </>
+  );
+}
+
+export function GitHubContributions3D({
+  data,
+  name,
+  variant = "green",
+  className,
+}: GitHubContributions3DProps) {
+  const webGLSupported = useWebGLSupport();
+  const cells = createContributionCells(data);
+  const total = data.reduce((sum, day) => sum + day.count, 0);
+  const firstDate = cells[0]?.date;
+  const lastDate = cells.at(-1)?.date;
+  const dateRange =
+    firstDate && lastDate
+      ? `${DATE_FORMATTER.format(new Date(`${firstDate}T00:00:00Z`))} – ${DATE_FORMATTER.format(
+          new Date(`${lastDate}T00:00:00Z`),
+        )}`
+      : "";
+
+  if (webGLSupported === false) {
+    return (
+      <div
+        className={cn(
+          "bg-muted flex min-h-80 items-center justify-center rounded-lg border p-6",
+          className,
+        )}
+      >
+        <p className="text-muted-foreground text-center text-sm">
+          This browser cannot display the WebGL preview.
+        </p>
+      </div>
+    );
+  }
+
+  if (cells.length === 0) {
+    return (
+      <div
+        className={cn(
+          "bg-muted flex min-h-80 items-center justify-center rounded-lg border p-6",
+          className,
+        )}
+      >
+        <p className="text-muted-foreground text-center text-sm">
+          No contribution data to display.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`${name}, ${total.toLocaleString("en-US")} GitHub contributions from ${dateRange}, shown with the ${variant} theme`}
+      className={cn(
+        "bg-muted/30 relative h-80 w-full overflow-hidden rounded-lg border sm:h-112",
+        className,
+      )}
+      role="img"
+    >
+      {webGLSupported && (
+        <Canvas
+          camera={{ far: 180, fov: 36, near: 0.1, position: [14, 38, 58] }}
+          dpr={[1, 1.5]}
+          frameloop="demand"
+          gl={{ antialias: true, alpha: false }}
+          shadows
+        >
+          <Scene cells={cells} variant={variant} />
+        </Canvas>
+      )}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-3 left-3 font-mono leading-tight drop-shadow-sm"
+        style={{ color: getLabelColor(variant) }}
+      >
+        <p className="text-xs font-medium">{name}</p>
+        <p className="mt-1 text-[10px] opacity-80 sm:text-xs">{dateRange}</p>
+      </div>
+      <p className="text-muted-foreground bg-background/70 pointer-events-none absolute right-3 bottom-2 hidden rounded px-2 py-1 text-xs sm:block">
+        Drag to rotate · Scroll to zoom
+      </p>
+    </div>
+  );
+}
+```

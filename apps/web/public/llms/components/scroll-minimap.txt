@@ -1,0 +1,212 @@
+# Scroll Minimap
+
+> A compact scrollspy navigator for long content.
+
+- Kind: component
+- Docs: https://www.huanngdev.site/components/scroll-minimap
+- Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
+
+## Read order
+
+1. packages/core/src/components/scroll-minimap.tsx
+
+## packages/core/src/components/scroll-minimap.tsx
+```tsx
+"use client";
+
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { cn } from "../lib/utils";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card";
+
+export type ScrollMinimapItem = {
+  label: ReactNode;
+  href: `#${string}`;
+  depth?: number;
+  description?: ReactNode;
+};
+
+export type ScrollMinimapProps = {
+  items: ScrollMinimapItem[];
+  direction?: "left" | "right";
+  className?: string;
+  ariaLabel?: string;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
+  onNavigate?: (item: ScrollMinimapItem) => void;
+  onItemEnter?: (item: ScrollMinimapItem) => void;
+};
+
+export function ScrollMinimap({
+  items,
+  direction = "left",
+  className,
+  ariaLabel = "Section navigation",
+  scrollContainerRef,
+  onNavigate,
+  onItemEnter,
+}: ScrollMinimapProps) {
+  const itemIds = useMemo(() => items.map((item) => item.href.slice(1)), [items]);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const activeId = useActiveSection(itemIds, scrollContainerRef);
+
+  if (!items.length) return null;
+
+  return (
+    <nav aria-label={ariaLabel} className={cn("w-12", className)}>
+      <ul
+        className="flex max-h-[50dvh] cursor-pointer flex-col items-stretch py-3"
+        onMouseLeave={() => setHoveredIndex(null)}
+      >
+        {items.map((item, index) => (
+          <li key={item.href} className="flex w-full items-center">
+            <HoverCard open={hoveredIndex === index}>
+              <HoverCardTrigger asChild>
+                <a
+                  href={item.href}
+                  aria-label={
+                    typeof item.label === "string" ? `Go to ${item.label}` : "Go to section"
+                  }
+                  aria-current={item.href === `#${activeId}` ? "location" : undefined}
+                  data-active={item.href === `#${activeId}`}
+                  className={cn(
+                    "group focus-visible:ring-ring/50 flex w-12 cursor-pointer items-center rounded-sm bg-transparent py-1 focus-visible:ring-2 focus-visible:outline-none",
+                    direction === "right" && "justify-end",
+                    item.depth === 3 && (direction === "left" ? "ml-2" : "mr-2"),
+                    item.depth && item.depth >= 4 && (direction === "left" ? "ml-4" : "mr-4"),
+                  )}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    scrollToItem(item.href, scrollContainerRef?.current);
+                    onNavigate?.(item);
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredIndex(index);
+                    onItemEnter?.(item);
+                  }}
+                  onFocus={() => {
+                    setHoveredIndex(index);
+                    onItemEnter?.(item);
+                  }}
+                  onBlur={() => setHoveredIndex(null)}
+                >
+                  <span
+                    className={cn(
+                      "bg-muted-foreground/35 block h-0.5 origin-left rounded-full",
+                      "transition-[width,background-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      "group-hover:bg-primary group-focus-visible:bg-primary group-hover:scale-y-150 group-focus-visible:scale-y-150",
+                      "group-data-[active=true]:bg-primary motion-reduce:transition-none",
+                      direction === "right" && "origin-right",
+                      getProximityWidth(index, hoveredIndex),
+                    )}
+                  />
+                </a>
+              </HoverCardTrigger>
+              <HoverCardContent
+                side={direction === "left" ? "right" : "left"}
+                align="center"
+                sideOffset={14}
+                className="w-auto max-w-64 gap-1 px-3 py-2 duration-200"
+              >
+                <p className="line-clamp-2 text-sm font-medium">{item.label}</p>
+                <p className="text-muted-foreground text-xs">
+                  {item.description ?? "Jump to this section"}
+                </p>
+              </HoverCardContent>
+            </HoverCard>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function getProximityWidth(index: number, hoveredIndex: number | null) {
+  if (hoveredIndex === null) return "w-3";
+
+  const distance = Math.abs(index - hoveredIndex);
+  if (distance === 0) return "w-10";
+  if (distance === 1) return "w-8";
+  if (distance === 2) return "w-6";
+  if (distance === 3) return "w-5";
+  if (distance === 4) return "w-4";
+  return "w-3";
+}
+
+function useActiveSection(itemIds: string[], scrollContainerRef?: RefObject<HTMLElement | null>) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const headings = itemIds
+      .map((id) => document.getElementById(id))
+      .filter((element): element is HTMLElement => element !== null);
+    if (!headings.length) return;
+
+    const scrollContainer = scrollContainerRef?.current;
+    const eventTarget = scrollContainer ?? window;
+    let frame: number | null = null;
+
+    const updateActiveSection = () => {
+      const containerRect = scrollContainer?.getBoundingClientRect();
+      const marker = containerRect
+        ? containerRect.top + containerRect.height * 0.3
+        : window.innerHeight * 0.3;
+      let currentId = headings[0]?.id ?? null;
+
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top > marker) break;
+        currentId = heading.id;
+      }
+
+      const atEnd = scrollContainer
+        ? scrollContainer.scrollTop + scrollContainer.clientHeight >=
+          scrollContainer.scrollHeight - 2
+        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atEnd) currentId = headings.at(-1)?.id ?? currentId;
+
+      setActiveId((previousId) => (previousId === currentId ? previousId : currentId));
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        updateActiveSection();
+      });
+    };
+
+    updateActiveSection();
+    eventTarget.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      eventTarget.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [itemIds, scrollContainerRef]);
+
+  return activeId;
+}
+
+function scrollToItem(href: `#${string}`, scrollContainer?: HTMLElement | null) {
+  const target = document.getElementById(href.slice(1));
+  if (!target) return;
+
+  history.pushState(null, "", href);
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+
+  if (!scrollContainer) {
+    target.scrollIntoView({ behavior });
+    return;
+  }
+
+  const targetTop =
+    target.getBoundingClientRect().top -
+    scrollContainer.getBoundingClientRect().top +
+    scrollContainer.scrollTop;
+  scrollContainer.scrollTo({ top: targetTop, behavior });
+}
+```

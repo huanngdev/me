@@ -46,6 +46,34 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-editor-text-gray: var(--editor-text-gray);
+  --color-editor-text-brown: var(--editor-text-brown);
+  --color-editor-text-orange: var(--editor-text-orange);
+  --color-editor-text-yellow: var(--editor-text-yellow);
+  --color-editor-text-green: var(--editor-text-green);
+  --color-editor-text-blue: var(--editor-text-blue);
+  --color-editor-text-purple: var(--editor-text-purple);
+  --color-editor-text-pink: var(--editor-text-pink);
+  --color-editor-text-red: var(--editor-text-red);
+  --color-editor-bg-gray: var(--editor-bg-gray);
+  --color-editor-bg-brown: var(--editor-bg-brown);
+  --color-editor-bg-orange: var(--editor-bg-orange);
+  --color-editor-bg-yellow: var(--editor-bg-yellow);
+  --color-editor-bg-green: var(--editor-bg-green);
+  --color-editor-bg-blue: var(--editor-bg-blue);
+  --color-editor-bg-purple: var(--editor-bg-purple);
+  --color-editor-bg-pink: var(--editor-bg-pink);
+  --color-editor-bg-red: var(--editor-bg-red);
+  --color-editor-callout-default-bg: var(--editor-callout-default-bg);
+  --color-editor-callout-default-border: var(--editor-callout-default-border);
+  --color-editor-callout-info-bg: var(--editor-callout-info-bg);
+  --color-editor-callout-info-border: var(--editor-callout-info-border);
+  --color-editor-callout-success-bg: var(--editor-callout-success-bg);
+  --color-editor-callout-success-border: var(--editor-callout-success-border);
+  --color-editor-callout-warning-bg: var(--editor-callout-warning-bg);
+  --color-editor-callout-warning-border: var(--editor-callout-warning-border);
+  --color-editor-callout-danger-bg: var(--editor-callout-danger-bg);
+  --color-editor-callout-danger-border: var(--editor-callout-danger-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -102,6 +130,56 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --editor-text-gray: oklch(0.5 0 0);
+  --editor-text-brown: oklch(0.45 0.07 40);
+  --editor-text-orange: oklch(0.535 0.12 65);
+  --editor-text-yellow: oklch(0.5 0.1 95);
+  --editor-text-green: oklch(0.49 0.12 155);
+  --editor-text-blue: oklch(0.5 0.13 255);
+  --editor-text-purple: oklch(0.5 0.13 305);
+  --editor-text-pink: oklch(0.5 0.13 5);
+  --editor-text-red: oklch(0.5 0.15 25);
+  --editor-bg-gray: oklch(0.955 0 0);
+  --editor-bg-brown: oklch(0.955 0.02 40);
+  --editor-bg-orange: oklch(0.955 0.03 65);
+  --editor-bg-yellow: oklch(0.955 0.07 95);
+  --editor-bg-green: oklch(0.945 0.08 155);
+  --editor-bg-blue: oklch(0.955 0.02 255);
+  --editor-bg-purple: oklch(0.955 0.025 305);
+  --editor-bg-pink: oklch(0.96 0.02 5);
+  --editor-bg-red: oklch(0.955 0.02 25);
+  --editor-font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --editor-font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --editor-font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --editor-callout-default-bg: oklch(0.97 0 0);
+  --editor-callout-default-border: oklch(0.922 0 0);
+  --editor-callout-info-bg: oklch(0.955 0.02 255);
+  --editor-callout-info-border: oklch(0.86 0.04 255);
+  --editor-callout-success-bg: oklch(0.955 0.03 155);
+  --editor-callout-success-border: oklch(0.86 0.05 155);
+  --editor-callout-warning-bg: oklch(0.96 0.045 95);
+  --editor-callout-warning-border: oklch(0.86 0.06 95);
+  --editor-callout-danger-bg: oklch(0.955 0.025 25);
+  --editor-callout-danger-border: oklch(0.86 0.04 25);
+  --editor-code-bg: oklch(0.955 0.004 300);
+  --editor-code-border: oklch(0.48 0.16 292);
+  --editor-code-fg: oklch(0.28 0.02 300);
+  --editor-code-comment: oklch(0.42 0.03 260);
+  --editor-code-keyword: oklch(0.4 0.16 292);
+  --editor-code-string: oklch(0.4 0.11 155);
+  --editor-code-number: oklch(0.42 0.12 55);
+  --editor-code-title: oklch(0.4 0.13 250);
+  --editor-code-type: oklch(0.42 0.12 200);
+  --editor-code-attr: oklch(0.4 0.08 40);
+  --editor-code-variable: oklch(0.36 0.04 300);
+  --editor-code-meta: oklch(0.42 0.08 320);
+  --editor-code-addition: oklch(0.38 0.12 150);
+  --editor-code-deletion: oklch(0.42 0.15 25);
+  --editor-code-punctuation: oklch(0.38 0.02 300);
+  --editor-table-border: oklch(0.86 0.01 300);
+  --editor-table-header-bg: oklch(0.94 0.012 300);
+  --editor-table-header-fg: oklch(0.25 0.02 300);
+  --editor-table-selected: oklch(0.55 0.14 292 / 18%);
 }
 
 .dark {
@@ -139,6 +217,53 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --editor-text-gray: oklch(0.82 0 0);
+  --editor-text-brown: oklch(0.78 0.07 40);
+  --editor-text-orange: oklch(0.795 0.15 65);
+  --editor-text-yellow: oklch(0.82 0.14 95);
+  --editor-text-green: oklch(0.82 0.13 155);
+  --editor-text-blue: oklch(0.75 0.13 255);
+  --editor-text-purple: oklch(0.79 0.13 305);
+  --editor-text-pink: oklch(0.785 0.13 5);
+  --editor-text-red: oklch(0.75 0.15 25);
+  --editor-bg-gray: oklch(0.355 0 0);
+  --editor-bg-brown: oklch(0.365 0.085 40);
+  --editor-bg-orange: oklch(0.36 0.08 65);
+  --editor-bg-yellow: oklch(0.355 0.075 95);
+  --editor-bg-green: oklch(0.345 0.085 155);
+  --editor-bg-blue: oklch(0.355 0.085 255);
+  --editor-bg-purple: oklch(0.365 0.085 305);
+  --editor-bg-pink: oklch(0.365 0.085 5);
+  --editor-bg-red: oklch(0.365 0.085 25);
+  --editor-callout-default-bg: oklch(0.269 0 0);
+  --editor-callout-default-border: oklch(1 0 0 / 18%);
+  --editor-callout-info-bg: oklch(0.32 0.04 255);
+  --editor-callout-info-border: oklch(0.45 0.06 255);
+  --editor-callout-success-bg: oklch(0.32 0.045 155);
+  --editor-callout-success-border: oklch(0.45 0.06 155);
+  --editor-callout-warning-bg: oklch(0.34 0.05 95);
+  --editor-callout-warning-border: oklch(0.48 0.07 95);
+  --editor-callout-danger-bg: oklch(0.32 0.05 25);
+  --editor-callout-danger-border: oklch(0.45 0.07 25);
+  --editor-code-bg: oklch(0.13 0.008 300);
+  --editor-code-border: oklch(0.72 0.12 292);
+  --editor-code-fg: oklch(0.92 0.01 300);
+  --editor-code-comment: oklch(0.78 0.03 260);
+  --editor-code-keyword: oklch(0.8 0.12 292);
+  --editor-code-string: oklch(0.86 0.12 155);
+  --editor-code-number: oklch(0.86 0.12 70);
+  --editor-code-title: oklch(0.82 0.11 250);
+  --editor-code-type: oklch(0.84 0.1 200);
+  --editor-code-attr: oklch(0.86 0.08 55);
+  --editor-code-variable: oklch(0.9 0.02 300);
+  --editor-code-meta: oklch(0.82 0.08 320);
+  --editor-code-addition: oklch(0.86 0.13 150);
+  --editor-code-deletion: oklch(0.8 0.14 25);
+  --editor-code-punctuation: oklch(0.84 0.02 300);
+  --editor-table-border: oklch(1 0 0 / 18%);
+  --editor-table-header-bg: oklch(0.32 0.02 300);
+  --editor-table-header-fg: oklch(0.96 0.01 300);
+  --editor-table-selected: oklch(0.72 0.12 292 / 28%);
 }
 
 [data-palette="violet"]:not(.dark) {
@@ -569,4 +694,69 @@
 
 .doc-file-tree code {
   color: color-mix(in oklch, var(--foreground) 78%, transparent);
+}
+
+.editor-code .hljs-comment,
+.editor-code .hljs-quote,
+.editor-code .hljs-doctag {
+  color: var(--editor-code-comment);
+}
+
+.editor-code .hljs-keyword,
+.editor-code .hljs-selector-tag {
+  color: var(--editor-code-keyword);
+}
+
+.editor-code .hljs-string,
+.editor-code .hljs-regexp,
+.editor-code .hljs-template-variable {
+  color: var(--editor-code-string);
+}
+
+.editor-code .hljs-number,
+.editor-code .hljs-literal {
+  color: var(--editor-code-number);
+}
+
+.editor-code .hljs-title,
+.editor-code .hljs-section,
+.editor-code .hljs-name,
+.editor-code .hljs-selector-class,
+.editor-code .hljs-selector-id {
+  color: var(--editor-code-title);
+}
+
+.editor-code .hljs-built_in,
+.editor-code .hljs-type,
+.editor-code .hljs-class {
+  color: var(--editor-code-type);
+}
+
+.editor-code .hljs-attr,
+.editor-code .hljs-attribute,
+.editor-code .hljs-property,
+.editor-code .hljs-params {
+  color: var(--editor-code-attr);
+}
+
+.editor-code .hljs-variable {
+  color: var(--editor-code-variable);
+}
+
+.editor-code .hljs-meta {
+  color: var(--editor-code-meta);
+}
+
+.editor-code .hljs-addition {
+  color: var(--editor-code-addition);
+}
+
+.editor-code .hljs-deletion {
+  color: var(--editor-code-deletion);
+}
+
+.editor-code .hljs-punctuation,
+.editor-code .hljs-operator,
+.editor-code .hljs-subst {
+  color: var(--editor-code-punctuation);
 }

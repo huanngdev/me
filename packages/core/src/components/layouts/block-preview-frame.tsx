@@ -33,6 +33,7 @@ export type BlockPreviewFrameProps = {
   name?: string;
   backButton?: FixedBackButtonProps | false;
   files?: readonly BlockFile[];
+  llmText?: string;
 };
 
 export async function BlockPreviewFrame({
@@ -41,6 +42,7 @@ export async function BlockPreviewFrame({
   name = "block",
   backButton,
   files,
+  llmText,
 }: BlockPreviewFrameProps) {
   const explorerFiles: BlockExplorerFile[] = await Promise.all(
     (files ?? []).map(async (file) => {
@@ -61,6 +63,17 @@ export async function BlockPreviewFrame({
     }),
   );
 
+  const llm = llmText
+    ? {
+        code: llmText,
+        html: await codeToHtml(llmText, {
+          lang: "text",
+          themes: { light: "github-light-default", dark: "github-dark-default" },
+          defaultColor: false,
+        }),
+      }
+    : undefined;
+
   const preview = (
     <div className="flex flex-col items-center gap-3">
       <SafariPreview baseUrl={url} className="w-[min(92vw,130vh)] drop-shadow-xl">
@@ -72,8 +85,10 @@ export async function BlockPreviewFrame({
   );
 
   return (
-    <div data-fullscreen-block className="relative isolate h-dvh min-h-0 w-full overflow-hidden">
-      <StripedPattern className="-z-10" />
+    <div
+      data-fullscreen-block
+      className="bg-secondary/30 relative isolate h-dvh min-h-0 w-full overflow-hidden"
+    >
       <BlockUrlProvider>
         <BlockPreviewTabs
           preview={preview}
@@ -81,6 +96,7 @@ export async function BlockPreviewFrame({
           rootName={name}
           url={url}
           backButton={backButton}
+          llm={llm}
         />
       </BlockUrlProvider>
     </div>
