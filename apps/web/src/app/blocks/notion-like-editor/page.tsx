@@ -188,6 +188,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/equation-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-synced-block.ts",
+    code: readSource(`${BLOCK_DIR}/editor-synced-block.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/synced-ref-element.tsx",
+    code: readSource(`${BLOCK_DIR}/synced-ref-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },

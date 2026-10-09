@@ -61,6 +61,8 @@ import { ColumnElement, ColumnGroupElement } from "./column-element";
 import { EquationElement } from "./equation-element";
 import { TocElement } from "./toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "./editor-equation";
+import { SYNCED_REF_KEY, goToSyncedOriginal, onSyncedRefKeyDown } from "./editor-synced-block";
+import { SyncedRefElement } from "./synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -735,7 +737,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.mediaEmbed ||
         child.type === BOOKMARK_KEY ||
         child.type === KEYS.toc ||
-        child.type === KEYS.equation) &&
+        child.type === KEYS.equation ||
+        child.type === SYNCED_REF_KEY) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1404,6 +1407,18 @@ const breakAbovePlugin = createSlatePlugin({
       if (
         block &&
         isElementRecord(block[0]) &&
+        block[0].type === SYNCED_REF_KEY &&
+        editor.api.isCollapsed()
+      ) {
+        if (editor.dom.readOnly !== true) {
+          goToSyncedOriginal(editor);
+        }
+        return;
+      }
+
+      if (
+        block &&
+        isElementRecord(block[0]) &&
         isVoidElementType(block[0].type) &&
         editor.api.isCollapsed()
       ) {
@@ -1624,6 +1639,21 @@ const equationPlatePlugin = toPlatePlugin(equationPlugin, {
     },
   },
 });
+
+const syncedRefPlugin = toPlatePlugin(
+  createSlatePlugin({
+    key: SYNCED_REF_KEY,
+    node: { isElement: true, isVoid: true },
+  }),
+  {
+    render: { node: SyncedRefElement },
+    handlers: {
+      onKeyDown: ({ editor, event }) => {
+        onSyncedRefKeyDown(editor, event);
+      },
+    },
+  },
+);
 
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
@@ -1888,6 +1918,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     bookmarkPlugin,
     tocPlugin,
     equationPlatePlugin,
+    syncedRefPlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,

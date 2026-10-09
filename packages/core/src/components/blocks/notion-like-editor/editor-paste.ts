@@ -23,6 +23,8 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  SYNCED_REF_KEY,
+  isStoredSyncedTargetId,
   isVoidElementType,
   maxNesting,
   unsatisfiedDependentAttrs,
@@ -929,6 +931,14 @@ function expandBlock(
         ? node.texExpression
         : "";
       return [equation];
+    }
+
+    if (node.type === SYNCED_REF_KEY) {
+      const synced = elementNode(SYNCED_REF_KEY, [{ text: "" }], takeId(node, seen));
+      if (isStoredSyncedTargetId(node.targetBlockId)) {
+        synced.targetBlockId = node.targetBlockId;
+      }
+      return [synced];
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

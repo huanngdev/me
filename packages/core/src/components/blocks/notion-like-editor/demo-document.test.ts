@@ -651,8 +651,26 @@ describe("demo document", () => {
     expect(DEMO_DOCUMENT_VALUE.indexOf(matrix ?? bookmarkFallback)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 5,
     );
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+    const synced = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-synced");
+    const syncedOriginal = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-synced-original");
+    const syncedRef = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-synced-ref");
+    expect(synced?.type).toBe("h3");
+    expect(synced ? textOf(synced) : "").toBe("Synced block");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(synced ?? bookmarkFallback)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 6,
+    );
+    expect(syncedOriginal?.type).toBe("callout");
+    expect(field(syncedOriginal, "icon")).toBe("info");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(syncedOriginal ?? bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 7,
+    );
+    expect(syncedRef?.type).toBe("synced_ref");
+    expect(field(syncedRef, "targetBlockId")).toBe("demo-synced-original");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(syncedRef ?? bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 8,
+    );
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 9,
     );
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([

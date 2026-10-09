@@ -46,6 +46,7 @@ function headingDepth(type: string): TocDepth | undefined {
 }
 
 export function tocEntries(editor: SlateEditor, maxDepth: TocDepth): TocEntry[] {
+  // A synced_ref is a void and is not a heading, so a reference does not list a heading twice.
   const entries: TocEntry[] = [];
   for (const [node, path] of editor.api.nodes({
     at: [],

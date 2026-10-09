@@ -153,6 +153,8 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/toc-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/editor-equation.ts",
       "packages/core/src/components/blocks/notion-like-editor/equation-element.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts",
+      "packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx",
       "packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx",
       "packages/core/src/components/blocks/notion-like-editor/editor-audio.ts",
       "packages/core/src/components/blocks/notion-like-editor/audio-element.tsx",

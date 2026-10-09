@@ -27,6 +27,7 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-columns";
+import { syncedRefRepairs } from "./editor-synced-block";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -570,6 +571,11 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       revision: envelope.data.revision,
       content: normalized.content,
     },
-    repairs: [...structurally.repairs, ...state.repairs, ...normalized.repairs],
+    repairs: [
+      ...structurally.repairs,
+      ...state.repairs,
+      ...normalized.repairs,
+      ...syncedRefRepairs(normalized.content),
+    ],
   };
 }

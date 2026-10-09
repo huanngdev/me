@@ -543,6 +543,42 @@ export function checkEquationNode(
   ];
 }
 
+export const SYNCED_REF_KEY = "synced_ref";
+
+export const SYNCED_TARGET_ID_MAX = 200;
+
+// A target id is a stable block id. It is not a copy of the target.
+export function isStoredSyncedTargetId(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > SYNCED_TARGET_ID_MAX) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function checkSyncedRefNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("targetBlockId" in node && isStoredSyncedTargetId(node.targetBlockId)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported targetBlockId. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
 export function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
@@ -996,6 +1032,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkEquationNode(node, path),
   },
+  // Same-document reference. The target is stored once. targetBlockId is that
+  // block's id. A copy of the target content is not an attribute.
+  {
+    type: SYNCED_REF_KEY,
+    attrs: ["id", "targetBlockId"],
+    isVoid: true,
+    validateChildren: (node, path) => checkSyncedRefNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -1028,6 +1072,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
+      SYNCED_REF_KEY,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -1116,6 +1161,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
+      SYNCED_REF_KEY,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];

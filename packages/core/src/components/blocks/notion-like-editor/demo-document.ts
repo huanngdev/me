@@ -1128,6 +1128,30 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-synced",
+    children: [{ text: "Synced block" }],
+  },
+  {
+    type: "callout",
+    id: "demo-synced-original",
+    icon: "info",
+    variant: "info",
+    children: [
+      {
+        type: "p",
+        id: "demo-synced-original-text",
+        children: [{ text: "This callout is stored once. The reference below mirrors it." }],
+      },
+    ],
+  },
+  {
+    type: "synced_ref",
+    id: "demo-synced-ref",
+    targetBlockId: "demo-synced-original",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

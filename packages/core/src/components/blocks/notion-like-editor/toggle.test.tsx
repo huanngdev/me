@@ -235,6 +235,7 @@ describe("toggle schema", () => {
       "table",
       "toc",
       "equation",
+      "synced_ref",
     ]);
     expect(firstChildType("toggle")).toBe("p");
     expect(maxNesting("toggle")).toBe(3);

@@ -58,6 +58,7 @@ export async function cleanupUnreferencedAssets(
   return deleted;
 }
 
+// A synced_ref stores neither assetId nor posterAssetId, so moving the original does not drop its asset.
 function walk(node: unknown, ids: Set<string>): void {
   if (Array.isArray(node)) {
     for (const child of node) {

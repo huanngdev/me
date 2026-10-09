@@ -50,35 +50,37 @@
 40. packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
 41. packages/core/src/components/blocks/notion-like-editor/editor-equation.ts
 42. packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
-43. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-44. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-45. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-46. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-47. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-48. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-49. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-50. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-51. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-52. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-53. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-54. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-55. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-56. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-57. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-58. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-59. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-60. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-61. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-62. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-63. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-64. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-65. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-66. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-67. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-68. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-69. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-71. apps/web/src/app/blocks/notion-like-editor/page.tsx
+43. packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts
+44. packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx
+45. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+46. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+47. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+48. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+49. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+50. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+51. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+52. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+53. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+54. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+55. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+56. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+57. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+58. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+59. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+60. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+61. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+62. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+63. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+64. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+65. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+66. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+67. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+68. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+69. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+70. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+71. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+72. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+73. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -641,6 +643,42 @@ export function checkEquationNode(
   ];
 }
 
+export const SYNCED_REF_KEY = "synced_ref";
+
+export const SYNCED_TARGET_ID_MAX = 200;
+
+// A target id is a stable block id. It is not a copy of the target.
+export function isStoredSyncedTargetId(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > SYNCED_TARGET_ID_MAX) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function checkSyncedRefNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("targetBlockId" in node && isStoredSyncedTargetId(node.targetBlockId)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported targetBlockId. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
 export function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
@@ -1094,6 +1132,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkEquationNode(node, path),
   },
+  // Same-document reference. The target is stored once. targetBlockId is that
+  // block's id. A copy of the target content is not an attribute.
+  {
+    type: SYNCED_REF_KEY,
+    attrs: ["id", "targetBlockId"],
+    isVoid: true,
+    validateChildren: (node, path) => checkSyncedRefNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -1126,6 +1172,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
+      SYNCED_REF_KEY,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -1214,6 +1261,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
+      SYNCED_REF_KEY,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];
@@ -1785,6 +1833,7 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-columns";
+import { syncedRefRepairs } from "./editor-synced-block";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -2328,7 +2377,12 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       revision: envelope.data.revision,
       content: normalized.content,
     },
-    repairs: [...structurally.repairs, ...state.repairs, ...normalized.repairs],
+    repairs: [
+      ...structurally.repairs,
+      ...state.repairs,
+      ...normalized.repairs,
+      ...syncedRefRepairs(normalized.content),
+    ],
   };
 }
 ```
@@ -2360,6 +2414,8 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  SYNCED_REF_KEY,
+  isStoredSyncedTargetId,
   isVoidElementType,
   maxNesting,
   unsatisfiedDependentAttrs,
@@ -3268,6 +3324,14 @@ function expandBlock(
       return [equation];
     }
 
+    if (node.type === SYNCED_REF_KEY) {
+      const synced = elementNode(SYNCED_REF_KEY, [{ text: "" }], takeId(node, seen));
+      if (isStoredSyncedTargetId(node.targetBlockId)) {
+        synced.targetBlockId = node.targetBlockId;
+      }
+      return [synced];
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -3589,6 +3653,8 @@ import { ColumnElement, ColumnGroupElement } from "./column-element";
 import { EquationElement } from "./equation-element";
 import { TocElement } from "./toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "./editor-equation";
+import { SYNCED_REF_KEY, goToSyncedOriginal, onSyncedRefKeyDown } from "./editor-synced-block";
+import { SyncedRefElement } from "./synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -4263,7 +4329,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.mediaEmbed ||
         child.type === BOOKMARK_KEY ||
         child.type === KEYS.toc ||
-        child.type === KEYS.equation) &&
+        child.type === KEYS.equation ||
+        child.type === SYNCED_REF_KEY) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -4932,6 +4999,18 @@ const breakAbovePlugin = createSlatePlugin({
       if (
         block &&
         isElementRecord(block[0]) &&
+        block[0].type === SYNCED_REF_KEY &&
+        editor.api.isCollapsed()
+      ) {
+        if (editor.dom.readOnly !== true) {
+          goToSyncedOriginal(editor);
+        }
+        return;
+      }
+
+      if (
+        block &&
+        isElementRecord(block[0]) &&
         isVoidElementType(block[0].type) &&
         editor.api.isCollapsed()
       ) {
@@ -5152,6 +5231,21 @@ const equationPlatePlugin = toPlatePlugin(equationPlugin, {
     },
   },
 });
+
+const syncedRefPlugin = toPlatePlugin(
+  createSlatePlugin({
+    key: SYNCED_REF_KEY,
+    node: { isElement: true, isVoid: true },
+  }),
+  {
+    render: { node: SyncedRefElement },
+    handlers: {
+      onKeyDown: ({ editor, event }) => {
+        onSyncedRefKeyDown(editor, event);
+      },
+    },
+  },
+);
 
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
@@ -5416,6 +5510,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     bookmarkPlugin,
     tocPlugin,
     equationPlatePlugin,
+    syncedRefPlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,
@@ -16775,6 +16870,7 @@ function headingDepth(type: string): TocDepth | undefined {
 }
 
 export function tocEntries(editor: SlateEditor, maxDepth: TocDepth): TocEntry[] {
+  // A synced_ref is a void and is not a heading, so a reference does not list a heading twice.
   const entries: TocEntry[] = [];
   for (const [node, path] of editor.api.nodes({
     at: [],
@@ -17701,6 +17797,883 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverContent>
       </Popover>
       {props.children}
+    </PlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { formatBlockLabel } from "./editor-document";
+import type { Repair } from "./editor-document-ids";
+import { SYNCED_REF_KEY, isStoredSyncedTargetId } from "./editor-document-schema";
+import { prefersReducedMotion } from "./editor-toc";
+import { toggleOpen } from "./editor-toggle";
+import type { EditorValue } from "./editor-value";
+
+export { SYNCED_REF_KEY };
+
+export const SYNCED_FROM_ABOVE = "Synced from above";
+export const SYNCED_FROM_BELOW = "Synced from below";
+export const SYNCED_INVALID_PLACEHOLDER = "Invalid reference";
+export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
+export const SYNCED_CREATE_LABEL = "Create synced copy";
+export const SYNCED_GO_LABEL = "Go to original";
+export const SYNCED_CONVERT_LABEL = "Convert to copy";
+export const SYNCED_REMOVE_LABEL = "Remove";
+export const SYNCED_SELECT_REASON = "Select a block to sync.";
+export const SYNCED_REJECT_REASON = "This block cannot be synced.";
+
+export type SyncedTargetStatus = "live" | "missing" | "invalid";
+export type SyncedDirection = "above" | "below";
+
+type BlockEntry = [TElement, number[]];
+
+function elementId(node: TElement): string | undefined {
+  return typeof node.id === "string" && node.id.length > 0 ? node.id : undefined;
+}
+
+function isElement(node: Descendant): node is TElement {
+  return ElementApi.isElement(node);
+}
+
+// Descendants only. The node itself is checked by its type.
+function containsSyncedRef(node: TElement): boolean {
+  for (const child of node.children) {
+    if (!isElement(child)) {
+      continue;
+    }
+    if (child.type === SYNCED_REF_KEY || containsSyncedRef(child)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function syncedTargetStatus(
+  target: TElement | undefined,
+  targetId: string,
+): SyncedTargetStatus {
+  if (!isStoredSyncedTargetId(targetId)) {
+    return "invalid";
+  }
+
+  if (!target) {
+    return "missing";
+  }
+
+  if (
+    target.type === SYNCED_REF_KEY ||
+    target.type === KEYS.toc ||
+    target.type === KEYS.columnGroup ||
+    containsSyncedRef(target)
+  ) {
+    return "invalid";
+  }
+
+  return "live";
+}
+
+export function syncedDirection(targetPath: number[], refPath: number[]): SyncedDirection {
+  return PathApi.compare(targetPath, refPath) < 0 ? "above" : "below";
+}
+
+function indexElements(value: readonly Descendant[]): Map<string, TElement> {
+  const index = new Map<string, TElement>();
+
+  const visit = (node: Descendant): void => {
+    if (!isElement(node)) {
+      return;
+    }
+
+    const id = elementId(node);
+    if (id !== undefined && !index.has(id)) {
+      index.set(id, node);
+    }
+
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+
+  for (const node of value) {
+    visit(node);
+  }
+
+  return index;
+}
+
+function freshId(used: Set<string>): string {
+  let id = nanoid();
+  let suffix = 1;
+  while (id.length === 0 || used.has(id)) {
+    id = `${nanoid()}-${String(suffix)}`;
+    suffix += 1;
+  }
+
+  used.add(id);
+  return id;
+}
+
+function cloneWithFreshIds(node: TElement, used: Set<string>): TElement {
+  const children = node.children.map((child) =>
+    isElement(child) ? cloneWithFreshIds(child, used) : { ...child },
+  );
+
+  return { ...node, id: freshId(used), children };
+}
+
+function emptyParagraph(used: Set<string>): TElement {
+  return { type: KEYS.p, id: freshId(used), children: [{ text: "" }] };
+}
+
+function targetIdOf(node: TElement): string {
+  return typeof node.targetBlockId === "string" ? node.targetBlockId : "";
+}
+
+// Invalid targets are repairs. A missing target stays a runtime placeholder, so the
+// document still opens and undo can bring the original back.
+export function syncedRefRepairs(value: EditorValue): Repair[] {
+  const index = indexElements(value);
+  const repairs: Repair[] = [];
+
+  const visit = (node: Descendant, path: number[]): void => {
+    if (!isElement(node)) {
+      return;
+    }
+
+    if (node.type === SYNCED_REF_KEY) {
+      const targetId = targetIdOf(node);
+      if (isStoredSyncedTargetId(targetId)) {
+        const status = syncedTargetStatus(index.get(targetId), targetId);
+        if (status === "invalid") {
+          repairs.push({
+            path,
+            message: `${formatBlockLabel(path)} points at a block that cannot be synced. The reference is kept.`,
+          });
+        }
+      }
+    }
+
+    node.children.forEach((child, childIndex) => {
+      visit(child, [...path, childIndex]);
+    });
+  };
+
+  value.forEach((node, nodeIndex) => {
+    visit(node, [nodeIndex]);
+  });
+
+  return repairs;
+}
+
+function materializeElement(
+  node: TElement,
+  path: number[],
+  index: Map<string, TElement>,
+  used: Set<string>,
+  losses: Repair[],
+): TElement {
+  if (node.type === SYNCED_REF_KEY) {
+    const targetId = targetIdOf(node);
+    const target = isStoredSyncedTargetId(targetId) ? index.get(targetId) : undefined;
+    const status = syncedTargetStatus(target, targetId);
+    if (status !== "live" || target === undefined) {
+      losses.push({
+        path,
+        message:
+          status === "missing"
+            ? `${formatBlockLabel(path)} points at a block that is not in the document. The reference was removed.`
+            : `${formatBlockLabel(path)} points at a block that cannot be synced. The reference was removed.`,
+      });
+      return emptyParagraph(used);
+    }
+
+    return cloneWithFreshIds(target, used);
+  }
+
+  let changed = false;
+  const children = node.children.map((child, childIndex) => {
+    if (!isElement(child)) {
+      return child;
+    }
+
+    const next = materializeElement(child, [...path, childIndex], index, used, losses);
+    if (next !== child) {
+      changed = true;
+    }
+
+    return next;
+  });
+
+  if (!changed) {
+    return node;
+  }
+
+  return { ...node, children };
+}
+
+// The future exporter and read-only renderer (DEV-128) must call this before writing the document out.
+export function materializeSyncedRefs(value: EditorValue): {
+  value: EditorValue;
+  losses: Repair[];
+} {
+  const index = indexElements(value);
+  const used = new Set(index.keys());
+  const losses: Repair[] = [];
+  let changed = false;
+  const next = value.map((node, nodeIndex) => {
+    const materialized = materializeElement(node, [nodeIndex], index, used, losses);
+    if (materialized !== node) {
+      changed = true;
+    }
+
+    return materialized;
+  });
+
+  return { value: changed ? next : value, losses };
+}
+
+export function findBlockById(editor: SlateEditor, id: string): BlockEntry | undefined {
+  for (const entry of editor.api.nodes({
+    at: [],
+    match: (node) => ElementApi.isElement(node) && node.id === id,
+    voids: true,
+  })) {
+    if (ElementApi.isElement(entry[0])) {
+      return [entry[0], entry[1]];
+    }
+  }
+
+  return undefined;
+}
+
+function nodeAt(editor: SlateEditor, path: number[]): BlockEntry | undefined {
+  const entry = editor.api.node(path);
+  if (!entry || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+
+  return [entry[0], entry[1]];
+}
+
+function selectedSyncedRef(editor: SlateEditor): BlockEntry | undefined {
+  for (const entry of editor.api.nodes({
+    match: (node) => ElementApi.isElement(node) && node.type === SYNCED_REF_KEY,
+    voids: true,
+    mode: "lowest",
+  })) {
+    if (ElementApi.isElement(entry[0])) {
+      return [entry[0], entry[1]];
+    }
+  }
+
+  return undefined;
+}
+
+function isEditable(editor: SlateEditor): boolean {
+  return editor.dom.readOnly !== true;
+}
+
+function isSyncableBlock(node: TElement): boolean {
+  const id = elementId(node);
+  if (id === undefined) {
+    return false;
+  }
+
+  return syncedTargetStatus(node, id) === "live";
+}
+
+export function createSyncedRefReason(editor: SlateEditor): string | undefined {
+  const current = editor.api.block({ highest: true });
+  if (!current || !ElementApi.isElement(current[0]) || elementId(current[0]) === undefined) {
+    return SYNCED_SELECT_REASON;
+  }
+
+  if (!isSyncableBlock(current[0])) {
+    return SYNCED_REJECT_REASON;
+  }
+
+  return undefined;
+}
+
+function syncedRefNode(id: string, targetBlockId: string): TElement {
+  return {
+    type: SYNCED_REF_KEY,
+    id,
+    targetBlockId,
+    children: [{ text: "" }],
+  };
+}
+
+export function insertSyncedRef(editor: SlateEditor): boolean {
+  if (!isEditable(editor) || createSyncedRefReason(editor) !== undefined) {
+    return false;
+  }
+
+  const current = editor.api.block({ highest: true });
+  if (!current || !ElementApi.isElement(current[0])) {
+    return false;
+  }
+
+  const targetId = elementId(current[0]);
+  const at = PathApi.next(current[1]);
+  if (targetId === undefined || !at) {
+    return false;
+  }
+
+  editor.tf.insertNodes(syncedRefNode(nanoid(), targetId), { at, select: true });
+  return true;
+}
+
+function openAncestorToggles(editor: SlateEditor, path: readonly number[]): void {
+  for (let length = 1; length < path.length; length += 1) {
+    const parent = editor.api.node(path.slice(0, length));
+    if (!parent || !ElementApi.isElement(parent[0]) || parent[0].type !== KEYS.toggle) {
+      continue;
+    }
+
+    const id = elementId(parent[0]);
+    if (id === undefined) {
+      continue;
+    }
+
+    toggleOpen(editor, id, true);
+  }
+}
+
+function scrollToBlock(editor: SlateEditor, node: TElement): void {
+  const dom = editor.api.toDOMNode(node);
+  if (!(dom instanceof HTMLElement) || typeof dom.scrollIntoView !== "function") {
+    return;
+  }
+
+  dom.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "start",
+  });
+}
+
+export function goToSyncedOriginal(editor: SlateEditor, at?: number[]): void {
+  if (!isEditable(editor)) {
+    return;
+  }
+
+  const refEntry = at === undefined ? selectedSyncedRef(editor) : nodeAt(editor, at);
+  if (!refEntry || refEntry[0].type !== SYNCED_REF_KEY) {
+    return;
+  }
+
+  const targetId = targetIdOf(refEntry[0]);
+  const target = isStoredSyncedTargetId(targetId) ? findBlockById(editor, targetId) : undefined;
+  if (!target || syncedTargetStatus(target[0], targetId) !== "live") {
+    return;
+  }
+
+  openAncestorToggles(editor, target[1]);
+  const start = editor.api.start(target[1]);
+  if (!start) {
+    return;
+  }
+
+  editor.tf.withoutSaving(() => {
+    editor.tf.select(start, { focus: true });
+  });
+  scrollToBlock(editor, target[0]);
+}
+
+function collectIds(value: readonly Descendant[]): Set<string> {
+  return new Set(indexElements(value).keys());
+}
+
+export function convertSyncedRefAt(editor: SlateEditor, path: number[]): boolean {
+  if (!isEditable(editor)) {
+    return false;
+  }
+
+  const refEntry = nodeAt(editor, path);
+  if (!refEntry || refEntry[0].type !== SYNCED_REF_KEY) {
+    return false;
+  }
+
+  const targetId = targetIdOf(refEntry[0]);
+  const target = isStoredSyncedTargetId(targetId) ? findBlockById(editor, targetId) : undefined;
+  if (!target || syncedTargetStatus(target[0], targetId) !== "live") {
+    return false;
+  }
+
+  const clone = cloneWithFreshIds(target[0], collectIds(editor.children));
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.removeNodes({ at: path, voids: true });
+    editor.tf.insertNodes(clone, { at: path, select: true });
+  });
+  return true;
+}
+
+export function removeSyncedRefAt(editor: SlateEditor, path: number[]): boolean {
+  if (!isEditable(editor)) {
+    return false;
+  }
+
+  const refEntry = nodeAt(editor, path);
+  if (!refEntry || refEntry[0].type !== SYNCED_REF_KEY) {
+    return false;
+  }
+
+  editor.tf.removeNodes({ at: path, voids: true });
+  if (editor.children.length === 0) {
+    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: [0] });
+  }
+
+  return true;
+}
+
+type KeyEvent = {
+  key: string;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  defaultPrevented: boolean;
+  preventDefault: () => void;
+};
+
+export function onSyncedRefKeyDown(editor: SlateEditor, event: KeyEvent): void {
+  if (
+    event.defaultPrevented ||
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    !isEditable(editor)
+  ) {
+    return;
+  }
+
+  const block = editor.api.block();
+  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== SYNCED_REF_KEY) {
+    return;
+  }
+
+  event.preventDefault();
+  goToSyncedOriginal(editor, block[1]);
+}
+
+function selectedTargetIsLive(editor: SlateEditor): boolean {
+  const selected = selectedSyncedRef(editor);
+  if (!selected) {
+    return false;
+  }
+
+  const targetId = targetIdOf(selected[0]);
+  const target = isStoredSyncedTargetId(targetId) ? findBlockById(editor, targetId) : undefined;
+  return syncedTargetStatus(target?.[0], targetId) === "live";
+}
+
+export const createSyncedRef: EditorCommand = {
+  id: "block.synced.create-ref",
+  label: SYNCED_CREATE_LABEL,
+  group: "insert",
+  isEnabled: (editor) => isEditable(editor) && createSyncedRefReason(editor) === undefined,
+  disabledReason: (editor) => createSyncedRefReason(editor),
+  run: (editor) => {
+    insertSyncedRef(editor);
+  },
+};
+
+export const goToSyncedOriginalCommand: EditorCommand = {
+  id: "block.synced.go-to-original",
+  label: SYNCED_GO_LABEL,
+  group: "action",
+  isEnabled: (editor) => isEditable(editor) && selectedTargetIsLive(editor),
+  run: (editor) => {
+    goToSyncedOriginal(editor);
+  },
+};
+
+export const convertSyncedRef: EditorCommand = {
+  id: "block.synced.convert",
+  label: SYNCED_CONVERT_LABEL,
+  group: "action",
+  isEnabled: (editor) => isEditable(editor) && selectedTargetIsLive(editor),
+  run: (editor) => {
+    const selected = selectedSyncedRef(editor);
+    if (!selected) {
+      return;
+    }
+
+    convertSyncedRefAt(editor, selected[1]);
+  },
+};
+
+export const removeSyncedRef: EditorCommand = {
+  id: "block.synced.remove",
+  label: SYNCED_REMOVE_LABEL,
+  group: "action",
+  isEnabled: (editor) => isEditable(editor) && selectedSyncedRef(editor) !== undefined,
+  run: (editor) => {
+    const selected = selectedSyncedRef(editor);
+    if (!selected) {
+      return;
+    }
+
+    removeSyncedRefAt(editor, selected[1]);
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx
+```tsx
+import { createElement, type ReactNode } from "react";
+import { ElementApi, type Descendant, type SlateEditor, type TElement, type TText } from "platejs";
+import { pipeRenderLeafStatic } from "platejs/static";
+import {
+  ElementProvider,
+  PlateElement,
+  useEditorRef,
+  useEditorSelector,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import {
+  SYNCED_CONVERT_LABEL,
+  SYNCED_FROM_ABOVE,
+  SYNCED_FROM_BELOW,
+  SYNCED_GO_LABEL,
+  SYNCED_INVALID_PLACEHOLDER,
+  SYNCED_MISSING_PLACEHOLDER,
+  SYNCED_REF_KEY,
+  SYNCED_REMOVE_LABEL,
+  convertSyncedRefAt,
+  findBlockById,
+  goToSyncedOriginal,
+  removeSyncedRefAt,
+  syncedDirection,
+  syncedTargetStatus,
+  type SyncedDirection,
+  type SyncedTargetStatus,
+} from "./editor-synced-block";
+import { isStoredSyncedTargetId } from "./editor-document-schema";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  keepMediaSelection,
+  mediaIconButtonClass,
+} from "./media-element-parts";
+
+// PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
+// cannot render a target inside the live editor. pluginRenderElementStatic
+// (static-CTmHK15f.js:352) also skips ElementProvider, which the react renderer
+// wraps at react/index.js:1799. useElement() would then see this reference.
+// A nested editor has no media runtime and its own history. This walker reuses
+// the main editor's element and leaf components instead.
+
+const PREVIEW_ROOT = 1_000_000;
+
+type PreviewProps = {
+  attributes: PlateElementProps["attributes"];
+  element: TElement;
+  children?: ReactNode;
+  path: number[];
+  editor: SlateEditor;
+};
+
+type ElementRenderer = (props: PreviewProps) => ReactNode;
+
+type PreviewView = {
+  status: SyncedTargetStatus;
+  node: TElement | undefined;
+  direction: SyncedDirection | undefined;
+};
+
+function isText(node: Descendant): node is TText {
+  return !ElementApi.isElement(node);
+}
+
+function isElementRenderer(value: unknown): value is ElementRenderer {
+  return typeof value === "function";
+}
+
+function elementRenderer(editor: SlateEditor, type: string): ElementRenderer | undefined {
+  // React editors index element components by node type. The static isElement
+  // cache is not built for them (withSlate pluginCache.node has types, not isElement).
+  const types: unknown = editor.meta.pluginCache.node.types;
+  const key =
+    typeof types === "object" && types !== null && type in types
+      ? Reflect.get(types, type)
+      : undefined;
+  if (typeof key !== "string") {
+    return undefined;
+  }
+
+  const component: unknown = editor.meta.components?.[key];
+  if (isElementRenderer(component)) {
+    return component;
+  }
+
+  const render: unknown = editor.getPlugin({ key }).render?.node;
+  return isElementRenderer(render) ? render : undefined;
+}
+
+function previewTree(node: Descendant): Descendant {
+  if (!ElementApi.isElement(node)) {
+    return node;
+  }
+
+  const children = node.children.map((child) => previewTree(child));
+  const copy: TElement = { ...node, children };
+  if (
+    (node.type === "h1" || node.type === "h2" || node.type === "h3") &&
+    typeof node.id === "string" &&
+    node.id.length > 0
+  ) {
+    copy.id = `preview-${node.id}`;
+  }
+
+  return copy;
+}
+
+function previewAttributes(path: number[]): PlateElementProps["attributes"] {
+  return {
+    "data-slate-node": "element",
+    ref: () => undefined,
+    "data-preview-path": path.join("."),
+  };
+}
+
+function PreviewText({ editor, text, path }: { editor: SlateEditor; text: TText; path: number[] }) {
+  const renderLeaf = pipeRenderLeafStatic(editor);
+  const shown = text.text.length === 0 ? "\uFEFF" : text.text;
+  return renderLeaf({
+    attributes: { "data-slate-leaf": true },
+    children: shown,
+    leaf: text,
+    text,
+    path,
+  });
+}
+
+function PreviewNode({
+  editor,
+  node,
+  path,
+}: {
+  editor: SlateEditor;
+  node: Descendant;
+  path: number[];
+}) {
+  if (isText(node)) {
+    return <PreviewText editor={editor} text={node} path={path} />;
+  }
+
+  if (node.type === SYNCED_REF_KEY) {
+    return <p>{SYNCED_INVALID_PLACEHOLDER}</p>;
+  }
+
+  const children = node.children.map((child, index) => (
+    <PreviewNode
+      key={path.concat(index).join(".")}
+      editor={editor}
+      node={child}
+      path={path.concat(index)}
+    />
+  ));
+  const renderer = elementRenderer(editor, node.type);
+
+  return (
+    <ElementProvider element={node} entry={[node, path]} path={path}>
+      {renderer === undefined ? (
+        <div>{children}</div>
+      ) : (
+        createElement(
+          renderer,
+          {
+            attributes: previewAttributes(path),
+            editor,
+            element: node,
+            path,
+          },
+          children,
+        )
+      )}
+    </ElementProvider>
+  );
+}
+
+function SyncedPreview({ node }: { node: TElement }) {
+  "use no memo";
+  const editor = useEditorRef();
+  const preview = previewTree(node);
+  if (!ElementApi.isElement(preview)) {
+    return null;
+  }
+
+  return <PreviewNode editor={editor} node={preview} path={[PREVIEW_ROOT]} />;
+}
+
+function targetId(element: PlateElementProps["element"]): string {
+  return typeof element.targetBlockId === "string" ? element.targetBlockId : "";
+}
+
+function refLabel(direction: SyncedDirection | undefined): string | undefined {
+  if (direction === "above") {
+    return SYNCED_FROM_ABOVE;
+  }
+
+  if (direction === "below") {
+    return SYNCED_FROM_BELOW;
+  }
+
+  return undefined;
+}
+
+export function SyncedRefElement(props: PlateElementProps) {
+  "use no memo";
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const storedTargetId = targetId(props.element);
+  const view = useEditorSelector((): PreviewView => {
+    const refPath = editor.api.findPath(props.element);
+    const found = isStoredSyncedTargetId(storedTargetId)
+      ? findBlockById(editor, storedTargetId)
+      : undefined;
+    const status = syncedTargetStatus(found?.[0], storedTargetId);
+    const direction =
+      status === "live" && found && refPath ? syncedDirection(found[1], refPath) : undefined;
+    return { status, node: found?.[0], direction };
+  }, [storedTargetId, props.element]);
+  const label = refLabel(view.direction);
+  const path = editor.api.findPath(props.element);
+
+  function selectRef(): void {
+    if (!path) {
+      return;
+    }
+
+    const start = editor.api.start(path);
+    if (!start) {
+      return;
+    }
+
+    editor.tf.withoutSaving(() => {
+      editor.tf.select(start);
+    });
+  }
+
+  function runOnRef(run: (refPath: number[]) => void): void {
+    if (!path || readOnly) {
+      return;
+    }
+
+    editor.tf.withNewBatch(() => {
+      run(path);
+    });
+    editor.tf.setSplittingOnce(true);
+  }
+
+  return (
+    <PlateElement
+      {...props}
+      className="group border-border relative my-2 max-w-full min-w-0 border-s ps-3"
+    >
+      <div
+        contentEditable={false}
+        data-synced-ref=""
+        data-synced-state={view.status}
+        onMouseDown={selectRef}
+      >
+        {label === undefined ? null : (
+          <p data-synced-label className="text-muted-foreground text-xs">
+            {label}
+          </p>
+        )}
+        {view.status === "live" && view.node ? (
+          <div
+            data-synced-preview
+            className="pointer-events-none max-w-full min-w-0 overflow-x-auto"
+          >
+            <SyncedPreview node={view.node} />
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            {view.status === "missing" ? SYNCED_MISSING_PLACEHOLDER : SYNCED_INVALID_PLACEHOLDER}
+          </p>
+        )}
+        {readOnly ? null : (
+          <div
+            data-synced-toolbar
+            className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
+            onMouseDown={(event) => {
+              // Selecting the void here replaces these buttons before click fires.
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            {view.status === "live" ? (
+              <button
+                type="button"
+                aria-label={SYNCED_GO_LABEL}
+                className={mediaIconButtonClass}
+                onMouseDown={keepMediaSelection}
+                onClick={() => {
+                  if (path) {
+                    goToSyncedOriginal(editor, path);
+                  }
+                }}
+              >
+                {SYNCED_GO_LABEL}
+              </button>
+            ) : null}
+            {view.status === "live" ? (
+              <button
+                type="button"
+                aria-label={SYNCED_CONVERT_LABEL}
+                className={mediaIconButtonClass}
+                onMouseDown={keepMediaSelection}
+                onClick={() => {
+                  runOnRef((refPath) => {
+                    convertSyncedRefAt(editor, refPath);
+                  });
+                }}
+              >
+                {SYNCED_CONVERT_LABEL}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              aria-label={SYNCED_REMOVE_LABEL}
+              className={mediaIconButtonClass}
+              onMouseDown={keepMediaSelection}
+              onClick={() => {
+                runOnRef((refPath) => {
+                  removeSyncedRefAt(editor, refPath);
+                });
+              }}
+            >
+              {SYNCED_REMOVE_LABEL}
+            </button>
+          </div>
+        )}
+      </div>
     </PlateElement>
   );
 }
@@ -21150,6 +22123,7 @@ export async function cleanupUnreferencedAssets(
   return deleted;
 }
 
+// A synced_ref stores neither assetId nor posterAssetId, so moving the original does not drop its asset.
 function walk(node: unknown, ids: Set<string>): void {
   if (Array.isArray(node)) {
     for (const child of node) {
@@ -23825,6 +24799,30 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-synced",
+    children: [{ text: "Synced block" }],
+  },
+  {
+    type: "callout",
+    id: "demo-synced-original",
+    icon: "info",
+    variant: "info",
+    children: [
+      {
+        type: "p",
+        id: "demo-synced-original-text",
+        children: [{ text: "This callout is stored once. The reference below mirrors it." }],
+      },
+    ],
+  },
+  {
+    type: "synced_ref",
+    id: "demo-synced-ref",
+    targetBlockId: "demo-synced-original",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -24195,6 +25193,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/equation-element.tsx",
     code: readSource(`${BLOCK_DIR}/equation-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-synced-block.ts",
+    code: readSource(`${BLOCK_DIR}/editor-synced-block.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/synced-ref-element.tsx",
+    code: readSource(`${BLOCK_DIR}/synced-ref-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
