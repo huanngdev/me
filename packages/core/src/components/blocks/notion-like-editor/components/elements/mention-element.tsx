@@ -2,8 +2,11 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
+import { Input } from "@/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { cn } from "@/lib/utils";
+
+import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -135,11 +138,15 @@ function MentionChip({
   );
 }
 
-export function MentionInputElement({ attributes, children }: PlateElementProps) {
+export function MentionInputElement({ attributes, children, element }: PlateElementProps) {
   "use no memo";
 
   const editor = useEditorRef();
   const readOnly = useReadOnly();
+  const virtualRef = virtualAnchor(
+    () => elementRect(editor.api.toDOMNode(element) ?? null),
+    () => anchorContext(editor.api.toDOMNode(element) ?? null),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const query = usePluginOption(mentionUiPlugin, "query");
   const status = usePluginOption(mentionUiPlugin, "status");
@@ -167,55 +174,55 @@ export function MentionInputElement({ attributes, children }: PlateElementProps)
 
   return (
     <Popover open modal={false}>
-      <PopoverAnchor asChild>
-        <span
-          {...attributes}
-          contentEditable={false}
-          className={cn(
-            slateClass,
-            "bg-accent text-accent-foreground inline-flex items-baseline rounded-md px-1 align-baseline",
-          )}
-          data-mention-input=""
-        >
-          <span>@</span>
-          <input
-            ref={inputRef}
-            value={query}
-            className="text-accent-foreground placeholder:text-accent-foreground/70 w-auto min-w-[1ch] bg-transparent outline-none"
-            style={{ width: `${Math.max(query.length, 1) + 0.5}ch` }}
-            aria-label="Mention"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={true}
-            aria-controls="mention-results"
-            onChange={(event) => {
-              const next = event.currentTarget.value;
-              const native = event.nativeEvent;
-              if ("isComposing" in native && native.isComposing === true) {
-                editor.setOption(mentionUiPlugin, "query", next);
-                return;
-              }
+      <span
+        {...attributes}
+        contentEditable={false}
+        className={cn(
+          slateClass,
+          "bg-accent text-accent-foreground inline-flex items-baseline rounded-md px-1 align-baseline",
+        )}
+        data-mention-input=""
+      >
+        <span>@</span>
+        <Input
+          ref={inputRef}
+          value={query}
+          className="text-accent-foreground placeholder:text-accent-foreground/70 h-auto w-auto min-w-[1ch] rounded-none border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
+          style={{ width: `${Math.max(query.length, 1) + 0.5}ch` }}
+          aria-label="Mention"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={true}
+          aria-controls="mention-results"
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            const native = event.nativeEvent;
+            if ("isComposing" in native && native.isComposing === true) {
+              editor.setOption(mentionUiPlugin, "query", next);
+              return;
+            }
 
-              setMentionQuery(editor, next);
-            }}
-            onCompositionStart={(event) => {
-              event.stopPropagation();
-              setMentionInputComposing(editor, true);
-            }}
-            onCompositionEnd={(event) => {
-              event.stopPropagation();
-              setMentionInputComposing(editor, false);
-              setMentionQuery(editor, event.currentTarget.value);
-            }}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              onMentionInputKeyDown(editor, event);
-            }}
-          />
-          {children}
-        </span>
-      </PopoverAnchor>
+            setMentionQuery(editor, next);
+          }}
+          onCompositionStart={(event) => {
+            event.stopPropagation();
+            setMentionInputComposing(editor, true);
+          }}
+          onCompositionEnd={(event) => {
+            event.stopPropagation();
+            setMentionInputComposing(editor, false);
+            setMentionQuery(editor, event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            onMentionInputKeyDown(editor, event);
+          }}
+        />
+        {children}
+      </span>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
+        side="bottom"
         align="start"
         sideOffset={4}
         collisionPadding={8}

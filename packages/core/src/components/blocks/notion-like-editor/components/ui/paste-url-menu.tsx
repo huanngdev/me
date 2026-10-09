@@ -1,7 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+import { Bookmark, Link } from "lucide-react";
 import { useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
+import { EditorTextButton } from "./block-toolbar";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
@@ -16,6 +20,10 @@ export function PasteUrlMenu() {
   const offer = usePluginOption(pasteUrlPlugin, "offer");
   const actions =
     offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+  const virtualRef = virtualAnchor(
+    () => rangeRect(pasteDomRange(editor)),
+    () => anchorContext(rangeContextElement(pasteDomRange(editor))),
+  );
 
   useEffect(() => {
     if (offer === undefined) {
@@ -47,25 +55,15 @@ export function PasteUrlMenu() {
     return null;
   }
 
-  const rect = selectionRect();
-
   return (
     <Popover open>
-      <PopoverAnchor asChild>
-        <span
-          data-paste-url-anchor=""
-          style={{
-            position: "fixed",
-            top: rect.top,
-            left: rect.left,
-            width: 1,
-            height: 1,
-          }}
-        />
-      </PopoverAnchor>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-paste-url-menu=""
+        side="bottom"
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -75,48 +73,50 @@ export function PasteUrlMenu() {
         className="w-auto gap-1 p-1"
       >
         {actions.map((action) => (
-          <button
+          <EditorTextButton
             key={action.id}
-            type="button"
-            className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+            variant="outline"
+            label={action.label}
+            icon={pasteActionIcon(action.id)}
+            className="w-full justify-start"
             onMouseDown={(event) => {
               event.preventDefault();
             }}
             onClick={() => {
               runEditorCommand(editor, applyPasteUrlAction, action.id);
             }}
-          >
-            {action.label}
-          </button>
+          />
         ))}
-        <button
-          type="button"
+        <EditorTextButton
+          variant="outline"
+          label="Keep as link"
+          icon={<Link aria-hidden="true" />}
           data-default="true"
-          className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+          className="w-full justify-start"
           onMouseDown={(event) => {
             event.preventDefault();
           }}
           onClick={() => {
             clearPasteUrlOffer(editor);
           }}
-        >
-          Keep as link
-        </button>
+        />
       </PopoverContent>
     </Popover>
   );
 }
 
-function selectionRect(): { top: number; left: number } {
-  if (typeof window === "undefined") {
-    return { top: 0, left: 0 };
+function pasteDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
+  if (!editor.selection) {
+    return null;
   }
 
-  const selection = window.getSelection();
-  if (selection === null || selection.rangeCount === 0) {
-    return { top: 0, left: 0 };
+  return editor.api.toDOMRange(editor.selection) ?? null;
+}
+
+function pasteActionIcon(id: string): ReactNode {
+  if (id === "bookmark") {
+    return <Bookmark aria-hidden="true" />;
   }
 
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
-  return { top: rect.bottom, left: rect.left };
+  return <Link aria-hidden="true" />;
 }

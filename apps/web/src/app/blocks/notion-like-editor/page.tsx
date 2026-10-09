@@ -60,6 +60,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-toolbar.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
+    code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/lib/plugins/editor-plugins.ts`),
   },

@@ -4,10 +4,8 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Columns3,
   CopyPlus,
   Merge,
-  Rows3,
   Split,
   Table2,
   Trash2,
@@ -21,7 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 
 import { runEditorCommand, type EditorCommand } from "../../lib/commands/editor-commands";
@@ -43,6 +40,7 @@ import {
   toggleTableHeaderRow,
 } from "../../lib/commands/editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "../../lib/features/editor-table";
+import { EditorMenuTrigger } from "./block-toolbar";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -100,16 +98,14 @@ export function TableControls({ element }: { element: TElement }) {
   return (
     <div className={TOOLBAR_CLASS_NAME} contentEditable={false}>
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger
-          aria-label="Table options"
-          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+        <EditorMenuTrigger
+          label="Table options"
+          icon={<Table2 aria-hidden="true" />}
           onMouseDown={keepEditorSelection}
           onPointerDown={() => {
             savedSelection.current = editor.selection;
           }}
-        >
-          <Table2 aria-hidden="true" className="size-4" />
-        </DropdownMenuTrigger>
+        />
         <DropdownMenuContent
           align="end"
           className="w-64"
@@ -211,21 +207,23 @@ export function TableControls({ element }: { element: TElement }) {
           />
           <DropdownMenuSeparator />
           <DropdownMenuItem
+            variant="destructive"
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(deleteTableRow, undefined);
             }}
           >
-            <Rows3 aria-hidden="true" />
+            <Trash2 aria-hidden="true" />
             Delete row
           </DropdownMenuItem>
           <DropdownMenuItem
+            variant="destructive"
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(deleteTableColumn, undefined);
             }}
           >
-            <Columns3 aria-hidden="true" />
+            <Trash2 aria-hidden="true" />
             Delete column
           </DropdownMenuItem>
           <DropdownMenuSeparator />

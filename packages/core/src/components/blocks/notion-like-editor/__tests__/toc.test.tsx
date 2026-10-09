@@ -714,15 +714,25 @@ describe("toc commands", () => {
       heading("h2", "Two", "two"),
       toc("outline"),
     ]);
-    const select = mounted.host.querySelector('[aria-label="Table of contents depth"]');
-    if (select === null || select.tagName !== "SELECT" || !("value" in select)) {
-      throw new Error("Missing the depth select.");
+    const trigger = mounted.host.querySelector('[aria-label="Table of contents depth"]');
+    if (!(trigger instanceof HTMLElement)) {
+      throw new Error("Missing the depth menu.");
     }
     const undos = mounted.editor.history.undos.length;
 
     await act(async () => {
-      select.value = "1";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
+      trigger.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
+      );
+    });
+    const option = [...document.querySelectorAll("[role='menuitem']")].find(
+      (node) => node.textContent === "H1 only",
+    );
+    if (!(option instanceof HTMLElement)) {
+      throw new Error("Missing the H1 only option.");
+    }
+    await act(async () => {
+      option.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     });
     expect(labels(mounted.host)).toEqual(["One"]);
     expect(field(mounted.editor.children[2], "maxDepth")).toBe(1);

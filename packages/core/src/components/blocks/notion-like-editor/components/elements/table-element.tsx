@@ -9,6 +9,7 @@ import {
 } from "platejs/react";
 import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
 
+import { TableBody } from "@/components/table";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
@@ -20,11 +21,17 @@ import {
 } from "../../lib/features/editor-table-grid";
 import { TableControls } from "../ui/table-controls";
 
-const CELL_CLASS =
-  "min-w-12 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
-
-const HEADER_CLASS =
-  "bg-[var(--editor-table-header-bg)] font-medium text-[var(--editor-table-header-fg)]";
+// PlateElement `as` accepts an HTML tag only, and Table() wraps a scrolling div
+// that would move apart from the resize handles. The strings below are the
+// classes on Table, TableRow, TableHead, and TableCell in @/components/table.
+// TableBody is used directly. TableHead has no background.
+const TABLE_CLASS = "w-full caption-bottom text-sm border-collapse";
+const TABLE_ROW_CLASS =
+  "hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
+const TABLE_HEAD_CLASS =
+  "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0";
+const TABLE_CELL_CLASS = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0";
+const CELL_BORDER_CLASS = "min-w-12 border border-[var(--editor-table-border)]";
 
 const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
 
@@ -167,7 +174,7 @@ export function TableElement(props: PlateElementProps) {
         <div className="relative w-max min-w-full">
           <table
             ref={tableRef}
-            className={explicit ? "border-collapse" : "w-max min-w-full border-collapse"}
+            className={TABLE_CLASS}
             style={tableWidth === undefined ? undefined : { width: tableWidth }}
           >
             <colgroup>
@@ -175,7 +182,7 @@ export function TableElement(props: PlateElementProps) {
                 <col key={index} style={typeof width === "number" ? { width } : undefined} />
               ))}
             </colgroup>
-            <tbody>{props.children}</tbody>
+            <TableBody>{props.children}</TableBody>
           </table>
           {readOnly
             ? null
@@ -266,7 +273,7 @@ export function TableElement(props: PlateElementProps) {
 }
 
 export function TableRowElement(props: PlateElementProps) {
-  return <PlateElement {...props} as="tr" />;
+  return <PlateElement {...props} as="tr" className={TABLE_ROW_CLASS} />;
 }
 
 export function TableCellElement(props: PlateElementProps) {
@@ -284,7 +291,11 @@ export function TableCellElement(props: PlateElementProps) {
         colSpan,
         rowSpan,
       }}
-      className={cn(CELL_CLASS, header && HEADER_CLASS, selected && SELECTED_CLASS)}
+      className={cn(
+        header ? TABLE_HEAD_CLASS : TABLE_CELL_CLASS,
+        CELL_BORDER_CLASS,
+        selected && SELECTED_CLASS,
+      )}
     />
   );
 }

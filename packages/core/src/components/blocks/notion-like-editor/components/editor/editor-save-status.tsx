@@ -1,7 +1,10 @@
 "use client";
 
-import { Button } from "@/components/button";
+import { RefreshCw } from "lucide-react";
+
 import { cn } from "@/lib/utils";
+
+import { EditorTextButton } from "../ui/block-toolbar";
 
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 
@@ -42,9 +45,12 @@ export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusP
     >
       <span>{statusText(status, message)}</span>
       {isError ? (
-        <Button type="button" variant="destructive" className="h-11 px-4" onClick={onRetry}>
-          Retry
-        </Button>
+        <EditorTextButton
+          variant="outline"
+          label="Retry"
+          icon={<RefreshCw aria-hidden="true" />}
+          onClick={onRetry}
+        />
       ) : null}
     </div>
   );

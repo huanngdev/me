@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, Globe, Trash2 } from "lucide-react";
+import { ExternalLink, Globe, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -10,6 +10,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 
 import {
@@ -22,8 +23,9 @@ import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { hrElementClassName } from "./hr-element";
 import {
   MEDIA_TOOLBAR_CLASS,
-  MediaIconButton,
-  mediaIconButtonClass,
+  EditorIconButton,
+  EditorTextButton,
+  editorControlLabel,
   mediaStringAttr,
   keepMediaSelection,
 } from "../ui/block-toolbar";
@@ -328,43 +330,41 @@ function BookmarkToolbar({
       data-bookmark-toolbar=""
       className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
     >
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        aria-label="Open"
-        className={mediaIconButtonClass}
-        onMouseDown={keepMediaSelection}
-      >
-        <ExternalLink aria-hidden className="size-4" />
-        Open
-      </a>
+      <Button asChild variant="ghost" size="sm">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          aria-label="Open"
+          onMouseDown={keepMediaSelection}
+        >
+          {editorControlLabel(<ExternalLink aria-hidden="true" />, "Open")}
+        </a>
+      </Button>
       {showRefresh ? (
-        <MediaIconButton
+        <EditorTextButton
           label="Refresh preview"
+          icon={<RefreshCw aria-hidden="true" />}
           onClick={() => {
             onRefresh();
           }}
-        >
-          Refresh preview
-        </MediaIconButton>
+        />
       ) : null}
-      <MediaIconButton
+      <EditorTextButton
         label="Convert to text"
-        onClick={(current) => {
-          runEditorCommand(current, convertBookmarkToText, id);
+        icon={<Type aria-hidden="true" />}
+        onClick={() => {
+          runEditorCommand(editor, convertBookmarkToText, id);
         }}
-      >
-        Convert to text
-      </MediaIconButton>
-      <MediaIconButton
+      />
+      <EditorIconButton
+        variant="destructive"
         label="Remove"
+        icon={<Trash2 aria-hidden="true" />}
         onClick={() => {
           runEditorCommand(editor, removeBookmark, id);
         }}
-      >
-        <Trash2 aria-hidden className="size-4" />
-      </MediaIconButton>
+      />
     </div>
   );
 }

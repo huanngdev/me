@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
 
-import { Button } from "@/components/button";
+import { ExternalLink, Save, Unlink } from "lucide-react";
 import { Input } from "@/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
+import { EditorTextButton } from "./block-toolbar";
+
 import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import {
   closeLinkPopover,
   commitLinkPopover,
+  linkAnchorRange,
   linkUiPlugin,
   openInlineLink,
   removeInlineLink,
@@ -23,8 +27,6 @@ export function LinkPopover() {
   const error = usePluginOption(linkUiPlugin, "error");
   const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");
   const draftLabel = usePluginOption(linkUiPlugin, "draftLabel");
-  const anchorTop = usePluginOption(linkUiPlugin, "anchorTop");
-  const anchorLeft = usePluginOption(linkUiPlugin, "anchorLeft");
 
   if (readOnly || mode === "closed") {
     return null;
@@ -37,10 +39,17 @@ export function LinkPopover() {
       error={error}
       draftUrl={draftUrl}
       draftLabel={draftLabel}
-      anchorTop={anchorTop}
-      anchorLeft={anchorLeft}
     />
   );
+}
+
+function linkDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
+  const slateRange = linkAnchorRange(editor);
+  if (!slateRange) {
+    return null;
+  }
+
+  return editor.api.toDOMRange(slateRange) ?? null;
 }
 
 function LinkPopoverForm({
@@ -49,16 +58,12 @@ function LinkPopoverForm({
   error,
   draftUrl,
   draftLabel,
-  anchorTop,
-  anchorLeft,
 }: {
   editor: ReturnType<typeof useEditorRef>;
   mode: string;
   error: string;
   draftUrl: string;
   draftLabel: string;
-  anchorTop: number;
-  anchorLeft: number;
 }) {
   "use no memo";
 
@@ -66,6 +71,10 @@ function LinkPopoverForm({
   const [label, setLabel] = useState(draftLabel);
   const editing = mode === "edit";
   const needsLabel = mode === "label" || editing;
+  const virtualRef = virtualAnchor(
+    () => rangeRect(linkDomRange(editor)),
+    () => anchorContext(rangeContextElement(linkDomRange(editor))),
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -91,22 +100,14 @@ function LinkPopoverForm({
 
   return (
     <Popover open>
-      <PopoverAnchor asChild>
-        <span
-          data-link-anchor=""
-          style={{
-            position: "fixed",
-            top: anchorTop,
-            left: anchorLeft,
-            width: 1,
-            height: 1,
-          }}
-        />
-      </PopoverAnchor>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-popover=""
         data-link-mode={mode}
+        side="bottom"
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -152,29 +153,30 @@ function LinkPopoverForm({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-1">
-            <Button type="submit" size="sm">
-              Save
-            </Button>
+            <EditorTextButton
+              type="submit"
+              variant="default"
+              label="Save"
+              icon={<Save aria-hidden="true" />}
+            />
             {editing ? (
-              <Button
-                type="button"
-                size="sm"
+              <EditorTextButton
                 variant="outline"
+                label="Open"
+                icon={<ExternalLink aria-hidden="true" />}
                 onMouseDown={(event) => {
                   event.preventDefault();
                 }}
                 onClick={() => {
                   runEditorCommand(editor, openInlineLink, undefined);
                 }}
-              >
-                Open
-              </Button>
+              />
             ) : null}
             {editing ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
+              <EditorTextButton
+                variant="destructive"
+                label="Remove link"
+                icon={<Unlink aria-hidden="true" />}
                 onMouseDown={(event) => {
                   event.preventDefault();
                 }}
@@ -182,9 +184,7 @@ function LinkPopoverForm({
                   closeLinkPopover(editor);
                   runEditorCommand(editor, removeInlineLink, undefined);
                 }}
-              >
-                Remove link
-              </Button>
+              />
             ) : null}
           </div>
         </form>

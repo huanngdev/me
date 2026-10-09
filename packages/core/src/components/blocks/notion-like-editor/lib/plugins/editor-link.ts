@@ -42,6 +42,10 @@ const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 
 const savedSelections = new WeakMap<SlateEditor, TRange>();
 
+export function linkAnchorRange(editor: SlateEditor): TRange | null {
+  return savedSelections.get(editor) ?? editor.selection;
+}
+
 export const linkUiPlugin = createSlatePlugin({
   key: "linkUi",
   options: {
@@ -50,8 +54,6 @@ export const linkUiPlugin = createSlatePlugin({
     draftLabel: "",
     error: "",
     hoverId: "",
-    anchorTop: 0,
-    anchorLeft: 0,
   },
 });
 
@@ -180,9 +182,6 @@ export function openLinkPopover(editor: SlateEditor): void {
   }
 
   savedSelections.set(editor, editor.selection);
-  const rect = caretRect();
-  editor.setOption(linkUiPlugin, "anchorTop", rect.top);
-  editor.setOption(linkUiPlugin, "anchorLeft", rect.left);
   editor.setOption(linkUiPlugin, "error", "");
 
   const existing = linkEntry(editor);
@@ -554,18 +553,4 @@ function normalizeLinkNode(editor: SlateEditor, node: TElement, path: number[]):
   }
 
   return false;
-}
-
-function caretRect(): { top: number; left: number } {
-  if (typeof window === "undefined") {
-    return { top: 0, left: 0 };
-  }
-
-  const selection = window.getSelection();
-  if (selection === null || selection.rangeCount === 0) {
-    return { top: 0, left: 0 };
-  }
-
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
-  return { top: rect.bottom, left: rect.left };
 }

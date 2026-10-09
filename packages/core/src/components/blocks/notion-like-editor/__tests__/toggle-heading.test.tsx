@@ -495,7 +495,8 @@ describe("toggle heading rendering", () => {
       expect(html).toContain(`<h${level}`);
       expect(html).toContain(`id="${headingAnchorId("heading-1")}"`);
       expect(html).toContain('aria-label="Expand Title"');
-      expect(html).toContain("h-[1lh]");
+      expect(html).toContain("items-center");
+      expect(html).not.toContain("absolute left-0");
       expect(html).toContain(level === 1 ? "text-3xl" : level === 2 ? "text-2xl" : "text-xl");
       expect(html).toContain("leading-tight");
       expect(html).toContain(escapedMargin);

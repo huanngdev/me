@@ -18,61 +18,62 @@
 8. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts
 9. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
 10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
-11. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-12. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-13. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-14. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-15. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-18. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-19. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-21. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-22. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-24. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-25. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-26. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-27. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-28. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-29. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-30. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-31. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-33. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-35. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-37. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-39. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-40. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-41. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-43. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-44. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-46. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-47. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-48. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-49. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-51. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-52. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-53. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-54. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-55. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-56. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-57. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-58. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-59. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-60. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-61. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-62. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-63. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-64. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-65. apps/web/src/app/blocks/notion-like-editor/page.tsx
+11. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+12. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+13. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+14. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+15. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+16. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+18. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+19. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+22. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+23. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+24. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+25. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+26. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+27. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+28. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+29. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+30. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+31. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+32. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+33. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+34. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+35. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+36. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+37. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+38. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+39. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+40. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+41. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+42. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+43. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+44. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+45. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+46. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+48. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+49. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+51. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+52. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+53. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+54. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+55. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+56. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+57. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+58. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+59. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+60. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+61. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+62. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+63. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+64. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+65. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+66. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -3104,50 +3105,251 @@ export function PasteRepairNotice() {
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
 ```tsx
-import type { ReactNode } from "react";
+import { createElement, Fragment, type ComponentProps, type ReactNode } from "react";
 import type { TElement } from "platejs";
-import { useEditorRef } from "platejs/react";
+
+import { Button } from "@/components/button";
+import { DropdownMenuTrigger } from "@/components/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
+
+// Editor controls (DEV-142):
+// Every clickable control is Button, Toggle or ToggleGroup for on/off state,
+// or a menu item. Text actions use size sm. Icon-only actions use size icon.
+// A row of actions on a block or selection uses ghost inside a bordered toolbar.
+// Standalone actions in a popover or card use outline.
+// Save, Done, Apply, and Insert use default.
+// Remove and delete use destructive, with Trash2, or Unlink when removing a link.
+// Action buttons in toolbars, menus, popovers, and cards have a lucide icon,
+// before the label when the label is visible.
+// Navigation entries, such as table-of-contents items, do not.
+// An icon-only button has an aria-label and a Tooltip with the same text.
+// Fields use Input, InputGroup, or Textarea. Choosers use Select, DropdownMenu, or Command.
 
 export const MEDIA_TOOLBAR_CLASS =
-  "absolute top-1 right-1 z-10 flex max-w-full flex-wrap gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+  "absolute top-1 right-1 z-10 flex max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
-export const mediaIconButtonClass =
-  "text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs";
+type EditorButtonVariant = "default" | "outline" | "ghost" | "destructive";
 
-type MediaEditor = ReturnType<typeof useEditorRef>;
+type EditorTextButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  "size" | "variant" | "children" | "aria-label"
+> & {
+  label: string;
+  icon: ReactNode;
+  variant?: EditorButtonVariant;
+};
+
+type EditorIconButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  "size" | "variant" | "children" | "aria-label"
+> & {
+  label: string;
+  icon: ReactNode;
+  variant?: EditorButtonVariant;
+};
+
+function inlineIcon(icon: ReactNode): ReactNode {
+  return createElement("span", { "data-icon": "inline-start", className: "inline-flex" }, icon);
+}
+
+export function editorControlLabel(icon: ReactNode, label: string): ReactNode {
+  return createElement(Fragment, null, inlineIcon(icon), label);
+}
+
+export function EditorTextButton({
+  label,
+  icon,
+  variant = "ghost",
+  type = "button",
+  className,
+  ...props
+}: EditorTextButtonProps) {
+  return (
+    <Button
+      {...props}
+      type={type}
+      size="sm"
+      variant={variant}
+      aria-label={label}
+      className={className}
+    >
+      {editorControlLabel(icon, label)}
+    </Button>
+  );
+}
+
+export function EditorIconButton({
+  label,
+  icon,
+  variant = "ghost",
+  type = "button",
+  ...props
+}: EditorIconButtonProps) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button {...props} type={type} size="icon" variant={variant} aria-label={label}>
+            {icon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+export function EditorMenuTrigger({
+  label,
+  icon,
+  text,
+  onMouseDown,
+  onPointerDown,
+}: {
+  label: string;
+  icon?: ReactNode;
+  text?: string;
+  onMouseDown?: ComponentProps<typeof Button>["onMouseDown"];
+  onPointerDown?: ComponentProps<typeof Button>["onPointerDown"];
+}) {
+  const trigger = (
+    <DropdownMenuTrigger asChild>
+      <Button
+        type="button"
+        size={text === undefined ? "icon" : "sm"}
+        variant="ghost"
+        aria-label={label}
+        onMouseDown={onMouseDown}
+        onPointerDown={onPointerDown}
+      >
+        {text === undefined || icon === undefined ? icon : editorControlLabel(icon, text)}
+      </Button>
+    </DropdownMenuTrigger>
+  );
+
+  if (text !== undefined) {
+    return trigger;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export function keepMediaSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
 
-export function MediaIconButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: (editor: MediaEditor) => void;
-  children: ReactNode;
-}) {
-  const editor = useEditorRef();
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className={mediaIconButtonClass}
-      onMouseDown={keepMediaSelection}
-      onClick={() => {
-        onClick(editor);
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+```ts
+// A virtual popover anchor. Radix calls getBoundingClientRect on each position
+// update, including while [data-block-viewport] or the page scrolls.
+// contextElement is how Floating UI finds those scroll parents. The anchor
+// element itself renders nothing.
+
+export type VirtualAnchor = {
+  getBoundingClientRect: () => DOMRect;
+  readonly contextElement?: Element;
+};
+
+function createRect(x: number, y: number, width: number, height: number): DOMRect {
+  const view = globalThis.document?.defaultView;
+  if (view) {
+    return new view.DOMRect(x, y, width, height);
+  }
+
+  return new DOMRect(x, y, width, height);
+}
+
+function copyRect(rect: DOMRectReadOnly): DOMRect {
+  return createRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function emptyRect(): DOMRect {
+  return createRect(0, 0, 0, 0);
+}
+
+function isZero(rect: DOMRectReadOnly): boolean {
+  return rect.x === 0 && rect.y === 0 && rect.width === 0 && rect.height === 0;
+}
+
+export function rangeRect(range: Range | null | undefined): DOMRect {
+  if (!range) {
+    return emptyRect();
+  }
+
+  const rect = range.getBoundingClientRect();
+  if (isZero(rect)) {
+    const first = range.getClientRects()[0];
+    if (first) {
+      return copyRect(first);
+    }
+  }
+
+  return copyRect(rect);
+}
+
+export function elementRect(element: Element | null | undefined): DOMRect {
+  if (!element) {
+    return emptyRect();
+  }
+
+  return copyRect(element.getBoundingClientRect());
+}
+
+export function rangeContextElement(range: Range | null | undefined): Element | null {
+  if (!range) {
+    return null;
+  }
+
+  const node = range.startContainer;
+  if (node instanceof Element) {
+    return node;
+  }
+
+  return node.parentElement;
+}
+
+export function anchorContext(element: Element | null | undefined): Element | null {
+  if (element) {
+    return element;
+  }
+
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return document.querySelector("[data-block-viewport]");
+}
+
+export function createVirtualAnchor(
+  readRect: () => DOMRect,
+  readContext: () => Element | null,
+): VirtualAnchor {
+  return {
+    getBoundingClientRect: () => readRect(),
+    get contextElement() {
+      return readContext() ?? undefined;
+    },
+  };
+}
+
+export function virtualAnchor(
+  readRect: () => DOMRect,
+  readContext: () => Element | null,
+): { current: VirtualAnchor } {
+  return { current: createVirtualAnchor(readRect, readContext) };
 }
 ```
 
@@ -5536,19 +5738,6 @@ export const HEADING_STYLES = {
   h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
 } as const;
 
-function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
-  return Object.hasOwn(HEADING_SIZE, type);
-}
-
-/** Font size and line height shared with a toggle chevron centered on the first line. */
-export function headingLineClass(type: string): string | undefined {
-  if (!isHeadingSize(type)) {
-    return undefined;
-  }
-
-  return `${HEADING_SIZE[type]} leading-tight`;
-}
-
 type HeadingTag = keyof typeof HEADING_STYLES;
 
 function isHeadingTag(type: string): type is HeadingTag {
@@ -5841,6 +6030,7 @@ import {
   MessageCircle,
   NotebookPen,
   Pin,
+  RotateCcw,
   Star,
   Target,
   TriangleAlert,
@@ -5859,12 +6049,14 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import { EditorMenuTrigger } from "../ui/block-toolbar";
 import {
   resetCallout,
   runEditorCommand,
@@ -5878,6 +6070,7 @@ import {
   type CalloutIcon,
   type CalloutTone,
 } from "../../lib/document/editor-document-schema";
+import { Button } from "@/components/button";
 
 // role="note" is an ancillary note. An aside would be a complementary landmark.
 // AGENTS.md keeps the accent for active states. The fill is the tone surface.
@@ -5941,6 +6134,10 @@ function elementAttr(element: object, key: string): unknown {
 
 const TONE_CHOICES = ["default", ...CALLOUT_TONES] as const;
 
+function isToneChoice(value: string): value is (typeof TONE_CHOICES)[number] {
+  return TONE_CHOICES.some((choice) => choice === value);
+}
+
 // mousedown would move the editor selection onto the button. Cancelling it leaves
 // the caret where it was. pointerdown stays untouched: Radix opens the menu there,
 // and its own handler cancels that event so the button does not take focus.
@@ -5976,16 +6173,14 @@ export function CalloutElement(props: PlateElementProps) {
           </span>
         ) : (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              aria-label="Change callout icon and color"
-              className="hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md text-base leading-none"
+            <EditorMenuTrigger
+              label="Change callout icon and color"
+              icon={<CalloutIconGlyph icon={icon} />}
               onMouseDown={keepEditorSelection}
               onPointerDown={() => {
                 savedSelection.current = editor.selection;
               }}
-            >
-              <CalloutIconGlyph icon={icon} />
-            </DropdownMenuTrigger>
+            />
             <DropdownMenuContent
               align="start"
               className="w-64"
@@ -6001,40 +6196,70 @@ export function CalloutElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuGroup className="grid grid-cols-6 gap-1">
-                {CALLOUT_ICONS.map((choice) => (
-                  <DropdownMenuItem
-                    key={choice}
-                    aria-label={CALLOUT_ICON_GLYPH[choice].label}
-                    className="justify-center px-0"
-                    onMouseDown={keepEditorSelection}
-                    onSelect={() => {
-                      runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
-                    }}
-                  >
-                    <CalloutIconGlyph icon={choice} />
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuGroup className="flex flex-wrap gap-1">
+                {CALLOUT_ICONS.map((choice) => {
+                  const selected = choice === icon;
+                  // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
+                  let applied = false;
+                  const apply = (): void => {
+                    if (applied) {
+                      return;
+                    }
+
+                    applied = true;
+                    runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
+                  };
+
+                  return (
+                    <DropdownMenuItem asChild key={choice} onSelect={apply}>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={CALLOUT_ICON_GLYPH[choice].label}
+                        aria-pressed={selected}
+                        data-state={selected ? "on" : "off"}
+                        className={cn(
+                          "justify-center",
+                          selected && "bg-accent text-accent-foreground",
+                        )}
+                        onMouseDown={keepEditorSelection}
+                        onClick={apply}
+                      >
+                        <CalloutIconGlyph icon={choice} />
+                      </Button>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              {TONE_CHOICES.map((choice) => (
-                <DropdownMenuItem
-                  key={choice}
-                  onMouseDown={keepEditorSelection}
-                  onSelect={() => {
-                    runEditorCommand(editor, setCalloutTone, {
-                      value: choice === "default" ? null : choice,
-                      at: path,
-                    });
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
-                  />
-                  {TONE_LABEL[choice]}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuRadioGroup
+                value={tone}
+                onValueChange={(value) => {
+                  if (!isToneChoice(value)) {
+                    return;
+                  }
+
+                  runEditorCommand(editor, setCalloutTone, {
+                    value: value === "default" ? null : value,
+                    at: path,
+                  });
+                }}
+              >
+                {TONE_CHOICES.map((choice) => (
+                  <DropdownMenuRadioItem
+                    key={choice}
+                    value={choice}
+                    onMouseDown={keepEditorSelection}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
+                    />
+                    {TONE_LABEL[choice]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onMouseDown={keepEditorSelection}
@@ -6042,6 +6267,7 @@ export function CalloutElement(props: PlateElementProps) {
                   resetCallout(editor, path);
                 }}
               >
+                <RotateCcw aria-hidden="true" />
                 Reset
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -6219,7 +6445,7 @@ export function selectionInCodeBlock(editor: SlateEditor): boolean {
 ```tsx
 import { useEffect, useRef, useState } from "react";
 import { resetCodeBlockDecorations, setCodeBlockToDecorations } from "@platejs/code-block";
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronDown, Copy } from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -6238,15 +6464,11 @@ import {
   type PlateLeafProps,
 } from "platejs/react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
+import { EditorIconButton, EditorMenuTrigger } from "../ui/block-toolbar";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -6364,16 +6586,15 @@ export function CodeBlockElement(props: PlateElementProps) {
           <span className="text-muted-foreground px-1.5 py-1 text-xs">{languageLabel(lang)}</span>
         ) : (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              aria-label="Change code language"
-              className="text-muted-foreground hover:bg-foreground/5 rounded-md px-1.5 py-1 text-xs"
+            <EditorMenuTrigger
+              label="Change code language"
+              text={languageLabel(lang)}
+              icon={<ChevronDown aria-hidden="true" />}
               onMouseDown={keepEditorSelection}
               onPointerDown={() => {
                 savedSelection.current = editor.selection;
               }}
-            >
-              {languageLabel(lang)}
-            </DropdownMenuTrigger>
+            />
             <DropdownMenuContent
               align="end"
               className="max-h-80 w-44 overflow-y-auto"
@@ -6410,21 +6631,20 @@ export function CodeBlockElement(props: PlateElementProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <button
-          type="button"
-          aria-label={copied ? "Copied" : "Copy code"}
-          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+        <EditorIconButton
+          label={copied ? "Copied" : "Copy code"}
+          icon={
+            copied ? (
+              <Check aria-hidden="true" className="size-3.5" />
+            ) : (
+              <Copy aria-hidden="true" className="size-3.5" />
+            )
+          }
           onMouseDown={keepEditorSelection}
           onClick={() => {
             void copyCode();
           }}
-        >
-          {copied ? (
-            <Check aria-hidden="true" className="size-3.5" />
-          ) : (
-            <Copy aria-hidden="true" className="size-3.5" />
-          )}
-        </button>
+        />
       </div>
       <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
     </PlateElement>
@@ -8665,6 +8885,7 @@ import {
 } from "platejs/react";
 import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
 
+import { TableBody } from "@/components/table";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
@@ -8676,11 +8897,17 @@ import {
 } from "../../lib/features/editor-table-grid";
 import { TableControls } from "../ui/table-controls";
 
-const CELL_CLASS =
-  "min-w-12 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
-
-const HEADER_CLASS =
-  "bg-[var(--editor-table-header-bg)] font-medium text-[var(--editor-table-header-fg)]";
+// PlateElement `as` accepts an HTML tag only, and Table() wraps a scrolling div
+// that would move apart from the resize handles. The strings below are the
+// classes on Table, TableRow, TableHead, and TableCell in @/components/table.
+// TableBody is used directly. TableHead has no background.
+const TABLE_CLASS = "w-full caption-bottom text-sm border-collapse";
+const TABLE_ROW_CLASS =
+  "hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
+const TABLE_HEAD_CLASS =
+  "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0";
+const TABLE_CELL_CLASS = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0";
+const CELL_BORDER_CLASS = "min-w-12 border border-[var(--editor-table-border)]";
 
 const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
 
@@ -8823,7 +9050,7 @@ export function TableElement(props: PlateElementProps) {
         <div className="relative w-max min-w-full">
           <table
             ref={tableRef}
-            className={explicit ? "border-collapse" : "w-max min-w-full border-collapse"}
+            className={TABLE_CLASS}
             style={tableWidth === undefined ? undefined : { width: tableWidth }}
           >
             <colgroup>
@@ -8831,7 +9058,7 @@ export function TableElement(props: PlateElementProps) {
                 <col key={index} style={typeof width === "number" ? { width } : undefined} />
               ))}
             </colgroup>
-            <tbody>{props.children}</tbody>
+            <TableBody>{props.children}</TableBody>
           </table>
           {readOnly
             ? null
@@ -8922,7 +9149,7 @@ export function TableElement(props: PlateElementProps) {
 }
 
 export function TableRowElement(props: PlateElementProps) {
-  return <PlateElement {...props} as="tr" />;
+  return <PlateElement {...props} as="tr" className={TABLE_ROW_CLASS} />;
 }
 
 export function TableCellElement(props: PlateElementProps) {
@@ -8940,7 +9167,11 @@ export function TableCellElement(props: PlateElementProps) {
         colSpan,
         rowSpan,
       }}
-      className={cn(CELL_CLASS, header && HEADER_CLASS, selected && SELECTED_CLASS)}
+      className={cn(
+        header ? TABLE_HEAD_CLASS : TABLE_CELL_CLASS,
+        CELL_BORDER_CLASS,
+        selected && SELECTED_CLASS,
+      )}
     />
   );
 }
@@ -8954,10 +9185,8 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Columns3,
   CopyPlus,
   Merge,
-  Rows3,
   Split,
   Table2,
   Trash2,
@@ -8971,7 +9200,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 
 import { runEditorCommand, type EditorCommand } from "../../lib/commands/editor-commands";
@@ -8993,6 +9221,7 @@ import {
   toggleTableHeaderRow,
 } from "../../lib/commands/editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "../../lib/features/editor-table";
+import { EditorMenuTrigger } from "./block-toolbar";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -9050,16 +9279,14 @@ export function TableControls({ element }: { element: TElement }) {
   return (
     <div className={TOOLBAR_CLASS_NAME} contentEditable={false}>
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger
-          aria-label="Table options"
-          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+        <EditorMenuTrigger
+          label="Table options"
+          icon={<Table2 aria-hidden="true" />}
           onMouseDown={keepEditorSelection}
           onPointerDown={() => {
             savedSelection.current = editor.selection;
           }}
-        >
-          <Table2 aria-hidden="true" className="size-4" />
-        </DropdownMenuTrigger>
+        />
         <DropdownMenuContent
           align="end"
           className="w-64"
@@ -9161,21 +9388,23 @@ export function TableControls({ element }: { element: TElement }) {
           />
           <DropdownMenuSeparator />
           <DropdownMenuItem
+            variant="destructive"
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(deleteTableRow, undefined);
             }}
           >
-            <Rows3 aria-hidden="true" />
+            <Trash2 aria-hidden="true" />
             Delete row
           </DropdownMenuItem>
           <DropdownMenuItem
+            variant="destructive"
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(deleteTableColumn, undefined);
             }}
           >
-            <Columns3 aria-hidden="true" />
+            <Trash2 aria-hidden="true" />
             Delete column
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -9217,6 +9446,7 @@ export function TableControls({ element }: { element: TElement }) {
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
 ```tsx
+import { Children, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } from "platejs/react";
 
@@ -9224,7 +9454,7 @@ import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { toggleOpen, togglePlugin } from "../../lib/plugins/editor-toggle";
-import { headingLineClass } from "./heading-element";
+import { EditorIconButton } from "../ui/block-toolbar";
 
 // Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
 // The label is the first child. The gutter is contenteditable="false", so closing hides
@@ -9232,13 +9462,13 @@ import { headingLineClass } from "./heading-element";
 export const TOGGLE_HIDDEN_CONTENT_CLASS =
   "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
 
-// pl-6 is the same gutter step as a depth-1 bullet. Content lines up under the label text.
-// The heading's first:mt-0 misses when a text node precedes the label. The child
-// combinator still matches the label, so only that heading loses its top margin.
-export const TOGGLE_LABEL_MARGIN_CLASS = "[&>:is(h1,h2,h3)]:mt-0";
+// The label row is a flex line, so a heading's first:mt-0 no longer matches.
+// Descendant headings are toggle labels. Content headings normalize to paragraphs.
+// pl-9 is the 32px icon button plus the 4px gap, so content starts under the label.
+export const TOGGLE_LABEL_MARGIN_CLASS = "[&_h1]:mt-0 [&_h2]:mt-0 [&_h3]:mt-0";
 
 export const TOGGLE_CLASS_NAME = cn(
-  "relative space-y-2 pl-6",
+  "space-y-2 [&>:not(:first-child)]:pl-9",
   LIST_SIBLING_GAP_CLASS,
   TOGGLE_HIDDEN_CONTENT_CLASS,
   TOGGLE_LABEL_MARGIN_CLASS,
@@ -9268,15 +9498,6 @@ function plainText(node: unknown): string {
   return node.children.map((child: unknown) => plainText(child)).join("");
 }
 
-function labelBlockType(element: PlateElementProps["element"]): string | undefined {
-  const first = element.children[0];
-  if (!first || typeof first !== "object" || !("type" in first) || typeof first.type !== "string") {
-    return undefined;
-  }
-
-  return first.type;
-}
-
 function labelText(element: PlateElementProps["element"]): string {
   const first = element.children[0];
   if (!first || typeof first !== "object") {
@@ -9286,14 +9507,9 @@ function labelText(element: PlateElementProps["element"]): string {
   return plainText(first);
 }
 
-function chevronClass(labelType: string | undefined): string {
-  const line = labelType === undefined ? undefined : headingLineClass(labelType);
-  if (line === undefined) {
-    return "top-0.5";
-  }
-
-  // 1lh is the heading's own first line, so one box covers h1, h2, and h3.
-  return cn("top-0 flex h-[1lh] items-center", line);
+function labelNodes(children: ReactNode): { label: ReactNode; content: ReactNode[] } {
+  const nodes = Children.toArray(children);
+  return { label: nodes[0], content: nodes.slice(1) };
 }
 
 function keepCaret(event: { preventDefault: () => void }): void {
@@ -9307,7 +9523,7 @@ export function ToggleElement(props: PlateElementProps) {
   const open = id !== undefined && openIds instanceof Set && openIds.has(id);
   const text = labelText(props.element);
   const action = open ? "Collapse" : "Expand";
-  const chevron = chevronClass(labelBlockType(props.element));
+  const { label, content } = labelNodes(props.children);
 
   return (
     <PlateElement
@@ -9318,31 +9534,34 @@ export function ToggleElement(props: PlateElementProps) {
       }}
       className={cn(TOGGLE_CLASS_NAME, props.className)}
     >
-      {props.children}
-      <div className={cn("absolute left-0", chevron)} contentEditable={false}>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-label={text.length > 0 ? `${action} ${text}` : action}
-          className="text-muted-foreground hover:text-foreground inline-flex size-5 items-center justify-center rounded-sm"
-          onMouseDown={keepCaret}
-          onClick={() => {
-            if (id === undefined) {
-              return;
+      <div className="flex items-center gap-1">
+        <div className="shrink-0" contentEditable={false}>
+          <EditorIconButton
+            variant="ghost"
+            label={text.length > 0 ? `${action} ${text}` : action}
+            aria-expanded={open}
+            icon={
+              <ChevronRight
+                aria-hidden="true"
+                className={cn(
+                  "size-4 transition-transform duration-150 ease-out motion-reduce:transition-none",
+                  open && "rotate-90",
+                )}
+              />
             }
+            onMouseDown={keepCaret}
+            onClick={() => {
+              if (id === undefined) {
+                return;
+              }
 
-            toggleOpen(editor, id);
-          }}
-        >
-          <ChevronRight
-            aria-hidden="true"
-            className={cn(
-              "size-4 transition-transform duration-150 ease-out motion-reduce:transition-none",
-              open && "rotate-90",
-            )}
+              toggleOpen(editor, id);
+            }}
           />
-        </button>
+        </div>
+        <div className="min-w-0 flex-1">{label}</div>
       </div>
+      {content}
     </PlateElement>
   );
 }
@@ -10242,7 +10461,7 @@ function writableBookmark(editor: SlateEditor, id: string): [TElement, number[]]
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, Globe, Trash2 } from "lucide-react";
+import { ExternalLink, Globe, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -10253,6 +10472,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 
 import {
@@ -10265,8 +10485,9 @@ import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { hrElementClassName } from "./hr-element";
 import {
   MEDIA_TOOLBAR_CLASS,
-  MediaIconButton,
-  mediaIconButtonClass,
+  EditorIconButton,
+  EditorTextButton,
+  editorControlLabel,
   mediaStringAttr,
   keepMediaSelection,
 } from "../ui/block-toolbar";
@@ -10571,43 +10792,41 @@ function BookmarkToolbar({
       data-bookmark-toolbar=""
       className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
     >
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        aria-label="Open"
-        className={mediaIconButtonClass}
-        onMouseDown={keepMediaSelection}
-      >
-        <ExternalLink aria-hidden className="size-4" />
-        Open
-      </a>
+      <Button asChild variant="ghost" size="sm">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          aria-label="Open"
+          onMouseDown={keepMediaSelection}
+        >
+          {editorControlLabel(<ExternalLink aria-hidden="true" />, "Open")}
+        </a>
+      </Button>
       {showRefresh ? (
-        <MediaIconButton
+        <EditorTextButton
           label="Refresh preview"
+          icon={<RefreshCw aria-hidden="true" />}
           onClick={() => {
             onRefresh();
           }}
-        >
-          Refresh preview
-        </MediaIconButton>
+        />
       ) : null}
-      <MediaIconButton
+      <EditorTextButton
         label="Convert to text"
-        onClick={(current) => {
-          runEditorCommand(current, convertBookmarkToText, id);
+        icon={<Type aria-hidden="true" />}
+        onClick={() => {
+          runEditorCommand(editor, convertBookmarkToText, id);
         }}
-      >
-        Convert to text
-      </MediaIconButton>
-      <MediaIconButton
+      />
+      <EditorIconButton
+        variant="destructive"
         label="Remove"
+        icon={<Trash2 aria-hidden="true" />}
         onClick={() => {
           runEditorCommand(editor, removeBookmark, id);
         }}
-      >
-        <Trash2 aria-hidden className="size-4" />
-      </MediaIconButton>
+      />
     </div>
   );
 }
@@ -11657,6 +11876,7 @@ export const setColumnWidthsCommand: EditorCommand<readonly number[]> = {
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
 ```tsx
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Columns2, Columns3, Trash2, Ungroup } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
@@ -11668,6 +11888,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { ToggleGroup, ToggleGroupItem } from "@/components/toggle-group";
 import { cn } from "@/lib/utils";
 
 import {
@@ -11677,7 +11898,12 @@ import {
   setColumnWidths,
   unwrapColumns,
 } from "../../lib/commands/editor-columns";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  EditorTextButton,
+  editorControlLabel,
+  keepMediaSelection,
+} from "../ui/block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
@@ -11784,7 +12010,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     editor.tf.setSplittingOnce(true);
   }
 
-  function onPointerDown(index: number, event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerDown(index: number, event: ReactPointerEvent<HTMLDivElement>): void {
     if (event.button !== 0) {
       return;
     }
@@ -11799,7 +12025,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function onPointerMove(event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
     const drag = dragRef.current;
     if (!drag) {
       return;
@@ -11818,7 +12044,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     setPreview(clampAndNormalizeWidths(numbers));
   }
 
-  function onPointerUp(event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerUp(event: ReactPointerEvent<HTMLDivElement>): void {
     const drag = dragRef.current;
     dragRef.current = null;
     setPreview(null);
@@ -11886,10 +12112,14 @@ export function ColumnGroupElement(props: PlateElementProps) {
               .slice(0, index + 1)
               .reduce((total, value) => total + value, 0);
             return (
-              <button
+              // A resize handle is dragged and stepped with the arrow keys. It is a
+              // separator, not a Button, because it does not run a command.
+              <div
                 key={index}
-                type="button"
+                role="separator"
+                aria-orientation="vertical"
                 aria-label={`Resize column ${index + 1}`}
+                tabIndex={0}
                 data-column-resize={index}
                 className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
                 style={{ left: `${left}%` }}
@@ -11912,51 +12142,41 @@ export function ColumnGroupElement(props: PlateElementProps) {
             data-column-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <button
-              type="button"
-              aria-label="2 columns"
-              aria-pressed={columns.length === 2}
-              className={mediaIconButtonClass}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
+            <ToggleGroup
+              type="single"
+              size="sm"
+              variant="outline"
+              value={columns.length === 3 ? "3" : "2"}
+              onValueChange={(next) => {
+                if (next !== "2" && next !== "3") {
+                  return;
+                }
                 runOnGroup(() => {
-                  setColumnCount(editor, 2);
+                  setColumnCount(editor, next === "3" ? 3 : 2);
                 });
               }}
             >
-              2 columns
-            </button>
-            <button
-              type="button"
-              aria-label="3 columns"
-              aria-pressed={columns.length === 3}
-              className={mediaIconButtonClass}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                runOnGroup(() => {
-                  setColumnCount(editor, 3);
-                });
-              }}
-            >
-              3 columns
-            </button>
-            <button
-              type="button"
-              aria-label="Turn into blocks"
-              className={mediaIconButtonClass}
+              <ToggleGroupItem value="2" aria-label="2 columns" onMouseDown={keepMediaSelection}>
+                {editorControlLabel(<Columns2 aria-hidden="true" />, "2 columns")}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="3" aria-label="3 columns" onMouseDown={keepMediaSelection}>
+                {editorControlLabel(<Columns3 aria-hidden="true" />, "3 columns")}
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <EditorTextButton
+              label="Turn into blocks"
+              icon={<Ungroup aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnGroup(() => {
                   unwrapColumns(editor);
                 });
               }}
-            >
-              Turn into blocks
-            </button>
-            <button
-              type="button"
-              aria-label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
-              className={mediaIconButtonClass}
+            />
+            <EditorTextButton
+              variant="destructive"
+              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 if (!confirmRemove) {
@@ -11967,9 +12187,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
                   removeColumnGroup(editor);
                 });
               }}
-            >
-              {confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
-            </button>
+            />
           </div>
         </>
       )}
@@ -12283,6 +12501,10 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { ChevronDown, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -12297,7 +12519,18 @@ import {
   tocEntries,
   type TocEntry,
 } from "../../lib/features/editor-toc";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  EditorMenuTrigger,
+  EditorTextButton,
+  keepMediaSelection,
+} from "../ui/block-toolbar";
+
+const TOC_DEPTH_LABEL = {
+  1: "H1 only",
+  2: "H1–H2",
+  3: "H1–H3",
+} as const;
 
 const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
 
@@ -12360,15 +12593,19 @@ export function TocElement(props: PlateElementProps) {
             <ol className="m-0 list-none space-y-1 p-0">
               {entries.map((entry) => {
                 const untitled = entry.title.length === 0;
+                const label = untitled ? TOC_UNTITLED : entry.title;
                 return (
                   <li key={entry.id} className={indentClass(entry.depth - shallowest)}>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={label}
                       data-toc-target={entry.id}
                       data-toc-indent={entry.depth - shallowest}
                       data-toc-untitled={untitled ? "true" : undefined}
                       className={cn(
-                        "text-foreground hover:bg-muted w-full rounded-sm px-1 py-0.5 text-left text-sm break-words",
+                        "h-auto w-full justify-start px-1 whitespace-normal",
                         untitled && "text-muted-foreground",
                       )}
                       onMouseDown={keepMediaSelection}
@@ -12379,8 +12616,8 @@ export function TocElement(props: PlateElementProps) {
                         onKeyDown(event, entry);
                       }}
                     >
-                      {untitled ? TOC_UNTITLED : entry.title}
-                    </button>
+                      {label}
+                    </Button>
                   </li>
                 );
               })}
@@ -12392,38 +12629,40 @@ export function TocElement(props: PlateElementProps) {
             data-toc-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <select
-              aria-label="Table of contents depth"
-              className={mediaIconButtonClass}
-              value={String(depth)}
-              onMouseDown={keepMediaSelection}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                if (!isTocDepth(next)) {
-                  return;
-                }
-                runOnToc(() => {
-                  setTocDepth(editor, path, next);
-                });
-              }}
-            >
-              <option value="1">H1 only</option>
-              <option value="2">H1–H2</option>
-              <option value="3">H1–H3</option>
-            </select>
-            <button
-              type="button"
-              aria-label="Remove"
-              className={mediaIconButtonClass}
+            <DropdownMenu modal={false}>
+              <EditorMenuTrigger
+                label="Table of contents depth"
+                text={isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3]}
+                icon={<ChevronDown aria-hidden="true" />}
+                onMouseDown={keepMediaSelection}
+              />
+              <DropdownMenuContent align="end">
+                {([1, 2, 3] as const).map((choice) => (
+                  <DropdownMenuItem
+                    key={choice}
+                    onMouseDown={keepMediaSelection}
+                    onSelect={() => {
+                      runOnToc(() => {
+                        setTocDepth(editor, path, choice);
+                      });
+                    }}
+                  >
+                    {TOC_DEPTH_LABEL[choice]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <EditorTextButton
+              variant="destructive"
+              label="Remove"
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnToc(() => {
                   removeToc(editor, path);
                 });
               }}
-            >
-              Remove
-            </button>
+            />
           </div>
         )}
       </div>
@@ -12653,7 +12892,10 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { Check, Copy, Pencil, Trash2, X } from "lucide-react";
+
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { Textarea } from "@/components/textarea";
 import { cn } from "@/lib/utils";
 
 import {
@@ -12666,7 +12908,7 @@ import {
   renderEquation,
   type EquationRender,
 } from "../../lib/features/editor-equation";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 import "katex/dist/katex.min.css";
 
@@ -12870,37 +13112,29 @@ export function EquationElement(props: PlateElementProps) {
                 }}
               >
                 {readOnly ? null : (
-                  <button
-                    type="button"
-                    aria-label="Edit"
-                    className={mediaIconButtonClass}
+                  <EditorTextButton
+                    label="Edit"
+                    icon={<Pencil aria-hidden="true" />}
                     onMouseDown={keepMediaSelection}
                     onClick={openEditor}
-                  >
-                    Edit
-                  </button>
+                  />
                 )}
-                <button
-                  type="button"
-                  aria-label="Copy source"
-                  className={mediaIconButtonClass}
+                <EditorTextButton
+                  label="Copy source"
+                  icon={<Copy aria-hidden="true" />}
                   onMouseDown={keepMediaSelection}
                   onClick={() => {
                     void copySource();
                   }}
-                >
-                  Copy source
-                </button>
+                />
                 {readOnly ? null : (
-                  <button
-                    type="button"
-                    aria-label="Remove"
-                    className={mediaIconButtonClass}
+                  <EditorTextButton
+                    variant="destructive"
+                    label="Remove"
+                    icon={<Trash2 aria-hidden="true" />}
                     onMouseDown={keepMediaSelection}
                     onClick={remove}
-                  >
-                    Remove
-                  </button>
+                  />
                 )}
               </div>
             )}
@@ -12912,10 +13146,10 @@ export function EquationElement(props: PlateElementProps) {
             event.preventDefault();
           }}
         >
-          <textarea
+          <Textarea
             ref={textarea}
             aria-label="Equation source"
-            className="border-input bg-background min-h-24 w-full rounded-md border p-2 font-mono text-sm"
+            className="min-h-24 font-mono"
             value={draft}
             onChange={(event) => {
               setDraft(event.target.value);
@@ -12937,12 +13171,18 @@ export function EquationElement(props: PlateElementProps) {
             )}
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" className={mediaIconButtonClass} onClick={() => finish(false)}>
-              Cancel
-            </button>
-            <button type="button" className={mediaIconButtonClass} onClick={() => finish(true)}>
-              Done
-            </button>
+            <EditorTextButton
+              variant="outline"
+              label="Cancel"
+              icon={<X aria-hidden="true" />}
+              onClick={() => finish(false)}
+            />
+            <EditorTextButton
+              variant="default"
+              label="Done"
+              icon={<Check aria-hidden="true" />}
+              onClick={() => finish(true)}
+            />
           </div>
         </PopoverContent>
       </Popover>
@@ -13488,6 +13728,7 @@ export const removeSyncedRef: EditorCommand = {
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
 ```tsx
 import { createElement, type ReactNode } from "react";
+import { Copy, CornerUpLeft, Trash2 } from "lucide-react";
 import { ElementApi, type Descendant, type SlateEditor, type TElement, type TText } from "platejs";
 import { pipeRenderLeafStatic } from "platejs/static";
 import {
@@ -13521,7 +13762,7 @@ import {
   type SyncedTargetStatus,
 } from "../../lib/features/editor-synced-block";
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic
@@ -13775,48 +14016,40 @@ export function SyncedRefElement(props: PlateElementProps) {
             }}
           >
             {view.status === "live" ? (
-              <button
-                type="button"
-                aria-label={SYNCED_GO_LABEL}
-                className={mediaIconButtonClass}
+              <EditorTextButton
+                label={SYNCED_GO_LABEL}
+                icon={<CornerUpLeft aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
                 onClick={() => {
                   if (path) {
                     goToSyncedOriginal(editor, path);
                   }
                 }}
-              >
-                {SYNCED_GO_LABEL}
-              </button>
+              />
             ) : null}
             {view.status === "live" ? (
-              <button
-                type="button"
-                aria-label={SYNCED_CONVERT_LABEL}
-                className={mediaIconButtonClass}
+              <EditorTextButton
+                label={SYNCED_CONVERT_LABEL}
+                icon={<Copy aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
                 onClick={() => {
                   runOnRef((refPath) => {
                     convertSyncedRefAt(editor, refPath);
                   });
                 }}
-              >
-                {SYNCED_CONVERT_LABEL}
-              </button>
+              />
             ) : null}
-            <button
-              type="button"
-              aria-label={SYNCED_REMOVE_LABEL}
-              className={mediaIconButtonClass}
+            <EditorTextButton
+              variant="destructive"
+              label={SYNCED_REMOVE_LABEL}
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnRef((refPath) => {
                   removeSyncedRefAt(editor, refPath);
                 });
               }}
-            >
-              {SYNCED_REMOVE_LABEL}
-            </button>
+            />
           </div>
         )}
       </div>
@@ -13969,6 +14202,10 @@ const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 
 const savedSelections = new WeakMap<SlateEditor, TRange>();
 
+export function linkAnchorRange(editor: SlateEditor): TRange | null {
+  return savedSelections.get(editor) ?? editor.selection;
+}
+
 export const linkUiPlugin = createSlatePlugin({
   key: "linkUi",
   options: {
@@ -13977,8 +14214,6 @@ export const linkUiPlugin = createSlatePlugin({
     draftLabel: "",
     error: "",
     hoverId: "",
-    anchorTop: 0,
-    anchorLeft: 0,
   },
 });
 
@@ -14107,9 +14342,6 @@ export function openLinkPopover(editor: SlateEditor): void {
   }
 
   savedSelections.set(editor, editor.selection);
-  const rect = caretRect();
-  editor.setOption(linkUiPlugin, "anchorTop", rect.top);
-  editor.setOption(linkUiPlugin, "anchorLeft", rect.left);
   editor.setOption(linkUiPlugin, "error", "");
 
   const existing = linkEntry(editor);
@@ -14482,24 +14714,11 @@ function normalizeLinkNode(editor: SlateEditor, node: TElement, path: number[]):
 
   return false;
 }
-
-function caretRect(): { top: number; left: number } {
-  if (typeof window === "undefined") {
-    return { top: 0, left: 0 };
-  }
-
-  const selection = window.getSelection();
-  if (selection === null || selection.rangeCount === 0) {
-    return { top: 0, left: 0 };
-  }
-
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
-  return { top: rect.bottom, left: rect.left };
-}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
 ```tsx
+import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   useEditorRef,
@@ -14518,6 +14737,9 @@ import {
   setLinkHover,
 } from "../../lib/plugins/editor-link";
 import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
+import { EditorTextButton } from "../ui/block-toolbar";
 
 export function LinkElement({ attributes, children, element }: PlateElementProps) {
   "use no memo";
@@ -14584,6 +14806,10 @@ export function LinkToolbar() {
   const mode = usePluginOption(linkUiPlugin, "mode");
   const hoverId = usePluginOption(linkUiPlugin, "hoverId");
   const selection = useEditorSelector((current) => current.selection, []);
+  const virtualRef = virtualAnchor(
+    () => elementRect(linkDomNode(editor, hoverId)),
+    () => anchorContext(linkDomNode(editor, hoverId)),
+  );
   if (readOnly || mode !== "closed" || (selection === null && hoverId.length === 0)) {
     return null;
   }
@@ -14599,67 +14825,79 @@ export function LinkToolbar() {
     return null;
   }
 
-  const dom = editor.api.toDOMNode(entry);
-  if (dom === null || dom === undefined) {
+  return (
+    <Popover open>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        data-link-toolbar=""
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        className="w-auto max-w-56 gap-1 p-1 text-xs"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onMouseLeave={(event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Element && next.closest("[data-link-url]") !== null) {
+            return;
+          }
+
+          setLinkHover(editor, "");
+        }}
+      >
+        <span
+          data-link-toolbar-url=""
+          className="line-clamp-2 px-1"
+          style={{ overflowWrap: "anywhere" }}
+        >
+          {safe}
+        </span>
+        <EditorTextButton
+          label="Open"
+          icon={<ExternalLink aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            runEditorCommand(editor, openInlineLink, undefined);
+          }}
+        />
+        <EditorTextButton
+          label="Edit"
+          icon={<Pencil aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            openLinkPopover(editor);
+          }}
+        />
+        <EditorTextButton
+          variant="destructive"
+          label="Remove link"
+          icon={<Unlink aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            runEditorCommand(editor, removeInlineLink, undefined);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function linkDomNode(editor: ReturnType<typeof useEditorRef>, hoverId: string): HTMLElement | null {
+  const entry = selectedOrHoveredLink(editor, hoverId);
+  if (entry === undefined) {
     return null;
   }
 
-  const rect = dom.getBoundingClientRect();
-
-  return (
-    <div
-      data-link-toolbar=""
-      className="bg-popover text-popover-foreground fixed z-50 flex max-w-56 flex-col gap-1 rounded-md border p-1 text-xs shadow-sm"
-      style={{ top: rect.bottom + 4, left: rect.left }}
-      onMouseDown={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onMouseLeave={(event) => {
-        const next = event.relatedTarget;
-        if (next instanceof Element && next.closest("[data-link-url]") !== null) {
-          return;
-        }
-
-        setLinkHover(editor, "");
-      }}
-    >
-      <span
-        data-link-toolbar-url=""
-        className="line-clamp-2 px-1"
-        style={{ overflowWrap: "anywhere" }}
-      >
-        {safe}
-      </span>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          runEditorCommand(editor, openInlineLink, undefined);
-        }}
-      >
-        Open
-      </button>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          openLinkPopover(editor);
-        }}
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          runEditorCommand(editor, removeInlineLink, undefined);
-        }}
-      >
-        Remove link
-      </button>
-    </div>
-  );
+  return editor.api.toDOMNode(entry) ?? null;
 }
 
 function selectedOrHoveredLink(
@@ -14694,14 +14932,18 @@ function selectedOrHoveredLink(
 import { useEffect, useState } from "react";
 import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
 
-import { Button } from "@/components/button";
+import { ExternalLink, Save, Unlink } from "lucide-react";
 import { Input } from "@/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
+import { EditorTextButton } from "./block-toolbar";
+
 import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import {
   closeLinkPopover,
   commitLinkPopover,
+  linkAnchorRange,
   linkUiPlugin,
   openInlineLink,
   removeInlineLink,
@@ -14716,8 +14958,6 @@ export function LinkPopover() {
   const error = usePluginOption(linkUiPlugin, "error");
   const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");
   const draftLabel = usePluginOption(linkUiPlugin, "draftLabel");
-  const anchorTop = usePluginOption(linkUiPlugin, "anchorTop");
-  const anchorLeft = usePluginOption(linkUiPlugin, "anchorLeft");
 
   if (readOnly || mode === "closed") {
     return null;
@@ -14730,10 +14970,17 @@ export function LinkPopover() {
       error={error}
       draftUrl={draftUrl}
       draftLabel={draftLabel}
-      anchorTop={anchorTop}
-      anchorLeft={anchorLeft}
     />
   );
+}
+
+function linkDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
+  const slateRange = linkAnchorRange(editor);
+  if (!slateRange) {
+    return null;
+  }
+
+  return editor.api.toDOMRange(slateRange) ?? null;
 }
 
 function LinkPopoverForm({
@@ -14742,16 +14989,12 @@ function LinkPopoverForm({
   error,
   draftUrl,
   draftLabel,
-  anchorTop,
-  anchorLeft,
 }: {
   editor: ReturnType<typeof useEditorRef>;
   mode: string;
   error: string;
   draftUrl: string;
   draftLabel: string;
-  anchorTop: number;
-  anchorLeft: number;
 }) {
   "use no memo";
 
@@ -14759,6 +15002,10 @@ function LinkPopoverForm({
   const [label, setLabel] = useState(draftLabel);
   const editing = mode === "edit";
   const needsLabel = mode === "label" || editing;
+  const virtualRef = virtualAnchor(
+    () => rangeRect(linkDomRange(editor)),
+    () => anchorContext(rangeContextElement(linkDomRange(editor))),
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -14784,22 +15031,14 @@ function LinkPopoverForm({
 
   return (
     <Popover open>
-      <PopoverAnchor asChild>
-        <span
-          data-link-anchor=""
-          style={{
-            position: "fixed",
-            top: anchorTop,
-            left: anchorLeft,
-            width: 1,
-            height: 1,
-          }}
-        />
-      </PopoverAnchor>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-popover=""
         data-link-mode={mode}
+        side="bottom"
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -14845,29 +15084,30 @@ function LinkPopoverForm({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-1">
-            <Button type="submit" size="sm">
-              Save
-            </Button>
+            <EditorTextButton
+              type="submit"
+              variant="default"
+              label="Save"
+              icon={<Save aria-hidden="true" />}
+            />
             {editing ? (
-              <Button
-                type="button"
-                size="sm"
+              <EditorTextButton
                 variant="outline"
+                label="Open"
+                icon={<ExternalLink aria-hidden="true" />}
                 onMouseDown={(event) => {
                   event.preventDefault();
                 }}
                 onClick={() => {
                   runEditorCommand(editor, openInlineLink, undefined);
                 }}
-              >
-                Open
-              </Button>
+              />
             ) : null}
             {editing ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
+              <EditorTextButton
+                variant="destructive"
+                label="Remove link"
+                icon={<Unlink aria-hidden="true" />}
                 onMouseDown={(event) => {
                   event.preventDefault();
                 }}
@@ -14875,9 +15115,7 @@ function LinkPopoverForm({
                   closeLinkPopover(editor);
                   runEditorCommand(editor, removeInlineLink, undefined);
                 }}
-              >
-                Remove link
-              </Button>
+              />
             ) : null}
           </div>
         </form>
@@ -15742,8 +15980,11 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
+import { Input } from "@/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { cn } from "@/lib/utils";
+
+import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -15875,11 +16116,15 @@ function MentionChip({
   );
 }
 
-export function MentionInputElement({ attributes, children }: PlateElementProps) {
+export function MentionInputElement({ attributes, children, element }: PlateElementProps) {
   "use no memo";
 
   const editor = useEditorRef();
   const readOnly = useReadOnly();
+  const virtualRef = virtualAnchor(
+    () => elementRect(editor.api.toDOMNode(element) ?? null),
+    () => anchorContext(editor.api.toDOMNode(element) ?? null),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const query = usePluginOption(mentionUiPlugin, "query");
   const status = usePluginOption(mentionUiPlugin, "status");
@@ -15907,55 +16152,55 @@ export function MentionInputElement({ attributes, children }: PlateElementProps)
 
   return (
     <Popover open modal={false}>
-      <PopoverAnchor asChild>
-        <span
-          {...attributes}
-          contentEditable={false}
-          className={cn(
-            slateClass,
-            "bg-accent text-accent-foreground inline-flex items-baseline rounded-md px-1 align-baseline",
-          )}
-          data-mention-input=""
-        >
-          <span>@</span>
-          <input
-            ref={inputRef}
-            value={query}
-            className="text-accent-foreground placeholder:text-accent-foreground/70 w-auto min-w-[1ch] bg-transparent outline-none"
-            style={{ width: `${Math.max(query.length, 1) + 0.5}ch` }}
-            aria-label="Mention"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={true}
-            aria-controls="mention-results"
-            onChange={(event) => {
-              const next = event.currentTarget.value;
-              const native = event.nativeEvent;
-              if ("isComposing" in native && native.isComposing === true) {
-                editor.setOption(mentionUiPlugin, "query", next);
-                return;
-              }
+      <span
+        {...attributes}
+        contentEditable={false}
+        className={cn(
+          slateClass,
+          "bg-accent text-accent-foreground inline-flex items-baseline rounded-md px-1 align-baseline",
+        )}
+        data-mention-input=""
+      >
+        <span>@</span>
+        <Input
+          ref={inputRef}
+          value={query}
+          className="text-accent-foreground placeholder:text-accent-foreground/70 h-auto w-auto min-w-[1ch] rounded-none border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
+          style={{ width: `${Math.max(query.length, 1) + 0.5}ch` }}
+          aria-label="Mention"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={true}
+          aria-controls="mention-results"
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            const native = event.nativeEvent;
+            if ("isComposing" in native && native.isComposing === true) {
+              editor.setOption(mentionUiPlugin, "query", next);
+              return;
+            }
 
-              setMentionQuery(editor, next);
-            }}
-            onCompositionStart={(event) => {
-              event.stopPropagation();
-              setMentionInputComposing(editor, true);
-            }}
-            onCompositionEnd={(event) => {
-              event.stopPropagation();
-              setMentionInputComposing(editor, false);
-              setMentionQuery(editor, event.currentTarget.value);
-            }}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              onMentionInputKeyDown(editor, event);
-            }}
-          />
-          {children}
-        </span>
-      </PopoverAnchor>
+            setMentionQuery(editor, next);
+          }}
+          onCompositionStart={(event) => {
+            event.stopPropagation();
+            setMentionInputComposing(editor, true);
+          }}
+          onCompositionEnd={(event) => {
+            event.stopPropagation();
+            setMentionInputComposing(editor, false);
+            setMentionQuery(editor, event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            onMentionInputKeyDown(editor, event);
+          }}
+        />
+        {children}
+      </span>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
+        side="bottom"
         align="start"
         sideOffset={4}
         collisionPadding={8}
@@ -16034,10 +16279,14 @@ export function MentionInputElement({ attributes, children }: PlateElementProps)
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
 ```tsx
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+import { Bookmark, Link } from "lucide-react";
 import { useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
+import { EditorTextButton } from "./block-toolbar";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
@@ -16052,6 +16301,10 @@ export function PasteUrlMenu() {
   const offer = usePluginOption(pasteUrlPlugin, "offer");
   const actions =
     offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+  const virtualRef = virtualAnchor(
+    () => rangeRect(pasteDomRange(editor)),
+    () => anchorContext(rangeContextElement(pasteDomRange(editor))),
+  );
 
   useEffect(() => {
     if (offer === undefined) {
@@ -16083,25 +16336,15 @@ export function PasteUrlMenu() {
     return null;
   }
 
-  const rect = selectionRect();
-
   return (
     <Popover open>
-      <PopoverAnchor asChild>
-        <span
-          data-paste-url-anchor=""
-          style={{
-            position: "fixed",
-            top: rect.top,
-            left: rect.left,
-            width: 1,
-            height: 1,
-          }}
-        />
-      </PopoverAnchor>
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-paste-url-menu=""
+        side="bottom"
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -16111,50 +16354,52 @@ export function PasteUrlMenu() {
         className="w-auto gap-1 p-1"
       >
         {actions.map((action) => (
-          <button
+          <EditorTextButton
             key={action.id}
-            type="button"
-            className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+            variant="outline"
+            label={action.label}
+            icon={pasteActionIcon(action.id)}
+            className="w-full justify-start"
             onMouseDown={(event) => {
               event.preventDefault();
             }}
             onClick={() => {
               runEditorCommand(editor, applyPasteUrlAction, action.id);
             }}
-          >
-            {action.label}
-          </button>
+          />
         ))}
-        <button
-          type="button"
+        <EditorTextButton
+          variant="outline"
+          label="Keep as link"
+          icon={<Link aria-hidden="true" />}
           data-default="true"
-          className="hover:bg-muted block w-full rounded-md px-2 py-1 text-left text-sm"
+          className="w-full justify-start"
           onMouseDown={(event) => {
             event.preventDefault();
           }}
           onClick={() => {
             clearPasteUrlOffer(editor);
           }}
-        >
-          Keep as link
-        </button>
+        />
       </PopoverContent>
     </Popover>
   );
 }
 
-function selectionRect(): { top: number; left: number } {
-  if (typeof window === "undefined") {
-    return { top: 0, left: 0 };
+function pasteDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
+  if (!editor.selection) {
+    return null;
   }
 
-  const selection = window.getSelection();
-  if (selection === null || selection.rangeCount === 0) {
-    return { top: 0, left: 0 };
+  return editor.api.toDOMRange(editor.selection) ?? null;
+}
+
+function pasteActionIcon(id: string): ReactNode {
+  if (id === "bookmark") {
+    return <Bookmark aria-hidden="true" />;
   }
 
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
-  return { top: rect.bottom, left: rect.left };
+  return <Link aria-hidden="true" />;
 }
 ```
 
@@ -18372,6 +18617,7 @@ export function useEditorDocument({
 import type { ComponentProps } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
+import { TooltipProvider } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "../elements/block-list";
@@ -18406,39 +18652,41 @@ export function EditorSurface({
   mentionProvider = null,
 }: EditorSurfaceProps) {
   return (
-    <Plate
-      editor={editor}
-      readOnly={readOnly}
-      onValueChange={({ value }) => {
-        const query = editor?.getOption(mentionUiPlugin, "query") ?? "";
-        onValueChange?.(repairMentionInputs(value, query).content);
-      }}
-    >
-      <MentionScope provider={mentionProvider}>
-        <LinkPreviewProvider adapter={linkPreview}>
-          <PasteRepairNotice />
-          <PasteUrlMenu />
-          <LinkToolbar />
-          <LinkPopover />
-          <PlateContent
-            placeholder={readOnly ? undefined : placeholder}
-            // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-            // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-            // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-            className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-            renderPlaceholder={(placeholderProps) => (
-              <span
-                {...placeholderProps.attributes}
-                className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-              >
-                {placeholderProps.children}
-              </span>
-            )}
-          />
-        </LinkPreviewProvider>
-      </MentionScope>
-    </Plate>
+    <TooltipProvider>
+      <Plate
+        editor={editor}
+        readOnly={readOnly}
+        onValueChange={({ value }) => {
+          const query = editor?.getOption(mentionUiPlugin, "query") ?? "";
+          onValueChange?.(repairMentionInputs(value, query).content);
+        }}
+      >
+        <MentionScope provider={mentionProvider}>
+          <LinkPreviewProvider adapter={linkPreview}>
+            <PasteRepairNotice />
+            <PasteUrlMenu />
+            <LinkToolbar />
+            <LinkPopover />
+            <PlateContent
+              placeholder={readOnly ? undefined : placeholder}
+              // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+              // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+              // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+              className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+              renderPlaceholder={(placeholderProps) => (
+                <span
+                  {...placeholderProps.attributes}
+                  className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                  style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                >
+                  {placeholderProps.children}
+                </span>
+              )}
+            />
+          </LinkPreviewProvider>
+        </MentionScope>
+      </Plate>
+    </TooltipProvider>
   );
 }
 ```
@@ -18463,8 +18711,11 @@ export function EditorDocumentSkeleton() {
 ```tsx
 "use client";
 
-import { Button } from "@/components/button";
+import { RefreshCw } from "lucide-react";
+
 import { cn } from "@/lib/utils";
+
+import { EditorTextButton } from "../ui/block-toolbar";
 
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 
@@ -18505,9 +18756,12 @@ export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusP
     >
       <span>{statusText(status, message)}</span>
       {isError ? (
-        <Button type="button" variant="destructive" className="h-11 px-4" onClick={onRetry}>
-          Retry
-        </Button>
+        <EditorTextButton
+          variant="outline"
+          label="Retry"
+          icon={<RefreshCw aria-hidden="true" />}
+          onClick={onRetry}
+        />
       ) : null}
     </div>
   );
@@ -18518,9 +18772,13 @@ export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusP
 ```tsx
 "use client";
 
+import { RotateCcw } from "lucide-react";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert";
-import { Button } from "@/components/button";
 import { CopyButton } from "@/components/copy-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
+
+import { EditorTextButton } from "../ui/block-toolbar";
 
 import { EDITOR_SCHEMA_VERSION } from "../../lib/document/editor-document";
 import type { EditorRecoveryResult } from "../../hooks/use-editor-document";
@@ -18609,12 +18867,22 @@ export function EditorRecoveryNotice({
             {error}
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <CopyButton text={text} variant="outline" aria-label="Copy JSON" className="size-11" />
-          <Button type="button" className="h-11 px-4" onClick={onStartOver}>
-            Start over
-          </Button>
-        </div>
+        <TooltipProvider>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CopyButton text={text} variant="outline" size="icon" aria-label="Copy JSON" />
+              </TooltipTrigger>
+              <TooltipContent>Copy JSON</TooltipContent>
+            </Tooltip>
+            <EditorTextButton
+              variant="outline"
+              label="Start over"
+              icon={<RotateCcw aria-hidden="true" />}
+              onClick={onStartOver}
+            />
+          </div>
+        </TooltipProvider>
       </Alert>
     </div>
   );
@@ -20257,6 +20525,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/components/ui/block-toolbar.tsx",
     code: readSource(`${BLOCK_DIR}/components/ui/block-toolbar.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
+    code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts",

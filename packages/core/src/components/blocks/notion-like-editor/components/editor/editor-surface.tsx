@@ -3,6 +3,7 @@
 import type { ComponentProps } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
+import { TooltipProvider } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "../elements/block-list";
@@ -37,38 +38,40 @@ export function EditorSurface({
   mentionProvider = null,
 }: EditorSurfaceProps) {
   return (
-    <Plate
-      editor={editor}
-      readOnly={readOnly}
-      onValueChange={({ value }) => {
-        const query = editor?.getOption(mentionUiPlugin, "query") ?? "";
-        onValueChange?.(repairMentionInputs(value, query).content);
-      }}
-    >
-      <MentionScope provider={mentionProvider}>
-        <LinkPreviewProvider adapter={linkPreview}>
-          <PasteRepairNotice />
-          <PasteUrlMenu />
-          <LinkToolbar />
-          <LinkPopover />
-          <PlateContent
-            placeholder={readOnly ? undefined : placeholder}
-            // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-            // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-            // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-            className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-            renderPlaceholder={(placeholderProps) => (
-              <span
-                {...placeholderProps.attributes}
-                className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-              >
-                {placeholderProps.children}
-              </span>
-            )}
-          />
-        </LinkPreviewProvider>
-      </MentionScope>
-    </Plate>
+    <TooltipProvider>
+      <Plate
+        editor={editor}
+        readOnly={readOnly}
+        onValueChange={({ value }) => {
+          const query = editor?.getOption(mentionUiPlugin, "query") ?? "";
+          onValueChange?.(repairMentionInputs(value, query).content);
+        }}
+      >
+        <MentionScope provider={mentionProvider}>
+          <LinkPreviewProvider adapter={linkPreview}>
+            <PasteRepairNotice />
+            <PasteUrlMenu />
+            <LinkToolbar />
+            <LinkPopover />
+            <PlateContent
+              placeholder={readOnly ? undefined : placeholder}
+              // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+              // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+              // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+              className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+              renderPlaceholder={(placeholderProps) => (
+                <span
+                  {...placeholderProps.attributes}
+                  className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                  style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                >
+                  {placeholderProps.children}
+                </span>
+              )}
+            />
+          </LinkPreviewProvider>
+        </MentionScope>
+      </Plate>
+    </TooltipProvider>
   );
 }

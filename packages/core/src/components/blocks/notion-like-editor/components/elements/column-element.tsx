@@ -1,4 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Columns2, Columns3, Trash2, Ungroup } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
@@ -10,6 +11,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { ToggleGroup, ToggleGroupItem } from "@/components/toggle-group";
 import { cn } from "@/lib/utils";
 
 import {
@@ -19,7 +21,12 @@ import {
   setColumnWidths,
   unwrapColumns,
 } from "../../lib/commands/editor-columns";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  EditorTextButton,
+  editorControlLabel,
+  keepMediaSelection,
+} from "../ui/block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
@@ -126,7 +133,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     editor.tf.setSplittingOnce(true);
   }
 
-  function onPointerDown(index: number, event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerDown(index: number, event: ReactPointerEvent<HTMLDivElement>): void {
     if (event.button !== 0) {
       return;
     }
@@ -141,7 +148,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function onPointerMove(event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
     const drag = dragRef.current;
     if (!drag) {
       return;
@@ -160,7 +167,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     setPreview(clampAndNormalizeWidths(numbers));
   }
 
-  function onPointerUp(event: ReactPointerEvent<HTMLButtonElement>): void {
+  function onPointerUp(event: ReactPointerEvent<HTMLDivElement>): void {
     const drag = dragRef.current;
     dragRef.current = null;
     setPreview(null);
@@ -228,10 +235,14 @@ export function ColumnGroupElement(props: PlateElementProps) {
               .slice(0, index + 1)
               .reduce((total, value) => total + value, 0);
             return (
-              <button
+              // A resize handle is dragged and stepped with the arrow keys. It is a
+              // separator, not a Button, because it does not run a command.
+              <div
                 key={index}
-                type="button"
+                role="separator"
+                aria-orientation="vertical"
                 aria-label={`Resize column ${index + 1}`}
+                tabIndex={0}
                 data-column-resize={index}
                 className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
                 style={{ left: `${left}%` }}
@@ -254,51 +265,41 @@ export function ColumnGroupElement(props: PlateElementProps) {
             data-column-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <button
-              type="button"
-              aria-label="2 columns"
-              aria-pressed={columns.length === 2}
-              className={mediaIconButtonClass}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
+            <ToggleGroup
+              type="single"
+              size="sm"
+              variant="outline"
+              value={columns.length === 3 ? "3" : "2"}
+              onValueChange={(next) => {
+                if (next !== "2" && next !== "3") {
+                  return;
+                }
                 runOnGroup(() => {
-                  setColumnCount(editor, 2);
+                  setColumnCount(editor, next === "3" ? 3 : 2);
                 });
               }}
             >
-              2 columns
-            </button>
-            <button
-              type="button"
-              aria-label="3 columns"
-              aria-pressed={columns.length === 3}
-              className={mediaIconButtonClass}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                runOnGroup(() => {
-                  setColumnCount(editor, 3);
-                });
-              }}
-            >
-              3 columns
-            </button>
-            <button
-              type="button"
-              aria-label="Turn into blocks"
-              className={mediaIconButtonClass}
+              <ToggleGroupItem value="2" aria-label="2 columns" onMouseDown={keepMediaSelection}>
+                {editorControlLabel(<Columns2 aria-hidden="true" />, "2 columns")}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="3" aria-label="3 columns" onMouseDown={keepMediaSelection}>
+                {editorControlLabel(<Columns3 aria-hidden="true" />, "3 columns")}
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <EditorTextButton
+              label="Turn into blocks"
+              icon={<Ungroup aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnGroup(() => {
                   unwrapColumns(editor);
                 });
               }}
-            >
-              Turn into blocks
-            </button>
-            <button
-              type="button"
-              aria-label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
-              className={mediaIconButtonClass}
+            />
+            <EditorTextButton
+              variant="destructive"
+              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 if (!confirmRemove) {
@@ -309,9 +310,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
                   removeColumnGroup(editor);
                 });
               }}
-            >
-              {confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
-            </button>
+            />
           </div>
         </>
       )}

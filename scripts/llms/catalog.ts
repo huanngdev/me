@@ -121,6 +121,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts",
       "packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx",
       "packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts",
       "packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx",

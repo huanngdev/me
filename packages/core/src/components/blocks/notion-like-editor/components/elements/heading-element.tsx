@@ -24,19 +24,6 @@ export const HEADING_STYLES = {
   h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
 } as const;
 
-function isHeadingSize(type: string): type is keyof typeof HEADING_SIZE {
-  return Object.hasOwn(HEADING_SIZE, type);
-}
-
-/** Font size and line height shared with a toggle chevron centered on the first line. */
-export function headingLineClass(type: string): string | undefined {
-  if (!isHeadingSize(type)) {
-    return undefined;
-  }
-
-  return `${HEADING_SIZE[type]} leading-tight`;
-}
-
 type HeadingTag = keyof typeof HEADING_STYLES;
 
 function isHeadingTag(type: string): type is HeadingTag {

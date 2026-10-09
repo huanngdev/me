@@ -8,6 +8,10 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { ChevronDown, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -22,7 +26,18 @@ import {
   tocEntries,
   type TocEntry,
 } from "../../lib/features/editor-toc";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  EditorMenuTrigger,
+  EditorTextButton,
+  keepMediaSelection,
+} from "../ui/block-toolbar";
+
+const TOC_DEPTH_LABEL = {
+  1: "H1 only",
+  2: "H1–H2",
+  3: "H1–H3",
+} as const;
 
 const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
 
@@ -85,15 +100,19 @@ export function TocElement(props: PlateElementProps) {
             <ol className="m-0 list-none space-y-1 p-0">
               {entries.map((entry) => {
                 const untitled = entry.title.length === 0;
+                const label = untitled ? TOC_UNTITLED : entry.title;
                 return (
                   <li key={entry.id} className={indentClass(entry.depth - shallowest)}>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={label}
                       data-toc-target={entry.id}
                       data-toc-indent={entry.depth - shallowest}
                       data-toc-untitled={untitled ? "true" : undefined}
                       className={cn(
-                        "text-foreground hover:bg-muted w-full rounded-sm px-1 py-0.5 text-left text-sm break-words",
+                        "h-auto w-full justify-start px-1 whitespace-normal",
                         untitled && "text-muted-foreground",
                       )}
                       onMouseDown={keepMediaSelection}
@@ -104,8 +123,8 @@ export function TocElement(props: PlateElementProps) {
                         onKeyDown(event, entry);
                       }}
                     >
-                      {untitled ? TOC_UNTITLED : entry.title}
-                    </button>
+                      {label}
+                    </Button>
                   </li>
                 );
               })}
@@ -117,38 +136,40 @@ export function TocElement(props: PlateElementProps) {
             data-toc-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <select
-              aria-label="Table of contents depth"
-              className={mediaIconButtonClass}
-              value={String(depth)}
-              onMouseDown={keepMediaSelection}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                if (!isTocDepth(next)) {
-                  return;
-                }
-                runOnToc(() => {
-                  setTocDepth(editor, path, next);
-                });
-              }}
-            >
-              <option value="1">H1 only</option>
-              <option value="2">H1–H2</option>
-              <option value="3">H1–H3</option>
-            </select>
-            <button
-              type="button"
-              aria-label="Remove"
-              className={mediaIconButtonClass}
+            <DropdownMenu modal={false}>
+              <EditorMenuTrigger
+                label="Table of contents depth"
+                text={isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3]}
+                icon={<ChevronDown aria-hidden="true" />}
+                onMouseDown={keepMediaSelection}
+              />
+              <DropdownMenuContent align="end">
+                {([1, 2, 3] as const).map((choice) => (
+                  <DropdownMenuItem
+                    key={choice}
+                    onMouseDown={keepMediaSelection}
+                    onSelect={() => {
+                      runOnToc(() => {
+                        setTocDepth(editor, path, choice);
+                      });
+                    }}
+                  >
+                    {TOC_DEPTH_LABEL[choice]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <EditorTextButton
+              variant="destructive"
+              label="Remove"
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnToc(() => {
                   removeToc(editor, path);
                 });
               }}
-            >
-              Remove
-            </button>
+            />
           </div>
         )}
       </div>

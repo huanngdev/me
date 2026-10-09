@@ -9,7 +9,10 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
+import { Check, Copy, Pencil, Trash2, X } from "lucide-react";
+
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { Textarea } from "@/components/textarea";
 import { cn } from "@/lib/utils";
 
 import {
@@ -22,7 +25,7 @@ import {
   renderEquation,
   type EquationRender,
 } from "../../lib/features/editor-equation";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 import "katex/dist/katex.min.css";
 
@@ -226,37 +229,29 @@ export function EquationElement(props: PlateElementProps) {
                 }}
               >
                 {readOnly ? null : (
-                  <button
-                    type="button"
-                    aria-label="Edit"
-                    className={mediaIconButtonClass}
+                  <EditorTextButton
+                    label="Edit"
+                    icon={<Pencil aria-hidden="true" />}
                     onMouseDown={keepMediaSelection}
                     onClick={openEditor}
-                  >
-                    Edit
-                  </button>
+                  />
                 )}
-                <button
-                  type="button"
-                  aria-label="Copy source"
-                  className={mediaIconButtonClass}
+                <EditorTextButton
+                  label="Copy source"
+                  icon={<Copy aria-hidden="true" />}
                   onMouseDown={keepMediaSelection}
                   onClick={() => {
                     void copySource();
                   }}
-                >
-                  Copy source
-                </button>
+                />
                 {readOnly ? null : (
-                  <button
-                    type="button"
-                    aria-label="Remove"
-                    className={mediaIconButtonClass}
+                  <EditorTextButton
+                    variant="destructive"
+                    label="Remove"
+                    icon={<Trash2 aria-hidden="true" />}
                     onMouseDown={keepMediaSelection}
                     onClick={remove}
-                  >
-                    Remove
-                  </button>
+                  />
                 )}
               </div>
             )}
@@ -268,10 +263,10 @@ export function EquationElement(props: PlateElementProps) {
             event.preventDefault();
           }}
         >
-          <textarea
+          <Textarea
             ref={textarea}
             aria-label="Equation source"
-            className="border-input bg-background min-h-24 w-full rounded-md border p-2 font-mono text-sm"
+            className="min-h-24 font-mono"
             value={draft}
             onChange={(event) => {
               setDraft(event.target.value);
@@ -293,12 +288,18 @@ export function EquationElement(props: PlateElementProps) {
             )}
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" className={mediaIconButtonClass} onClick={() => finish(false)}>
-              Cancel
-            </button>
-            <button type="button" className={mediaIconButtonClass} onClick={() => finish(true)}>
-              Done
-            </button>
+            <EditorTextButton
+              variant="outline"
+              label="Cancel"
+              icon={<X aria-hidden="true" />}
+              onClick={() => finish(false)}
+            />
+            <EditorTextButton
+              variant="default"
+              label="Done"
+              icon={<Check aria-hidden="true" />}
+              onClick={() => finish(true)}
+            />
           </div>
         </PopoverContent>
       </Popover>

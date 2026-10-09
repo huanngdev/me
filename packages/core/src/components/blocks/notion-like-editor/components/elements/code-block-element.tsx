@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { resetCodeBlockDecorations, setCodeBlockToDecorations } from "@platejs/code-block";
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronDown, Copy } from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -19,15 +19,11 @@ import {
   type PlateLeafProps,
 } from "platejs/react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
+import { EditorIconButton, EditorMenuTrigger } from "../ui/block-toolbar";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -145,16 +141,15 @@ export function CodeBlockElement(props: PlateElementProps) {
           <span className="text-muted-foreground px-1.5 py-1 text-xs">{languageLabel(lang)}</span>
         ) : (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              aria-label="Change code language"
-              className="text-muted-foreground hover:bg-foreground/5 rounded-md px-1.5 py-1 text-xs"
+            <EditorMenuTrigger
+              label="Change code language"
+              text={languageLabel(lang)}
+              icon={<ChevronDown aria-hidden="true" />}
               onMouseDown={keepEditorSelection}
               onPointerDown={() => {
                 savedSelection.current = editor.selection;
               }}
-            >
-              {languageLabel(lang)}
-            </DropdownMenuTrigger>
+            />
             <DropdownMenuContent
               align="end"
               className="max-h-80 w-44 overflow-y-auto"
@@ -191,21 +186,20 @@ export function CodeBlockElement(props: PlateElementProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <button
-          type="button"
-          aria-label={copied ? "Copied" : "Copy code"}
-          className="text-muted-foreground hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md"
+        <EditorIconButton
+          label={copied ? "Copied" : "Copy code"}
+          icon={
+            copied ? (
+              <Check aria-hidden="true" className="size-3.5" />
+            ) : (
+              <Copy aria-hidden="true" className="size-3.5" />
+            )
+          }
           onMouseDown={keepEditorSelection}
           onClick={() => {
             void copyCode();
           }}
-        >
-          {copied ? (
-            <Check aria-hidden="true" className="size-3.5" />
-          ) : (
-            <Copy aria-hidden="true" className="size-3.5" />
-          )}
-        </button>
+        />
       </div>
       <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
     </PlateElement>

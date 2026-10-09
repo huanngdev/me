@@ -1112,7 +1112,9 @@ describe("table render", () => {
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain("min-w-12");
     expect(html).toContain("var(--editor-table-border)");
-    expect(html).toContain("var(--editor-table-header-bg)");
+    expect(html).toContain("caption-bottom");
+    expect(html).toContain('data-slot="table-body"');
+    expect(html).not.toContain("var(--editor-table-header-bg)");
     expect(html).toContain('contentEditable="false"');
     expect(html).toContain("Table options");
 

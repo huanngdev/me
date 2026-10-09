@@ -1,3 +1,4 @@
+import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   useEditorRef,
@@ -16,6 +17,9 @@ import {
   setLinkHover,
 } from "../../lib/plugins/editor-link";
 import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
+import { EditorTextButton } from "../ui/block-toolbar";
 
 export function LinkElement({ attributes, children, element }: PlateElementProps) {
   "use no memo";
@@ -82,6 +86,10 @@ export function LinkToolbar() {
   const mode = usePluginOption(linkUiPlugin, "mode");
   const hoverId = usePluginOption(linkUiPlugin, "hoverId");
   const selection = useEditorSelector((current) => current.selection, []);
+  const virtualRef = virtualAnchor(
+    () => elementRect(linkDomNode(editor, hoverId)),
+    () => anchorContext(linkDomNode(editor, hoverId)),
+  );
   if (readOnly || mode !== "closed" || (selection === null && hoverId.length === 0)) {
     return null;
   }
@@ -97,67 +105,79 @@ export function LinkToolbar() {
     return null;
   }
 
-  const dom = editor.api.toDOMNode(entry);
-  if (dom === null || dom === undefined) {
+  return (
+    <Popover open>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        data-link-toolbar=""
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        className="w-auto max-w-56 gap-1 p-1 text-xs"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onMouseLeave={(event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Element && next.closest("[data-link-url]") !== null) {
+            return;
+          }
+
+          setLinkHover(editor, "");
+        }}
+      >
+        <span
+          data-link-toolbar-url=""
+          className="line-clamp-2 px-1"
+          style={{ overflowWrap: "anywhere" }}
+        >
+          {safe}
+        </span>
+        <EditorTextButton
+          label="Open"
+          icon={<ExternalLink aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            runEditorCommand(editor, openInlineLink, undefined);
+          }}
+        />
+        <EditorTextButton
+          label="Edit"
+          icon={<Pencil aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            openLinkPopover(editor);
+          }}
+        />
+        <EditorTextButton
+          variant="destructive"
+          label="Remove link"
+          icon={<Unlink aria-hidden="true" />}
+          className="w-full justify-start"
+          onClick={() => {
+            runEditorCommand(editor, removeInlineLink, undefined);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function linkDomNode(editor: ReturnType<typeof useEditorRef>, hoverId: string): HTMLElement | null {
+  const entry = selectedOrHoveredLink(editor, hoverId);
+  if (entry === undefined) {
     return null;
   }
 
-  const rect = dom.getBoundingClientRect();
-
-  return (
-    <div
-      data-link-toolbar=""
-      className="bg-popover text-popover-foreground fixed z-50 flex max-w-56 flex-col gap-1 rounded-md border p-1 text-xs shadow-sm"
-      style={{ top: rect.bottom + 4, left: rect.left }}
-      onMouseDown={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onMouseLeave={(event) => {
-        const next = event.relatedTarget;
-        if (next instanceof Element && next.closest("[data-link-url]") !== null) {
-          return;
-        }
-
-        setLinkHover(editor, "");
-      }}
-    >
-      <span
-        data-link-toolbar-url=""
-        className="line-clamp-2 px-1"
-        style={{ overflowWrap: "anywhere" }}
-      >
-        {safe}
-      </span>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          runEditorCommand(editor, openInlineLink, undefined);
-        }}
-      >
-        Open
-      </button>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          openLinkPopover(editor);
-        }}
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        className="hover:bg-muted rounded-md px-2 py-1 text-left"
-        onClick={() => {
-          runEditorCommand(editor, removeInlineLink, undefined);
-        }}
-      >
-        Remove link
-      </button>
-    </div>
-  );
+  return editor.api.toDOMNode(entry) ?? null;
 }
 
 function selectedOrHoveredLink(

@@ -1,4 +1,5 @@
 import { createElement, type ReactNode } from "react";
+import { Copy, CornerUpLeft, Trash2 } from "lucide-react";
 import { ElementApi, type Descendant, type SlateEditor, type TElement, type TText } from "platejs";
 import { pipeRenderLeafStatic } from "platejs/static";
 import {
@@ -32,7 +33,7 @@ import {
   type SyncedTargetStatus,
 } from "../../lib/features/editor-synced-block";
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
+import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic
@@ -286,48 +287,40 @@ export function SyncedRefElement(props: PlateElementProps) {
             }}
           >
             {view.status === "live" ? (
-              <button
-                type="button"
-                aria-label={SYNCED_GO_LABEL}
-                className={mediaIconButtonClass}
+              <EditorTextButton
+                label={SYNCED_GO_LABEL}
+                icon={<CornerUpLeft aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
                 onClick={() => {
                   if (path) {
                     goToSyncedOriginal(editor, path);
                   }
                 }}
-              >
-                {SYNCED_GO_LABEL}
-              </button>
+              />
             ) : null}
             {view.status === "live" ? (
-              <button
-                type="button"
-                aria-label={SYNCED_CONVERT_LABEL}
-                className={mediaIconButtonClass}
+              <EditorTextButton
+                label={SYNCED_CONVERT_LABEL}
+                icon={<Copy aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
                 onClick={() => {
                   runOnRef((refPath) => {
                     convertSyncedRefAt(editor, refPath);
                   });
                 }}
-              >
-                {SYNCED_CONVERT_LABEL}
-              </button>
+              />
             ) : null}
-            <button
-              type="button"
-              aria-label={SYNCED_REMOVE_LABEL}
-              className={mediaIconButtonClass}
+            <EditorTextButton
+              variant="destructive"
+              label={SYNCED_REMOVE_LABEL}
+              icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
                 runOnRef((refPath) => {
                   removeSyncedRefAt(editor, refPath);
                 });
               }}
-            >
-              {SYNCED_REMOVE_LABEL}
-            </button>
+            />
           </div>
         )}
       </div>

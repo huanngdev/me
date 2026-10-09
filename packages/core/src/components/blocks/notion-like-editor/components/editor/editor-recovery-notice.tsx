@@ -1,8 +1,12 @@
 "use client";
 
+import { RotateCcw } from "lucide-react";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert";
-import { Button } from "@/components/button";
 import { CopyButton } from "@/components/copy-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
+
+import { EditorTextButton } from "../ui/block-toolbar";
 
 import { EDITOR_SCHEMA_VERSION } from "../../lib/document/editor-document";
 import type { EditorRecoveryResult } from "../../hooks/use-editor-document";
@@ -91,12 +95,22 @@ export function EditorRecoveryNotice({
             {error}
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <CopyButton text={text} variant="outline" aria-label="Copy JSON" className="size-11" />
-          <Button type="button" className="h-11 px-4" onClick={onStartOver}>
-            Start over
-          </Button>
-        </div>
+        <TooltipProvider>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CopyButton text={text} variant="outline" size="icon" aria-label="Copy JSON" />
+              </TooltipTrigger>
+              <TooltipContent>Copy JSON</TooltipContent>
+            </Tooltip>
+            <EditorTextButton
+              variant="outline"
+              label="Start over"
+              icon={<RotateCcw aria-hidden="true" />}
+              onClick={onStartOver}
+            />
+          </div>
+        </TooltipProvider>
       </Alert>
     </div>
   );

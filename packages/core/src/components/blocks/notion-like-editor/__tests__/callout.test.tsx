@@ -738,11 +738,79 @@ describe("callout picker", () => {
       expect(field(mounted.editor.children[0], "icon")).toBe("triangle-alert");
       expect(mounted.editor.history.undos.length - before).toBe(1);
       expect(mounted.editor.selection).toEqual(selection);
+      expect(document.querySelector("[role='menu']")).toBeNull();
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("the open picker marks the default icon and tone when none are stored", async () => {
+    const mounted = await mountCallout([callout("callout-1", [paragraph("Note", "para-1")])]);
+
+    try {
+      await openCalloutPicker();
+      const lightbulb = pickerButton("Lightbulb");
+      const info = pickerButton("Info");
+      expect(lightbulb.getAttribute("aria-pressed")).toBe("true");
+      expect(lightbulb.getAttribute("data-state")).toBe("on");
+      expect(info.getAttribute("aria-pressed")).toBe("false");
+      expect(checkedTone()?.textContent).toContain("Default");
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("the open picker marks the stored icon and tone", async () => {
+    const mounted = await mountCallout([
+      callout("callout-1", [paragraph("Note", "para-1")], { icon: "pin", variant: "warning" }),
+    ]);
+
+    try {
+      await openCalloutPicker();
+      const pin = pickerButton("Pin");
+      const lightbulb = pickerButton("Lightbulb");
+      expect(pin.getAttribute("aria-pressed")).toBe("true");
+      expect(pin.getAttribute("data-state")).toBe("on");
+      expect(lightbulb.getAttribute("aria-pressed")).toBe("false");
+      expect(checkedTone()?.textContent).toContain("Warning");
     } finally {
       await mounted.cleanup();
     }
   });
 });
+
+async function openCalloutPicker(): Promise<void> {
+  const trigger = document.querySelector("[aria-label='Change callout icon and color']");
+  if (!(trigger instanceof HTMLElement)) {
+    throw new Error("Missing callout trigger.");
+  }
+
+  const view = trigger.ownerDocument.defaultView;
+  if (!view) {
+    throw new Error("Missing window.");
+  }
+
+  await act(async () => {
+    trigger.dispatchEvent(
+      new view.PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
+    );
+  });
+}
+
+function pickerButton(label: string): HTMLElement {
+  const item = [...document.querySelectorAll("[role='menuitem']")].find(
+    (entry) => entry.getAttribute("aria-label") === label,
+  );
+  if (!(item instanceof HTMLElement)) {
+    throw new Error(`Missing ${label} icon.`);
+  }
+
+  return item;
+}
+
+function checkedTone(): Element | null {
+  return document.querySelector("[role='menuitemradio'][aria-checked='true']");
+}
 
 describe("callout paste", () => {
   test("an editor fragment keeps an allowed icon and tone", () => {

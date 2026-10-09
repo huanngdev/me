@@ -543,7 +543,7 @@ describe("toggle rendering", () => {
     expect(html).toContain("Hello");
     expect(html).toContain("Body");
     expect(html).not.toContain("rotate-90");
-    expect(html).not.toContain("disabled");
+    expect(html).not.toMatch(/disabled(?!:)/);
   });
 
   test("mousedown on the button is cancelled and clicking opens then closes it", async () => {

@@ -9,6 +9,7 @@ import {
   MessageCircle,
   NotebookPen,
   Pin,
+  RotateCcw,
   Star,
   Target,
   TriangleAlert,
@@ -27,12 +28,14 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
+import { EditorMenuTrigger } from "../ui/block-toolbar";
 import {
   resetCallout,
   runEditorCommand,
@@ -46,6 +49,7 @@ import {
   type CalloutIcon,
   type CalloutTone,
 } from "../../lib/document/editor-document-schema";
+import { Button } from "@/components/button";
 
 // role="note" is an ancillary note. An aside would be a complementary landmark.
 // AGENTS.md keeps the accent for active states. The fill is the tone surface.
@@ -109,6 +113,10 @@ function elementAttr(element: object, key: string): unknown {
 
 const TONE_CHOICES = ["default", ...CALLOUT_TONES] as const;
 
+function isToneChoice(value: string): value is (typeof TONE_CHOICES)[number] {
+  return TONE_CHOICES.some((choice) => choice === value);
+}
+
 // mousedown would move the editor selection onto the button. Cancelling it leaves
 // the caret where it was. pointerdown stays untouched: Radix opens the menu there,
 // and its own handler cancels that event so the button does not take focus.
@@ -144,16 +152,14 @@ export function CalloutElement(props: PlateElementProps) {
           </span>
         ) : (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              aria-label="Change callout icon and color"
-              className="hover:bg-foreground/5 inline-flex size-7 items-center justify-center rounded-md text-base leading-none"
+            <EditorMenuTrigger
+              label="Change callout icon and color"
+              icon={<CalloutIconGlyph icon={icon} />}
               onMouseDown={keepEditorSelection}
               onPointerDown={() => {
                 savedSelection.current = editor.selection;
               }}
-            >
-              <CalloutIconGlyph icon={icon} />
-            </DropdownMenuTrigger>
+            />
             <DropdownMenuContent
               align="start"
               className="w-64"
@@ -169,40 +175,70 @@ export function CalloutElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuGroup className="grid grid-cols-6 gap-1">
-                {CALLOUT_ICONS.map((choice) => (
-                  <DropdownMenuItem
-                    key={choice}
-                    aria-label={CALLOUT_ICON_GLYPH[choice].label}
-                    className="justify-center px-0"
-                    onMouseDown={keepEditorSelection}
-                    onSelect={() => {
-                      runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
-                    }}
-                  >
-                    <CalloutIconGlyph icon={choice} />
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuGroup className="flex flex-wrap gap-1">
+                {CALLOUT_ICONS.map((choice) => {
+                  const selected = choice === icon;
+                  // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
+                  let applied = false;
+                  const apply = (): void => {
+                    if (applied) {
+                      return;
+                    }
+
+                    applied = true;
+                    runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
+                  };
+
+                  return (
+                    <DropdownMenuItem asChild key={choice} onSelect={apply}>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={CALLOUT_ICON_GLYPH[choice].label}
+                        aria-pressed={selected}
+                        data-state={selected ? "on" : "off"}
+                        className={cn(
+                          "justify-center",
+                          selected && "bg-accent text-accent-foreground",
+                        )}
+                        onMouseDown={keepEditorSelection}
+                        onClick={apply}
+                      >
+                        <CalloutIconGlyph icon={choice} />
+                      </Button>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              {TONE_CHOICES.map((choice) => (
-                <DropdownMenuItem
-                  key={choice}
-                  onMouseDown={keepEditorSelection}
-                  onSelect={() => {
-                    runEditorCommand(editor, setCalloutTone, {
-                      value: choice === "default" ? null : choice,
-                      at: path,
-                    });
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
-                  />
-                  {TONE_LABEL[choice]}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuRadioGroup
+                value={tone}
+                onValueChange={(value) => {
+                  if (!isToneChoice(value)) {
+                    return;
+                  }
+
+                  runEditorCommand(editor, setCalloutTone, {
+                    value: value === "default" ? null : value,
+                    at: path,
+                  });
+                }}
+              >
+                {TONE_CHOICES.map((choice) => (
+                  <DropdownMenuRadioItem
+                    key={choice}
+                    value={choice}
+                    onMouseDown={keepEditorSelection}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
+                    />
+                    {TONE_LABEL[choice]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onMouseDown={keepEditorSelection}
@@ -210,6 +246,7 @@ export function CalloutElement(props: PlateElementProps) {
                   resetCallout(editor, path);
                 }}
               >
+                <RotateCcw aria-hidden="true" />
                 Reset
               </DropdownMenuItem>
             </DropdownMenuContent>
