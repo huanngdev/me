@@ -1,9 +1,11 @@
+import { createElement, type ReactNode } from "react";
 import { BaseLinkPlugin, unwrapLink, upsertLinkText } from "@platejs/link";
 import {
   ElementApi,
   KEYS,
   PathApi,
   RangeApi,
+  TextApi,
   createSlatePlugin,
   type SlateEditor,
   type TElement,
@@ -41,19 +43,72 @@ const TRAILING_PUNCTUATION = new Set([
 const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 
 const savedSelections = new WeakMap<SlateEditor, TRange>();
+const hoverCloseTimers = new WeakMap<SlateEditor, ReturnType<typeof setTimeout>>();
+
+export const LINK_HOVER_CLOSE_MS = 200;
 
 export function linkAnchorRange(editor: SlateEditor): TRange | null {
   return savedSelections.get(editor) ?? editor.selection;
 }
 
+type HighlightProps = {
+  attributes?: { className?: string };
+  children?: ReactNode;
+};
+
+function LinkAnchorHighlight({ attributes, children }: HighlightProps) {
+  const slateClass = typeof attributes?.className === "string" ? attributes.className : "";
+  return createElement(
+    "span",
+    {
+      ...attributes,
+      "data-link-anchor-highlight": "",
+      className: `${slateClass} rounded-sm bg-accent`.trim(),
+    },
+    children,
+  );
+}
+
 export const linkUiPlugin = createSlatePlugin({
   key: "linkUi",
+  node: {
+    isLeaf: true,
+    isDecoration: true,
+  },
+  render: {
+    node: LinkAnchorHighlight,
+  },
   options: {
     mode: "closed",
     draftUrl: "",
     draftLabel: "",
     error: "",
     hoverId: "",
+  },
+  decorate: ({ editor, entry }) => {
+    if (editor.getOption(linkUiPlugin, "mode") === "closed") {
+      return undefined;
+    }
+
+    const anchor = savedSelections.get(editor);
+    const node = entry[0];
+    const path = entry[1];
+    if (!anchor || !TextApi.isText(node)) {
+      return undefined;
+    }
+
+    const start = editor.api.start(path);
+    const end = editor.api.end(path);
+    if (!start || !end) {
+      return undefined;
+    }
+
+    const intersection = RangeApi.intersection(anchor, { anchor: start, focus: end });
+    if (!intersection) {
+      return undefined;
+    }
+
+    return [{ ...intersection, linkUi: true }];
   },
 });
 
@@ -190,18 +245,21 @@ export function openLinkPopover(editor: SlateEditor): void {
     editor.setOption(linkUiPlugin, "mode", "edit");
     editor.setOption(linkUiPlugin, "draftUrl", url);
     editor.setOption(linkUiPlugin, "draftLabel", editor.api.string(existing[1]));
+    editor.api.redecorate();
     return;
   }
 
   editor.setOption(linkUiPlugin, "mode", editor.api.isCollapsed() ? "label" : "insert");
   editor.setOption(linkUiPlugin, "draftUrl", "");
   editor.setOption(linkUiPlugin, "draftLabel", "");
+  editor.api.redecorate();
 }
 
 export function closeLinkPopover(editor: SlateEditor): void {
   savedSelections.delete(editor);
   editor.setOption(linkUiPlugin, "mode", "closed");
   editor.setOption(linkUiPlugin, "error", "");
+  editor.api.redecorate();
 }
 
 export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
@@ -236,7 +294,32 @@ export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw:
   return true;
 }
 
+export function cancelLinkHoverClose(editor: SlateEditor): void {
+  const timer = hoverCloseTimers.get(editor);
+  if (timer === undefined) {
+    return;
+  }
+
+  clearTimeout(timer);
+  hoverCloseTimers.delete(editor);
+}
+
+export function scheduleLinkHoverClose(editor: SlateEditor): void {
+  cancelLinkHoverClose(editor);
+  const timer = setTimeout(() => {
+    hoverCloseTimers.delete(editor);
+    const active = document.activeElement;
+    if (active instanceof Element && active.closest("[data-link-toolbar]") !== null) {
+      return;
+    }
+
+    setLinkHover(editor, "");
+  }, LINK_HOVER_CLOSE_MS);
+  hoverCloseTimers.set(editor, timer);
+}
+
 export function setLinkHover(editor: SlateEditor, id: string): void {
+  cancelLinkHoverClose(editor);
   if (editor.getOption(linkUiPlugin, "hoverId") === id) {
     return;
   }

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
@@ -10,10 +11,12 @@ import {
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
+  cancelLinkHoverClose,
   linkUiPlugin,
   openInlineLink,
   openLinkPopover,
   removeInlineLink,
+  scheduleLinkHoverClose,
   setLinkHover,
 } from "../../lib/plugins/editor-link";
 import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
@@ -52,11 +55,12 @@ export function LinkElement({ attributes, children, element }: PlateElementProps
       onMouseLeave={(event) => {
         const next = event.relatedTarget;
         if (next instanceof Element && next.closest("[data-link-toolbar]") !== null) {
+          cancelLinkHoverClose(editor);
           return;
         }
 
         if (editor.getOption(linkUiPlugin, "hoverId") === id) {
-          setLinkHover(editor, "");
+          scheduleLinkHoverClose(editor);
         }
       }}
       onClick={(event) => {
@@ -90,6 +94,21 @@ export function LinkToolbar() {
     () => elementRect(linkDomNode(editor, hoverId)),
     () => anchorContext(linkDomNode(editor, hoverId)),
   );
+  useEffect(() => {
+    if (readOnly || mode !== "closed" || hoverId.length === 0) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setLinkHover(editor, "");
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [editor, hoverId, mode, readOnly]);
   if (readOnly || mode !== "closed" || (selection === null && hoverId.length === 0)) {
     return null;
   }
@@ -120,18 +139,33 @@ export function LinkToolbar() {
         onCloseAutoFocus={(event) => {
           event.preventDefault();
         }}
-        className="w-auto max-w-56 gap-1 p-1 text-xs"
+        className="w-auto max-w-56 gap-1 p-1 text-xs before:absolute before:inset-x-0 before:-top-2 before:h-2"
         onMouseDown={(event) => {
           event.preventDefault();
           event.stopPropagation();
         }}
+        onMouseEnter={() => {
+          cancelLinkHoverClose(editor);
+        }}
         onMouseLeave={(event) => {
           const next = event.relatedTarget;
           if (next instanceof Element && next.closest("[data-link-url]") !== null) {
+            cancelLinkHoverClose(editor);
             return;
           }
 
-          setLinkHover(editor, "");
+          scheduleLinkHoverClose(editor);
+        }}
+        onFocus={() => {
+          cancelLinkHoverClose(editor);
+        }}
+        onBlur={(event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Element && next.closest("[data-link-toolbar]") !== null) {
+            return;
+          }
+
+          scheduleLinkHoverClose(editor);
         }}
       >
         <span
@@ -154,6 +188,24 @@ export function LinkToolbar() {
           icon={<Pencil aria-hidden="true" />}
           className="w-full justify-start"
           onClick={() => {
+            const hovered = editor.getOption(linkUiPlugin, "hoverId");
+            const inside = editor.api.above({
+              match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+            });
+            if (inside === undefined && hovered.length > 0) {
+              const node = editor.api.node({
+                at: [],
+                match: (candidate) =>
+                  ElementApi.isElement(candidate) &&
+                  candidate.type === KEYS.link &&
+                  candidate.id === hovered,
+              });
+              if (node) {
+                editor.tf.withoutSaving(() => {
+                  editor.tf.select(node[1]);
+                });
+              }
+            }
             openLinkPopover(editor);
           }}
         />

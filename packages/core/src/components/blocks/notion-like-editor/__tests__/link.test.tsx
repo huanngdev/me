@@ -802,6 +802,77 @@ describe("link render and clicks", () => {
     Reflect.set(window, "open", original);
   });
 
+  test("the link popover highlights the saved range and does not store it", async () => {
+    const mounted = await mountLink([paragraph("Hello world", "p")]);
+    mounted.editor.tf.select(textRange([0, 0], 0, 5));
+    const before = JSON.stringify(mounted.editor.children);
+    const undos = mounted.editor.history.undos.length;
+
+    try {
+      await act(async () => {
+        openLinkPopover(mounted.editor);
+      });
+      expect(document.querySelector("[data-link-anchor-highlight]")?.textContent).toBe("Hello");
+      expect(JSON.stringify(mounted.editor.children)).toBe(before);
+      expect(mounted.editor.history.undos.length).toBe(undos);
+
+      await act(async () => {
+        closeLinkPopover(mounted.editor);
+      });
+      expect(document.querySelector("[data-link-anchor-highlight]")).toBeNull();
+      expect(JSON.stringify(mounted.editor.children)).toBe(before);
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("the link toolbar waits before closing so the pointer can reach it", async () => {
+    const mounted = await mountLink([
+      { type: "p", id: "p", children: [linkNode(HTTPS, "site", "site"), { text: " tail" }] },
+      paragraph("Elsewhere", "other"),
+    ]);
+    mounted.editor.tf.select(caret([1, 0], 0));
+    await act(async () => {});
+    const anchor = linkAnchor(mounted.host);
+
+    try {
+      await act(async () => {
+        anchor.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      });
+      const toolbar = document.querySelector("[data-link-toolbar]");
+      if (!(toolbar instanceof HTMLElement)) {
+        throw new Error("Missing link toolbar.");
+      }
+
+      await act(async () => {
+        anchor.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+      });
+      expect(document.querySelector("[data-link-toolbar]")).not.toBeNull();
+
+      await act(async () => {
+        toolbar.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      });
+      await act(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 260);
+        });
+      });
+      expect(document.querySelector("[data-link-toolbar]")).not.toBeNull();
+
+      await act(async () => {
+        toolbar.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+      });
+      await act(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 260);
+        });
+      });
+      expect(document.querySelector("[data-link-toolbar]")).toBeNull();
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
   test("escape and an invalid popover url write nothing", async () => {
     const mounted = await mountLink([paragraph("Hello", "p")]);
     mounted.editor.tf.select(textRange([0, 0], 0, 5));

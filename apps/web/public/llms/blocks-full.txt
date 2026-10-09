@@ -16542,12 +16542,14 @@ function hasForbiddenChar(value: string): boolean {
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
 ```ts
+import { createElement, type ReactNode } from "react";
 import { BaseLinkPlugin, unwrapLink, upsertLinkText } from "@platejs/link";
 import {
   ElementApi,
   KEYS,
   PathApi,
   RangeApi,
+  TextApi,
   createSlatePlugin,
   type SlateEditor,
   type TElement,
@@ -16585,19 +16587,72 @@ const TRAILING_PUNCTUATION = new Set([
 const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 
 const savedSelections = new WeakMap<SlateEditor, TRange>();
+const hoverCloseTimers = new WeakMap<SlateEditor, ReturnType<typeof setTimeout>>();
+
+export const LINK_HOVER_CLOSE_MS = 200;
 
 export function linkAnchorRange(editor: SlateEditor): TRange | null {
   return savedSelections.get(editor) ?? editor.selection;
 }
 
+type HighlightProps = {
+  attributes?: { className?: string };
+  children?: ReactNode;
+};
+
+function LinkAnchorHighlight({ attributes, children }: HighlightProps) {
+  const slateClass = typeof attributes?.className === "string" ? attributes.className : "";
+  return createElement(
+    "span",
+    {
+      ...attributes,
+      "data-link-anchor-highlight": "",
+      className: `${slateClass} rounded-sm bg-accent`.trim(),
+    },
+    children,
+  );
+}
+
 export const linkUiPlugin = createSlatePlugin({
   key: "linkUi",
+  node: {
+    isLeaf: true,
+    isDecoration: true,
+  },
+  render: {
+    node: LinkAnchorHighlight,
+  },
   options: {
     mode: "closed",
     draftUrl: "",
     draftLabel: "",
     error: "",
     hoverId: "",
+  },
+  decorate: ({ editor, entry }) => {
+    if (editor.getOption(linkUiPlugin, "mode") === "closed") {
+      return undefined;
+    }
+
+    const anchor = savedSelections.get(editor);
+    const node = entry[0];
+    const path = entry[1];
+    if (!anchor || !TextApi.isText(node)) {
+      return undefined;
+    }
+
+    const start = editor.api.start(path);
+    const end = editor.api.end(path);
+    if (!start || !end) {
+      return undefined;
+    }
+
+    const intersection = RangeApi.intersection(anchor, { anchor: start, focus: end });
+    if (!intersection) {
+      return undefined;
+    }
+
+    return [{ ...intersection, linkUi: true }];
   },
 });
 
@@ -16734,18 +16789,21 @@ export function openLinkPopover(editor: SlateEditor): void {
     editor.setOption(linkUiPlugin, "mode", "edit");
     editor.setOption(linkUiPlugin, "draftUrl", url);
     editor.setOption(linkUiPlugin, "draftLabel", editor.api.string(existing[1]));
+    editor.api.redecorate();
     return;
   }
 
   editor.setOption(linkUiPlugin, "mode", editor.api.isCollapsed() ? "label" : "insert");
   editor.setOption(linkUiPlugin, "draftUrl", "");
   editor.setOption(linkUiPlugin, "draftLabel", "");
+  editor.api.redecorate();
 }
 
 export function closeLinkPopover(editor: SlateEditor): void {
   savedSelections.delete(editor);
   editor.setOption(linkUiPlugin, "mode", "closed");
   editor.setOption(linkUiPlugin, "error", "");
+  editor.api.redecorate();
 }
 
 export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
@@ -16780,7 +16838,32 @@ export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw:
   return true;
 }
 
+export function cancelLinkHoverClose(editor: SlateEditor): void {
+  const timer = hoverCloseTimers.get(editor);
+  if (timer === undefined) {
+    return;
+  }
+
+  clearTimeout(timer);
+  hoverCloseTimers.delete(editor);
+}
+
+export function scheduleLinkHoverClose(editor: SlateEditor): void {
+  cancelLinkHoverClose(editor);
+  const timer = setTimeout(() => {
+    hoverCloseTimers.delete(editor);
+    const active = document.activeElement;
+    if (active instanceof Element && active.closest("[data-link-toolbar]") !== null) {
+      return;
+    }
+
+    setLinkHover(editor, "");
+  }, LINK_HOVER_CLOSE_MS);
+  hoverCloseTimers.set(editor, timer);
+}
+
 export function setLinkHover(editor: SlateEditor, id: string): void {
+  cancelLinkHoverClose(editor);
   if (editor.getOption(linkUiPlugin, "hoverId") === id) {
     return;
   }
@@ -17102,6 +17185,7 @@ function normalizeLinkNode(editor: SlateEditor, node: TElement, path: number[]):
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
 ```tsx
+import { useEffect } from "react";
 import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
@@ -17114,10 +17198,12 @@ import {
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
+  cancelLinkHoverClose,
   linkUiPlugin,
   openInlineLink,
   openLinkPopover,
   removeInlineLink,
+  scheduleLinkHoverClose,
   setLinkHover,
 } from "../../lib/plugins/editor-link";
 import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
@@ -17156,11 +17242,12 @@ export function LinkElement({ attributes, children, element }: PlateElementProps
       onMouseLeave={(event) => {
         const next = event.relatedTarget;
         if (next instanceof Element && next.closest("[data-link-toolbar]") !== null) {
+          cancelLinkHoverClose(editor);
           return;
         }
 
         if (editor.getOption(linkUiPlugin, "hoverId") === id) {
-          setLinkHover(editor, "");
+          scheduleLinkHoverClose(editor);
         }
       }}
       onClick={(event) => {
@@ -17194,6 +17281,21 @@ export function LinkToolbar() {
     () => elementRect(linkDomNode(editor, hoverId)),
     () => anchorContext(linkDomNode(editor, hoverId)),
   );
+  useEffect(() => {
+    if (readOnly || mode !== "closed" || hoverId.length === 0) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setLinkHover(editor, "");
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [editor, hoverId, mode, readOnly]);
   if (readOnly || mode !== "closed" || (selection === null && hoverId.length === 0)) {
     return null;
   }
@@ -17224,18 +17326,33 @@ export function LinkToolbar() {
         onCloseAutoFocus={(event) => {
           event.preventDefault();
         }}
-        className="w-auto max-w-56 gap-1 p-1 text-xs"
+        className="w-auto max-w-56 gap-1 p-1 text-xs before:absolute before:inset-x-0 before:-top-2 before:h-2"
         onMouseDown={(event) => {
           event.preventDefault();
           event.stopPropagation();
         }}
+        onMouseEnter={() => {
+          cancelLinkHoverClose(editor);
+        }}
         onMouseLeave={(event) => {
           const next = event.relatedTarget;
           if (next instanceof Element && next.closest("[data-link-url]") !== null) {
+            cancelLinkHoverClose(editor);
             return;
           }
 
-          setLinkHover(editor, "");
+          scheduleLinkHoverClose(editor);
+        }}
+        onFocus={() => {
+          cancelLinkHoverClose(editor);
+        }}
+        onBlur={(event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Element && next.closest("[data-link-toolbar]") !== null) {
+            return;
+          }
+
+          scheduleLinkHoverClose(editor);
         }}
       >
         <span
@@ -17258,6 +17375,24 @@ export function LinkToolbar() {
           icon={<Pencil aria-hidden="true" />}
           className="w-full justify-start"
           onClick={() => {
+            const hovered = editor.getOption(linkUiPlugin, "hoverId");
+            const inside = editor.api.above({
+              match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+            });
+            if (inside === undefined && hovered.length > 0) {
+              const node = editor.api.node({
+                at: [],
+                match: (candidate) =>
+                  ElementApi.isElement(candidate) &&
+                  candidate.type === KEYS.link &&
+                  candidate.id === hovered,
+              });
+              if (node) {
+                editor.tf.withoutSaving(() => {
+                  editor.tf.select(node[1]);
+                });
+              }
+            }
             openLinkPopover(editor);
           }}
         />
