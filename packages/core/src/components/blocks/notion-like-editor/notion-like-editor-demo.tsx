@@ -2,12 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 
-import { demoLinkPreviewAdapter } from "./demo-link-preview";
-import { demoMentionProvider } from "./demo-mention";
-import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import { EditorDocumentSkeleton } from "./editor-document-skeleton";
-import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
+import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
+import { demoMentionProvider } from "./demo/demo-mention";
+import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
+import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
+import {
+  createLocalStorageAdapter,
+  removeStaleDemoDocuments,
+} from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 
 let demoAdapter: EditorPersistenceAdapter | undefined;

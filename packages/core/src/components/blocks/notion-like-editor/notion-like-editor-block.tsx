@@ -1,11 +1,11 @@
 "use client";
 
-import type { LinkPreviewAdapter } from "./editor-bookmark-url";
-import type { MentionProvider } from "./editor-mention-node";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import type { EditorValue } from "./editor-value";
-import { MemoryEditor } from "./memory-editor";
-import { PersistedEditor } from "./persisted-editor";
+import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
+import type { MentionProvider } from "./lib/features/editor-mention-node";
+import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import type { EditorValue } from "./lib/document/editor-value";
+import { MemoryEditor } from "./components/editor/memory-editor";
+import { PersistedEditor } from "./components/editor/persisted-editor";
 
 export type NotionLikeEditorBlockProps = {
   documentId: string;

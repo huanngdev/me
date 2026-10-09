@@ -2392,73 +2392,73 @@ export default function ErrorPageBlockPage() {
 
 ## Read order
 
-1. packages/core/src/components/blocks/notion-like-editor/editor-value.ts
-2. packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
-3. packages/core/src/components/blocks/notion-like-editor/editor-document.ts
-4. packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts
-5. packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
-6. packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
-7. packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
-8. packages/core/src/components/blocks/notion-like-editor/editor-paste-repairs.ts
-9. packages/core/src/components/blocks/notion-like-editor/paste-repair-notice.tsx
-10. packages/core/src/components/blocks/notion-like-editor/block-toolbar.tsx
-11. packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
-12. packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
-13. packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
-14. packages/core/src/components/blocks/notion-like-editor/block-list.tsx
-15. packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/editor-code.ts
-18. packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
-19. packages/core/src/components/blocks/notion-like-editor/editor-table.ts
-20. packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
-21. packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
-22. packages/core/src/components/blocks/notion-like-editor/table-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
-24. packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
-25. packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
-26. packages/core/src/components/blocks/notion-like-editor/editor-paste-url.ts
-27. packages/core/src/components/blocks/notion-like-editor/editor-bookmark-url.ts
-28. packages/core/src/components/blocks/notion-like-editor/editor-bookmark.ts
-29. packages/core/src/components/blocks/notion-like-editor/bookmark-element.tsx
-30. packages/core/src/components/blocks/notion-like-editor/editor-columns.ts
-31. packages/core/src/components/blocks/notion-like-editor/column-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/editor-toc.ts
-33. packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
-34. packages/core/src/components/blocks/notion-like-editor/editor-equation.ts
-35. packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts
-37. packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/editor-link-url.ts
-39. packages/core/src/components/blocks/notion-like-editor/editor-link.ts
-40. packages/core/src/components/blocks/notion-like-editor/link-element.tsx
-41. packages/core/src/components/blocks/notion-like-editor/link-popover.tsx
-42. packages/core/src/components/blocks/notion-like-editor/editor-mention-node.ts
-43. packages/core/src/components/blocks/notion-like-editor/editor-mention.ts
-44. packages/core/src/components/blocks/notion-like-editor/mention-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-46. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-47. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-48. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-49. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-50. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-51. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-52. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-53. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-54. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-55. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-56. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-57. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-58. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-59. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+1. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
+2. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-schema.ts
+3. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document.ts
+4. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-ids.ts
+5. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-migrate.ts
+6. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-validate.ts
+7. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste.ts
+8. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts
+9. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
+10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
+11. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+12. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+13. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+14. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+15. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+16. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+18. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+19. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+21. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+22. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+24. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+25. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+26. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+27. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+28. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+29. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+30. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+31. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+32. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+33. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+35. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+37. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+39. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+40. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+41. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+43. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+44. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+45. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+46. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+47. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+48. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+49. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+51. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+52. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+53. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+54. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+55. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+56. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+57. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+58. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+59. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
 60. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-61. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-62. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-63. packages/core/src/components/blocks/notion-like-editor/demo-mention.ts
+61. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+62. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+63. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
 64. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
 65. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
-## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
 import type { Value } from "platejs";
 
@@ -2472,7 +2472,7 @@ export const EMPTY_EDITOR_VALUE = [
 ] satisfies EditorValue;
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document-schema.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-schema.ts
 ````ts
 import { KEYS } from "platejs";
 
@@ -2486,10 +2486,10 @@ import {
   isStoredBookmarkText,
   normalizeBookmarkImageUrl,
   storedBookmarkUrl,
-} from "./editor-bookmark-url";
-import { sanitizeLinkUrl } from "./editor-link-url";
-import { checkMentionNode } from "./editor-mention-node";
-import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
+} from "../features/editor-bookmark-url";
+import { sanitizeLinkUrl } from "../features/editor-link-url";
+import { checkMentionNode } from "../features/editor-mention-node";
+import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
 export type IntegerAttrRange = {
   readonly min: number;
@@ -3393,7 +3393,7 @@ export function isPaletteToken(value: unknown): value is PaletteToken {
 }
 ````
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document.ts
 ```ts
 import { z } from "zod";
 
@@ -3442,7 +3442,7 @@ export function serializeEditorDocument(document: EditorDocument): string {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document-ids.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-ids.ts
 ```ts
 import { formatBlockLabel } from "./editor-document";
 import type { EditorValue } from "./editor-value";
@@ -3586,7 +3586,7 @@ export function normalizeBlockIds(
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document-migrate.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-migrate.ts
 ```ts
 import { EDITOR_SCHEMA_VERSION } from "./editor-document";
 
@@ -3608,7 +3608,7 @@ export function migrateEditorDocument(raw: unknown, documentId: string): unknown
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document-validate.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-validate.ts
 ```ts
 import { KEYS, nanoid } from "platejs";
 
@@ -3638,9 +3638,9 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "./editor-columns";
-import { repairMentionInputs } from "./editor-mention-node";
-import { syncedRefRepairs } from "./editor-synced-block";
+import { repairColumnContent } from "../commands/editor-columns";
+import { repairMentionInputs } from "../features/editor-mention-node";
+import { syncedRefRepairs } from "../features/editor-synced-block";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -4210,7 +4210,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-paste.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste.ts
 ```ts
 import {
   KEYS,
@@ -4223,7 +4223,7 @@ import {
   type TText,
 } from "platejs";
 
-import type { Repair } from "./editor-document-ids";
+import type { Repair } from "../document/editor-document-ids";
 import {
   allowedChildTypes,
   allowsFirstChild,
@@ -4242,29 +4242,29 @@ import {
   isVoidElementType,
   maxNesting,
   unsatisfiedDependentAttrs,
-} from "./editor-document-schema";
+} from "../document/editor-document-schema";
 import {
   clearUnsafePastedLinkRepairs,
   noteUnsafePastedLink,
   sanitizeLinkUrl,
   unsafePastedLinkRepairs,
-} from "./editor-link-url";
+} from "../features/editor-link-url";
 import {
   MENTION_ENTITY_TYPE,
   allocateMentionId,
   isStoredMention,
   mentionInputPlainText,
   sanitizeMentionLabel,
-} from "./editor-mention-node";
-import { capPastedTable, repairTableGrid } from "./editor-table";
-import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
+} from "../features/editor-mention-node";
+import { capPastedTable, repairTableGrid } from "../features/editor-table";
+import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
   BOOKMARK_KEY,
   BOOKMARK_PASTE_DROPPED,
   bookmarkElement,
   storedBookmark,
-} from "./editor-bookmark-url";
-import type { EditorValue } from "./editor-value";
+} from "../features/editor-bookmark-url";
+import type { EditorValue } from "../document/editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
@@ -5410,7 +5410,7 @@ export const unsupportedMediaPlugin = createSlatePlugin({
 }));
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-paste-repairs.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts
 ```ts
 import type { SlateEditor } from "platejs";
 
@@ -5455,14 +5455,14 @@ export function subscribePasteRepairs(editor: SlateEditor, listener: () => void)
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/paste-repair-notice.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
 ```tsx
 "use client";
 
 import { useSyncExternalStore } from "react";
 import { useEditorRef } from "platejs/react";
 
-import { pasteRepairsOf, subscribePasteRepairs } from "./editor-paste-repairs";
+import { pasteRepairsOf, subscribePasteRepairs } from "../../lib/paste/editor-paste-repairs";
 
 export function PasteRepairNotice() {
   const editor = useEditorRef();
@@ -5486,7 +5486,7 @@ export function PasteRepairNotice() {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/block-toolbar.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
 ```tsx
 import type { ReactNode } from "react";
 import type { TElement } from "platejs";
@@ -5535,7 +5535,7 @@ export function mediaStringAttr(element: TElement, key: string): string | undefi
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-plugins.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
 ````ts
 import {
   BlockquotePlugin,
@@ -5588,31 +5588,35 @@ import {
 import type { JSX } from "react";
 import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
-import { BlockList, ListParagraph } from "./block-list";
-import { BlockquoteElement } from "./blockquote-element";
-import { CalloutElement } from "./callout-element";
-import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
-import { HrElement } from "./hr-element";
-import { BookmarkElement } from "./bookmark-element";
-import { ColumnElement, ColumnGroupElement } from "./column-element";
-import { EquationElement } from "./equation-element";
-import { TocElement } from "./toc-element";
-import { equationPlugin, onEquationKeyDown, openEquationEditor } from "./editor-equation";
-import { SYNCED_REF_KEY, goToSyncedOriginal, onSyncedRefKeyDown } from "./editor-synced-block";
-import { SyncedRefElement } from "./synced-ref-element";
-import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
-import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { BlockList, ListParagraph } from "../../components/elements/block-list";
+import { BlockquoteElement } from "../../components/elements/blockquote-element";
+import { CalloutElement } from "../../components/elements/callout-element";
+import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
+import { HrElement } from "../../components/elements/hr-element";
+import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
+import { EquationElement } from "../../components/elements/equation-element";
+import { TocElement } from "../../components/elements/toc-element";
+import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import {
+  SYNCED_REF_KEY,
+  goToSyncedOriginal,
+  onSyncedRefKeyDown,
+} from "../features/editor-synced-block";
+import { SyncedRefElement } from "../../components/elements/synced-ref-element";
+import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
+import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
-import { LinkElement } from "./link-element";
+import { LinkElement } from "../../components/elements/link-element";
 import {
   mentionPlugin,
   mentionUiPlugin,
   onMentionKeyDown,
   setMentionComposing,
 } from "./editor-mention";
-import { MentionElement, MentionInputElement } from "./mention-element";
-import { pasteUrlPlugin } from "./editor-paste-url";
-import { ToggleElement } from "./toggle-element";
+import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
+import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { ToggleElement } from "../../components/elements/toggle-element";
 import {
   backspaceToggleLabel,
   breakToggleLabel,
@@ -5640,7 +5644,7 @@ import {
   TURN_INTO_HEADING,
   type EditorCommand,
   type HeadingLevel,
-} from "./editor-commands";
+} from "../commands/editor-commands";
 import {
   FONT_FAMILIES,
   LIST_NUMBER_RANGE,
@@ -5661,15 +5665,15 @@ import {
   isPaletteToken,
   isWithinAttrRange,
   unsatisfiedDependentAttrs,
-} from "./editor-document-schema";
+} from "../document/editor-document-schema";
 import {
   codeBlockHtmlDeserializer,
   codeClipboardText,
   codeLowlight,
   insertCodeText,
   selectionInCodeBlock,
-} from "./editor-code";
-import { HeadingElement } from "./heading-element";
+} from "../features/editor-code";
+import { HeadingElement } from "../../components/elements/heading-element";
 import {
   PasteFallbackPlugin,
   clearHtmlTableWidths,
@@ -5677,8 +5681,12 @@ import {
   rememberHtmlTableWidths,
   setPasteRepairs,
   unsupportedMediaPlugin,
-} from "./editor-paste";
-import { TableCellElement, TableElement, TableRowElement } from "./table-element";
+} from "../paste/editor-paste";
+import {
+  TableCellElement,
+  TableElement,
+  TableRowElement,
+} from "../../components/elements/table-element";
 import {
   caretAtCellStart,
   fillTableWithTsv,
@@ -5689,7 +5697,7 @@ import {
   tableCellContext,
   tableMaxRows,
   wholeTableSelection,
-} from "./editor-table";
+} from "../features/editor-table";
 
 const LIST_INDENT_MAX = 6;
 
@@ -7363,7 +7371,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
 }
 ````
 
-## packages/core/src/components/blocks/notion-like-editor/editor-toggle.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
 ```ts
 import {
   ElementApi,
@@ -7376,7 +7384,7 @@ import {
   type TElement,
 } from "platejs";
 
-import { allowsFirstChild } from "./editor-document-schema";
+import { allowsFirstChild } from "../document/editor-document-schema";
 
 // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
 // No shortcut. The "> " trigger is DEV-126.
@@ -7884,7 +7892,7 @@ export function openNewToggles(editor: SlateEditor, before: ReadonlySet<string>)
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/heading-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
 ```tsx
 import { PlateElement, useReadOnly, type PlateElementProps } from "platejs/react";
 
@@ -7978,7 +7986,7 @@ export function HeadingElement({ attributes, element, ...props }: PlateElementPr
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/block-list.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
 ```tsx
 import { isOrderedList } from "@platejs/list";
 import { KEYS } from "platejs";
@@ -7992,8 +8000,8 @@ import {
 import { Checkbox } from "@/components/checkbox";
 import { cn } from "@/lib/utils";
 
-import { writeChecked } from "./editor-commands";
-import { LIST_INDENTS, type ListIndent } from "./editor-document-schema";
+import { writeChecked } from "../../lib/commands/editor-commands";
+import { LIST_INDENTS, type ListIndent } from "../../lib/document/editor-document-schema";
 
 // Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
 const MARKER_CYCLE = {
@@ -8179,7 +8187,7 @@ export const BlockList: RenderNodeWrapper = (props) => {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/blockquote-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
 ```tsx
 import { PlateElement, type PlateElementProps } from "platejs/react";
 
@@ -8204,7 +8212,7 @@ export function BlockquoteElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/callout-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
 ```tsx
 import { useRef } from "react";
 import {
@@ -8241,14 +8249,19 @@ import {
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import { resetCallout, runEditorCommand, setCalloutIcon, setCalloutTone } from "./editor-commands";
+import {
+  resetCallout,
+  runEditorCommand,
+  setCalloutIcon,
+  setCalloutTone,
+} from "../../lib/commands/editor-commands";
 import {
   CALLOUT_DEFAULT_ICON,
   CALLOUT_ICONS,
   CALLOUT_TONES,
   type CalloutIcon,
   type CalloutTone,
-} from "./editor-document-schema";
+} from "../../lib/document/editor-document-schema";
 
 // role="note" is an ancillary note. An aside would be a complementary landmark.
 // AGENTS.md keeps the accent for active states. The fill is the tone surface.
@@ -8425,14 +8438,14 @@ export function CalloutElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-code.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
 ```ts
 import type { LanguageFn } from "highlight.js";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import { createLowlight } from "lowlight";
 import { KEYS, type SlateEditor, type TElement } from "platejs";
 
-import { CODE_LANGS, codeLangFromToken, type CodeLang } from "./editor-document-schema";
+import { CODE_LANGS, codeLangFromToken, type CodeLang } from "../document/editor-document-schema";
 
 // Empty lowlight. plaintext is the only grammar in this module. Every other
 // grammar is a dynamic import the first time a block uses that language.
@@ -8586,7 +8599,7 @@ export function selectionInCodeBlock(editor: SlateEditor): boolean {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/code-block-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
 ```tsx
 import { useEffect, useRef, useState } from "react";
 import { resetCodeBlockDecorations, setCodeBlockToDecorations } from "@platejs/code-block";
@@ -8617,9 +8630,13 @@ import {
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import { runEditorCommand, setCodeLanguage } from "./editor-commands";
-import { ensureCodeLanguage } from "./editor-code";
-import { CODE_LANGS, CODE_LANG_LABELS, type CodeLang } from "./editor-document-schema";
+import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
+import { ensureCodeLanguage } from "../../lib/features/editor-code";
+import {
+  CODE_LANGS,
+  CODE_LANG_LABELS,
+  type CodeLang,
+} from "../../lib/document/editor-document-schema";
 
 const CODE_BLOCK_CLASS_NAME =
   "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border border-l-2 border-l-[var(--editor-code-border)] bg-[var(--editor-code-bg)] text-[var(--editor-code-fg)] [font-family:var(--editor-font-mono)] [tab-size:2]";
@@ -8822,7 +8839,7 @@ export function CodeSyntaxLeaf(props: PlateLeafProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-table.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
 ```ts
 import { insertTableColumn, insertTableRow } from "@platejs/table";
 import {
@@ -8835,13 +8852,13 @@ import {
   type TText,
 } from "platejs";
 
-import type { Repair } from "./editor-document-ids";
+import type { Repair } from "../document/editor-document-ids";
 import {
   allowedChildTypes,
   maxChildren,
   TABLE_MAX_COLUMNS,
   TABLE_MAX_ROWS,
-} from "./editor-document-schema";
+} from "../document/editor-document-schema";
 import { checkTableGrid, tableCoverage, type CoveredCell } from "./editor-table-grid";
 
 export type TableCellContext = {
@@ -9435,9 +9452,9 @@ export function wholeTableSelection(editor: SlateEditor): number[] | undefined {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-table-grid.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
 ```ts
-import { formatBlockLabel } from "./editor-document";
+import { formatBlockLabel } from "../document/editor-document";
 
 // One grid check for the validator, the normalizer, and paste.
 // Plate stores colSpan and rowSpan on the cell (constants-6xljcM3U.js getColSpan
@@ -10192,7 +10209,7 @@ export function boundaryIsClean(
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-table-commands.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
 ```ts
 import {
   deleteColumn,
@@ -10226,14 +10243,14 @@ import {
   tableMaxColumns,
   tableMaxRows,
   type TableCellContext,
-} from "./editor-table";
+} from "../features/editor-table";
 import {
   boundaryIsClean,
   rowSliceIsClean,
   tableCoverage,
   TABLE_MAX_COLUMN_WIDTH,
   TABLE_MIN_COLUMN_WIDTH,
-} from "./editor-table-grid";
+} from "../features/editor-table-grid";
 
 function editorIsReadOnly(editor: SlateEditor): boolean {
   return editor.dom.readOnly === true;
@@ -11019,7 +11036,7 @@ export const setTableColumnWidth: EditorCommand<{
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/table-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
 ```tsx
 import { useLayoutEffect, useRef, useState } from "react";
 import { KEYS, type TElement } from "platejs";
@@ -11034,10 +11051,14 @@ import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
 
 import { cn } from "@/lib/utils";
 
-import { runEditorCommand } from "./editor-commands";
-import { setTableColumnWidth } from "./editor-table-commands";
-import { tableCoverage, TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
-import { TableControls } from "./table-controls";
+import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { setTableColumnWidth } from "../../lib/commands/editor-table-commands";
+import {
+  tableCoverage,
+  TABLE_MAX_COLUMN_WIDTH,
+  TABLE_MIN_COLUMN_WIDTH,
+} from "../../lib/features/editor-table-grid";
+import { TableControls } from "../ui/table-controls";
 
 const CELL_CLASS =
   "min-w-12 border border-[var(--editor-table-border)] px-2 py-1.5 align-top text-foreground";
@@ -11309,7 +11330,7 @@ export function TableCellElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/table-controls.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
 ```tsx
 import { useRef, type ReactNode } from "react";
 import {
@@ -11337,7 +11358,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 
-import { runEditorCommand, type EditorCommand } from "./editor-commands";
+import { runEditorCommand, type EditorCommand } from "../../lib/commands/editor-commands";
 import {
   deleteTable,
   deleteTableColumn,
@@ -11354,8 +11375,8 @@ import {
   splitTableCell,
   toggleTableHeaderColumn,
   toggleTableHeaderRow,
-} from "./editor-table-commands";
-import { columnIsHeader, rowIsHeader } from "./editor-table";
+} from "../../lib/commands/editor-table-commands";
+import { columnIsHeader, rowIsHeader } from "../../lib/features/editor-table";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -11578,7 +11599,7 @@ export function TableControls({ element }: { element: TElement }) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/toggle-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
 ```tsx
 import { ChevronRight } from "lucide-react";
 import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } from "platejs/react";
@@ -11586,7 +11607,7 @@ import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } f
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import { toggleOpen, togglePlugin } from "./editor-toggle";
+import { toggleOpen, togglePlugin } from "../../lib/plugins/editor-toggle";
 import { headingLineClass } from "./heading-element";
 
 // Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
@@ -11711,7 +11732,7 @@ export function ToggleElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/hr-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
 ```tsx
 import {
   PlateElement,
@@ -11754,7 +11775,7 @@ export function HrElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-paste-url.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
 ```ts
 import {
   ElementApi,
@@ -11767,8 +11788,8 @@ import {
   type TElement,
 } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
-import { selectionInCodeBlock } from "./editor-code";
+import type { EditorCommand } from "../commands/editor-commands";
+import { selectionInCodeBlock } from "../features/editor-code";
 
 export type PasteUrlOffer = {
   url: string;
@@ -12147,7 +12168,7 @@ function htmlWithoutScripts(html: string): string {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-bookmark-url.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
 ```ts
 import type { TElement } from "platejs";
 
@@ -12431,11 +12452,11 @@ function hasBookmarkControl(value: string): boolean {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-bookmark.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
 ```ts
 import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
+import type { EditorCommand } from "../commands/editor-commands";
 import {
   BOOKMARK_INVALID_URL,
   BOOKMARK_KEY,
@@ -12444,12 +12465,12 @@ import {
   normalizeBookmarkUrl,
   type LinkPreview,
 } from "./editor-bookmark-url";
-import { setPasteRepairs } from "./editor-paste-repairs";
+import { setPasteRepairs } from "../paste/editor-paste-repairs";
 import {
   pasteUrlActions,
   replacePastedUrlWith,
   replaceVoidWithParagraph,
-} from "./editor-paste-url";
+} from "../paste/editor-paste-url";
 
 const METADATA_KEYS = ["title", "description", "siteName", "imageUrl"] as const;
 
@@ -12602,7 +12623,7 @@ function writableBookmark(editor: SlateEditor, id: string): [TElement, number[]]
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/bookmark-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ExternalLink, Globe, Trash2 } from "lucide-react";
@@ -12618,9 +12639,13 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { applyBookmarkPreview, convertBookmarkToText, removeBookmark } from "./editor-bookmark";
-import { bookmarkDomain, type LinkPreviewAdapter } from "./editor-bookmark-url";
-import { runEditorCommand } from "./editor-commands";
+import {
+  applyBookmarkPreview,
+  convertBookmarkToText,
+  removeBookmark,
+} from "../../lib/features/editor-bookmark";
+import { bookmarkDomain, type LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
+import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { hrElementClassName } from "./hr-element";
 import {
   MEDIA_TOOLBAR_CLASS,
@@ -12628,7 +12653,7 @@ import {
   mediaIconButtonClass,
   mediaStringAttr,
   keepMediaSelection,
-} from "./block-toolbar";
+} from "../ui/block-toolbar";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
 export const BOOKMARK_CARD_CLASS =
@@ -12972,7 +12997,7 @@ function BookmarkToolbar({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-columns.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
 ```ts
 import { setColumns } from "@platejs/layout";
 import {
@@ -12988,11 +13013,11 @@ import {
 } from "platejs";
 
 import type { EditorCommand } from "./editor-commands";
-import { formatBlockLabel } from "./editor-document";
-import type { Repair } from "./editor-document-ids";
-import { allowedChildTypes } from "./editor-document-schema";
-import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
-import type { EditorValue } from "./editor-value";
+import { formatBlockLabel } from "../document/editor-document";
+import type { Repair } from "../document/editor-document-ids";
+import { allowedChildTypes } from "../document/editor-document-schema";
+import { pasteRepairsOf, setPasteRepairs } from "../paste/editor-paste-repairs";
+import type { EditorValue } from "../document/editor-value";
 
 export const COLUMN_MIN_PERCENT = 20;
 export const COLUMN_MIN_COUNT = 2;
@@ -14013,7 +14038,7 @@ export const setColumnWidthsCommand: EditorCommand<readonly number[]> = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/column-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
 ```tsx
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ElementApi, KEYS, type TElement } from "platejs";
@@ -14035,8 +14060,8 @@ import {
   setColumnCount,
   setColumnWidths,
   unwrapColumns,
-} from "./editor-columns";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
+} from "../../lib/commands/editor-columns";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
@@ -14337,13 +14362,13 @@ export function ColumnGroupElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-toc.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
 ```ts
 import { ElementApi, KEYS, NodeApi, PathApi, type SlateEditor, type TElement } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
-import { headingAnchorId } from "./heading-element";
-import { toggleOpen } from "./editor-toggle";
+import type { EditorCommand } from "../commands/editor-commands";
+import { headingAnchorId } from "../../components/elements/heading-element";
+import { toggleOpen } from "../plugins/editor-toggle";
 
 export const TOC_DEPTHS = [1, 2, 3] as const;
 export type TocDepth = (typeof TOC_DEPTHS)[number];
@@ -14630,7 +14655,7 @@ export const removeTocCommand: EditorCommand = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
 ```tsx
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
@@ -14655,8 +14680,8 @@ import {
   storedTocDepth,
   tocEntries,
   type TocEntry,
-} from "./editor-toc";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
+} from "../../lib/features/editor-toc";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
 
 const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
 
@@ -14792,7 +14817,7 @@ export function TocElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-equation.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
 ```ts
 import {
   ElementApi,
@@ -14805,7 +14830,7 @@ import {
 } from "platejs";
 import type { KatexOptions } from "katex";
 
-import type { EditorCommand } from "./editor-commands";
+import type { EditorCommand } from "../commands/editor-commands";
 
 export const EQUATION_EMPTY_PLACEHOLDER = "Add an equation";
 
@@ -14999,7 +15024,7 @@ export const removeEquationCommand: EditorCommand = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
 ```tsx
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
@@ -15024,8 +15049,8 @@ import {
   removeEquation,
   renderEquation,
   type EquationRender,
-} from "./editor-equation";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
+} from "../../lib/features/editor-equation";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
 
 import "katex/dist/katex.min.css";
 
@@ -15311,7 +15336,7 @@ export function EquationElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
 ```ts
 import {
   ElementApi,
@@ -15323,13 +15348,13 @@ import {
   type TElement,
 } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
-import { formatBlockLabel } from "./editor-document";
-import type { Repair } from "./editor-document-ids";
-import { SYNCED_REF_KEY, isStoredSyncedTargetId } from "./editor-document-schema";
+import type { EditorCommand } from "../commands/editor-commands";
+import { formatBlockLabel } from "../document/editor-document";
+import type { Repair } from "../document/editor-document-ids";
+import { SYNCED_REF_KEY, isStoredSyncedTargetId } from "../document/editor-document-schema";
 import { prefersReducedMotion } from "./editor-toc";
-import { toggleOpen } from "./editor-toggle";
-import type { EditorValue } from "./editor-value";
+import { toggleOpen } from "../plugins/editor-toggle";
+import type { EditorValue } from "../document/editor-value";
 
 export { SYNCED_REF_KEY };
 
@@ -15844,7 +15869,7 @@ export const removeSyncedRef: EditorCommand = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
 ```tsx
 import { createElement, type ReactNode } from "react";
 import { ElementApi, type Descendant, type SlateEditor, type TElement, type TText } from "platejs";
@@ -15878,9 +15903,9 @@ import {
   syncedTargetStatus,
   type SyncedDirection,
   type SyncedTargetStatus,
-} from "./editor-synced-block";
-import { isStoredSyncedTargetId } from "./editor-document-schema";
-import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
+} from "../../lib/features/editor-synced-block";
+import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "../ui/block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic
@@ -16184,7 +16209,7 @@ export function SyncedRefElement(props: PlateElementProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-link-url.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
 ```ts
 // One URL policy for the plugin, popover, paste, HTML deserialize, validator, and render.
 // A bare domain is not rewritten here. The link input calls normalizeLinkInput.
@@ -16282,7 +16307,7 @@ function hasForbiddenChar(value: string): boolean {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-link.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
 ```ts
 import { BaseLinkPlugin, unwrapLink, upsertLinkText } from "@platejs/link";
 import {
@@ -16296,16 +16321,16 @@ import {
   type TRange,
 } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
-import { selectionInCodeBlock } from "./editor-code";
-import { elementAllowsMarks, isVoidElementType } from "./editor-document-schema";
+import type { EditorCommand } from "../commands/editor-commands";
+import { selectionInCodeBlock } from "../features/editor-code";
+import { elementAllowsMarks, isVoidElementType } from "../document/editor-document-schema";
 import {
   clearUnsafePastedLinkRepairs,
   isExternalLinkUrl,
   normalizeLinkInput,
   noteUnsafePastedLink,
   sanitizeLinkUrl,
-} from "./editor-link-url";
+} from "../features/editor-link-url";
 
 // Native LinkRules.autolink (dist/index.js getAutolinkMatch) keeps trailing
 // punctuation in the link and does not skip code blocks. submitFloatingLink
@@ -16857,7 +16882,7 @@ function caretRect(): { top: number; left: number } {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/link-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
 ```tsx
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
@@ -16868,15 +16893,15 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { runEditorCommand } from "./editor-commands";
+import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   linkUiPlugin,
   openInlineLink,
   openLinkPopover,
   removeInlineLink,
   setLinkHover,
-} from "./editor-link";
-import { isExternalLinkUrl, sanitizeLinkUrl } from "./editor-link-url";
+} from "../../lib/plugins/editor-link";
+import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
 
 export function LinkElement({ attributes, children, element }: PlateElementProps) {
   "use no memo";
@@ -17048,7 +17073,7 @@ function selectedOrHoveredLink(
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/link-popover.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
 ```tsx
 import { useEffect, useState } from "react";
 import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
@@ -17057,14 +17082,14 @@ import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
-import { runEditorCommand } from "./editor-commands";
+import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   closeLinkPopover,
   commitLinkPopover,
   linkUiPlugin,
   openInlineLink,
   removeInlineLink,
-} from "./editor-link";
+} from "../../lib/plugins/editor-link";
 
 export function LinkPopover() {
   "use no memo";
@@ -17246,14 +17271,14 @@ function LinkPopoverForm({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-mention-node.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
 ```ts
 import { KEYS, nanoid, type Descendant, type TElement, type TText } from "platejs";
 
-import { formatBlockLabel } from "./editor-document";
-import type { Repair } from "./editor-document-ids";
+import { formatBlockLabel } from "../document/editor-document";
+import type { Repair } from "../document/editor-document-ids";
 import type { TableGridIssue } from "./editor-table-grid";
-import type { EditorValue } from "./editor-value";
+import type { EditorValue } from "../document/editor-value";
 
 // Plate's mention node stores `value` (display text) and `key` (item id).
 // @platejs/mention 53.0.0 BaseMentionPlugin-uPSCCRSr.js insert.mention, lines 32-38.
@@ -17519,13 +17544,13 @@ export function repairMentionInputs(
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-mention.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
 ```ts
 import { BaseMentionPlugin } from "@platejs/mention";
 import { ElementApi, KEYS, createSlatePlugin, type SlateEditor, type TElement } from "platejs";
 
-import type { EditorCommand } from "./editor-commands";
-import { selectionInCodeBlock } from "./editor-code";
+import type { EditorCommand } from "../commands/editor-commands";
+import { selectionInCodeBlock } from "../features/editor-code";
 import {
   MENTION_ENTITY_TYPE,
   allocateMentionId,
@@ -17534,7 +17559,7 @@ import {
   sanitizeMentionLabel,
   type MentionEntity,
   type MentionProvider,
-} from "./editor-mention-node";
+} from "../features/editor-mention-node";
 
 export const MENTION_SEARCH_DEBOUNCE_MS = 150;
 export const MENTION_EMPTY_LABEL = "No people found";
@@ -18095,7 +18120,7 @@ export const insertMention: EditorCommand = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/mention-element.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
@@ -18115,8 +18140,8 @@ import {
   onMentionInputKeyDown,
   setMentionInputComposing,
   setMentionQuery,
-} from "./editor-mention";
-import type { MentionProvider } from "./editor-mention-node";
+} from "../../lib/plugins/editor-mention";
+import type { MentionProvider } from "../../lib/features/editor-mention-node";
 
 const MentionProviderContext = createContext<MentionProvider | null>(null);
 
@@ -18391,20 +18416,20 @@ export function MentionInputElement({ attributes, children }: PlateElementProps)
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
 import { useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
-import { runEditorCommand } from "./editor-commands";
+import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   applyPasteUrlAction,
   clearPasteUrlOffer,
   pasteUrlActions,
   pasteUrlPlugin,
-} from "./editor-paste-url";
+} from "../../lib/paste/editor-paste-url";
 
 export function PasteUrlMenu() {
   const editor = useEditorRef();
@@ -18517,7 +18542,7 @@ function selectionRect(): { top: number; left: number } {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
 
@@ -18534,7 +18559,7 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
 import { unwrapCodeBlock } from "@platejs/code-block";
@@ -18553,7 +18578,7 @@ import {
   type TText,
 } from "platejs";
 
-import { openAncestorToggle } from "./editor-toggle";
+import { openAncestorToggle } from "../plugins/editor-toggle";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -18583,7 +18608,7 @@ import {
   type ListStyle,
   type TextAlign,
   type TextColorToken,
-} from "./editor-document-schema";
+} from "../document/editor-document-schema";
 
 export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 
@@ -19851,12 +19876,12 @@ export function runEditorCommand<Payload>(
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+## packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
 ```ts
 import { usePlateEditor } from "platejs/react";
 
-import { createEditorPlugins } from "./editor-plugins";
-import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
+import { createEditorPlugins } from "../lib/plugins/editor-plugins";
+import { EMPTY_EDITOR_VALUE, type EditorValue } from "../lib/document/editor-value";
 
 type NotionLikeEditorOptions = {
   documentId: string;
@@ -19884,7 +19909,7 @@ export function useNotionLikeEditor({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
 ```ts
 import type { EditorValue } from "./editor-value";
 
@@ -19921,7 +19946,7 @@ export type EditorPersistenceAdapter = {
 };
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
 ```ts
 import { EDITOR_SCHEMA_VERSION, serializeEditorDocument } from "./editor-document";
 import type { EditorPersistenceAdapter, SaveRequest, SaveResult } from "./editor-persistence";
@@ -20123,7 +20148,7 @@ export function removeStaleDemoDocuments(storage: Storage, currentDocumentId: st
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
 ```ts
 import { EDITOR_SCHEMA_VERSION } from "./editor-document";
 import type { EditorPersistenceAdapter, SaveResult } from "./editor-persistence";
@@ -20464,22 +20489,22 @@ export function createAutosave(options: AutosaveOptions): AutosaveController {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+## packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
 ```ts
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 
-import { createAutosave, type AutosaveStatus } from "./editor-autosave";
+import { createAutosave, type AutosaveStatus } from "../lib/document/editor-autosave";
 import {
   EDITOR_SCHEMA_VERSION,
   createEditorDocument,
   type EditorDocument,
-} from "./editor-document";
-import { migrateEditorDocument } from "./editor-document-migrate";
-import { parseEditorDocument, type ParseResult } from "./editor-document-validate";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import { EMPTY_EDITOR_VALUE, type EditorValue } from "./editor-value";
+} from "../lib/document/editor-document";
+import { migrateEditorDocument } from "../lib/document/editor-document-migrate";
+import { parseEditorDocument, type ParseResult } from "../lib/document/editor-document-validate";
+import type { EditorPersistenceAdapter } from "../lib/document/editor-persistence";
+import { EMPTY_EDITOR_VALUE, type EditorValue } from "../lib/document/editor-value";
 
 export type EditorRecoveryResult = Exclude<ParseResult, { status: "ok" }>;
 
@@ -20724,7 +20749,7 @@ export function useEditorDocument({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
 ```tsx
 "use client";
 
@@ -20733,17 +20758,17 @@ import { Plate, PlateContent } from "platejs/react";
 
 import { cn } from "@/lib/utils";
 
-import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import type { EditorValue } from "./editor-value";
-import { LinkPreviewProvider } from "./bookmark-element";
-import type { LinkPreviewAdapter } from "./editor-bookmark-url";
-import { mentionUiPlugin } from "./editor-mention";
-import { repairMentionInputs, type MentionProvider } from "./editor-mention-node";
-import { LinkToolbar } from "./link-element";
-import { LinkPopover } from "./link-popover";
-import { MentionScope } from "./mention-element";
-import { PasteRepairNotice } from "./paste-repair-notice";
-import { PasteUrlMenu } from "./paste-url-menu";
+import { LIST_SIBLING_GAP_CLASS } from "../elements/block-list";
+import type { EditorValue } from "../../lib/document/editor-value";
+import { LinkPreviewProvider } from "../elements/bookmark-element";
+import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
+import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
+import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
+import { LinkToolbar } from "../elements/link-element";
+import { LinkPopover } from "../ui/link-popover";
+import { MentionScope } from "../elements/mention-element";
+import { PasteRepairNotice } from "../ui/paste-repair-notice";
+import { PasteUrlMenu } from "../ui/paste-url-menu";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -20802,7 +20827,7 @@ export function EditorSurface({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
 ```tsx
 import { Skeleton } from "@/components/skeleton";
 
@@ -20818,14 +20843,14 @@ export function EditorDocumentSkeleton() {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
 ```tsx
 "use client";
 
 import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 
-import type { AutosaveStatus } from "./editor-autosave";
+import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 
 type EditorSaveStatusProps = {
   status: AutosaveStatus;
@@ -20873,7 +20898,7 @@ export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusP
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
 ```tsx
 "use client";
 
@@ -20881,8 +20906,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/alert";
 import { Button } from "@/components/button";
 import { CopyButton } from "@/components/copy-button";
 
-import { EDITOR_SCHEMA_VERSION } from "./editor-document";
-import type { EditorRecoveryResult } from "./use-editor-document";
+import { EDITOR_SCHEMA_VERSION } from "../../lib/document/editor-document";
+import type { EditorRecoveryResult } from "../../hooks/use-editor-document";
 
 type EditorRecoveryNoticeProps = {
   result: EditorRecoveryResult;
@@ -20980,15 +21005,15 @@ export function EditorRecoveryNotice({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
 ```tsx
 "use client";
 
 import { cn } from "@/lib/utils";
 
 import { EditorSurface } from "./editor-surface";
-import type { NotionLikeEditorBlockProps } from "./notion-like-editor-block";
-import { useNotionLikeEditor } from "./use-notion-like-editor";
+import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
+import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
 export function MemoryEditor({
   documentId,
@@ -21018,17 +21043,17 @@ export function MemoryEditor({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
 ```tsx
 "use client";
 
 import { EditorSaveStatus } from "./editor-save-status";
 import { EditorSurface } from "./editor-surface";
-import type { AutosaveStatus } from "./editor-autosave";
-import type { LinkPreviewAdapter } from "./editor-bookmark-url";
-import type { MentionProvider } from "./editor-mention-node";
-import type { EditorValue } from "./editor-value";
-import { useNotionLikeEditor } from "./use-notion-like-editor";
+import type { AutosaveStatus } from "../../lib/document/editor-autosave";
+import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
+import type { MentionProvider } from "../../lib/features/editor-mention-node";
+import type { EditorValue } from "../../lib/document/editor-value";
+import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
 type ReadyEditorProps = {
   documentId: string;
@@ -21081,7 +21106,7 @@ export function ReadyEditor({
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+## packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
 ```tsx
 "use client";
 
@@ -21089,10 +21114,10 @@ import { cn } from "@/lib/utils";
 
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { EditorRecoveryNotice } from "./editor-recovery-notice";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import type { NotionLikeEditorBlockProps } from "./notion-like-editor-block";
+import type { EditorPersistenceAdapter } from "../../lib/document/editor-persistence";
+import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { ReadyEditor } from "./ready-editor";
-import { useEditorDocument } from "./use-editor-document";
+import { useEditorDocument } from "../../hooks/use-editor-document";
 
 export function PersistedEditor({
   documentId,
@@ -21146,12 +21171,12 @@ export function PersistedEditor({
 ```tsx
 "use client";
 
-import type { LinkPreviewAdapter } from "./editor-bookmark-url";
-import type { MentionProvider } from "./editor-mention-node";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import type { EditorValue } from "./editor-value";
-import { MemoryEditor } from "./memory-editor";
-import { PersistedEditor } from "./persisted-editor";
+import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
+import type { MentionProvider } from "./lib/features/editor-mention-node";
+import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import type { EditorValue } from "./lib/document/editor-value";
+import { MemoryEditor } from "./components/editor/memory-editor";
+import { PersistedEditor } from "./components/editor/persisted-editor";
 
 export type NotionLikeEditorBlockProps = {
   documentId: string;
@@ -21174,9 +21199,9 @@ export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+## packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
 ```ts
-import type { EditorValue } from "./editor-value";
+import type { EditorValue } from "../lib/document/editor-value";
 
 const wrapped =
   "The lines wrap on purpose, so the space between them is visible in this block. The gap between the lines is the line height.";
@@ -22347,9 +22372,9 @@ export function demoDocumentId(value: EditorValue): string {
 export const DEMO_DOCUMENT_ID = demoDocumentId(DEMO_DOCUMENT_VALUE);
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+## packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
 ```ts
-import type { LinkPreview, LinkPreviewAdapter } from "./editor-bookmark-url";
+import type { LinkPreview, LinkPreviewAdapter } from "../lib/features/editor-bookmark-url";
 
 const DEMO_PREVIEW_DELAY_MS = 400;
 
@@ -22404,9 +22429,9 @@ function abortError(): Error {
 }
 ```
 
-## packages/core/src/components/blocks/notion-like-editor/demo-mention.ts
+## packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
 ```ts
-import type { MentionEntity, MentionProvider } from "./editor-mention-node";
+import type { MentionEntity, MentionProvider } from "../lib/features/editor-mention-node";
 
 const DEMO_PEOPLE: readonly MentionEntity[] = [
   {
@@ -22495,12 +22520,15 @@ export const demoMentionProvider: MentionProvider = {
 
 import { useSyncExternalStore } from "react";
 
-import { demoLinkPreviewAdapter } from "./demo-link-preview";
-import { demoMentionProvider } from "./demo-mention";
-import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
-import type { EditorPersistenceAdapter } from "./editor-persistence";
-import { EditorDocumentSkeleton } from "./editor-document-skeleton";
-import { createLocalStorageAdapter, removeStaleDemoDocuments } from "./local-storage-adapter";
+import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
+import { demoMentionProvider } from "./demo/demo-mention";
+import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
+import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
+import {
+  createLocalStorageAdapter,
+  removeStaleDemoDocuments,
+} from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 
 let demoAdapter: EditorPersistenceAdapter | undefined;
@@ -22575,256 +22603,256 @@ const ROUTE_DIR = "apps/web/src/app/blocks/notion-like-editor";
 
 const BLOCK_FILES = [
   {
-    path: "components/blocks/notion-like-editor/editor-value.ts",
-    code: readSource(`${BLOCK_DIR}/editor-value.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-value.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-value.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document-schema.ts",
-    code: readSource(`${BLOCK_DIR}/editor-document-schema.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-document-schema.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-document-schema.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document.ts",
-    code: readSource(`${BLOCK_DIR}/editor-document.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-document.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-document.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document-ids.ts",
-    code: readSource(`${BLOCK_DIR}/editor-document-ids.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-document-ids.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-document-ids.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document-migrate.ts",
-    code: readSource(`${BLOCK_DIR}/editor-document-migrate.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-document-migrate.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-document-migrate.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document-validate.ts",
-    code: readSource(`${BLOCK_DIR}/editor-document-validate.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-document-validate.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-document-validate.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-paste.ts",
-    code: readSource(`${BLOCK_DIR}/editor-paste.ts`),
+    path: "components/blocks/notion-like-editor/lib/paste/editor-paste.ts",
+    code: readSource(`${BLOCK_DIR}/lib/paste/editor-paste.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-paste-repairs.ts",
-    code: readSource(`${BLOCK_DIR}/editor-paste-repairs.ts`),
+    path: "components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts",
+    code: readSource(`${BLOCK_DIR}/lib/paste/editor-paste-repairs.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/paste-repair-notice.tsx",
-    code: readSource(`${BLOCK_DIR}/paste-repair-notice.tsx`),
+    path: "components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/paste-repair-notice.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/block-toolbar.tsx",
-    code: readSource(`${BLOCK_DIR}/block-toolbar.tsx`),
+    path: "components/blocks/notion-like-editor/components/ui/block-toolbar.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-toolbar.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-plugins.ts",
-    code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
+    path: "components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts",
+    code: readSource(`${BLOCK_DIR}/lib/plugins/editor-plugins.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-toggle.ts",
-    code: readSource(`${BLOCK_DIR}/editor-toggle.ts`),
+    path: "components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts",
+    code: readSource(`${BLOCK_DIR}/lib/plugins/editor-toggle.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/heading-element.tsx",
-    code: readSource(`${BLOCK_DIR}/heading-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/heading-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/heading-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/block-list.tsx",
-    code: readSource(`${BLOCK_DIR}/block-list.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/block-list.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/block-list.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/blockquote-element.tsx",
-    code: readSource(`${BLOCK_DIR}/blockquote-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/blockquote-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/blockquote-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/callout-element.tsx",
-    code: readSource(`${BLOCK_DIR}/callout-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/callout-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/callout-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-code.ts",
-    code: readSource(`${BLOCK_DIR}/editor-code.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-code.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-code.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/code-block-element.tsx",
-    code: readSource(`${BLOCK_DIR}/code-block-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/code-block-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/code-block-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-table.ts",
-    code: readSource(`${BLOCK_DIR}/editor-table.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-table.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-table.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-table-grid.ts",
-    code: readSource(`${BLOCK_DIR}/editor-table-grid.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-table-grid.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-table-grid.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-table-commands.ts",
-    code: readSource(`${BLOCK_DIR}/editor-table-commands.ts`),
+    path: "components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts",
+    code: readSource(`${BLOCK_DIR}/lib/commands/editor-table-commands.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/table-element.tsx",
-    code: readSource(`${BLOCK_DIR}/table-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/table-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/table-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/table-controls.tsx",
-    code: readSource(`${BLOCK_DIR}/table-controls.tsx`),
+    path: "components/blocks/notion-like-editor/components/ui/table-controls.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/table-controls.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/toggle-element.tsx",
-    code: readSource(`${BLOCK_DIR}/toggle-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/toggle-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/toggle-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/hr-element.tsx",
-    code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/hr-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/hr-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-paste-url.ts",
-    code: readSource(`${BLOCK_DIR}/editor-paste-url.ts`),
+    path: "components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts",
+    code: readSource(`${BLOCK_DIR}/lib/paste/editor-paste-url.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-bookmark-url.ts",
-    code: readSource(`${BLOCK_DIR}/editor-bookmark-url.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-bookmark-url.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-bookmark.ts",
-    code: readSource(`${BLOCK_DIR}/editor-bookmark.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-bookmark.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-bookmark.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/bookmark-element.tsx",
-    code: readSource(`${BLOCK_DIR}/bookmark-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/bookmark-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/bookmark-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-columns.ts",
-    code: readSource(`${BLOCK_DIR}/editor-columns.ts`),
+    path: "components/blocks/notion-like-editor/lib/commands/editor-columns.ts",
+    code: readSource(`${BLOCK_DIR}/lib/commands/editor-columns.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/column-element.tsx",
-    code: readSource(`${BLOCK_DIR}/column-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/column-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/column-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-toc.ts",
-    code: readSource(`${BLOCK_DIR}/editor-toc.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-toc.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-toc.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/toc-element.tsx",
-    code: readSource(`${BLOCK_DIR}/toc-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/toc-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/toc-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-equation.ts",
-    code: readSource(`${BLOCK_DIR}/editor-equation.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-equation.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-equation.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/equation-element.tsx",
-    code: readSource(`${BLOCK_DIR}/equation-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/equation-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/equation-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-synced-block.ts",
-    code: readSource(`${BLOCK_DIR}/editor-synced-block.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-synced-block.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-synced-block.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/synced-ref-element.tsx",
-    code: readSource(`${BLOCK_DIR}/synced-ref-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/synced-ref-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-link-url.ts",
-    code: readSource(`${BLOCK_DIR}/editor-link-url.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-link-url.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-link-url.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-link.ts",
-    code: readSource(`${BLOCK_DIR}/editor-link.ts`),
+    path: "components/blocks/notion-like-editor/lib/plugins/editor-link.ts",
+    code: readSource(`${BLOCK_DIR}/lib/plugins/editor-link.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/link-element.tsx",
-    code: readSource(`${BLOCK_DIR}/link-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/link-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/link-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/link-popover.tsx",
-    code: readSource(`${BLOCK_DIR}/link-popover.tsx`),
+    path: "components/blocks/notion-like-editor/components/ui/link-popover.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/link-popover.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-mention-node.ts",
-    code: readSource(`${BLOCK_DIR}/editor-mention-node.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-mention-node.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-mention-node.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-mention.ts",
-    code: readSource(`${BLOCK_DIR}/editor-mention.ts`),
+    path: "components/blocks/notion-like-editor/lib/plugins/editor-mention.ts",
+    code: readSource(`${BLOCK_DIR}/lib/plugins/editor-mention.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/mention-element.tsx",
-    code: readSource(`${BLOCK_DIR}/mention-element.tsx`),
+    path: "components/blocks/notion-like-editor/components/elements/mention-element.tsx",
+    code: readSource(`${BLOCK_DIR}/components/elements/mention-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
-    code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
+    path: "components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/paste-url-menu.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-selection.ts",
-    code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
+    path: "components/blocks/notion-like-editor/lib/features/editor-selection.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-selection.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-commands.ts",
-    code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
+    path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",
+    code: readSource(`${BLOCK_DIR}/lib/commands/editor-commands.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",
-    code: readSource(`${BLOCK_DIR}/use-notion-like-editor.ts`),
+    path: "components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts",
+    code: readSource(`${BLOCK_DIR}/hooks/use-notion-like-editor.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-persistence.ts",
-    code: readSource(`${BLOCK_DIR}/editor-persistence.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-persistence.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-persistence.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/local-storage-adapter.ts",
-    code: readSource(`${BLOCK_DIR}/local-storage-adapter.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/local-storage-adapter.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-autosave.ts",
-    code: readSource(`${BLOCK_DIR}/editor-autosave.ts`),
+    path: "components/blocks/notion-like-editor/lib/document/editor-autosave.ts",
+    code: readSource(`${BLOCK_DIR}/lib/document/editor-autosave.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/use-editor-document.ts",
-    code: readSource(`${BLOCK_DIR}/use-editor-document.ts`),
+    path: "components/blocks/notion-like-editor/hooks/use-editor-document.ts",
+    code: readSource(`${BLOCK_DIR}/hooks/use-editor-document.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-surface.tsx",
-    code: readSource(`${BLOCK_DIR}/editor-surface.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/editor-surface.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/editor-surface.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-document-skeleton.tsx",
-    code: readSource(`${BLOCK_DIR}/editor-document-skeleton.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/editor-document-skeleton.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-save-status.tsx",
-    code: readSource(`${BLOCK_DIR}/editor-save-status.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/editor-save-status.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/editor-save-status.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-recovery-notice.tsx",
-    code: readSource(`${BLOCK_DIR}/editor-recovery-notice.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/editor-recovery-notice.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/memory-editor.tsx",
-    code: readSource(`${BLOCK_DIR}/memory-editor.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/memory-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/memory-editor.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/ready-editor.tsx",
-    code: readSource(`${BLOCK_DIR}/ready-editor.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/ready-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/ready-editor.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/persisted-editor.tsx",
-    code: readSource(`${BLOCK_DIR}/persisted-editor.tsx`),
+    path: "components/blocks/notion-like-editor/components/editor/persisted-editor.tsx",
+    code: readSource(`${BLOCK_DIR}/components/editor/persisted-editor.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-block.tsx",
     code: readSource(`${BLOCK_DIR}/notion-like-editor-block.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/demo-document.ts",
-    code: readSource(`${BLOCK_DIR}/demo-document.ts`),
+    path: "components/blocks/notion-like-editor/demo/demo-document.ts",
+    code: readSource(`${BLOCK_DIR}/demo/demo-document.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/demo-link-preview.ts",
-    code: readSource(`${BLOCK_DIR}/demo-link-preview.ts`),
+    path: "components/blocks/notion-like-editor/demo/demo-link-preview.ts",
+    code: readSource(`${BLOCK_DIR}/demo/demo-link-preview.ts`),
   },
   {
-    path: "components/blocks/notion-like-editor/demo-mention.ts",
-    code: readSource(`${BLOCK_DIR}/demo-mention.ts`),
+    path: "components/blocks/notion-like-editor/demo/demo-mention.ts",
+    code: readSource(`${BLOCK_DIR}/demo/demo-mention.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",
