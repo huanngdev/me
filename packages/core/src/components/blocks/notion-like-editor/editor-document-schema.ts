@@ -18,6 +18,7 @@ import {
   storedEmbed,
   type EmbedProvider,
 } from "./editor-embed-url";
+import { sanitizeLinkUrl } from "./editor-link-url";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -1164,6 +1165,12 @@ export const EDITOR_ELEMENT_RULES = [
       SYNCED_REF_KEY,
     ],
   },
+  // Inline link. target and rel are chosen at render and are not stored.
+  {
+    type: KEYS.link,
+    attrs: ["id", "url"],
+    repairAttrs: ["url"],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -1442,6 +1449,10 @@ export function allowedElementAttrValues(
 }
 
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  if (type === KEYS.link && attr === "url") {
+    return typeof value === "string" && sanitizeLinkUrl(value) === value;
+  }
+
   const values = allowedElementAttrValues(type, attr);
   if (values !== undefined && !isAllowedValue(value, values)) {
     return false;

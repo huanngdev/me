@@ -100,6 +100,15 @@ function messages(result: ParseResult): string {
   return result.issues.map((issue) => issue.message).join("\n");
 }
 
+function blockString(editor: SlateEditor, index = 0): string {
+  const block = editor.children[index];
+  if (block === undefined) {
+    throw new Error("Missing block.");
+  }
+
+  return editor.api.string(block);
+}
+
 function allText(value: unknown): string {
   if (typeof value === "string") {
     return value;
@@ -591,9 +600,10 @@ describe("embed paste", () => {
   test("a bare provider URL pastes as text and offers embed, then one extra undo", () => {
     const editor = plateEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
-    pasteText(editor, `  https://youtu.be/${YOUTUBE_ID}?t=42  `);
-    expect(texts(editor)).toEqual([`  https://youtu.be/${YOUTUBE_ID}?t=42  `]);
-    expect(offerOf(editor)?.url).toBe(`https://youtu.be/${YOUTUBE_ID}?t=42`);
+    const pastedUrl = `https://youtu.be/${YOUTUBE_ID}?t=42`;
+    pasteText(editor, `  ${pastedUrl}  `);
+    expect(blockString(editor)).toBe(pastedUrl);
+    expect(offerOf(editor)?.url).toBe(pastedUrl);
     expect(editor.history.undos.length).toBe(1);
 
     runEditorCommand(editor, applyPasteUrlAction, "embed");
@@ -601,7 +611,7 @@ describe("embed paste", () => {
     expect(field(editor.children[0], "startSeconds")).toBe(42);
     expect(editor.history.undos.length).toBe(2);
     editor.tf.undo();
-    expect(texts(editor)).toEqual([`  https://youtu.be/${YOUTUBE_ID}?t=42  `]);
+    expect(blockString(editor)).toBe(`https://youtu.be/${YOUTUBE_ID}?t=42`);
     editor.tf.undo();
     expect(texts(editor)).toEqual([""]);
   });
@@ -610,14 +620,14 @@ describe("embed paste", () => {
     const editor = plateEditor([paragraph("See ", "note")]);
     editor.tf.select(caret([0, 0], 4));
     pasteText(editor, WATCH);
-    expect(texts(editor)).toEqual([`See ${WATCH}`]);
+    expect(blockString(editor)).toBe(`See ${WATCH}`);
     expect(offerOf(editor)?.url).toBe(WATCH);
     runEditorCommand(editor, applyPasteUrlAction, "embed");
     expect(typesOf(editor)).toEqual(["p", KEYS.mediaEmbed]);
     expect(texts(editor)[0]).toBe("See ");
     expect(field(editor.children[1], "videoId")).toBe(YOUTUBE_ID);
     editor.tf.undo();
-    expect(texts(editor)).toEqual([`See ${WATCH}`]);
+    expect(blockString(editor)).toBe(`See ${WATCH}`);
   });
 
   test("keep, escape, typing, and a selection change dismiss the menu and keep the text", async () => {
@@ -628,14 +638,14 @@ describe("embed paste", () => {
     expect(offerOf(kept)?.url).toBe(WATCH);
     clearPasteUrlOffer(kept);
     expect(offerOf(kept)).toBeUndefined();
-    expect(texts(kept)).toEqual([WATCH]);
+    expect(blockString(kept)).toBe(WATCH);
 
     const typed = plateEditor([paragraph("", "empty")]);
     typed.tf.select(caret([0, 0], 0));
     pasteText(typed, WATCH);
     typed.tf.insertText("!");
     expect(offerOf(typed)).toBeUndefined();
-    expect(texts(typed)).toEqual([`${WATCH}!`]);
+    expect(blockString(typed)).toBe(`${WATCH}!`);
 
     const moved = plateEditor([paragraph("", "empty"), paragraph("Next", "next")]);
     moved.tf.select(caret([0, 0], 0));
@@ -644,7 +654,7 @@ describe("embed paste", () => {
     moved.tf.select(caret([1, 0], 0));
     await Promise.resolve();
     expect(offerOf(moved)).toBeUndefined();
-    expect(texts(moved)[0]).toBe(WATCH);
+    expect(blockString(moved)).toBe(WATCH);
 
     const mounted = await mountEmbed([paragraph("", "empty")]);
     mounted.editor.tf.select(caret([0, 0], 0));
@@ -656,7 +666,7 @@ describe("embed paste", () => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(document.querySelector("[data-paste-url-menu]")).toBeNull();
-    expect(texts(mounted.editor)).toEqual([WATCH]);
+    expect(blockString(mounted.editor)).toBe(WATCH);
     await mounted.cleanup();
   });
 
@@ -668,7 +678,7 @@ describe("embed paste", () => {
     expect(
       pasteUrlActions.find((action) => action.id === "embed")?.match("https://example.com/video"),
     ).toBe(false);
-    expect(texts(plain)).toEqual(["https://example.com/video"]);
+    expect(blockString(plain)).toBe("https://example.com/video");
 
     const mixed = plateEditor([paragraph("", "empty")]);
     mixed.tf.select(caret([0, 0], 0));

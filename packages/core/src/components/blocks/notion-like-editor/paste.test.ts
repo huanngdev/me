@@ -142,7 +142,12 @@ describe("paste", () => {
   test("pasting a web page keeps the heading, paragraph, and each list item", () => {
     const editor = pasteHtml(WEBPAGE_HTML);
 
-    expect(texts(editor)).toEqual(["Title", "Para with bold and link", "One", "Two"]);
+    expect(editor.children.map((block) => editor.api.string(block))).toEqual([
+      "Title",
+      "Para with bold and link",
+      "One",
+      "Two",
+    ]);
     expect(markedText(editor, "bold")).toEqual(["bold"]);
     expect(editor.children.map((block) => block.type)).toEqual(["h1", "p", "p", "p"]);
     expectOpenable(editor);
@@ -249,21 +254,32 @@ describe("paste", () => {
     expect(markedText(editor, "underline")).toEqual(["b"]);
   });
 
-  test("pasting an anchor unwraps to plain text without an underline", () => {
+  test("pasting an anchor becomes a link without an underline mark", () => {
     const editor = pasteHtml('<p><a href="https://example.com">x</a></p>');
+    const block = editor.children[0];
+    if (block === undefined) {
+      throw new Error("Missing block.");
+    }
+
     const serialized = JSON.stringify(editor.children);
 
-    expect(plainText(editor)).toBe("x");
+    expect(editor.api.string(block)).toBe("x");
     expect(markedText(editor, "underline")).toEqual([]);
+    expect(serialized).toContain("https://example.com");
     expect(serialized).not.toContain("underline");
-    expect(serialized).not.toContain("example.com");
+    expect(serialized).not.toContain("target");
   });
 
   test("pasting an underlined word beside a link underlines only the word", () => {
     const editor = pasteHtml('<p>a <u>b</u> <a href="https://example.com">c</a></p>');
+    const block = editor.children[0];
+    if (block === undefined) {
+      throw new Error("Missing block.");
+    }
 
-    expect(plainText(editor)).toBe("a b c");
+    expect(editor.api.string(block)).toBe("a b c");
     expect(markedText(editor, "underline")).toEqual(["b"]);
+    expect(JSON.stringify(editor.children)).toContain("https://example.com");
   });
 
   test("pasting underline and line-through marks that text with both", () => {

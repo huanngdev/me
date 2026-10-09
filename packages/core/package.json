@@ -32,6 +32,7 @@
     "@platejs/code-block": "53.0.0",
     "@platejs/indent": "53.0.0",
     "@platejs/layout": "53.0.0",
+    "@platejs/link": "53.3.5",
     "@platejs/list": "53.3.13",
     "@platejs/media": "53.1.4",
     "@platejs/table": "53.0.9",

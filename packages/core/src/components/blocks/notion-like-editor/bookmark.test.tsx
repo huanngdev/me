@@ -111,6 +111,15 @@ function typesOf(editor: SlateEditor): string[] {
   return editor.children.map((block) => block.type);
 }
 
+function blockString(editor: SlateEditor, index = 0): string {
+  const block = editor.children[index];
+  if (block === undefined) {
+    throw new Error("Missing block.");
+  }
+
+  return editor.api.string(block);
+}
+
 function childTypes(node: unknown): string[] {
   if (!isRecord(node) || !Array.isArray(node.children)) {
     return [];
@@ -569,7 +578,8 @@ describe("bookmark paste menu", () => {
     expect(field(editor.children[0], "url")).toBe(FALLBACK_URL);
     expect(editor.history.undos.length).toBe(2);
     editor.tf.undo();
-    expect(texts(editor)).toEqual([`  ${FALLBACK_URL}  `]);
+    expect(blockString(editor)).toBe(FALLBACK_URL);
+    expect(childTypes(editor.children[0])).toContain("a");
 
     const video = plateEditor([paragraph("", "empty")]);
     video.tf.select(caret([0, 0], 0));
@@ -587,12 +597,13 @@ describe("bookmark paste menu", () => {
     const menu = document.querySelector("[data-paste-url-menu]");
     expect(menu?.textContent).toContain("Bookmark");
     expect(menu?.textContent).toContain("Embed video");
-    expect(menu?.textContent).toContain("Keep as text");
+    expect(menu?.textContent).toContain("Keep as link");
     await act(async () => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(document.querySelector("[data-paste-url-menu]")).toBeNull();
-    expect(texts(mounted.editor)).toEqual([YOUTUBE]);
+    expect(blockString(mounted.editor)).toBe(YOUTUBE);
+    expect(childTypes(mounted.editor.children[0])).toContain("a");
     await mounted.cleanup();
   });
 
@@ -630,7 +641,7 @@ describe("bookmark paste menu", () => {
     expect(offerOf(readonly)).toBeUndefined();
   });
 
-  test("copy keeps the attrs and a new id, and an html anchor stays text", () => {
+  test("copy keeps the attrs and a new id, and an html anchor becomes a link", () => {
     const copied = createEditor([paragraph("", "empty")]);
     copied.tf.select(caret([0, 0], 0));
     copied.tf.insertFragment([
@@ -660,7 +671,10 @@ describe("bookmark paste menu", () => {
     linked.tf.select(caret([0, 0], 0));
     pasteHtml(linked, `<p><a href="${PLATE_DOCS}">Docs</a></p>`);
     expect(typesOf(linked)).not.toContain(BOOKMARK_KEY);
-    expect(texts(linked).join("\n")).toContain("Docs");
+    expect(blockString(linked)).toContain("Docs");
+    expect(childTypes(linked.children[0])).toContain("a");
+    expect(JSON.stringify(linked.children)).toContain(PLATE_DOCS);
+    expect(JSON.stringify(linked.children)).not.toContain("target");
     expect(normalizeBookmarkUrl("javascript:alert(1)")).toBeUndefined();
   });
 });

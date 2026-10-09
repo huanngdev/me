@@ -70,6 +70,8 @@ import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
 import { embedHtmlDeserializer } from "./editor-embed";
+import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
+import { LinkElement } from "./link-element";
 import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
@@ -1640,6 +1642,23 @@ const equationPlatePlugin = toPlatePlugin(equationPlugin, {
   },
 });
 
+// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
+// Options stay on linkPlugin. Native LinkRules stay off so a link never stores target.
+const linkPlatePlugin = toPlatePlugin(linkPlugin, {
+  render: { node: LinkElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onLinkKeyDown(editor, event);
+    },
+    onCompositionStart: ({ editor }) => {
+      setLinkComposing(editor, true);
+    },
+    onCompositionEnd: ({ editor }) => {
+      setLinkComposing(editor, false);
+    },
+  },
+});
+
 const syncedRefPlugin = toPlatePlugin(
   createSlatePlugin({
     key: SYNCED_REF_KEY,
@@ -1926,6 +1945,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     audioRuntimePlugin,
     fileRuntimePlugin,
     tablePlugin,
+    linkPlatePlugin,
+    linkUiPlugin,
     pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,

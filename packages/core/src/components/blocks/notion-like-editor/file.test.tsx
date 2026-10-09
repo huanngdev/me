@@ -775,7 +775,7 @@ describe("file upload", () => {
 });
 
 describe("file paste and drop", () => {
-  test("a non-media file becomes a file block and an anchor with download stays text", () => {
+  test("a non-media file becomes a file block and an anchor with download becomes a link", () => {
     const editor = createEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertData(
@@ -793,8 +793,14 @@ describe("file paste and drop", () => {
       '<a href="https://files.example/notes.zip" download="notes.zip">notes.zip</a>',
     );
     linked.tf.insertData(anchor);
+    const linkedBlock = linked.children[0];
+    if (linkedBlock === undefined) {
+      throw new Error("Missing block.");
+    }
+
     expect(typesOf(linked)).not.toContain("file");
-    expect(texts(linked).join("")).toContain("notes.zip");
+    expect(linked.api.string(linkedBlock)).toContain("notes.zip");
+    expect(JSON.stringify(linked.children)).toContain("https://files.example/notes.zip");
   });
 
   test("a mixed paste inserts the image and two files in order, in one undo", () => {

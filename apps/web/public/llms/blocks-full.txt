@@ -2436,35 +2436,39 @@ export default function ErrorPageBlockPage() {
 42. packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
 43. packages/core/src/components/blocks/notion-like-editor/editor-synced-block.ts
 44. packages/core/src/components/blocks/notion-like-editor/synced-ref-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-46. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-47. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-48. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-49. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-50. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-51. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-52. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-53. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-54. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-55. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-56. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-57. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-58. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-59. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-60. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-61. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-62. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-63. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-64. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-65. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-66. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-67. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-68. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-69. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-70. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-71. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-72. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-73. apps/web/src/app/blocks/notion-like-editor/page.tsx
+45. packages/core/src/components/blocks/notion-like-editor/editor-link-url.ts
+46. packages/core/src/components/blocks/notion-like-editor/editor-link.ts
+47. packages/core/src/components/blocks/notion-like-editor/link-element.tsx
+48. packages/core/src/components/blocks/notion-like-editor/link-popover.tsx
+49. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+50. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+51. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+52. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+53. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+54. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+55. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+56. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+57. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+58. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+59. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+60. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+61. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+62. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+63. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+64. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+65. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+66. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+67. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+68. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+69. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+70. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+71. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+72. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+73. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+74. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+75. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+76. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+77. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2502,6 +2506,7 @@ import {
   storedEmbed,
   type EmbedProvider,
 } from "./editor-embed-url";
+import { sanitizeLinkUrl } from "./editor-link-url";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -3648,6 +3653,12 @@ export const EDITOR_ELEMENT_RULES = [
       SYNCED_REF_KEY,
     ],
   },
+  // Inline link. target and rel are chosen at render and are not stored.
+  {
+    type: KEYS.link,
+    attrs: ["id", "url"],
+    repairAttrs: ["url"],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -3926,6 +3937,10 @@ export function allowedElementAttrValues(
 }
 
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  if (type === KEYS.link && attr === "url") {
+    return typeof value === "string" && sanitizeLinkUrl(value) === value;
+  }
+
   const values = allowedElementAttrValues(type, attr);
   if (values !== undefined && !isAllowedValue(value, values)) {
     return false;
@@ -4379,11 +4394,21 @@ function isEmptyUnmarkedText(children: unknown[]): boolean {
   return Object.keys(only).length === 1 && Object.hasOwn(only, "text");
 }
 
+function parentAllowsInlineLink(parentType: string): boolean {
+  return (
+    parentType !== KEYS.link && !isVoidElementType(parentType) && elementAllowsMarks(parentType)
+  );
+}
+
 function childIsAllowed(parentType: string, child: unknown): boolean {
   const childTypes = allowedChildTypes(parentType);
   const childType = structuralChildType(child);
   if (childTypes === undefined) {
-    return childType === undefined;
+    if (childType === undefined) {
+      return true;
+    }
+
+    return childType === KEYS.link && parentAllowsInlineLink(parentType);
   }
 
   return childType !== undefined && childTypes.some((type) => type === childType);
@@ -4451,6 +4476,7 @@ function walkElement(
       type !== KEYS.video &&
       type !== KEYS.audio &&
       type !== KEYS.file &&
+      type !== KEYS.link &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -4591,6 +4617,10 @@ function repairAttrMessage(path: number[], key: string, value: unknown): string 
 
   if (key === "lang") {
     return `${formatBlockLabel(path)} has an unsupported lang "${label}". Invalid/unknown language fallback plaintext.`;
+  }
+
+  if (key === "url") {
+    return `${formatBlockLabel(path)} has an unsafe link URL. The link is shown as text.`;
   }
 
   return `${formatBlockLabel(path)} has an unsupported ${key} "${label}". The value was removed.`;
@@ -4804,6 +4834,12 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import {
+  clearUnsafePastedLinkRepairs,
+  noteUnsafePastedLink,
+  sanitizeLinkUrl,
+  unsafePastedLinkRepairs,
+} from "./editor-link-url";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import {
@@ -5788,6 +5824,18 @@ function inlineNodes(
   seen: Set<string>,
   allowMarks = true,
 ): Descendant[] {
+  if (node.type === KEYS.link) {
+    const url = typeof node.url === "string" ? node.url : "";
+    const safe = sanitizeLinkUrl(url);
+    if (!allowMarks || safe === undefined) {
+      if (safe === undefined && url.length > 0) {
+        noteUnsafePastedLink();
+      }
+
+      return unwrapInline(node.children, isInline, seen, allowMarks);
+    }
+  }
+
   if (allowedElementAttrs(node.type) === undefined) {
     return unwrapInline(node.children, isInline, seen, allowMarks);
   }
@@ -5917,6 +5965,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of unsafePastedLinkRepairs()) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }
@@ -5944,6 +5997,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
         insertFragment(preparePastedFragment(editor, fragment), options);
       } finally {
         clearPendingImageRepairs();
+        clearUnsafePastedLinkRepairs();
       }
     },
   },
@@ -6046,6 +6100,8 @@ import { FileElement } from "./file-element";
 import { ImageElement } from "./image-element";
 import { VideoElement } from "./video-element";
 import { embedHtmlDeserializer } from "./editor-embed";
+import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
+import { LinkElement } from "./link-element";
 import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
@@ -7616,6 +7672,23 @@ const equationPlatePlugin = toPlatePlugin(equationPlugin, {
   },
 });
 
+// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
+// Options stay on linkPlugin. Native LinkRules stay off so a link never stores target.
+const linkPlatePlugin = toPlatePlugin(linkPlugin, {
+  render: { node: LinkElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onLinkKeyDown(editor, event);
+    },
+    onCompositionStart: ({ editor }) => {
+      setLinkComposing(editor, true);
+    },
+    onCompositionEnd: ({ editor }) => {
+      setLinkComposing(editor, false);
+    },
+  },
+});
+
 const syncedRefPlugin = toPlatePlugin(
   createSlatePlugin({
     key: SYNCED_REF_KEY,
@@ -7902,6 +7975,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     audioRuntimePlugin,
     fileRuntimePlugin,
     tablePlugin,
+    linkPlatePlugin,
+    linkUiPlugin,
     pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -16303,9 +16378,12 @@ export const pasteUrlPlugin = createSlatePlugin({
         const prepared = dataWithoutScripts(data);
         const plain = prepared.getData("text/plain");
         const html = prepared.getData("text/html");
+        const collapsed =
+          editor.selection !== null && editor.selection !== undefined && editor.api.isCollapsed();
         const offerUrl = pasteOfferUrl(editor, plain, html);
         insertData(prepared);
-        if (offerUrl === undefined) {
+        // A selection wrap links the selected words and does not open this menu.
+        if (offerUrl === undefined || !collapsed) {
           return;
         }
 
@@ -16396,11 +16474,6 @@ export function replacePastedUrlWith(
   offer: PasteUrlOffer,
   element: TElement,
 ): void {
-  const textEntry = editor.api.node(offer.path);
-  if (textEntry === undefined || !TextApi.isText(textEntry[0])) {
-    return;
-  }
-
   const blockEntry = editor.api.block({ at: offer.path });
   if (blockEntry === undefined || !ElementApi.isElement(blockEntry[0])) {
     return;
@@ -16414,12 +16487,22 @@ export function replacePastedUrlWith(
     return;
   }
 
-  editor.tf.delete({
-    at: {
-      anchor: { path: offer.path, offset: offer.start },
-      focus: { path: offer.path, offset: offer.end },
-    },
-  });
+  const linkPath = linkPathForOffer(editor, offer);
+  if (linkPath !== undefined) {
+    editor.tf.removeNodes({ at: linkPath });
+  } else {
+    const textEntry = editor.api.node(offer.path);
+    if (textEntry === undefined || !TextApi.isText(textEntry[0])) {
+      return;
+    }
+
+    editor.tf.delete({
+      at: {
+        anchor: { path: offer.path, offset: offer.start },
+        focus: { path: offer.path, offset: offer.end },
+      },
+    });
+  }
   const after = PathApi.next(blockPath);
   if (after === undefined) {
     return;
@@ -16503,6 +16586,17 @@ function insertedRange(
     }
   }
 
+  const trimmed = raw.trim();
+  const link = linkTouchingCaret(editor);
+  if (
+    link !== undefined &&
+    typeof link.node.url === "string" &&
+    link.node.url === trimmed &&
+    editor.api.string(link.path) === trimmed
+  ) {
+    return { path: [...focus.path], start: focus.offset, end: focus.offset };
+  }
+
   const entry = editor.api.node(focus.path);
   if (entry === undefined || !TextApi.isText(entry[0])) {
     return undefined;
@@ -16515,6 +16609,63 @@ function insertedRange(
   }
 
   return { path: [...focus.path], start, end };
+}
+
+function linkTouchingCaret(editor: SlateEditor): { node: TElement; path: number[] } | undefined {
+  const above = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+  });
+  if (above !== undefined && ElementApi.isElement(above[0])) {
+    return { node: above[0], path: above[1] };
+  }
+
+  const selection = editor.selection;
+  if (selection === null || selection === undefined) {
+    return undefined;
+  }
+
+  const path = selection.focus.path;
+  const index = path[path.length - 1];
+  if (index === undefined || index === 0) {
+    return undefined;
+  }
+
+  const prevPath = path.slice(0, -1).concat(index - 1);
+  const prev = editor.api.node(prevPath);
+  if (prev !== undefined && ElementApi.isElement(prev[0]) && prev[0].type === KEYS.link) {
+    return { node: prev[0], path: prevPath };
+  }
+
+  return undefined;
+}
+
+function linkPathForOffer(editor: SlateEditor, offer: PasteUrlOffer): number[] | undefined {
+  const above = editor.api.above({
+    at: offer.path,
+    match: (node) =>
+      ElementApi.isElement(node) && node.type === KEYS.link && node.url === offer.url,
+  });
+  if (above !== undefined) {
+    return above[1];
+  }
+
+  const index = offer.path[offer.path.length - 1];
+  if (index === undefined || index === 0) {
+    return undefined;
+  }
+
+  const prevPath = offer.path.slice(0, -1).concat(index - 1);
+  const prev = editor.api.node(prevPath);
+  if (
+    prev !== undefined &&
+    ElementApi.isElement(prev[0]) &&
+    prev[0].type === KEYS.link &&
+    prev[0].url === offer.url
+  ) {
+    return prevPath;
+  }
+
+  return undefined;
 }
 
 function dataWithoutScripts(data: DataTransfer): DataTransfer {
@@ -21063,6 +21214,1068 @@ export function SyncedRefElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-link-url.ts
+```ts
+// One URL policy for the plugin, popover, paste, HTML deserialize, validator, and render.
+// A bare domain is not rewritten here. The link input calls normalizeLinkInput.
+
+export const LINK_URL_MAX = 2048;
+
+export const UNSAFE_LINK_PASTE = "A pasted link used an unsafe URL. The text was kept.";
+
+const ALLOWED_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
+
+const BARE_DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}(?:[/?#][^\s]*)?$/i;
+
+type PasteRepair = {
+  path: number[];
+  message: string;
+};
+
+let unsafePasteRepairs: PasteRepair[] = [];
+
+export function sanitizeLinkUrl(raw: string): string | undefined {
+  if (raw.length === 0 || raw.length > LINK_URL_MAX || hasForbiddenChar(raw)) {
+    return undefined;
+  }
+
+  if (raw.startsWith("//")) {
+    return undefined;
+  }
+
+  if (raw.startsWith("/")) {
+    return raw;
+  }
+
+  if (raw.startsWith("#")) {
+    return raw;
+  }
+
+  const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(raw);
+  if (match === null) {
+    return undefined;
+  }
+
+  const scheme = match[1];
+  if (scheme === undefined || !ALLOWED_SCHEMES.has(scheme.toLowerCase())) {
+    return undefined;
+  }
+
+  return raw;
+}
+
+// Only the link popover uses this. Paste and autolink keep the typed characters.
+export function normalizeLinkInput(raw: string): string {
+  const trimmed = raw.trim();
+  if (sanitizeLinkUrl(trimmed) !== undefined) {
+    return trimmed;
+  }
+
+  if (BARE_DOMAIN.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+export function isExternalLinkUrl(url: string): boolean {
+  const colon = url.indexOf(":");
+  if (colon <= 0) {
+    return false;
+  }
+
+  const scheme = url.slice(0, colon).toLowerCase();
+  return scheme === "http" || scheme === "https";
+}
+
+export function noteUnsafePastedLink(): void {
+  unsafePasteRepairs.push({ path: [], message: UNSAFE_LINK_PASTE });
+}
+
+export function unsafePastedLinkRepairs(): readonly PasteRepair[] {
+  return unsafePasteRepairs;
+}
+
+export function clearUnsafePastedLinkRepairs(): void {
+  unsafePasteRepairs = [];
+}
+
+function hasForbiddenChar(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x20 || code === 0x7f || code === 0x2028 || code === 0x2029) {
+      return true;
+    }
+  }
+
+  return false;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-link.ts
+```ts
+import { BaseLinkPlugin, unwrapLink, upsertLinkText } from "@platejs/link";
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  RangeApi,
+  createSlatePlugin,
+  type SlateEditor,
+  type TElement,
+  type TRange,
+} from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { selectionInCodeBlock } from "./editor-code";
+import { elementAllowsMarks, isVoidElementType } from "./editor-document-schema";
+import {
+  clearUnsafePastedLinkRepairs,
+  isExternalLinkUrl,
+  normalizeLinkInput,
+  noteUnsafePastedLink,
+  sanitizeLinkUrl,
+} from "./editor-link-url";
+
+// Native LinkRules.autolink (dist/index.js getAutolinkMatch) keeps trailing
+// punctuation in the link and does not skip code blocks. submitFloatingLink
+// writes target. This plugin never stores target or rel.
+
+const TRAILING_PUNCTUATION = new Set([
+  ".",
+  ",",
+  ";",
+  ":",
+  "!",
+  "?",
+  ")",
+  '"',
+  "'",
+  "\u201d",
+  "\u2019",
+]);
+const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
+
+const savedSelections = new WeakMap<SlateEditor, TRange>();
+
+export const linkUiPlugin = createSlatePlugin({
+  key: "linkUi",
+  options: {
+    mode: "closed",
+    draftUrl: "",
+    draftLabel: "",
+    error: "",
+    hoverId: "",
+    anchorTop: 0,
+    anchorLeft: 0,
+  },
+});
+
+export const linkPlugin = BaseLinkPlugin.configure({
+  options: {
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    isUrl: (text) => sanitizeLinkUrl(text) !== undefined,
+    keepSelectedTextOnPaste: true,
+    defaultLinkAttributes: {},
+  },
+  node: {
+    dangerouslyAllowAttributes: [],
+  },
+  parsers: {
+    html: {
+      deserializer: {
+        rules: [{ validNodeName: "A" }],
+        parse: ({ element, type }) => {
+          const href = element.getAttribute("href");
+          if (href === null || href.length === 0) {
+            return undefined;
+          }
+
+          const url = sanitizeLinkUrl(href);
+          if (url === undefined) {
+            noteUnsafePastedLink();
+            return undefined;
+          }
+
+          return { type, url };
+        },
+      },
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertBreak, insertData, insertText, normalizeNode } }) => ({
+  transforms: {
+    insertText(text, options) {
+      if (
+        text === " " &&
+        (options === undefined || options.at === undefined) &&
+        autolinkMatch(editor) !== undefined
+      ) {
+        // The space and the wrap are one undo. Earlier URL characters stay.
+        editor.tf.withNewBatch(() => {
+          applyAutolink(editor);
+          insertText(text, options);
+        });
+        editor.tf.setSplittingOnce(true);
+        return;
+      }
+
+      insertText(text, options);
+    },
+    insertBreak() {
+      if (autolinkMatch(editor) !== undefined) {
+        editor.tf.withNewBatch(() => {
+          applyAutolink(editor);
+          insertBreak();
+        });
+        editor.tf.setSplittingOnce(true);
+        return;
+      }
+
+      insertBreak();
+    },
+    insertData(data) {
+      clearUnsafePastedLinkRepairs();
+      const html = data.getData("text/html");
+      const url = html.trim().length === 0 ? pastedLinkUrl(data.getData("text/plain")) : undefined;
+      if (url !== undefined && !selectionInCodeBlock(editor)) {
+        insertPastedLink(editor, url);
+        return;
+      }
+
+      insertData(data);
+    },
+    normalizeNode(entry) {
+      const [node, path] = entry;
+      if (ElementApi.isElement(node) && node.type === editor.getType(KEYS.link)) {
+        if (normalizeLinkNode(editor, node, path)) {
+          return;
+        }
+      }
+
+      normalizeNode(entry);
+    },
+  },
+}));
+
+export function setLinkComposing(editor: SlateEditor, composing: boolean): void {
+  editor.composing = composing;
+}
+
+type LinkKeyEvent = {
+  key: string;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  preventDefault: () => void;
+  stopPropagation: () => void;
+};
+
+export function onLinkKeyDown(editor: SlateEditor, event: LinkKeyEvent): boolean {
+  if (event.altKey || event.shiftKey || event.key.toLowerCase() !== "k") {
+    return false;
+  }
+
+  if (!event.metaKey && !event.ctrlKey) {
+    return false;
+  }
+
+  if (editor.dom.readOnly === true) {
+    return false;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  openLinkPopover(editor);
+  return true;
+}
+
+export function openLinkPopover(editor: SlateEditor): void {
+  if (editor.dom.readOnly === true || editor.selection === null) {
+    return;
+  }
+
+  savedSelections.set(editor, editor.selection);
+  const rect = caretRect();
+  editor.setOption(linkUiPlugin, "anchorTop", rect.top);
+  editor.setOption(linkUiPlugin, "anchorLeft", rect.left);
+  editor.setOption(linkUiPlugin, "error", "");
+
+  const existing = linkEntry(editor);
+  if (existing !== undefined) {
+    const url = typeof existing[0].url === "string" ? existing[0].url : "";
+    editor.setOption(linkUiPlugin, "mode", "edit");
+    editor.setOption(linkUiPlugin, "draftUrl", url);
+    editor.setOption(linkUiPlugin, "draftLabel", editor.api.string(existing[1]));
+    return;
+  }
+
+  editor.setOption(linkUiPlugin, "mode", editor.api.isCollapsed() ? "label" : "insert");
+  editor.setOption(linkUiPlugin, "draftUrl", "");
+  editor.setOption(linkUiPlugin, "draftLabel", "");
+}
+
+export function closeLinkPopover(editor: SlateEditor): void {
+  savedSelections.delete(editor);
+  editor.setOption(linkUiPlugin, "mode", "closed");
+  editor.setOption(linkUiPlugin, "error", "");
+}
+
+export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
+  const url = sanitizeLinkUrl(normalizeLinkInput(urlRaw));
+  if (url === undefined) {
+    editor.setOption(linkUiPlugin, "error", "Enter a valid URL.");
+    return false;
+  }
+
+  const mode = editor.getOption(linkUiPlugin, "mode");
+  const saved = savedSelections.get(editor);
+  const label = labelRaw.trim().length > 0 ? labelRaw.trim() : url;
+  editor.tf.withNewBatch(() => {
+    if (saved !== undefined) {
+      editor.tf.select(saved);
+    }
+
+    if (mode === "edit") {
+      updateLink(editor, url, label);
+      return;
+    }
+
+    if (saved !== undefined && !RangeApi.isCollapsed(saved)) {
+      wrapSelection(editor, url);
+      return;
+    }
+
+    insertLinkNode(editor, url, label);
+  });
+  editor.tf.setSplittingOnce(true);
+  closeLinkPopover(editor);
+  return true;
+}
+
+export function setLinkHover(editor: SlateEditor, id: string): void {
+  if (editor.getOption(linkUiPlugin, "hoverId") === id) {
+    return;
+  }
+
+  editor.setOption(linkUiPlugin, "hoverId", id);
+}
+
+export function openLinkUrl(url: string): void {
+  const safe = sanitizeLinkUrl(url);
+  if (safe === undefined || typeof window === "undefined") {
+    return;
+  }
+
+  const features = isExternalLinkUrl(safe) ? "noopener,noreferrer" : undefined;
+  window.open(safe, isExternalLinkUrl(safe) ? "_blank" : "_self", features);
+}
+
+export const insertInlineLink: EditorCommand = {
+  id: "inline.link.insert",
+  label: "Link",
+  group: "insert",
+  isEnabled: (editor) => editor.dom.readOnly !== true && editor.selection !== null,
+  run: (editor) => {
+    openLinkPopover(editor);
+  },
+};
+
+export const editInlineLink: EditorCommand = {
+  id: "inline.link.edit",
+  label: "Edit link",
+  group: "action",
+  isEnabled: (editor) => editor.dom.readOnly !== true && linkEntry(editor) !== undefined,
+  run: (editor) => {
+    openLinkPopover(editor);
+  },
+};
+
+export const removeInlineLink: EditorCommand = {
+  id: "inline.link.remove",
+  label: "Remove link",
+  group: "action",
+  isEnabled: (editor) => editor.dom.readOnly !== true && linkEntry(editor) !== undefined,
+  run: (editor) => {
+    unwrapLink(editor);
+  },
+};
+
+export const openInlineLink: EditorCommand = {
+  id: "inline.link.open",
+  label: "Open link",
+  group: "action",
+  isEnabled: (editor) => selectedLinkUrl(editor) !== undefined,
+  run: (editor) => {
+    const url = selectedLinkUrl(editor);
+    if (url !== undefined) {
+      openLinkUrl(url);
+    }
+  },
+};
+
+type LinkMatch = {
+  anchor: NonNullable<SlateEditor["selection"]>["anchor"];
+  focus: NonNullable<SlateEditor["selection"]>["focus"];
+  url: string;
+  trailing: string;
+};
+
+function linkIsComposing(editor: SlateEditor): boolean {
+  if (editor.composing === true) {
+    return true;
+  }
+
+  const dom: unknown = editor.dom;
+  return typeof dom === "object" && dom !== null && "composing" in dom && dom.composing === true;
+}
+
+function linkEntry(editor: SlateEditor): [TElement, number[]] | undefined {
+  const entry = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === editor.getType(KEYS.link),
+  });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+
+  return [entry[0], entry[1]];
+}
+
+function selectedLinkUrl(editor: SlateEditor): string | undefined {
+  const entry = linkEntry(editor);
+  if (entry === undefined || typeof entry[0].url !== "string") {
+    return undefined;
+  }
+
+  return sanitizeLinkUrl(entry[0].url);
+}
+
+function pastedLinkUrl(plain: string): string | undefined {
+  const trimmed = plain.trim();
+  if (trimmed.length === 0 || /\s/.test(trimmed)) {
+    return undefined;
+  }
+
+  return sanitizeLinkUrl(trimmed);
+}
+
+function insertPastedLink(editor: SlateEditor, url: string): void {
+  if (!editor.api.isCollapsed()) {
+    wrapSelection(editor, url);
+    return;
+  }
+
+  if (linkEntry(editor) !== undefined) {
+    editor.tf.insertText(url);
+    return;
+  }
+
+  insertLinkNode(editor, url, url);
+}
+
+function insertLinkNode(editor: SlateEditor, url: string, label: string): void {
+  editor.tf.insertNodes({
+    type: editor.getType(KEYS.link),
+    url,
+    children: [linkLeaf(label, editor.api.marks())],
+  });
+  const entry = linkEntry(editor);
+  if (entry === undefined) {
+    return;
+  }
+
+  moveAfterLink(editor, entry[1]);
+}
+
+function linkLeaf(label: string, marks: ReturnType<SlateEditor["api"]["marks"]>): { text: string } {
+  const leaf: { text: string } & Record<string, unknown> = { text: label };
+  if (marks === null) {
+    return leaf;
+  }
+
+  for (const [key, value] of Object.entries(marks)) {
+    if (key !== "text") {
+      leaf[key] = value;
+    }
+  }
+
+  return leaf;
+}
+
+function wrapSelection(editor: SlateEditor, url: string): void {
+  unwrapLink(editor, { split: true });
+  editor.tf.wrapNodes({ type: editor.getType(KEYS.link), url, children: [] }, { split: true });
+}
+
+function updateLink(editor: SlateEditor, url: string, label: string): void {
+  const entry = linkEntry(editor);
+  if (entry === undefined) {
+    return;
+  }
+
+  editor.tf.setNodes({ url }, { at: entry[1] });
+  if (editor.api.string(entry[1]) !== label) {
+    upsertLinkText(editor, { text: label, url });
+  }
+}
+
+function applyAutolink(editor: SlateEditor): boolean {
+  const match = autolinkMatch(editor);
+  if (match === undefined) {
+    return false;
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.select({ anchor: match.anchor, focus: match.focus });
+    editor.tf.wrapNodes(
+      { type: editor.getType(KEYS.link), url: match.url, children: [] },
+      { split: true },
+    );
+    const entry = linkEntry(editor);
+    if (entry === undefined) {
+      return;
+    }
+
+    if (match.trailing.length === 0) {
+      moveAfterLink(editor, entry[1]);
+      return;
+    }
+
+    const next = PathApi.next(entry[1]);
+    editor.tf.select({ path: next, offset: match.trailing.length });
+  });
+  return true;
+}
+
+function moveAfterLink(editor: SlateEditor, linkPath: number[]): void {
+  const next = editor.api.start(linkPath, { next: true });
+  if (next !== undefined) {
+    editor.tf.select(next);
+    return;
+  }
+
+  const nextPath = PathApi.next(linkPath);
+  editor.tf.insertNodes({ text: "" }, { at: nextPath });
+  editor.tf.select({ path: nextPath, offset: 0 });
+}
+
+function autolinkMatch(editor: SlateEditor): LinkMatch | undefined {
+  if (linkIsComposing(editor) || selectionInCodeBlock(editor)) {
+    return undefined;
+  }
+
+  const selection = editor.selection;
+  if (selection === null || selection === undefined || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  let before = editor.api.range("before", selection, {
+    before: {
+      afterMatch: true,
+      matchBlockStart: true,
+      matchString: " ",
+      skipInvalid: true,
+    },
+  });
+  if (!before) {
+    before = editor.api.range("start", selection);
+  }
+  if (!before) {
+    return undefined;
+  }
+
+  if (
+    editor.api.some({
+      at: before,
+      match: { type: editor.getType(KEYS.link) },
+    })
+  ) {
+    return undefined;
+  }
+
+  const text = editor.api.string(before);
+  const token = trimLinkToken(text);
+  if (token === undefined) {
+    return undefined;
+  }
+
+  const anchor =
+    token.lead === 0
+      ? before.anchor
+      : editor.api.after(before.anchor, { distance: token.lead, unit: "character" });
+  const focus =
+    token.trailing.length === 0
+      ? selection.anchor
+      : editor.api.before(selection.anchor, {
+          distance: token.trailing.length,
+          unit: "character",
+        });
+  if (anchor === undefined || focus === undefined) {
+    return undefined;
+  }
+
+  return { anchor, focus, url: token.url, trailing: token.trailing };
+}
+
+function trimLinkToken(text: string): { url: string; lead: number; trailing: string } | undefined {
+  let end = text.length;
+  while (end > 0 && TRAILING_PUNCTUATION.has(text.charAt(end - 1))) {
+    end -= 1;
+  }
+
+  const direct = sanitizeLinkUrl(text.slice(0, end));
+  if (direct !== undefined) {
+    return { url: direct, lead: 0, trailing: text.slice(end) };
+  }
+
+  if (end > 1 && LEADING_PUNCTUATION.has(text.charAt(0))) {
+    const wrapped = sanitizeLinkUrl(text.slice(1, end));
+    if (wrapped !== undefined) {
+      return { url: wrapped, lead: 1, trailing: text.slice(end) };
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeLinkNode(editor: SlateEditor, node: TElement, path: number[]): boolean {
+  if ("target" in node || "rel" in node) {
+    const drop = ["target", "rel"].filter((key) => key in node);
+    editor.tf.unsetNodes(drop, { at: path });
+    return true;
+  }
+
+  const parent = editor.api.parent(path);
+  const parentType =
+    parent !== undefined && ElementApi.isElement(parent[0]) ? parent[0].type : undefined;
+  if (
+    parentType === KEYS.codeLine ||
+    parentType === KEYS.codeBlock ||
+    parentType === KEYS.link ||
+    (parentType !== undefined && (!elementAllowsMarks(parentType) || isVoidElementType(parentType)))
+  ) {
+    editor.tf.unwrapNodes({ at: path });
+    return true;
+  }
+
+  const url = typeof node.url === "string" ? node.url : "";
+  if (sanitizeLinkUrl(url) !== url) {
+    editor.tf.unwrapNodes({ at: path });
+    return true;
+  }
+
+  if (editor.api.string(path).length === 0) {
+    editor.tf.removeNodes({ at: path });
+    return true;
+  }
+
+  return false;
+}
+
+function caretRect(): { top: number; left: number } {
+  if (typeof window === "undefined") {
+    return { top: 0, left: 0 };
+  }
+
+  const selection = window.getSelection();
+  if (selection === null || selection.rangeCount === 0) {
+    return { top: 0, left: 0 };
+  }
+
+  const rect = selection.getRangeAt(0).getBoundingClientRect();
+  return { top: rect.bottom, left: rect.left };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/link-element.tsx
+```tsx
+import { ElementApi, KEYS, type TElement } from "platejs";
+import {
+  useEditorRef,
+  useEditorSelector,
+  usePluginOption,
+  useReadOnly,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { runEditorCommand } from "./editor-commands";
+import {
+  linkUiPlugin,
+  openInlineLink,
+  openLinkPopover,
+  removeInlineLink,
+  setLinkHover,
+} from "./editor-link";
+import { isExternalLinkUrl, sanitizeLinkUrl } from "./editor-link-url";
+
+export function LinkElement({ attributes, children, element }: PlateElementProps) {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const url = typeof element.url === "string" ? element.url : "";
+  const safe = sanitizeLinkUrl(url);
+  if (safe === undefined) {
+    return <span {...attributes}>{children}</span>;
+  }
+
+  const external = isExternalLinkUrl(safe);
+  const id = typeof element.id === "string" ? element.id : "";
+  const slateClass = typeof attributes.className === "string" ? attributes.className : "";
+
+  return (
+    <a
+      {...attributes}
+      href={safe}
+      className={`${slateClass} link-underline`.trim()}
+      data-link-url={safe}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer nofollow" : undefined}
+      onMouseEnter={() => {
+        if (id.length > 0) {
+          setLinkHover(editor, id);
+        }
+      }}
+      onMouseLeave={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Element && next.closest("[data-link-toolbar]") !== null) {
+          return;
+        }
+
+        if (editor.getOption(linkUiPlugin, "hoverId") === id) {
+          setLinkHover(editor, "");
+        }
+      }}
+      onClick={(event) => {
+        if (readOnly) {
+          return;
+        }
+
+        if (event.metaKey || event.ctrlKey) {
+          event.preventDefault();
+          window.open(safe, "_blank", "noopener,noreferrer");
+          return;
+        }
+
+        event.preventDefault();
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+export function LinkToolbar() {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const mode = usePluginOption(linkUiPlugin, "mode");
+  const hoverId = usePluginOption(linkUiPlugin, "hoverId");
+  const selection = useEditorSelector((current) => current.selection, []);
+  if (readOnly || mode !== "closed" || (selection === null && hoverId.length === 0)) {
+    return null;
+  }
+
+  const entry = selectedOrHoveredLink(editor, hoverId);
+  if (entry === undefined) {
+    return null;
+  }
+
+  const url = typeof entry.url === "string" ? entry.url : "";
+  const safe = sanitizeLinkUrl(url);
+  if (safe === undefined) {
+    return null;
+  }
+
+  const dom = editor.api.toDOMNode(entry);
+  if (dom === null || dom === undefined) {
+    return null;
+  }
+
+  const rect = dom.getBoundingClientRect();
+
+  return (
+    <div
+      data-link-toolbar=""
+      className="bg-popover text-popover-foreground fixed z-50 flex max-w-56 flex-col gap-1 rounded-md border p-1 text-xs shadow-sm"
+      style={{ top: rect.bottom + 4, left: rect.left }}
+      onMouseDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onMouseLeave={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Element && next.closest("[data-link-url]") !== null) {
+          return;
+        }
+
+        setLinkHover(editor, "");
+      }}
+    >
+      <span
+        data-link-toolbar-url=""
+        className="line-clamp-2 px-1"
+        style={{ overflowWrap: "anywhere" }}
+      >
+        {safe}
+      </span>
+      <button
+        type="button"
+        className="hover:bg-muted rounded-md px-2 py-1 text-left"
+        onClick={() => {
+          runEditorCommand(editor, openInlineLink, undefined);
+        }}
+      >
+        Open
+      </button>
+      <button
+        type="button"
+        className="hover:bg-muted rounded-md px-2 py-1 text-left"
+        onClick={() => {
+          openLinkPopover(editor);
+        }}
+      >
+        Edit
+      </button>
+      <button
+        type="button"
+        className="hover:bg-muted rounded-md px-2 py-1 text-left"
+        onClick={() => {
+          runEditorCommand(editor, removeInlineLink, undefined);
+        }}
+      >
+        Remove link
+      </button>
+    </div>
+  );
+}
+
+function selectedOrHoveredLink(
+  editor: ReturnType<typeof useEditorRef>,
+  hoverId: string,
+): TElement | undefined {
+  const selected = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+  });
+  if (selected !== undefined && ElementApi.isElement(selected[0])) {
+    return selected[0];
+  }
+
+  if (hoverId.length === 0) {
+    return undefined;
+  }
+
+  const hovered = editor.api.node({
+    at: [],
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.link && node.id === hoverId,
+  });
+  if (hovered === undefined || !ElementApi.isElement(hovered[0])) {
+    return undefined;
+  }
+
+  return hovered[0];
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/link-popover.tsx
+```tsx
+import { useEffect, useState } from "react";
+import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+
+import { Button } from "@/components/button";
+import { Input } from "@/components/input";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { runEditorCommand } from "./editor-commands";
+import {
+  closeLinkPopover,
+  commitLinkPopover,
+  linkUiPlugin,
+  openInlineLink,
+  removeInlineLink,
+} from "./editor-link";
+
+export function LinkPopover() {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const mode = usePluginOption(linkUiPlugin, "mode");
+  const error = usePluginOption(linkUiPlugin, "error");
+  const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");
+  const draftLabel = usePluginOption(linkUiPlugin, "draftLabel");
+  const anchorTop = usePluginOption(linkUiPlugin, "anchorTop");
+  const anchorLeft = usePluginOption(linkUiPlugin, "anchorLeft");
+
+  if (readOnly || mode === "closed") {
+    return null;
+  }
+
+  return (
+    <LinkPopoverForm
+      editor={editor}
+      mode={mode}
+      error={error}
+      draftUrl={draftUrl}
+      draftLabel={draftLabel}
+      anchorTop={anchorTop}
+      anchorLeft={anchorLeft}
+    />
+  );
+}
+
+function LinkPopoverForm({
+  editor,
+  mode,
+  error,
+  draftUrl,
+  draftLabel,
+  anchorTop,
+  anchorLeft,
+}: {
+  editor: ReturnType<typeof useEditorRef>;
+  mode: string;
+  error: string;
+  draftUrl: string;
+  draftLabel: string;
+  anchorTop: number;
+  anchorLeft: number;
+}) {
+  "use no memo";
+
+  const [url, setUrl] = useState(draftUrl);
+  const [label, setLabel] = useState(draftLabel);
+  const editing = mode === "edit";
+  const needsLabel = mode === "label" || editing;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        closeLinkPopover(editor);
+      }
+    };
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-link-popover]") !== null) {
+        return;
+      }
+
+      closeLinkPopover(editor);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [editor]);
+
+  return (
+    <Popover open>
+      <PopoverAnchor asChild>
+        <span
+          data-link-anchor=""
+          style={{
+            position: "fixed",
+            top: anchorTop,
+            left: anchorLeft,
+            width: 1,
+            height: 1,
+          }}
+        />
+      </PopoverAnchor>
+      <PopoverContent
+        data-link-popover=""
+        data-link-mode={mode}
+        align="start"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        className="w-72 gap-2 p-2"
+      >
+        <form
+          className="flex flex-col gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            commitLinkPopover(editor, url, needsLabel ? label : "");
+          }}
+        >
+          <Input
+            aria-label="URL"
+            value={url}
+            placeholder="https://example.com"
+            autoFocus
+            onChange={(event) => {
+              setUrl(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing || event.key === "Escape") {
+                return;
+              }
+            }}
+          />
+          {needsLabel ? (
+            <Input
+              aria-label="Label"
+              value={label}
+              placeholder="Label"
+              onChange={(event) => {
+                setLabel(event.target.value);
+              }}
+            />
+          ) : null}
+          {error.length > 0 ? (
+            <p role="alert" className="text-destructive text-xs">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-1">
+            <Button type="submit" size="sm">
+              Save
+            </Button>
+            {editing ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  runEditorCommand(editor, openInlineLink, undefined);
+                }}
+              >
+                Open
+              </Button>
+            ) : null}
+            {editing ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  closeLinkPopover(editor);
+                  runEditorCommand(editor, removeInlineLink, undefined);
+                }}
+              >
+                Remove link
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
@@ -21167,7 +22380,7 @@ export function PasteUrlMenu() {
             clearPasteUrlOffer(editor);
           }}
         >
-          Keep as text
+          Keep as link
         </button>
       </PopoverContent>
     </Popover>
@@ -25621,6 +26834,8 @@ import { LinkPreviewProvider } from "./bookmark-element";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
+import { LinkToolbar } from "./link-element";
+import { LinkPopover } from "./link-popover";
 import { PasteUrlMenu } from "./paste-url-menu";
 import { VideoRuntime } from "./video-element";
 
@@ -25657,6 +26872,8 @@ export function EditorSurface({
         <AudioRuntime store={assetStore} />
         <FileRuntime store={assetStore} />
         <PasteUrlMenu />
+        <LinkToolbar />
+        <LinkPopover />
         <PlateContent
           placeholder={readOnly ? undefined : placeholder}
           // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -26067,7 +27284,23 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-intro",
-    children: [{ text: "This is a paragraph. Click anywhere in it and start typing." }],
+    children: [
+      { text: "This is a paragraph. Click anywhere in it and start typing. Visit " },
+      {
+        type: "a",
+        id: "demo-link-site",
+        url: "https://example.com",
+        children: [{ text: "the site" }],
+      },
+      { text: " or " },
+      {
+        type: "a",
+        id: "demo-link-mail",
+        url: "mailto:gia@example.com",
+        children: [{ text: "email Gia" }],
+      },
+      { text: "." },
+    ],
   },
   {
     type: "p",
@@ -27210,8 +28443,15 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "p",
     id: "demo-paste",
     children: [
+      { text: "Paste text from anywhere. A URL such as " },
       {
-        text: "Paste text from anywhere. Each line becomes a paragraph, and formatting this editor does not support yet is removed.",
+        type: "a",
+        id: "demo-link-autolink",
+        url: "https://example.com/docs",
+        children: [{ text: "https://example.com/docs" }],
+      },
+      {
+        text: " becomes a link. Each line becomes a paragraph, and formatting this editor does not support yet is removed.",
       },
     ],
   },
@@ -27585,6 +28825,22 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/synced-ref-element.tsx",
     code: readSource(`${BLOCK_DIR}/synced-ref-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-link-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-link-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-link.ts",
+    code: readSource(`${BLOCK_DIR}/editor-link.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/link-element.tsx",
+    code: readSource(`${BLOCK_DIR}/link-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/link-popover.tsx",
+    code: readSource(`${BLOCK_DIR}/link-popover.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",

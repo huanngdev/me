@@ -29,6 +29,12 @@ import {
   maxNesting,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
+import {
+  clearUnsafePastedLinkRepairs,
+  noteUnsafePastedLink,
+  sanitizeLinkUrl,
+  unsafePastedLinkRepairs,
+} from "./editor-link-url";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import {
@@ -1013,6 +1019,18 @@ function inlineNodes(
   seen: Set<string>,
   allowMarks = true,
 ): Descendant[] {
+  if (node.type === KEYS.link) {
+    const url = typeof node.url === "string" ? node.url : "";
+    const safe = sanitizeLinkUrl(url);
+    if (!allowMarks || safe === undefined) {
+      if (safe === undefined && url.length > 0) {
+        noteUnsafePastedLink();
+      }
+
+      return unwrapInline(node.children, isInline, seen, allowMarks);
+    }
+  }
+
   if (allowedElementAttrs(node.type) === undefined) {
     return unwrapInline(node.children, isInline, seen, allowMarks);
   }
@@ -1142,6 +1160,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of unsafePastedLinkRepairs()) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
   return value;
 }
@@ -1169,6 +1192,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
         insertFragment(preparePastedFragment(editor, fragment), options);
       } finally {
         clearPendingImageRepairs();
+        clearUnsafePastedLinkRepairs();
       }
     },
   },

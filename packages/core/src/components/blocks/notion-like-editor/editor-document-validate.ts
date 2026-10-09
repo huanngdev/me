@@ -189,11 +189,21 @@ function isEmptyUnmarkedText(children: unknown[]): boolean {
   return Object.keys(only).length === 1 && Object.hasOwn(only, "text");
 }
 
+function parentAllowsInlineLink(parentType: string): boolean {
+  return (
+    parentType !== KEYS.link && !isVoidElementType(parentType) && elementAllowsMarks(parentType)
+  );
+}
+
 function childIsAllowed(parentType: string, child: unknown): boolean {
   const childTypes = allowedChildTypes(parentType);
   const childType = structuralChildType(child);
   if (childTypes === undefined) {
-    return childType === undefined;
+    if (childType === undefined) {
+      return true;
+    }
+
+    return childType === KEYS.link && parentAllowsInlineLink(parentType);
   }
 
   return childType !== undefined && childTypes.some((type) => type === childType);
@@ -261,6 +271,7 @@ function walkElement(
       type !== KEYS.video &&
       type !== KEYS.audio &&
       type !== KEYS.file &&
+      type !== KEYS.link &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -401,6 +412,10 @@ function repairAttrMessage(path: number[], key: string, value: unknown): string 
 
   if (key === "lang") {
     return `${formatBlockLabel(path)} has an unsupported lang "${label}". Invalid/unknown language fallback plaintext.`;
+  }
+
+  if (key === "url") {
+    return `${formatBlockLabel(path)} has an unsafe link URL. The link is shown as text.`;
   }
 
   return `${formatBlockLabel(path)} has an unsupported ${key} "${label}". The value was removed.`;

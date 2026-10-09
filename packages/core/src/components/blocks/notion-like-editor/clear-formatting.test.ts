@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { ElementApi, createSlateEditor, createSlatePlugin, type SlateEditor } from "platejs";
+import { ElementApi, type SlateEditor } from "platejs";
 
 import { clearFormatting, formatBold, runEditorCommand } from "./editor-commands";
 import { CLEARABLE_MARK_KEYS, EDITOR_MARK_RULES } from "./editor-document-schema";
-import { createEditorPlugins } from "./editor-plugins";
 import { caret, createEditor, field, isRecord, textRange } from "./test-utils";
 
 const markedLeaf = {
@@ -191,29 +190,22 @@ describe("clear formatting", () => {
     expect(clearFormatting.isEnabled?.(marked)).toBe(true);
   });
 
-  test("an inline element stays while marks inside it are cleared", () => {
-    const inlineStub = createSlatePlugin({
-      key: "a",
-      node: { isElement: true, isInline: true },
-    });
-    const editor = createSlateEditor({
-      plugins: [...createEditorPlugins(), inlineStub],
-      value: [
-        {
-          type: "p",
-          id: "block-a",
-          children: [
-            { text: "Before " },
-            {
-              type: "a",
-              url: "https://example.com",
-              children: [{ text: "link", bold: true, italic: true, color: "red" }],
-            },
-            { text: " after" },
-          ],
-        },
-      ],
-    });
+  test("clear formatting removes marks inside a real link and keeps the link", () => {
+    const editor = createEditor([
+      {
+        type: "p",
+        id: "block-a",
+        children: [
+          { text: "Before " },
+          {
+            type: "a",
+            url: "https://example.com",
+            children: [{ text: "link", bold: true, italic: true, color: "red" }],
+          },
+          { text: " after" },
+        ],
+      },
+    ]);
     const inline = childrenOf(editor.children[0])[1];
     if (!ElementApi.isElement(inline)) {
       throw new Error("Missing inline element.");

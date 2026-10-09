@@ -196,6 +196,22 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/synced-ref-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-link-url.ts",
+    code: readSource(`${BLOCK_DIR}/editor-link-url.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-link.ts",
+    code: readSource(`${BLOCK_DIR}/editor-link.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/link-element.tsx",
+    code: readSource(`${BLOCK_DIR}/link-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/link-popover.tsx",
+    code: readSource(`${BLOCK_DIR}/link-popover.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },

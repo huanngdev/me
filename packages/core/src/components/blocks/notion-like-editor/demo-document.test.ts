@@ -1024,4 +1024,29 @@ describe("demo document", () => {
 
     expect(newlines).toEqual(["\n"]);
   });
+
+  test("the demo includes an external link, a mailto link, and an autolink example", () => {
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(95);
+    const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
+    const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
+    const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");
+
+    expect(introLinks.map((child) => field(child, "id"))).toEqual([
+      "demo-link-site",
+      "demo-link-mail",
+    ]);
+    expect(field(introLinks[0], "url")).toBe("https://example.com");
+    expect(leafText(elementChildren(introLinks[0])[0])).toBe("the site");
+    expect(field(introLinks[1], "url")).toBe("mailto:gia@example.com");
+    expect(leafText(elementChildren(introLinks[1])[0])).toBe("email Gia");
+    const site = introLinks[0];
+    expect(typeof site === "object" && site !== null && "target" in site).toBe(false);
+
+    const autolink = elementChildren(paste).find(
+      (child) => field(child, "id") === "demo-link-autolink",
+    );
+    expect(field(autolink, "type")).toBe("a");
+    expect(field(autolink, "url")).toBe("https://example.com/docs");
+    expect(leafText(elementChildren(autolink)[0])).toBe("https://example.com/docs");
+  });
 });

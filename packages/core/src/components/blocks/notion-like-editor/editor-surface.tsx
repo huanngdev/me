@@ -13,6 +13,8 @@ import { LinkPreviewProvider } from "./bookmark-element";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
+import { LinkToolbar } from "./link-element";
+import { LinkPopover } from "./link-popover";
 import { PasteUrlMenu } from "./paste-url-menu";
 import { VideoRuntime } from "./video-element";
 
@@ -49,6 +51,8 @@ export function EditorSurface({
         <AudioRuntime store={assetStore} />
         <FileRuntime store={assetStore} />
         <PasteUrlMenu />
+        <LinkToolbar />
+        <LinkPopover />
         <PlateContent
           placeholder={readOnly ? undefined : placeholder}
           // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

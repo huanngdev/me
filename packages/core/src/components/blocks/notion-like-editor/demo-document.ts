@@ -12,7 +12,23 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-intro",
-    children: [{ text: "This is a paragraph. Click anywhere in it and start typing." }],
+    children: [
+      { text: "This is a paragraph. Click anywhere in it and start typing. Visit " },
+      {
+        type: "a",
+        id: "demo-link-site",
+        url: "https://example.com",
+        children: [{ text: "the site" }],
+      },
+      { text: " or " },
+      {
+        type: "a",
+        id: "demo-link-mail",
+        url: "mailto:gia@example.com",
+        children: [{ text: "email Gia" }],
+      },
+      { text: "." },
+    ],
   },
   {
     type: "p",
@@ -1155,8 +1171,15 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "p",
     id: "demo-paste",
     children: [
+      { text: "Paste text from anywhere. A URL such as " },
       {
-        text: "Paste text from anywhere. Each line becomes a paragraph, and formatting this editor does not support yet is removed.",
+        type: "a",
+        id: "demo-link-autolink",
+        url: "https://example.com/docs",
+        children: [{ text: "https://example.com/docs" }],
+      },
+      {
+        text: " becomes a link. Each line becomes a paragraph, and formatting this editor does not support yet is removed.",
       },
     ],
   },

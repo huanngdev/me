@@ -61,9 +61,12 @@ export const pasteUrlPlugin = createSlatePlugin({
         const prepared = dataWithoutScripts(data);
         const plain = prepared.getData("text/plain");
         const html = prepared.getData("text/html");
+        const collapsed =
+          editor.selection !== null && editor.selection !== undefined && editor.api.isCollapsed();
         const offerUrl = pasteOfferUrl(editor, plain, html);
         insertData(prepared);
-        if (offerUrl === undefined) {
+        // A selection wrap links the selected words and does not open this menu.
+        if (offerUrl === undefined || !collapsed) {
           return;
         }
 
@@ -154,11 +157,6 @@ export function replacePastedUrlWith(
   offer: PasteUrlOffer,
   element: TElement,
 ): void {
-  const textEntry = editor.api.node(offer.path);
-  if (textEntry === undefined || !TextApi.isText(textEntry[0])) {
-    return;
-  }
-
   const blockEntry = editor.api.block({ at: offer.path });
   if (blockEntry === undefined || !ElementApi.isElement(blockEntry[0])) {
     return;
@@ -172,12 +170,22 @@ export function replacePastedUrlWith(
     return;
   }
 
-  editor.tf.delete({
-    at: {
-      anchor: { path: offer.path, offset: offer.start },
-      focus: { path: offer.path, offset: offer.end },
-    },
-  });
+  const linkPath = linkPathForOffer(editor, offer);
+  if (linkPath !== undefined) {
+    editor.tf.removeNodes({ at: linkPath });
+  } else {
+    const textEntry = editor.api.node(offer.path);
+    if (textEntry === undefined || !TextApi.isText(textEntry[0])) {
+      return;
+    }
+
+    editor.tf.delete({
+      at: {
+        anchor: { path: offer.path, offset: offer.start },
+        focus: { path: offer.path, offset: offer.end },
+      },
+    });
+  }
   const after = PathApi.next(blockPath);
   if (after === undefined) {
     return;
@@ -261,6 +269,17 @@ function insertedRange(
     }
   }
 
+  const trimmed = raw.trim();
+  const link = linkTouchingCaret(editor);
+  if (
+    link !== undefined &&
+    typeof link.node.url === "string" &&
+    link.node.url === trimmed &&
+    editor.api.string(link.path) === trimmed
+  ) {
+    return { path: [...focus.path], start: focus.offset, end: focus.offset };
+  }
+
   const entry = editor.api.node(focus.path);
   if (entry === undefined || !TextApi.isText(entry[0])) {
     return undefined;
@@ -273,6 +292,63 @@ function insertedRange(
   }
 
   return { path: [...focus.path], start, end };
+}
+
+function linkTouchingCaret(editor: SlateEditor): { node: TElement; path: number[] } | undefined {
+  const above = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+  });
+  if (above !== undefined && ElementApi.isElement(above[0])) {
+    return { node: above[0], path: above[1] };
+  }
+
+  const selection = editor.selection;
+  if (selection === null || selection === undefined) {
+    return undefined;
+  }
+
+  const path = selection.focus.path;
+  const index = path[path.length - 1];
+  if (index === undefined || index === 0) {
+    return undefined;
+  }
+
+  const prevPath = path.slice(0, -1).concat(index - 1);
+  const prev = editor.api.node(prevPath);
+  if (prev !== undefined && ElementApi.isElement(prev[0]) && prev[0].type === KEYS.link) {
+    return { node: prev[0], path: prevPath };
+  }
+
+  return undefined;
+}
+
+function linkPathForOffer(editor: SlateEditor, offer: PasteUrlOffer): number[] | undefined {
+  const above = editor.api.above({
+    at: offer.path,
+    match: (node) =>
+      ElementApi.isElement(node) && node.type === KEYS.link && node.url === offer.url,
+  });
+  if (above !== undefined) {
+    return above[1];
+  }
+
+  const index = offer.path[offer.path.length - 1];
+  if (index === undefined || index === 0) {
+    return undefined;
+  }
+
+  const prevPath = offer.path.slice(0, -1).concat(index - 1);
+  const prev = editor.api.node(prevPath);
+  if (
+    prev !== undefined &&
+    ElementApi.isElement(prev[0]) &&
+    prev[0].type === KEYS.link &&
+    prev[0].url === offer.url
+  ) {
+    return prevPath;
+  }
+
+  return undefined;
 }
 
 function dataWithoutScripts(data: DataTransfer): DataTransfer {

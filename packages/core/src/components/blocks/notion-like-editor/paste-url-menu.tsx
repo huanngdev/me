@@ -100,7 +100,7 @@ export function PasteUrlMenu() {
             clearPasteUrlOffer(editor);
           }}
         >
-          Keep as text
+          Keep as link
         </button>
       </PopoverContent>
     </Popover>
