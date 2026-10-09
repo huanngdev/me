@@ -11258,8 +11258,16 @@ export const setTableColumnWidth: EditorCommand<{
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
 ```tsx
-import { useLayoutEffect, useRef, useState } from "react";
-import { KEYS, type TElement } from "platejs";
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
@@ -11269,7 +11277,7 @@ import {
 } from "platejs/react";
 import { useIsCellSelected, useSelectedCells } from "@platejs/table/react";
 
-import { TableBody } from "@/components/table";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/table";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
@@ -11281,19 +11289,21 @@ import {
 } from "../../lib/features/editor-table-grid";
 import { TableControls } from "../ui/table-controls";
 
-// PlateElement `as` accepts an HTML tag only, and Table() wraps a scrolling div
-// that would move apart from the resize handles. The strings below are the
-// classes on Table, TableRow, TableHead, and TableCell in @/components/table.
-// TableBody is used directly. TableHead has no background.
-const TABLE_CLASS = "w-full caption-bottom text-sm border-collapse";
-const TABLE_ROW_CLASS =
-  "hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
-const TABLE_HEAD_CLASS =
-  "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0";
-const TABLE_CELL_CLASS = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0";
+// The slate table node stays a PlateElement div. Table renders the real table
+// plus its scroll container, so the node attributes cannot sit on the table.
+// Cell borders are the editor grid. TableHead has no background of its own.
 const CELL_BORDER_CLASS = "min-w-12 border border-[var(--editor-table-border)]";
 
 const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
+
+type TableResizeContextValue = {
+  readOnly: boolean;
+  startWidth: (column: number) => number;
+  commitWidth: (column: number, width: number | null) => void;
+  setPreview: Dispatch<SetStateAction<ReadonlyMap<number, number>>>;
+};
+
+const TableResizeContext = createContext<TableResizeContextValue | null>(null);
 
 const FALLBACK_COLUMN_WIDTH = 160;
 
@@ -11430,133 +11440,182 @@ export function TableElement(props: PlateElementProps) {
   return (
     <PlateElement {...props} className="group relative my-2 max-w-full">
       {readOnly || path === undefined ? null : <TableControls element={element} />}
-      <div className="max-w-full overflow-x-auto">
-        <div className="relative w-max min-w-full">
-          <table
-            ref={tableRef}
-            className={TABLE_CLASS}
-            style={tableWidth === undefined ? undefined : { width: tableWidth }}
-          >
-            <colgroup>
-              {displayed.map((width, index) => (
-                <col key={index} style={typeof width === "number" ? { width } : undefined} />
-              ))}
-            </colgroup>
-            <TableBody>{props.children}</TableBody>
-          </table>
-          {readOnly
-            ? null
-            : displayed.map((width, index) => {
-                const edge = edges[index];
-                const left =
-                  edge !== undefined && edge > 0
-                    ? edge
-                    : displayed
-                        .slice(0, index + 1)
-                        .reduce<number>((sum, value) => sum + (value ?? FALLBACK_COLUMN_WIDTH), 0);
-                const current = typeof width === "number" ? width : startWidth(index);
-                return (
-                  <div
-                    key={index}
-                    role="separator"
-                    aria-orientation="vertical"
-                    aria-valuemin={TABLE_MIN_COLUMN_WIDTH}
-                    aria-valuemax={TABLE_MAX_COLUMN_WIDTH}
-                    aria-valuenow={current}
-                    aria-label={`Resize column ${index + 1}`}
-                    tabIndex={0}
-                    contentEditable={false}
-                    data-column={index}
-                    className="absolute top-0 z-10 h-full w-2 -translate-x-1/2 cursor-col-resize"
-                    style={{ left }}
-                    onPointerDown={(event) => {
-                      if (event.button !== 0) {
-                        return;
-                      }
-
-                      event.preventDefault();
-                      event.stopPropagation();
-                      const handle = event.currentTarget;
-                      const originX = event.clientX;
-                      const initial = startWidth(index);
-                      let latest = initial;
-                      const move = (pointer: PointerEvent): void => {
-                        latest = clampWidth(initial + pointer.clientX - originX);
-                        setPreview((currentPreview) => {
-                          const next = new Map(currentPreview);
-                          next.set(index, latest);
-                          return next;
-                        });
-                      };
-                      const stop = (): void => {
-                        handle.removeEventListener("pointermove", move);
-                        handle.removeEventListener("pointerup", stop);
-                        handle.removeEventListener("pointercancel", stop);
-                        setPreview((currentPreview) => {
-                          const next = new Map(currentPreview);
-                          next.delete(index);
-                          return next;
-                        });
-                        if (latest !== initial) {
-                          commitWidth(index, latest);
-                        }
-                      };
-                      handle.addEventListener("pointermove", move);
-                      handle.addEventListener("pointerup", stop);
-                      handle.addEventListener("pointercancel", stop);
-                      if (event.isTrusted) {
-                        handle.setPointerCapture(event.pointerId);
-                      }
-                    }}
-                    onDoubleClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      commitWidth(index, null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-                        return;
-                      }
-
-                      event.preventDefault();
-                      event.stopPropagation();
-                      const delta = event.key === "ArrowRight" ? 8 : -8;
-                      commitWidth(index, clampWidth(startWidth(index) + delta));
-                    }}
-                  />
-                );
-              })}
-        </div>
-      </div>
+      <TableResizeContext.Provider value={{ readOnly, startWidth, commitWidth, setPreview }}>
+        <Table
+          ref={tableRef}
+          className="border-collapse"
+          style={tableWidth === undefined ? undefined : { width: tableWidth }}
+        >
+          <colgroup>
+            {displayed.map((width, index) => (
+              <col key={index} style={typeof width === "number" ? { width } : undefined} />
+            ))}
+          </colgroup>
+          <TableBody>{props.children}</TableBody>
+        </Table>
+      </TableResizeContext.Provider>
     </PlateElement>
   );
 }
 
-export function TableRowElement(props: PlateElementProps) {
-  return <PlateElement {...props} as="tr" className={TABLE_ROW_CLASS} />;
+function columnInFirstRow(
+  editor: ReturnType<typeof useEditorRef>,
+  element: TElement,
+): number | undefined {
+  const path = editor.api.findPath(element);
+  if (!path || path.length < 3) {
+    return undefined;
+  }
+
+  const rowIndex = path[path.length - 2];
+  const cellIndex = path[path.length - 1];
+  if (rowIndex !== 0 || typeof cellIndex !== "number") {
+    return undefined;
+  }
+
+  const rowEntry = editor.api.node(path.slice(0, -1));
+  if (rowEntry === undefined || !ElementApi.isElement(rowEntry[0])) {
+    return undefined;
+  }
+
+  const ownSpan = spanAttribute(element.colSpan) ?? 1;
+  if (ownSpan !== 1) {
+    return undefined;
+  }
+
+  let column = 0;
+  for (let index = 0; index < cellIndex; index += 1) {
+    const child = rowEntry[0].children[index];
+    const span =
+      typeof child === "object" &&
+      child !== null &&
+      "colSpan" in child &&
+      typeof child.colSpan === "number"
+        ? child.colSpan
+        : 1;
+    column += span > 1 ? span : 1;
+  }
+
+  return column;
+}
+
+function ColumnResizeHandle({ column }: { column: number }) {
+  const resize = useContext(TableResizeContext);
+  if (!resize || resize.readOnly) {
+    return null;
+  }
+
+  const current = resize.startWidth(column);
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuemin={TABLE_MIN_COLUMN_WIDTH}
+      aria-valuemax={TABLE_MAX_COLUMN_WIDTH}
+      aria-valuenow={current}
+      aria-label={`Resize column ${column + 1}`}
+      tabIndex={0}
+      contentEditable={false}
+      data-column={column}
+      className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize"
+      onPointerDown={(event) => {
+        if (event.button !== 0) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const handle = event.currentTarget;
+        const originX = event.clientX;
+        const initial = resize.startWidth(column);
+        let latest = initial;
+        const move = (pointer: PointerEvent): void => {
+          latest = clampWidth(initial + pointer.clientX - originX);
+          resize.setPreview((currentPreview) => {
+            const next = new Map(currentPreview);
+            next.set(column, latest);
+            return next;
+          });
+        };
+        const stop = (): void => {
+          handle.removeEventListener("pointermove", move);
+          handle.removeEventListener("pointerup", stop);
+          handle.removeEventListener("pointercancel", stop);
+          resize.setPreview((currentPreview) => {
+            const next = new Map(currentPreview);
+            next.delete(column);
+            return next;
+          });
+          if (latest !== initial) {
+            resize.commitWidth(column, latest);
+          }
+        };
+        handle.addEventListener("pointermove", move);
+        handle.addEventListener("pointerup", stop);
+        handle.addEventListener("pointercancel", stop);
+        if (event.isTrusted) {
+          handle.setPointerCapture(event.pointerId);
+        }
+      }}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        resize.commitWidth(column, null);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const delta = event.key === "ArrowRight" ? 8 : -8;
+        resize.commitWidth(column, clampWidth(resize.startWidth(column) + delta));
+      }}
+    />
+  );
+}
+
+export function TableRowElement({ attributes, children }: PlateElementProps) {
+  const { className, ...slateProps } = attributes;
+  return (
+    <TableRow {...slateProps} className={className}>
+      {children}
+    </TableRow>
+  );
 }
 
 export function TableCellElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
   const selected = useIsCellSelected(props.element);
   const header = props.element.type === KEYS.th;
   const colSpan = spanAttribute(props.element.colSpan);
   const rowSpan = spanAttribute(props.element.rowSpan);
+  const column = readOnly ? undefined : columnInFirstRow(editor, props.element);
+  const { className, ...slateProps } = props.attributes;
+  const cellClass = cn(
+    className,
+    CELL_BORDER_CLASS,
+    selected && SELECTED_CLASS,
+    column !== undefined && "relative",
+  );
+  const handle = column === undefined ? null : <ColumnResizeHandle column={column} />;
+
+  if (header) {
+    return (
+      <TableHead {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+        {props.children}
+        {handle}
+      </TableHead>
+    );
+  }
 
   return (
-    <PlateElement
-      {...props}
-      as={header ? "th" : "td"}
-      attributes={{
-        ...props.attributes,
-        colSpan,
-        rowSpan,
-      }}
-      className={cn(
-        header ? TABLE_HEAD_CLASS : TABLE_CELL_CLASS,
-        CELL_BORDER_CLASS,
-        selected && SELECTED_CLASS,
-      )}
-    />
+    <TableCell {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+      {props.children}
+      {handle}
+    </TableCell>
   );
 }
 ```

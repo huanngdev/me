@@ -57,4 +57,21 @@ describe("editor button rules", () => {
 
     expect(problems).toEqual([]);
   });
+
+  test("the editor table uses the app table components", () => {
+    const text = readFileSync(join(editorRoot, "components/elements/table-element.tsx"), "utf8");
+    const imported = text.slice(
+      text.indexOf('from "@/components/table"') - 120,
+      text.indexOf('from "@/components/table"'),
+    );
+
+    expect(text).toContain('from "@/components/table"');
+    for (const name of ["Table", "TableRow", "TableHead", "TableCell"]) {
+      expect(imported).toContain(name);
+    }
+    expect(text).not.toMatch(/<table[\s>/]/);
+    expect(text).not.toMatch(/<tr[\s>/]/);
+    expect(text).not.toMatch(/<td[\s>/]/);
+    expect(text).not.toMatch(/<th[\s>/]/);
+  });
 });
