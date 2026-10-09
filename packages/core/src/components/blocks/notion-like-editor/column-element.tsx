@@ -19,11 +19,7 @@ import {
   setColumnWidths,
   unwrapColumns,
 } from "./editor-columns";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  keepMediaSelection,
-  mediaIconButtonClass,
-} from "./media-element-parts";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";

@@ -22,11 +22,7 @@ import {
   tocEntries,
   type TocEntry,
 } from "./editor-toc";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  keepMediaSelection,
-  mediaIconButtonClass,
-} from "./media-element-parts";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
 
 const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
 

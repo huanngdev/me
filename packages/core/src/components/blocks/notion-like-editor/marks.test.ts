@@ -450,7 +450,7 @@ describe.each(MARKS)("%s", (_name, mark) => {
 
     expect(parsed.repairs).toEqual([]);
     // Top-level blocks. Paragraphs nested in the quote, callout, toggle, and columns are not counted.
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(96);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(90);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });

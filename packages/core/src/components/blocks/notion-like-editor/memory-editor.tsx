@@ -13,7 +13,6 @@ export function MemoryEditor({
   readOnly = false,
   placeholder = "Type something…",
   className,
-  assetStore = null,
   linkPreview = null,
   mentionProvider = null,
 }: NotionLikeEditorBlockProps) {
@@ -26,7 +25,6 @@ export function MemoryEditor({
         readOnly={readOnly}
         placeholder={placeholder}
         onValueChange={onChange}
-        assetStore={assetStore}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"

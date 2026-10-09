@@ -21,9 +21,7 @@ import {
   TextAlignPlugin,
 } from "@platejs/basic-styles/react";
 import { CalloutPlugin } from "@platejs/callout/react";
-import { CaptionPlugin } from "@platejs/caption/react";
 import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
@@ -56,7 +54,6 @@ import { BlockquoteElement } from "./blockquote-element";
 import { CalloutElement } from "./callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "./code-block-element";
 import { HrElement } from "./hr-element";
-import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "./column-element";
 import { EquationElement } from "./equation-element";
@@ -66,11 +63,6 @@ import { SYNCED_REF_KEY, goToSyncedOriginal, onSyncedRefKeyDown } from "./editor
 import { SyncedRefElement } from "./synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
-import { EmbedElement } from "./embed-element";
-import { FileElement } from "./file-element";
-import { ImageElement } from "./image-element";
-import { VideoElement } from "./video-element";
-import { embedHtmlDeserializer } from "./editor-embed";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "./link-element";
 import {
@@ -81,20 +73,6 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "./mention-element";
 import { pasteUrlPlugin } from "./editor-paste-url";
-import {
-  flushPastedImageUploads,
-  handleImageDrop,
-  handleImageInsertData,
-  imageHtmlDeserializer,
-  imageRuntimePlugin,
-} from "./editor-image";
-import { audioHtmlDeserializer, ensureAudioMedia, flushPastedAudioUploads } from "./editor-audio";
-import { ensureFileMedia, flushPastedFileUploads } from "./editor-file";
-import { ensureVideoMedia, flushPastedVideoUploads, videoHtmlDeserializer } from "./editor-video";
-
-const videoRuntimePlugin = ensureVideoMedia().plugin;
-const audioRuntimePlugin = ensureAudioMedia().plugin;
-const fileRuntimePlugin = ensureFileMedia().plugin;
 import { ToggleElement } from "./toggle-element";
 import {
   backspaceToggleLabel,
@@ -159,6 +137,7 @@ import {
   preparePastedFragment,
   rememberHtmlTableWidths,
   setPasteRepairs,
+  unsupportedMediaPlugin,
 } from "./editor-paste";
 import { TableCellElement, TableElement, TableRowElement } from "./table-element";
 import {
@@ -737,15 +716,10 @@ function normalizeDisallowedChild(
       return true;
     }
 
-    // A table cell only stores paragraphs. Lifting a media void one level would
+    // A table cell only stores paragraphs. Lifting a void one level would
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
-      (child.type === KEYS.img ||
-        child.type === KEYS.video ||
-        child.type === KEYS.audio ||
-        child.type === KEYS.file ||
-        child.type === KEYS.mediaEmbed ||
-        child.type === BOOKMARK_KEY ||
+      (child.type === BOOKMARK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
         child.type === SYNCED_REF_KEY) &&
@@ -1525,110 +1499,6 @@ const horizontalRulePlugin = HorizontalRulePlugin.configure({
   render: { node: HrElement },
 });
 
-// Plate's own upload writes a data URL and its embed accepts any image URL.
-// Both are off. Insert, paste, and drop go through the asset pipeline.
-// Plate Plus placeholder, floating media, and preview UI are not registered.
-const imagePlugin = ImagePlugin.configure({
-  node: { isVoid: true },
-  options: {
-    disableUploadInsert: true,
-    disableEmbedInsert: true,
-  },
-  render: { node: ImageElement },
-  parsers: {
-    html: {
-      deserializer: imageHtmlDeserializer,
-    },
-  },
-}).overrideEditor(({ editor, tf: { insertData, insertFragment } }) => ({
-  transforms: {
-    insertData(data: DataTransfer) {
-      handleImageInsertData(editor, data, insertData);
-    },
-    insertFragment(fragment, options) {
-      try {
-        insertFragment(fragment, options);
-      } finally {
-        flushPastedImageUploads(editor);
-      }
-    },
-  },
-  handlers: {
-    onDrop: ({
-      event,
-    }: {
-      event: {
-        clientX: number;
-        clientY: number;
-        preventDefault: () => void;
-        dataTransfer: DataTransfer | null;
-        view: Window | null;
-      };
-    }) => {
-      handleImageDrop(editor, {
-        clientX: event.clientX,
-        clientY: event.clientY,
-        preventDefault: () => {
-          event.preventDefault();
-        },
-        dataTransfer: event.dataTransfer,
-        view: event.view,
-      });
-    },
-  },
-}));
-
-const videoPlugin = VideoPlugin.configure({
-  node: { isVoid: true },
-  render: { node: VideoElement },
-  parsers: {
-    html: {
-      deserializer: videoHtmlDeserializer,
-    },
-  },
-}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
-  transforms: {
-    insertFragment(fragment, options) {
-      try {
-        insertFragment(fragment, options);
-      } finally {
-        flushPastedVideoUploads(editor);
-      }
-    },
-  },
-}));
-
-const audioPlugin = AudioPlugin.configure({
-  node: { isVoid: true },
-  render: { node: AudioElement },
-  parsers: {
-    html: {
-      deserializer: audioHtmlDeserializer,
-    },
-  },
-}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
-  transforms: {
-    insertFragment(fragment, options) {
-      try {
-        insertFragment(fragment, options);
-      } finally {
-        flushPastedAudioUploads(editor);
-      }
-    },
-  },
-}));
-
-const mediaEmbedPlugin = createSlatePlugin({
-  key: KEYS.mediaEmbed,
-  node: { isElement: true, isVoid: true },
-  render: { node: EmbedElement },
-  parsers: {
-    html: {
-      deserializer: embedHtmlDeserializer,
-    },
-  },
-});
-
 const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
@@ -1733,29 +1603,6 @@ const columnNormalizePlugin = createSlatePlugin({
     },
   },
 }));
-
-const filePlugin = FilePlugin.configure({
-  node: { isVoid: true },
-  render: { node: FileElement },
-}).overrideEditor(({ editor, tf: { insertFragment } }) => ({
-  transforms: {
-    insertFragment(fragment, options) {
-      try {
-        insertFragment(fragment, options);
-      } finally {
-        flushPastedFileUploads(editor);
-      }
-    },
-  },
-}));
-
-const captionPlugin = CaptionPlugin.configure({
-  options: {
-    query: {
-      allow: [KEYS.img, KEYS.video, KEYS.audio, KEYS.file, KEYS.mediaEmbed],
-    },
-  },
-});
 
 function moveMediaAfterTable(
   editor: SlateEditor,
@@ -1954,27 +1801,18 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     dependentAttrsPlugin,
     listKeyboardPlugin,
     codeBlockPlugin,
-    imagePlugin,
-    videoPlugin,
-    audioPlugin,
-    filePlugin,
-    mediaEmbedPlugin,
     bookmarkPlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,
     columnPlugin,
-    captionPlugin,
-    imageRuntimePlugin,
-    videoRuntimePlugin,
-    audioRuntimePlugin,
-    fileRuntimePlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
     mentionPlatePlugin,
     mentionUiPlugin,
     pasteUrlPlugin,
+    unsupportedMediaPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
     breakAbovePlugin,

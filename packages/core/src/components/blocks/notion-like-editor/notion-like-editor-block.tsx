@@ -1,6 +1,5 @@
 "use client";
 
-import type { AssetStore } from "./editor-assets";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import type { MentionProvider } from "./editor-mention-node";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
@@ -16,7 +15,6 @@ export type NotionLikeEditorBlockProps = {
   placeholder?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
-  assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
 };

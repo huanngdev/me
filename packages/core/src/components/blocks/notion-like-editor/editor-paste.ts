@@ -45,40 +45,15 @@ import {
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import {
-  IMAGE_BOTH_SOURCES,
-  planPastedImage,
-  pastedImageDroppedUrl,
-  queuePastedImageUpload,
-} from "./editor-image";
-import {
-  VIDEO_BOTH_SOURCES,
-  pastedVideoDroppedUrl,
-  pastedVideoPosterRepair,
-  planPastedVideo,
-  queuePastedVideoUpload,
-} from "./editor-video";
-import {
-  AUDIO_BOTH_SOURCES,
-  pastedAudioDroppedUrl,
-  planPastedAudio,
-  queuePastedAudioUpload,
-} from "./editor-audio";
-import {
-  FILE_BOTH_SOURCES,
-  pastedFileDroppedUrl,
-  planPastedFile,
-  queuePastedFileUpload,
-} from "./editor-file";
-import {
   BOOKMARK_KEY,
   BOOKMARK_PASTE_DROPPED,
   bookmarkElement,
   storedBookmark,
 } from "./editor-bookmark-url";
-import { EMBED_PASTE_DROPPED } from "./editor-embed";
-import { embedElement, parseEmbedUrl, storedEmbed } from "./editor-embed-url";
 import type { EditorValue } from "./editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+
+export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
 export { pasteRepairsOf, setPasteRepairs };
 
@@ -91,8 +66,8 @@ export type PasteSanitizeOptions = {
 
 let activePasteRepairs: Repair[] | undefined;
 
-// The table override sanitizes the fragment again. An image that became a paragraph
-// on the first pass is gone on the second, so those repairs are kept until the outer insert finishes.
+// The table override sanitizes the fragment again. A repair from the first pass
+// is gone on the second, so those repairs are kept until the outer insert finishes.
 let pendingImageRepairs: Repair[] = [];
 let pendingMentionInputRepairs: Repair[] = [];
 
@@ -257,110 +232,20 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
   return props;
 }
 
-function pastedImage(node: TElement, seen: Set<string>): TElement[] {
-  const plan = planPastedImage(node);
-  if (plan.kind === "text") {
-    rememberImageRepair({ path: [], message: plan.repair });
-    return [paragraph([{ text: plan.text }])];
-  }
-
-  if (plan.kind === "drop") {
-    rememberImageRepair({ path: [], message: plan.repair });
-    return [];
-  }
-
-  if (pastedImageDroppedUrl(node)) {
-    rememberImageRepair({ path: [], message: IMAGE_BOTH_SOURCES });
-  }
-
-  const id = takeId(node, seen) ?? nanoid();
-  if (plan.upload) {
-    queuePastedImageUpload(id, plan.upload);
-  }
-
-  const image = elementNode(KEYS.img, [{ text: "" }], id);
-  for (const [key, value] of Object.entries(plan.props)) {
-    image[key] = value;
-  }
-
-  return [image];
+function isDroppedMediaType(type: string): boolean {
+  return (
+    type === KEYS.img ||
+    type === KEYS.video ||
+    type === KEYS.audio ||
+    type === KEYS.file ||
+    type === KEYS.mediaEmbed ||
+    type === "pdf" ||
+    type === "unsupported_media"
+  );
 }
 
-function pastedMedia(
-  node: TElement,
-  seen: Set<string>,
-  options: {
-    type: string;
-    plan: typeof planPastedVideo;
-    droppedUrl: typeof pastedVideoDroppedUrl;
-    bothSourcesMessage: string;
-    queueUpload: typeof queuePastedVideoUpload;
-    extraRepair?: typeof pastedVideoPosterRepair;
-  },
-): TElement[] {
-  const plan = options.plan(node);
-  if (plan.kind === "text") {
-    rememberImageRepair({ path: [], message: plan.repair });
-    return [paragraph([{ text: plan.text }])];
-  }
-
-  if (plan.kind === "drop") {
-    rememberImageRepair({ path: [], message: plan.repair });
-    return [];
-  }
-
-  if (options.droppedUrl(node)) {
-    rememberImageRepair({ path: [], message: options.bothSourcesMessage });
-  }
-
-  const extraRepair = options.extraRepair?.(node);
-  if (extraRepair !== undefined) {
-    rememberImageRepair({ path: [], message: extraRepair });
-  }
-
-  const id = takeId(node, seen) ?? nanoid();
-  if (plan.upload) {
-    options.queueUpload(id, plan.upload);
-  }
-
-  const element = elementNode(options.type, [{ text: "" }], id);
-  for (const [key, value] of Object.entries(plan.props)) {
-    element[key] = value;
-  }
-
-  return [element];
-}
-
-function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
-  const assetId = typeof node.assetId === "string" && node.assetId.length > 0;
-  const url = typeof node.url === "string" ? node.url : undefined;
-  if (!assetId && url !== undefined) {
-    const parsed = parseEmbedUrl(url);
-    if (parsed !== undefined) {
-      const element = embedElement(parsed, nanoid());
-      copyAllowedAttrs(node, element);
-      return [element];
-    }
-  }
-
-  return pastedMedia(node, seen, {
-    type: KEYS.video,
-    plan: planPastedVideo,
-    droppedUrl: pastedVideoDroppedUrl,
-    bothSourcesMessage: VIDEO_BOTH_SOURCES,
-    queueUpload: queuePastedVideoUpload,
-    extraRepair: pastedVideoPosterRepair,
-  });
-}
-
-function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
-  return pastedMedia(node, seen, {
-    type: KEYS.audio,
-    plan: planPastedAudio,
-    droppedUrl: pastedAudioDroppedUrl,
-    bothSourcesMessage: AUDIO_BOTH_SOURCES,
-    queueUpload: queuePastedAudioUpload,
-  });
+function noteDroppedMedia(): void {
+  rememberImageRepair({ path: [], message: MEDIA_NOT_SUPPORTED });
 }
 
 function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
@@ -372,29 +257,6 @@ function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [bookmarkElement(stored, nanoid())];
-}
-
-function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
-  void seen;
-  const parsed = storedEmbed(node);
-  if ("embedDrop" in node || parsed === undefined) {
-    rememberImageRepair({ path: [], message: EMBED_PASTE_DROPPED });
-    return [];
-  }
-
-  const element = embedElement(parsed, nanoid());
-  copyAllowedAttrs(node, element);
-  return [element];
-}
-
-function pastedFile(node: TElement, seen: Set<string>): TElement[] {
-  return pastedMedia(node, seen, {
-    type: KEYS.file,
-    plan: planPastedFile,
-    droppedUrl: pastedFileDroppedUrl,
-    bothSourcesMessage: FILE_BOTH_SOURCES,
-    queueUpload: queuePastedFileUpload,
-  });
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -487,6 +349,10 @@ function placeInParent(
   nesting: Nesting = emptyNesting,
   asLabel = false,
 ): TElement[] {
+  if (isDroppedMediaType(node.type)) {
+    return expandBlock(node, isInline, seen, nesting);
+  }
+
   // A void is never retyped. A container that cannot hold it splits around the void.
   if (isVoidElementType(node.type)) {
     return expandBlock(node, isInline, seen, nesting);
@@ -934,6 +800,11 @@ function expandBlock(
   seen: Set<string>,
   nesting: Nesting = emptyNesting,
 ): TElement[] {
+  if (isDroppedMediaType(node.type)) {
+    noteDroppedMedia();
+    return [];
+  }
+
   if (node.type === KEYS.mentionInput) {
     noteMentionInputPaste();
     const text = isRecord(node) ? mentionInputPlainText(node) : "@";
@@ -946,26 +817,6 @@ function expandBlock(
   }
 
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
-    if (node.type === KEYS.img) {
-      return pastedImage(node, seen);
-    }
-
-    if (node.type === KEYS.video) {
-      return pastedVideo(node, seen);
-    }
-
-    if (node.type === KEYS.audio) {
-      return pastedAudio(node, seen);
-    }
-
-    if (node.type === KEYS.file) {
-      return pastedFile(node, seen);
-    }
-
-    if (node.type === KEYS.mediaEmbed) {
-      return pastedEmbed(node, seen);
-    }
-
     if (node.type === BOOKMARK_KEY) {
       return pastedBookmark(node, seen);
     }
@@ -1004,6 +855,7 @@ function expandBlock(
   const paragraphs: TElement[] = [];
   let inlines: Descendant[] = [];
   let usedOwnId = false;
+  let sawDroppedMedia = false;
 
   const flush = (): void => {
     if (inlines.length === 0) {
@@ -1024,6 +876,12 @@ function expandBlock(
   };
 
   for (const child of node.children) {
+    if (isRecord(child) && typeof child.type === "string" && isDroppedMediaType(child.type)) {
+      noteDroppedMedia();
+      sawDroppedMedia = true;
+      continue;
+    }
+
     const classified = classifyPasteChild(child, isInline, allowMarks);
     if (classified === undefined) {
       continue;
@@ -1041,6 +899,10 @@ function expandBlock(
 
     flush();
     paragraphs.push(...expandBlock(classified.node, isInline, seen, nesting));
+  }
+
+  if (sawDroppedMedia && paragraphs.length === 0 && !hasContent(inlines)) {
+    return [];
   }
 
   flush();
@@ -1064,6 +926,11 @@ function inlineNodes(
   seen: Set<string>,
   allowMarks = true,
 ): Descendant[] {
+  if (isDroppedMediaType(node.type)) {
+    noteDroppedMedia();
+    return [];
+  }
+
   if (node.type === KEYS.mentionInput) {
     noteMentionInputPaste();
     const text = isRecord(node) ? mentionInputPlainText(node) : "@";
@@ -1252,13 +1119,77 @@ export const PasteFallbackPlugin = createSlatePlugin({
     insertFragment(fragment, options) {
       // TablePlugin inserts a one-table fragment before this fallback, so the
       // table override sanitizes that path too. This still covers every other fragment.
-      // Image repairs are remembered across the table override's second sanitize.
+      // Repairs are remembered across the table override's second sanitize.
       try {
         insertFragment(preparePastedFragment(editor, fragment), options);
       } finally {
         clearPendingImageRepairs();
         clearPendingMentionInputRepairs();
         clearUnsafePastedLinkRepairs();
+      }
+    },
+  },
+}));
+
+function transferFileCount(data: DataTransfer): number {
+  const files = Reflect.get(data, "files");
+  if (typeof files !== "object" || files === null) {
+    return 0;
+  }
+
+  const length = Reflect.get(files, "length");
+  return typeof length === "number" && Number.isFinite(length) ? length : 0;
+}
+
+type MediaDropEvent = {
+  preventDefault: () => void;
+  dataTransfer: DataTransfer | null;
+};
+
+export function rejectDroppedFiles(editor: SlateEditor, event: MediaDropEvent): boolean {
+  const data = event.dataTransfer;
+  if (data === null || transferFileCount(data) === 0) {
+    return false;
+  }
+
+  event.preventDefault();
+  setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
+  return true;
+}
+
+// Registered after the paste-url plugin so a file list is rejected before a
+// link, a table, or a code block reads the same clipboard.
+export const unsupportedMediaPlugin = createSlatePlugin({
+  key: "unsupportedMedia",
+  parsers: {
+    html: {
+      deserializer: {
+        isElement: true,
+        rules: [
+          { validNodeName: "IMG" },
+          { validNodeName: "VIDEO" },
+          { validNodeName: "AUDIO" },
+          { validNodeName: "IFRAME" },
+        ],
+        parse: () => ({ type: "unsupported_media", children: [{ text: "" }] }),
+      },
+    },
+  },
+}).overrideEditor(({ editor, tf: { insertData } }) => ({
+  transforms: {
+    insertData(data: DataTransfer) {
+      if (transferFileCount(data) > 0) {
+        setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
+        return;
+      }
+
+      insertData(data);
+    },
+  },
+  handlers: {
+    onDrop: ({ event }: { event: MediaDropEvent }) => {
+      if (rejectDroppedFiles(editor, event)) {
+        return true;
       }
     },
   },

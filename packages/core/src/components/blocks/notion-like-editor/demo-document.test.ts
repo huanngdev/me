@@ -449,13 +449,7 @@ describe("demo document", () => {
     const tables = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-tables");
     const table = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-table");
     const release = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-release");
-    const images = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-images");
-    const image = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-image");
-    const video = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-video");
-    const audio = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-audio");
-    const file = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-file");
-    const pdf = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-pdf");
-    const embed = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-embed");
+    const bookmarks = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-bookmarks");
     const bookmark = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-bookmark");
     const bookmarkFallback = DEMO_DOCUMENT_VALUE.find(
       (item) => item.id === "demo-bookmark-fallback",
@@ -478,19 +472,7 @@ describe("demo document", () => {
       !tables ||
       !table ||
       table.type !== "table" ||
-      !images ||
-      !image ||
-      image.type !== "img" ||
-      !video ||
-      video.type !== "video" ||
-      !audio ||
-      audio.type !== "audio" ||
-      !file ||
-      file.type !== "file" ||
-      !pdf ||
-      pdf.type !== "file" ||
-      !embed ||
-      embed.type !== "media_embed" ||
+      !bookmarks ||
       !bookmark ||
       bookmark.type !== "bookmark" ||
       !bookmarkFallback ||
@@ -536,63 +518,10 @@ describe("demo document", () => {
     expect(leafText(elementChildren(elementChildren(releaseHeader[0])[0])[0])).toBe("Release plan");
     const releaseBody = elementChildren(elementChildren(release)[1]);
     expect(field(releaseBody[0], "rowSpan")).toBe(2);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(images)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
-    expect(images.type).toBe("h3");
-    expect(textOf(images)).toBe("Media and files");
-    expect(DEMO_DOCUMENT_VALUE.indexOf(image)).toBe(DEMO_DOCUMENT_VALUE.indexOf(images) + 1);
-    expect(field(image, "url")).toBe("/blocks/notion-like-editor/image-demo.svg");
-    expect(field(image, "alt")).toBe("A small window looking onto a violet hill and a pale sun");
-    expect(field(image, "naturalWidth")).toBe(640);
-    expect(field(image, "naturalHeight")).toBe(400);
-    expect(field(image, "caption")).toEqual([
-      { text: "A drawing stored with the block, not an uploaded file." },
-    ]);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(video)).toBe(DEMO_DOCUMENT_VALUE.indexOf(image) + 1);
-    expect(field(video, "url")).toBe("/blocks/notion-like-editor/video-demo.webm");
-    expect(field(video, "mimeType")).toBe("video/webm");
-    expect(field(video, "naturalWidth")).toBe(160);
-    expect(field(video, "naturalHeight")).toBe(90);
-    expect(field(video, "durationMs")).toBe(1000);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(audio)).toBe(DEMO_DOCUMENT_VALUE.indexOf(video) + 1);
-    expect(field(audio, "url")).toBe("/blocks/notion-like-editor/audio-demo.wav");
-    expect(field(audio, "mimeType")).toBe("audio/wav");
-    expect(field(audio, "name")).toBe("audio-demo.wav");
-    expect(field(audio, "durationMs")).toBe(1000);
-    expect(field(audio, "caption")).toEqual([
-      { text: "A one-second tone, written into a WAV file." },
-    ]);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(file)).toBe(DEMO_DOCUMENT_VALUE.indexOf(audio) + 1);
-    expect(field(file, "url")).toBe("/blocks/notion-like-editor/file-demo.txt");
-    expect(field(file, "mimeType")).toBe("application/octet-stream");
-    expect(field(file, "name")).toBe("file-demo.txt");
-    expect(field(file, "caption")).toEqual([{ text: "A text file stored with the block." }]);
-    const demoFile = Bun.file(
-      `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/file-demo.txt`,
-    );
-    const demoFileSize = demoFile.size;
-    expect(field(file, "byteSize")).toBe(demoFileSize);
-    expect(demoFileSize).toBeLessThanOrEqual(2048);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(pdf)).toBe(DEMO_DOCUMENT_VALUE.indexOf(file) + 1);
-    expect(field(pdf, "url")).toBe("/blocks/notion-like-editor/pdf-demo.pdf");
-    expect(field(pdf, "mimeType")).toBe("application/pdf");
-    expect(field(pdf, "name")).toBe("pdf-demo.pdf");
-    expect(field(pdf, "assetId")).toBeUndefined();
-    expect(field(pdf, "caption")).toEqual([{ text: "A one-page PDF. Paste a PDF to preview it." }]);
-    const demoPdf = Bun.file(
-      `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/pdf-demo.pdf`,
-    );
-    const demoPdfSize = demoPdf.size;
-    expect(field(pdf, "byteSize")).toBe(demoPdfSize);
-    expect(demoPdfSize).toBeLessThanOrEqual(2048);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(embed)).toBe(DEMO_DOCUMENT_VALUE.indexOf(pdf) + 1);
-    expect(field(embed, "provider")).toBe("youtube");
-    expect(field(embed, "videoId")).toBe("jNQXAC9IVRw");
-    expect(field(embed, "sourceUrl")).toBe("https://www.youtube.com/watch?v=jNQXAC9IVRw");
-    expect(field(embed, "url")).toBeUndefined();
-    expect(field(embed, "caption")).toEqual([
-      { text: "Me at the zoo, the first video uploaded to YouTube." },
-    ]);
-    expect(DEMO_DOCUMENT_VALUE.indexOf(bookmark)).toBe(DEMO_DOCUMENT_VALUE.indexOf(embed) + 1);
+    expect(DEMO_DOCUMENT_VALUE.indexOf(bookmarks)).toBe(DEMO_DOCUMENT_VALUE.indexOf(release) + 1);
+    expect(bookmarks.type).toBe("h3");
+    expect(textOf(bookmarks)).toBe("Bookmarks");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(bookmark)).toBe(DEMO_DOCUMENT_VALUE.indexOf(bookmarks) + 1);
     expect(field(bookmark, "url")).toBe("https://platejs.org/docs");
     expect(field(bookmark, "title")).toBe("Plate");
     expect(field(bookmark, "description")).toBe("The rich-text editor framework for React.");
@@ -605,14 +534,6 @@ describe("demo document", () => {
     expect(field(bookmarkFallback, "url")).toBe("https://example.com/not-in-the-preview-list");
     expect(field(bookmarkFallback, "title")).toBeUndefined();
     expect(field(bookmarkFallback, "fetchedAt")).toBeUndefined();
-    const demoPdfBytes = new Uint8Array(await demoPdf.arrayBuffer());
-    expect(Array.from(demoPdfBytes.slice(0, 5))).toEqual([0x25, 0x50, 0x44, 0x46, 0x2d]);
-    const demoAudio = Bun.file(
-      `${import.meta.dir}/../../../../../../apps/web/public/blocks/notion-like-editor/audio-demo.wav`,
-    );
-    const demoAudioSize = demoAudio.size;
-    expect(demoAudioSize).toBeGreaterThan(44);
-    expect(demoAudioSize).toBeLessThanOrEqual(60 * 1024);
     const columns = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-columns");
     const columnGroup = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-column-group");
     expect(columns?.type).toBe("h3");
@@ -1026,7 +947,7 @@ describe("demo document", () => {
   });
 
   test("the demo includes an external link, a mailto link, and an autolink example", () => {
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(96);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(90);
     const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");

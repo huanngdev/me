@@ -5,7 +5,6 @@ import { PlateStatic, createStaticEditor } from "platejs/static";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-import { collectAssetIds } from "./asset-references";
 import { runEditorCommand } from "./editor-commands";
 import { createEditorDocument, serializeEditorDocument } from "./editor-document";
 import { normalizeBlockIds } from "./editor-document-ids";
@@ -38,14 +37,7 @@ import { EditorSurface } from "./editor-surface";
 import { readToggleOpenIds } from "./editor-toggle";
 import { tocEntries } from "./editor-toc";
 import type { EditorValue } from "./editor-value";
-import {
-  caret,
-  createEditor,
-  createMemoryAssetStore,
-  expectOk,
-  expectUnsupported,
-  field,
-} from "./test-utils";
+import { caret, createEditor, expectOk, expectUnsupported, field } from "./test-utils";
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
@@ -97,15 +89,11 @@ function tableWith(children: TElement[]): TElement {
   };
 }
 
-function image(id: string, assetId: string): TElement {
+function codeBlock(id: string, text: string): TElement {
   return {
-    type: "img",
+    type: "code_block",
     id,
-    assetId,
-    naturalWidth: 48,
-    naturalHeight: 24,
-    alt: "Live",
-    children: [{ text: "" }],
+    children: [{ type: "code_line", id: `${id}-line`, children: [{ text }] }],
   };
 }
 
@@ -128,28 +116,7 @@ function stubAnimationFrame(): () => void {
   };
 }
 
-function stubObjectUrls(): () => void {
-  const previousCreate = Reflect.get(URL, "createObjectURL");
-  const previousRevoke = Reflect.get(URL, "revokeObjectURL");
-  let count = 0;
-  Reflect.set(URL, "createObjectURL", () => {
-    count += 1;
-    return `blob:test-${String(count - 1)}`;
-  });
-  Reflect.set(URL, "revokeObjectURL", () => {});
-  return () => {
-    Reflect.set(URL, "createObjectURL", previousCreate);
-    Reflect.set(URL, "revokeObjectURL", previousRevoke);
-  };
-}
-
-async function mountSynced(
-  value: EditorValue,
-  options: {
-    readOnly?: boolean;
-    store?: ReturnType<typeof createMemoryAssetStore>["store"] | null;
-  } = {},
-) {
+async function mountSynced(value: EditorValue, options: { readOnly?: boolean } = {}) {
   const restoreFrame = stubAnimationFrame();
   const before = new Set(Array.from(document.body.childNodes));
   const host = document.createElement("div");
@@ -168,7 +135,6 @@ async function mountSynced(
         readOnly={options.readOnly === true}
         placeholder=""
         className="editor"
-        assetStore={options.store ?? null}
       />,
     );
   });
@@ -422,44 +388,24 @@ describe("synced block render", () => {
     }
   });
 
-  test("an image asset resolves inside the reference", async () => {
-    const restoreUrls = stubObjectUrls();
+  test("a code block renders inside the reference without copying its payload", async () => {
+    const mounted = await mountSynced([
+      codeBlock("shot", "const live = true;"),
+      syncedRef("ref-shot", "shot"),
+    ]);
     try {
-      const record = {
-        id: "asset-live",
-        kind: "image" as const,
-        name: "shot.png",
-        mimeType: "image/png",
-        byteSize: 8,
-        width: 48,
-        height: 24,
-        createdAt: "2026-10-07T00:00:00.000Z",
-      };
-      const memory = createMemoryAssetStore([record]);
-      memory.records.set(record.id, { record, blob: new Blob(["png"], { type: "image/png" }) });
-      const mounted = await mountSynced(
-        [image("shot", "asset-live"), syncedRef("ref-shot", "shot")],
-        { store: memory.store },
-      );
-      try {
-        await act(async () => {
-          await new Promise((resolve) => {
-            setTimeout(resolve, 0);
-          });
-        });
-        const images = mounted.host.querySelectorAll("img");
-        expect(images.length).toBeGreaterThanOrEqual(2);
-        const sources = [...images].map((node) => node.getAttribute("src"));
-        expect(
-          sources.every(
-            (src) => src === sources[0] && typeof src === "string" && src.startsWith("blob:"),
-          ),
-        ).toBe(true);
-      } finally {
-        await mounted.cleanup();
-      }
+      const previews = mounted.host.querySelectorAll("[data-synced-preview]");
+      expect(previews).toHaveLength(1);
+      expect(previews[0]?.textContent).toContain("const live = true;");
+      expect(mounted.editor.children.map((block) => block.type)).toEqual([
+        "code_block",
+        "synced_ref",
+      ]);
+      expect(field(mounted.editor.children[1], "targetBlockId")).toBe("shot");
+      expect(mounted.editor.children[1]?.children).toEqual([{ text: "" }]);
+      expect(JSON.stringify(mounted.editor.children[1])).not.toContain("const live");
     } finally {
-      restoreUrls();
+      await mounted.cleanup();
     }
   });
 
@@ -746,20 +692,23 @@ describe("synced block derived data", () => {
     expect(result.value[1]?.type).toBe("callout");
   });
 
-  test("asset cleanup ignores a reference and the outline lists a heading once", () => {
+  test("a reference does not copy the original and the outline lists a heading once", () => {
     const stored: EditorValue = [
-      image("shot", "asset-live"),
+      codeBlock("shot", "const live = true;"),
       syncedRef("ref-shot", "shot"),
       heading("title", "Title"),
       syncedRef("ref-title", "title"),
     ];
     const moved: EditorValue = [
-      toggle("box", [paragraph("Label", "label"), image("shot", "asset-live")]),
+      toggle("box", [paragraph("Label", "label"), codeBlock("shot", "const live = true;")]),
       syncedRef("ref-shot", "shot"),
     ];
-    expect(collectAssetIds(stored).has("asset-live")).toBe(true);
-    expect(collectAssetIds(moved).has("asset-live")).toBe(true);
-    expect(collectAssetIds([syncedRef("ref-only", "shot")]).size).toBe(0);
+    expect(field(stored[1], "targetBlockId")).toBe("shot");
+    expect(stored[1]?.children).toEqual([{ text: "" }]);
+    expect(JSON.stringify(stored[1])).not.toContain("const live");
+    expect(field(moved[1], "targetBlockId")).toBe("shot");
+    expect(JSON.stringify(moved[1])).not.toContain("const live");
+    expect(JSON.stringify(moved[0])).toContain("const live");
 
     const editor = createEditor(stored);
     expect(tocEntries(editor, 3).map((entry) => entry.id)).toEqual(["title"]);

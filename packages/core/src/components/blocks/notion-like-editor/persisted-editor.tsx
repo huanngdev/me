@@ -17,7 +17,6 @@ export function PersistedEditor({
   placeholder = "Type something…",
   className,
   adapter,
-  assetStore = null,
   linkPreview = null,
   mentionProvider = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
@@ -44,7 +43,6 @@ export function PersistedEditor({
           placeholder={placeholder}
           onChange={onChange}
           onContentChange={session.onContentChange}
-          assetStore={assetStore}
           linkPreview={linkPreview}
           mentionProvider={mentionProvider}
           status={session.status}

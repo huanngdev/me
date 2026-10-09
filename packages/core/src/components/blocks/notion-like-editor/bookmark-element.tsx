@@ -22,7 +22,7 @@ import {
   mediaIconButtonClass,
   mediaStringAttr,
   keepMediaSelection,
-} from "./media-element-parts";
+} from "./block-toolbar";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
 export const BOOKMARK_CARD_CLASS =

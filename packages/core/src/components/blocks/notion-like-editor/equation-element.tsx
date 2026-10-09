@@ -22,11 +22,7 @@ import {
   renderEquation,
   type EquationRender,
 } from "./editor-equation";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  keepMediaSelection,
-  mediaIconButtonClass,
-} from "./media-element-parts";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
 
 import "katex/dist/katex.min.css";
 

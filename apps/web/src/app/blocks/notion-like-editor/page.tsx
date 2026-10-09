@@ -52,6 +52,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/editor-paste-repairs.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/paste-repair-notice.tsx",
+    code: readSource(`${BLOCK_DIR}/paste-repair-notice.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/block-toolbar.tsx",
+    code: readSource(`${BLOCK_DIR}/block-toolbar.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/editor-plugins.ts",
     code: readSource(`${BLOCK_DIR}/editor-plugins.ts`),
   },
@@ -112,44 +120,8 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/hr-element.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-media.ts",
-    code: readSource(`${BLOCK_DIR}/editor-media.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/media-element-parts.tsx",
-    code: readSource(`${BLOCK_DIR}/media-element-parts.tsx`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-image.ts",
-    code: readSource(`${BLOCK_DIR}/editor-image.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/image-element.tsx",
-    code: readSource(`${BLOCK_DIR}/image-element.tsx`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-video.ts",
-    code: readSource(`${BLOCK_DIR}/editor-video.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/video-element.tsx",
-    code: readSource(`${BLOCK_DIR}/video-element.tsx`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-embed-url.ts",
-    code: readSource(`${BLOCK_DIR}/editor-embed-url.ts`),
-  },
-  {
     path: "components/blocks/notion-like-editor/editor-paste-url.ts",
     code: readSource(`${BLOCK_DIR}/editor-paste-url.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-embed.ts",
-    code: readSource(`${BLOCK_DIR}/editor-embed.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/embed-element.tsx",
-    code: readSource(`${BLOCK_DIR}/embed-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-bookmark-url.ts",
@@ -228,48 +200,12 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
   {
-    path: "components/blocks/notion-like-editor/editor-audio.ts",
-    code: readSource(`${BLOCK_DIR}/editor-audio.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/audio-element.tsx",
-    code: readSource(`${BLOCK_DIR}/audio-element.tsx`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-file.ts",
-    code: readSource(`${BLOCK_DIR}/editor-file.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/file-element.tsx",
-    code: readSource(`${BLOCK_DIR}/file-element.tsx`),
-  },
-  {
     path: "components/blocks/notion-like-editor/editor-selection.ts",
     code: readSource(`${BLOCK_DIR}/editor-selection.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/editor-commands.ts",
     code: readSource(`${BLOCK_DIR}/editor-commands.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/editor-assets.ts",
-    code: readSource(`${BLOCK_DIR}/editor-assets.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/asset-validation.ts",
-    code: readSource(`${BLOCK_DIR}/asset-validation.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/upload-controller.ts",
-    code: readSource(`${BLOCK_DIR}/upload-controller.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/asset-references.ts",
-    code: readSource(`${BLOCK_DIR}/asset-references.ts`),
-  },
-  {
-    path: "components/blocks/notion-like-editor/indexed-db-asset-store.ts",
-    code: readSource(`${BLOCK_DIR}/indexed-db-asset-store.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/use-notion-like-editor.ts",

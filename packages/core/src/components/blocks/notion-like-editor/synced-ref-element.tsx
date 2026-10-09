@@ -32,11 +32,7 @@ import {
   type SyncedTargetStatus,
 } from "./editor-synced-block";
 import { isStoredSyncedTargetId } from "./editor-document-schema";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  keepMediaSelection,
-  mediaIconButtonClass,
-} from "./media-element-parts";
+import { MEDIA_TOOLBAR_CLASS, keepMediaSelection, mediaIconButtonClass } from "./block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic

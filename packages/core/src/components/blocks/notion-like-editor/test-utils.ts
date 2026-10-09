@@ -2,7 +2,6 @@ import { expect } from "bun:test";
 import { createSlateEditor, type Descendant, type SlateEditor, type TRange } from "platejs";
 
 import { parseHtml } from "../../../../test/setup-dom";
-import type { AssetRecord, AssetStore } from "./editor-assets";
 import type { AutosaveTimers } from "./editor-autosave";
 import type { ParseResult } from "./editor-document-validate";
 import { createEditorPlugins } from "./editor-plugins";
@@ -243,59 +242,6 @@ export function createMemoryStorage(options?: {
       }
 
       values.set(key, value);
-    },
-  };
-}
-
-export function createMemoryAssetStore(initial: AssetRecord[] = []) {
-  const records = new Map<string, { record: AssetRecord; blob: Blob }>(
-    initial.map((record) => [record.id, { record, blob: new Blob() }]),
-  );
-  let puts = 0;
-  let fail: unknown;
-  let gate: Promise<void> | undefined;
-  let releaseGate: (() => void) | undefined;
-
-  const store: AssetStore = {
-    async put(record, blob) {
-      puts += 1;
-      if (gate) {
-        await gate;
-      }
-      if (fail !== undefined) {
-        const error = fail;
-        fail = undefined;
-        throw error;
-      }
-      records.set(record.id, { record, blob });
-    },
-    async get(id) {
-      return records.get(id) ?? null;
-    },
-    async delete(id) {
-      records.delete(id);
-    },
-    async list() {
-      return [...records.values()].map((entry) => entry.record);
-    },
-  };
-
-  return {
-    store,
-    records,
-    puts: () => puts,
-    hold() {
-      const deferred = controllable<void>();
-      gate = deferred.promise;
-      releaseGate = () => deferred.resolve();
-    },
-    release() {
-      releaseGate?.();
-      gate = undefined;
-      releaseGate = undefined;
-    },
-    failNext(error: unknown) {
-      fail = error;
     },
   };
 }

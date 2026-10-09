@@ -6,20 +6,16 @@ import { Plate, PlateContent } from "platejs/react";
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import type { AssetStore } from "./editor-assets";
 import type { EditorValue } from "./editor-value";
-import { AudioRuntime } from "./audio-element";
 import { LinkPreviewProvider } from "./bookmark-element";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
 import { mentionUiPlugin } from "./editor-mention";
 import { repairMentionInputs, type MentionProvider } from "./editor-mention-node";
-import { FileRuntime } from "./file-element";
-import { ImageRuntime } from "./image-element";
 import { LinkToolbar } from "./link-element";
 import { LinkPopover } from "./link-popover";
 import { MentionScope } from "./mention-element";
+import { PasteRepairNotice } from "./paste-repair-notice";
 import { PasteUrlMenu } from "./paste-url-menu";
-import { VideoRuntime } from "./video-element";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -27,7 +23,6 @@ type EditorSurfaceProps = {
   placeholder: string;
   onValueChange?: (value: EditorValue) => void;
   className: string;
-  assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
 };
@@ -38,7 +33,6 @@ export function EditorSurface({
   placeholder,
   onValueChange,
   className,
-  assetStore = null,
   linkPreview = null,
   mentionProvider = null,
 }: EditorSurfaceProps) {
@@ -53,10 +47,7 @@ export function EditorSurface({
     >
       <MentionScope provider={mentionProvider}>
         <LinkPreviewProvider adapter={linkPreview}>
-          <ImageRuntime store={assetStore} />
-          <VideoRuntime store={assetStore} />
-          <AudioRuntime store={assetStore} />
-          <FileRuntime store={assetStore} />
+          <PasteRepairNotice />
           <PasteUrlMenu />
           <LinkToolbar />
           <LinkPopover />

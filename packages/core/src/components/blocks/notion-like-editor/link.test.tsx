@@ -624,7 +624,7 @@ describe("link paste", () => {
     expect(editor.getOption(pasteUrlPlugin, "offer")).toBeUndefined();
   });
 
-  test("a collapsed url paste inserts a link and still offers bookmark and embed", () => {
+  test("a collapsed url paste inserts a link and still offers bookmark", () => {
     const editor = createEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
     pasteText(editor, `  ${HTTPS}/docs  `);
@@ -632,7 +632,7 @@ describe("link paste", () => {
     expect(nestedText(linkNodes(editor.children)[0])).toBe(`${HTTPS}/docs`);
     expect(blockString(editor)).toBe(`${HTTPS}/docs`);
     expect(editor.getOption(pasteUrlPlugin, "offer")?.url).toBe(`${HTTPS}/docs`);
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed video"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
     expect(
       pasteUrlActions
         .filter((action) => action.match(`${HTTPS}/docs`))
@@ -649,7 +649,7 @@ describe("link paste", () => {
     expect(offered.getOption(pasteUrlPlugin, "offer")?.url).toBe(video);
     expect(
       pasteUrlActions.filter((action) => action.match(video)).map((action) => action.label),
-    ).toEqual(["Bookmark", "Embed video"]);
+    ).toEqual(["Bookmark"]);
     runEditorCommand(offered, applyPasteUrlAction, "bookmark");
     expect(offered.children.map((block) => block.type)).toEqual(["p", "bookmark"]);
     expect(blockString(offered)).toBe("See ");

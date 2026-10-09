@@ -295,11 +295,11 @@ describe("native @platejs/layout column plugin", () => {
 });
 
 describe("column schema", () => {
-  test("two and three columns round-trip with a list, an image, and a table", () => {
-    const image: TElement = {
-      type: "img",
-      id: "pic",
-      url: "https://images.example/hill.png",
+  test("two and three columns round-trip with a list, a bookmark, and a table", () => {
+    const bookmark: TElement = {
+      type: "bookmark",
+      id: "mark",
+      url: "https://platejs.org/docs",
       children: [{ text: "" }],
     };
     const table: TElement = {
@@ -325,7 +325,7 @@ describe("column schema", () => {
           paragraph("Item", "item"),
           { ...paragraph("Nested", "nested"), listStyleType: "disc", indent: 1 },
         ]),
-        column("c2", "50%", [image, table]),
+        column("c2", "50%", [bookmark, table]),
       ]),
     ];
     const parsed = expectOk(documentOf(two));
