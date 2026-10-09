@@ -633,8 +633,26 @@ describe("demo document", () => {
     ]);
     const noteColumn = elementChildren(columnChildren[1] ?? bookmarkFallback);
     expect(field(noteColumn[0], "type")).toBe("callout");
-    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+    const equations = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-equations");
+    const quadratic = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-equation-quadratic");
+    const matrix = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-equation-matrix");
+    expect(equations?.type).toBe("h3");
+    expect(equations ? textOf(equations) : "").toBe("Equation");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(equations ?? bookmarkFallback)).toBe(
       DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 3,
+    );
+    expect(quadratic?.type).toBe("equation");
+    expect(field(quadratic, "texExpression")).toBe("x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(quadratic ?? bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 4,
+    );
+    expect(matrix?.type).toBe("equation");
+    expect(field(matrix, "texExpression")).toBe("\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}");
+    expect(DEMO_DOCUMENT_VALUE.indexOf(matrix ?? bookmarkFallback)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 5,
+    );
+    expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 6,
     );
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([

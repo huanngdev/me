@@ -506,6 +506,43 @@ export function checkEmbedNode(
   return issues;
 }
 
+export const EQUATION_EXPRESSION_MAX = 4000;
+
+// Length is UTF-16 code units. Tab and newline are the only allowed controls.
+export function isStoredEquationExpression(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > EQUATION_EXPRESSION_MAX) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code === 0x09 || code === 0x0a) {
+      continue;
+    }
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function checkEquationNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("texExpression" in node && isStoredEquationExpression(node.texExpression)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported texExpression. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
 export function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
@@ -950,6 +987,15 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { maxDepth: [1, 2, 3] },
     isVoid: true,
   },
+  // @platejs/math 53.3.12 BaseEquationPlugin: key KEYS.equation ("equation"),
+  // void, and texExpression is the only stored expression. Rendered HTML is
+  // derived. html, rendered, and displayMode are not attributes.
+  {
+    type: KEYS.equation,
+    attrs: ["id", "texExpression"],
+    isVoid: true,
+    validateChildren: (node, path) => checkEquationNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -981,6 +1027,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.codeBlock,
       KEYS.table,
       KEYS.toc,
+      KEYS.equation,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -1068,6 +1115,7 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       KEYS.table,
       KEYS.toc,
+      KEYS.equation,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];

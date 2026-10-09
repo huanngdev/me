@@ -48,7 +48,7 @@ import {
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
-import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
+import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
@@ -58,7 +58,9 @@ import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "./column-element";
+import { EquationElement } from "./equation-element";
 import { TocElement } from "./toc-element";
+import { equationPlugin, onEquationKeyDown, openEquationEditor } from "./editor-equation";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -732,7 +734,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.file ||
         child.type === KEYS.mediaEmbed ||
         child.type === BOOKMARK_KEY ||
-        child.type === KEYS.toc) &&
+        child.type === KEYS.toc ||
+        child.type === KEYS.equation) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -1388,6 +1391,19 @@ const breakAbovePlugin = createSlatePlugin({
       if (
         block &&
         isElementRecord(block[0]) &&
+        block[0].type === KEYS.equation &&
+        editor.api.isCollapsed()
+      ) {
+        const id = block[0].id;
+        if (typeof id === "string" && id.length > 0) {
+          openEquationEditor(editor, id);
+        }
+        return;
+      }
+
+      if (
+        block &&
+        isElementRecord(block[0]) &&
         isVoidElementType(block[0].type) &&
         editor.api.isCollapsed()
       ) {
@@ -1596,6 +1612,17 @@ const bookmarkPlugin = createSlatePlugin({
 
 const tocPlugin = TocPlugin.configure({
   render: { node: TocElement },
+});
+
+// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
+// Options stay on equationPlugin, and setOption looks the plugin up by key.
+const equationPlatePlugin = toPlatePlugin(equationPlugin, {
+  render: { node: EquationElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onEquationKeyDown(editor, event);
+    },
+  },
 });
 
 const columnPlugin = ColumnPlugin.configure({
@@ -1860,6 +1887,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mediaEmbedPlugin,
     bookmarkPlugin,
     tocPlugin,
+    equationPlatePlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,

@@ -2432,35 +2432,37 @@ export default function ErrorPageBlockPage() {
 38. packages/core/src/components/blocks/notion-like-editor/column-element.tsx
 39. packages/core/src/components/blocks/notion-like-editor/editor-toc.ts
 40. packages/core/src/components/blocks/notion-like-editor/toc-element.tsx
-41. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-42. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-43. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-44. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-45. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-46. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-47. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-48. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-49. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-50. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-51. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-52. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-53. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-54. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-55. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-56. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-57. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-58. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-59. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-60. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-61. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-62. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-63. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-64. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-65. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-66. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-67. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-69. apps/web/src/app/blocks/notion-like-editor/page.tsx
+41. packages/core/src/components/blocks/notion-like-editor/editor-equation.ts
+42. packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
+43. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+44. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+45. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+46. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+47. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+48. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+49. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+50. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+51. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+52. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+53. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+54. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+55. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+56. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+57. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+58. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+59. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+60. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+61. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+62. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+63. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+64. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+65. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+66. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+67. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+68. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+69. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+71. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -2986,6 +2988,43 @@ export function checkEmbedNode(
   return issues;
 }
 
+export const EQUATION_EXPRESSION_MAX = 4000;
+
+// Length is UTF-16 code units. Tab and newline are the only allowed controls.
+export function isStoredEquationExpression(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > EQUATION_EXPRESSION_MAX) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code === 0x09 || code === 0x0a) {
+      continue;
+    }
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function checkEquationNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("texExpression" in node && isStoredEquationExpression(node.texExpression)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported texExpression. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
 export function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
@@ -3430,6 +3469,15 @@ export const EDITOR_ELEMENT_RULES = [
     attrValues: { maxDepth: [1, 2, 3] },
     isVoid: true,
   },
+  // @platejs/math 53.3.12 BaseEquationPlugin: key KEYS.equation ("equation"),
+  // void, and texExpression is the only stored expression. Rendered HTML is
+  // derived. html, rendered, and displayMode are not attributes.
+  {
+    type: KEYS.equation,
+    attrs: ["id", "texExpression"],
+    isVoid: true,
+    validateChildren: (node, path) => checkEquationNode(node, path),
+  },
   // Plate's callout attrs are icon and variant. Paragraphs keep their own attrs,
   // so a list inside a callout stays a list. backgroundColor is not stored.
   {
@@ -3461,6 +3509,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.codeBlock,
       KEYS.table,
       KEYS.toc,
+      KEYS.equation,
     ],
     firstChildTypes: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
     firstChildForbiddenAttrs: ["listStyleType", "indent", "checked"],
@@ -3548,6 +3597,7 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       KEYS.table,
       KEYS.toc,
+      KEYS.equation,
     ],
   },
 ] as const satisfies readonly EditorElementRule[];
@@ -4693,6 +4743,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isStoredEquationExpression,
   isVoidElementType,
   maxNesting,
   unsatisfiedDependentAttrs,
@@ -5593,6 +5644,14 @@ function expandBlock(
       return [toc];
     }
 
+    if (node.type === KEYS.equation) {
+      const equation = elementNode(KEYS.equation, [{ text: "" }], takeId(node, seen));
+      equation.texExpression = isStoredEquationExpression(node.texExpression)
+        ? node.texExpression
+        : "";
+      return [equation];
+    }
+
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];
   }
 
@@ -5901,7 +5960,7 @@ import {
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
-import { Key, ParagraphPlugin, type PlateElementProps } from "platejs/react";
+import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "./block-list";
 import { BlockquoteElement } from "./blockquote-element";
@@ -5911,7 +5970,9 @@ import { HrElement } from "./hr-element";
 import { AudioElement } from "./audio-element";
 import { BookmarkElement } from "./bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "./column-element";
+import { EquationElement } from "./equation-element";
 import { TocElement } from "./toc-element";
+import { equationPlugin, onEquationKeyDown, openEquationEditor } from "./editor-equation";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "./editor-columns";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { EmbedElement } from "./embed-element";
@@ -6585,7 +6646,8 @@ function normalizeDisallowedChild(
         child.type === KEYS.file ||
         child.type === KEYS.mediaEmbed ||
         child.type === BOOKMARK_KEY ||
-        child.type === KEYS.toc) &&
+        child.type === KEYS.toc ||
+        child.type === KEYS.equation) &&
       (node.type === KEYS.td || node.type === KEYS.th)
     ) {
       if (moveMediaAfterTable(editor, path, childPath)) {
@@ -7241,6 +7303,19 @@ const breakAbovePlugin = createSlatePlugin({
       if (
         block &&
         isElementRecord(block[0]) &&
+        block[0].type === KEYS.equation &&
+        editor.api.isCollapsed()
+      ) {
+        const id = block[0].id;
+        if (typeof id === "string" && id.length > 0) {
+          openEquationEditor(editor, id);
+        }
+        return;
+      }
+
+      if (
+        block &&
+        isElementRecord(block[0]) &&
         isVoidElementType(block[0].type) &&
         editor.api.isCollapsed()
       ) {
@@ -7449,6 +7524,17 @@ const bookmarkPlugin = createSlatePlugin({
 
 const tocPlugin = TocPlugin.configure({
   render: { node: TocElement },
+});
+
+// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
+// Options stay on equationPlugin, and setOption looks the plugin up by key.
+const equationPlatePlugin = toPlatePlugin(equationPlugin, {
+  render: { node: EquationElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onEquationKeyDown(editor, event);
+    },
+  },
 });
 
 const columnPlugin = ColumnPlugin.configure({
@@ -7713,6 +7799,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mediaEmbedPlugin,
     bookmarkPlugin,
     tocPlugin,
+    equationPlatePlugin,
     columnPlugin,
     captionPlugin,
     imageRuntimePlugin,
@@ -19480,6 +19567,529 @@ export function TocElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-equation.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  createSlatePlugin,
+  nanoid,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+import type { KatexOptions } from "katex";
+
+import type { EditorCommand } from "./editor-commands";
+
+export const EQUATION_EMPTY_PLACEHOLDER = "Add an equation";
+
+// throwOnError is true so a bad expression throws and this editor shows the
+// message. KaTeX's false setting would emit its own katex-error span instead.
+// strict is "ignore", not "warn": "warn" writes to the page console, and a
+// parse error still throws. trust stays false, so \href, \url, \htmlClass,
+// \htmlId, \htmlStyle, \htmlData, and \includegraphics cannot add links,
+// attributes, or images (katex src/functions/href.js, html.js, includegraphics.js).
+// No macros option: a stored document cannot define macros.
+export const EQUATION_KATEX_OPTIONS = {
+  displayMode: true,
+  throwOnError: true,
+  trust: false,
+  strict: "ignore",
+  maxSize: 10,
+  maxExpand: 1000,
+  output: "htmlAndMathml",
+} as const satisfies KatexOptions;
+
+type KatexModule = {
+  renderToString: (expression: string, options: KatexOptions) => string;
+};
+
+export type EquationRender = { ok: true; html: string } | { ok: false; message: string };
+
+let katexModule: Promise<KatexModule> | undefined;
+
+// The public @platejs/math entries import katex statically. Loading it on the
+// first equation keeps that library off the first paint.
+export function loadKatex(): Promise<KatexModule> {
+  katexModule ??= import("katex").then((mod) => mod.default);
+  return katexModule;
+}
+
+export function renderEquation(katex: KatexModule, expression: string): EquationRender {
+  try {
+    return { ok: true, html: katex.renderToString(expression, EQUATION_KATEX_OPTIONS) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "This equation could not be rendered.";
+    return { ok: false, message };
+  }
+}
+
+// The native plugin is not registered: its react entry imports katex statically, which would put KaTeX in the first-load bundle.
+export const equationPlugin = createSlatePlugin({
+  key: KEYS.equation,
+  node: { isElement: true, isVoid: true },
+  options: { editingId: "" },
+});
+
+export function equationEditingId(editor: SlateEditor): string {
+  const value: unknown = editor.getOption(equationPlugin, "editingId");
+  return typeof value === "string" ? value : "";
+}
+
+export function openEquationEditor(editor: SlateEditor, id: string): void {
+  editor.setOption(equationPlugin, "editingId", id);
+}
+
+export function closeEquationEditor(editor: SlateEditor): void {
+  if (equationEditingId(editor).length === 0) {
+    return;
+  }
+  editor.setOption(equationPlugin, "editingId", "");
+}
+
+type EquationKeyEvent = {
+  key: string;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  defaultPrevented: boolean;
+  preventDefault: () => void;
+};
+
+// Enter on the selected void opens the editor. A paragraph is not inserted.
+export function onEquationKeyDown(editor: SlateEditor, event: EquationKeyEvent): void {
+  if (
+    event.defaultPrevented ||
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey
+  ) {
+    return;
+  }
+
+  const block = editor.api.block();
+  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== KEYS.equation) {
+    return;
+  }
+
+  const id = block[0].id;
+  if (typeof id !== "string" || id.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  openEquationEditor(editor, id);
+}
+
+function equationNode(id: string): TElement {
+  return {
+    type: KEYS.equation,
+    id,
+    texExpression: "",
+    children: [{ text: "" }],
+  };
+}
+
+export function insertEquationBlock(editor: SlateEditor): void {
+  const id = nanoid();
+  const current = editor.api.block({ highest: true });
+  if (!current) {
+    editor.tf.insertNodes(equationNode(id), { at: [0], select: true });
+  } else {
+    const at = PathApi.next(current[1]);
+    if (!at) {
+      return;
+    }
+    editor.tf.insertNodes(equationNode(id), { at, select: true });
+  }
+
+  openEquationEditor(editor, id);
+}
+
+export function setEquationExpression(
+  editor: SlateEditor,
+  path: number[],
+  expression: string,
+): boolean {
+  const node = editor.api.node(path);
+  if (!node || !ElementApi.isElement(node[0]) || node[0].type !== KEYS.equation) {
+    return false;
+  }
+
+  const current = typeof node[0].texExpression === "string" ? node[0].texExpression : "";
+  if (current === expression) {
+    return false;
+  }
+
+  editor.tf.setNodes({ texExpression: expression }, { at: path });
+  return true;
+}
+
+export function removeEquation(editor: SlateEditor, path: number[]): void {
+  closeEquationEditor(editor);
+  editor.tf.removeNodes({ at: path, voids: true });
+  if (editor.children.length === 0) {
+    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: [0] });
+  }
+}
+
+export const insertEquation: EditorCommand = {
+  id: "block.insert.equation",
+  label: "Equation",
+  group: "insert",
+  run: (editor) => {
+    insertEquationBlock(editor);
+  },
+};
+
+function selectedEquation(editor: SlateEditor): [TElement, number[]] | undefined {
+  for (const entry of editor.api.nodes({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.equation,
+    voids: true,
+    mode: "lowest",
+  })) {
+    if (ElementApi.isElement(entry[0])) {
+      return [entry[0], entry[1]];
+    }
+  }
+  return undefined;
+}
+
+export const removeEquationCommand: EditorCommand = {
+  id: "block.equation.remove",
+  label: "Remove",
+  group: "action",
+  isEnabled: (editor) => selectedEquation(editor) !== undefined,
+  run: (editor) => {
+    const entry = selectedEquation(editor);
+    if (!entry) {
+      return;
+    }
+    removeEquation(editor, entry[1]);
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/equation-element.tsx
+```tsx
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  PlateElement,
+  useEditorRef,
+  useFocused,
+  usePluginOption,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { cn } from "@/lib/utils";
+
+import {
+  EQUATION_EMPTY_PLACEHOLDER,
+  closeEquationEditor,
+  equationPlugin,
+  loadKatex,
+  openEquationEditor,
+  removeEquation,
+  renderEquation,
+  type EquationRender,
+} from "./editor-equation";
+import {
+  MEDIA_TOOLBAR_CLASS,
+  keepMediaSelection,
+  mediaIconButtonClass,
+} from "./media-element-parts";
+
+import "katex/dist/katex.min.css";
+
+type KatexModule = Parameters<typeof renderEquation>[0];
+
+function storedExpression(element: PlateElementProps["element"]): string {
+  return typeof element.texExpression === "string" ? element.texExpression : "";
+}
+
+function EquationView({
+  expression,
+  katex,
+  empty,
+}: {
+  expression: string;
+  katex: KatexModule | undefined;
+  empty: "placeholder" | "blank";
+}) {
+  if (expression.length === 0) {
+    if (empty === "blank") {
+      return null;
+    }
+    return (
+      <p data-equation-empty className="text-muted-foreground text-sm">
+        {EQUATION_EMPTY_PLACEHOLDER}
+      </p>
+    );
+  }
+
+  if (!katex) {
+    return <div data-equation-loading className="bg-muted h-8 max-w-xs rounded-md" />;
+  }
+
+  const rendered = renderEquation(katex, expression);
+  if (!rendered.ok) {
+    return <EquationError expression={expression} message={rendered.message} />;
+  }
+
+  // KaTeX positions .katex-mathml absolutely. This scroller is the containing
+  // block so that span stays inside the scrollport instead of widening the page.
+  return (
+    <div data-equation-scroll className="relative max-w-full min-w-0 overflow-x-auto">
+      <div
+        data-equation-math
+        className="text-foreground w-max"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    </div>
+  );
+}
+
+function EquationError({ expression, message }: { expression: string; message: string }) {
+  return (
+    <div data-equation-error className="max-w-full min-w-0">
+      <p className="text-destructive/70 text-sm">{message}</p>
+      <pre className="mt-1 max-w-full overflow-x-auto font-mono text-sm whitespace-pre">
+        {expression}
+      </pre>
+    </div>
+  );
+}
+
+export function EquationElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const editingId = usePluginOption(equationPlugin, "editingId");
+  const expression = storedExpression(props.element);
+  const elementId = typeof props.element.id === "string" ? props.element.id : "";
+  const open = !readOnly && elementId.length > 0 && editingId === elementId;
+  const [katex, setKatex] = useState<KatexModule | undefined>();
+  const [draft, setDraft] = useState(expression);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadKatex().then((mod) => {
+      if (!cancelled) {
+        setKatex(mod);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const opening = open && !wasOpen.current;
+    const closing = wasOpen.current && !open;
+    wasOpen.current = open;
+    if (opening) {
+      setDraft(expression);
+      textarea.current?.focus();
+    }
+    if (!closing) {
+      return;
+    }
+    const path = editor.api.findPath(props.element);
+    if (!path) {
+      return;
+    }
+    const start = editor.api.start(path);
+    editor.tf.withoutSaving(() => {
+      if (start) {
+        editor.tf.select(start);
+      }
+    });
+    const node = editor.api.toDOMNode(props.element);
+    const editable = node?.closest("[data-slate-editor]");
+    if (editable instanceof HTMLElement) {
+      editable.focus();
+    }
+  }, [editor, expression, open, props.element]);
+
+  function finish(commitDraft: boolean): void {
+    const path = editor.api.findPath(props.element);
+    if (commitDraft && path && draft !== expression) {
+      editor.tf.withNewBatch(() => {
+        editor.tf.setNodes({ texExpression: draft }, { at: path });
+      });
+      editor.tf.setSplittingOnce(true);
+    }
+    closeEquationEditor(editor);
+  }
+
+  function openEditor(): void {
+    if (readOnly || elementId.length === 0) {
+      return;
+    }
+    openEquationEditor(editor, elementId);
+  }
+
+  function onTextKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>): void {
+    event.stopPropagation();
+    if (event.key === "Escape") {
+      event.preventDefault();
+      finish(false);
+      return;
+    }
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      finish(true);
+    }
+  }
+
+  async function copySource(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(expression);
+    } catch {
+      // A denied clipboard leaves the source in the block.
+    }
+  }
+
+  function remove(): void {
+    const path = editor.api.findPath(props.element);
+    if (!path) {
+      return;
+    }
+    editor.tf.withNewBatch(() => {
+      removeEquation(editor, path);
+    });
+    editor.tf.setSplittingOnce(true);
+  }
+
+  const preview: EquationRender | undefined =
+    katex && draft.length > 0 ? renderEquation(katex, draft) : undefined;
+
+  return (
+    <PlateElement
+      {...props}
+      className={cn(
+        "group relative my-2 max-w-full min-w-0",
+        selected && focused && !readOnly && "ring-ring rounded-md ring-2",
+      )}
+    >
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          // A click outside the popover drops the draft. Closing after Done
+          // has already written, so this path only runs while the editor is open.
+          if (!next && open) {
+            finish(false);
+          }
+        }}
+      >
+        <PopoverAnchor asChild>
+          <div contentEditable={false} className="max-w-full min-w-0" onClick={openEditor}>
+            <EquationView
+              expression={expression}
+              katex={katex}
+              empty={readOnly ? "blank" : "placeholder"}
+            />
+            {elementId.length === 0 ? null : (
+              <div
+                data-equation-toolbar
+                className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                {readOnly ? null : (
+                  <button
+                    type="button"
+                    aria-label="Edit"
+                    className={mediaIconButtonClass}
+                    onMouseDown={keepMediaSelection}
+                    onClick={openEditor}
+                  >
+                    Edit
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Copy source"
+                  className={mediaIconButtonClass}
+                  onMouseDown={keepMediaSelection}
+                  onClick={() => {
+                    void copySource();
+                  }}
+                >
+                  Copy source
+                </button>
+                {readOnly ? null : (
+                  <button
+                    type="button"
+                    aria-label="Remove"
+                    className={mediaIconButtonClass}
+                    onMouseDown={keepMediaSelection}
+                    onClick={remove}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </PopoverAnchor>
+        <PopoverContent
+          className="w-[min(28rem,calc(100vw-2rem))]"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+        >
+          <textarea
+            ref={textarea}
+            aria-label="Equation source"
+            className="border-input bg-background min-h-24 w-full rounded-md border p-2 font-mono text-sm"
+            value={draft}
+            onChange={(event) => {
+              setDraft(event.target.value);
+            }}
+            onKeyDown={onTextKeyDown}
+          />
+          <div data-equation-preview className="relative max-w-full min-w-0 overflow-x-auto">
+            {draft.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{EQUATION_EMPTY_PLACEHOLDER}</p>
+            ) : preview === undefined ? (
+              <div data-equation-loading className="bg-muted h-8 rounded-md" />
+            ) : preview.ok ? (
+              <div
+                className="text-foreground w-max"
+                dangerouslySetInnerHTML={{ __html: preview.html }}
+              />
+            ) : (
+              <EquationError expression={draft} message={preview.message} />
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" className={mediaIconButtonClass} onClick={() => finish(false)}>
+              Cancel
+            </button>
+            <button type="button" className={mediaIconButtonClass} onClick={() => finish(true)}>
+              Done
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
@@ -25582,6 +26192,23 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-equations",
+    children: [{ text: "Equation" }],
+  },
+  {
+    type: "equation",
+    id: "demo-equation-quadratic",
+    texExpression: "x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}",
+    children: [{ text: "" }],
+  },
+  {
+    type: "equation",
+    id: "demo-equation-matrix",
+    texExpression: "\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [
@@ -25944,6 +26571,14 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/toc-element.tsx",
     code: readSource(`${BLOCK_DIR}/toc-element.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-equation.ts",
+    code: readSource(`${BLOCK_DIR}/editor-equation.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/equation-element.tsx",
+    code: readSource(`${BLOCK_DIR}/equation-element.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",

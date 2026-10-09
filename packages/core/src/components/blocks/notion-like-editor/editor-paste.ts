@@ -22,6 +22,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isStoredEquationExpression,
   isVoidElementType,
   maxNesting,
   unsatisfiedDependentAttrs,
@@ -920,6 +921,14 @@ function expandBlock(
       const toc = elementNode(KEYS.toc, [{ text: "" }], takeId(node, seen));
       copyAllowedAttrs(node, toc);
       return [toc];
+    }
+
+    if (node.type === KEYS.equation) {
+      const equation = elementNode(KEYS.equation, [{ text: "" }], takeId(node, seen));
+      equation.texExpression = isStoredEquationExpression(node.texExpression)
+        ? node.texExpression
+        : "";
+      return [equation];
     }
 
     return [elementNode(node.type, [{ text: "" }], takeId(node, seen))];

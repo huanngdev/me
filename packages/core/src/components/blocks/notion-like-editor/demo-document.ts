@@ -1111,6 +1111,23 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-equations",
+    children: [{ text: "Equation" }],
+  },
+  {
+    type: "equation",
+    id: "demo-equation-quadratic",
+    texExpression: "x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}",
+    children: [{ text: "" }],
+  },
+  {
+    type: "equation",
+    id: "demo-equation-matrix",
+    texExpression: "\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}",
+    children: [{ text: "" }],
+  },
+  {
     type: "p",
     id: "demo-paste",
     children: [

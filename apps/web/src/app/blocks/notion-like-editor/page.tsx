@@ -180,6 +180,14 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/toc-element.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-equation.ts",
+    code: readSource(`${BLOCK_DIR}/editor-equation.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/equation-element.tsx",
+    code: readSource(`${BLOCK_DIR}/equation-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
