@@ -53,6 +53,22 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
   },
   {
+    type: "p",
+    id: "demo-mention",
+    children: [
+      { text: "Ask " },
+      {
+        type: "mention",
+        id: "demo-mention-alex",
+        entityType: "person",
+        entityId: "person-alex-kim",
+        label: "Alex Kim",
+        children: [{ text: "" }],
+      },
+      { text: " when the draft is ready." },
+    ],
+  },
+  {
     type: "toc",
     id: "demo-toc",
     children: [{ text: "" }],

@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 
 import type { AssetStore } from "./editor-assets";
 import { demoLinkPreviewAdapter } from "./demo-link-preview";
+import { demoMentionProvider } from "./demo-mention";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createIndexedDbAssetStore } from "./indexed-db-asset-store";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
@@ -76,6 +77,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       assetStore={getDemoStore()}
       linkPreview={demoLinkPreviewAdapter}
+      mentionProvider={demoMentionProvider}
     />
   );
 }

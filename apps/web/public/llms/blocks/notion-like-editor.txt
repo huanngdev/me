@@ -56,35 +56,39 @@
 46. packages/core/src/components/blocks/notion-like-editor/editor-link.ts
 47. packages/core/src/components/blocks/notion-like-editor/link-element.tsx
 48. packages/core/src/components/blocks/notion-like-editor/link-popover.tsx
-49. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
-50. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
-51. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
-52. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
-53. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
-54. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
-55. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
-56. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
-57. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
-58. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
-59. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
-60. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
-61. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
-62. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
-63. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
-64. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
-65. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
-66. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
-67. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
-68. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
-69. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
-70. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
-71. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
-72. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
-73. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-74. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
-75. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
-76. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-77. apps/web/src/app/blocks/notion-like-editor/page.tsx
+49. packages/core/src/components/blocks/notion-like-editor/editor-mention-node.ts
+50. packages/core/src/components/blocks/notion-like-editor/editor-mention.ts
+51. packages/core/src/components/blocks/notion-like-editor/mention-element.tsx
+52. packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
+53. packages/core/src/components/blocks/notion-like-editor/editor-audio.ts
+54. packages/core/src/components/blocks/notion-like-editor/audio-element.tsx
+55. packages/core/src/components/blocks/notion-like-editor/editor-file.ts
+56. packages/core/src/components/blocks/notion-like-editor/file-element.tsx
+57. packages/core/src/components/blocks/notion-like-editor/editor-selection.ts
+58. packages/core/src/components/blocks/notion-like-editor/editor-commands.ts
+59. packages/core/src/components/blocks/notion-like-editor/editor-assets.ts
+60. packages/core/src/components/blocks/notion-like-editor/asset-validation.ts
+61. packages/core/src/components/blocks/notion-like-editor/upload-controller.ts
+62. packages/core/src/components/blocks/notion-like-editor/asset-references.ts
+63. packages/core/src/components/blocks/notion-like-editor/indexed-db-asset-store.ts
+64. packages/core/src/components/blocks/notion-like-editor/use-notion-like-editor.ts
+65. packages/core/src/components/blocks/notion-like-editor/editor-persistence.ts
+66. packages/core/src/components/blocks/notion-like-editor/local-storage-adapter.ts
+67. packages/core/src/components/blocks/notion-like-editor/editor-autosave.ts
+68. packages/core/src/components/blocks/notion-like-editor/use-editor-document.ts
+69. packages/core/src/components/blocks/notion-like-editor/editor-surface.tsx
+70. packages/core/src/components/blocks/notion-like-editor/editor-document-skeleton.tsx
+71. packages/core/src/components/blocks/notion-like-editor/editor-save-status.tsx
+72. packages/core/src/components/blocks/notion-like-editor/editor-recovery-notice.tsx
+73. packages/core/src/components/blocks/notion-like-editor/memory-editor.tsx
+74. packages/core/src/components/blocks/notion-like-editor/ready-editor.tsx
+75. packages/core/src/components/blocks/notion-like-editor/persisted-editor.tsx
+76. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+77. packages/core/src/components/blocks/notion-like-editor/demo-document.ts
+78. packages/core/src/components/blocks/notion-like-editor/demo-link-preview.ts
+79. packages/core/src/components/blocks/notion-like-editor/demo-mention.ts
+80. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+81. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/editor-value.ts
 ```ts
@@ -123,6 +127,7 @@ import {
   type EmbedProvider,
 } from "./editor-embed-url";
 import { sanitizeLinkUrl } from "./editor-link-url";
+import { checkMentionNode } from "./editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -1275,6 +1280,14 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "url"],
     repairAttrs: ["url"],
   },
+  // Inline mention. Plate stores value (display text) and key (item id).
+  // This document stores label, entityId, and entityType. value and key are not attributes.
+  {
+    type: KEYS.mention,
+    attrs: ["id", "entityType", "entityId", "label"],
+    isVoid: true,
+    validateChildren: (node, path) => checkMentionNode(node, path),
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -1848,6 +1861,7 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-columns";
+import { repairMentionInputs } from "./editor-mention-node";
 import { syncedRefRepairs } from "./editor-synced-block";
 import type { EditorValue } from "./editor-value";
 
@@ -2024,7 +2038,9 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
       return true;
     }
 
-    return childType === KEYS.link && parentAllowsInlineLink(parentType);
+    return (
+      (childType === KEYS.link || childType === KEYS.mention) && parentAllowsInlineLink(parentType)
+    );
   }
 
   return childType !== undefined && childTypes.some((type) => type === childType);
@@ -2376,7 +2392,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     repairs: [],
   };
   const structurally = repairColumnContent(envelope.data.content);
-  const content = structurally.content;
+  const mentions = repairMentionInputs(structurally.content);
+  const content = mentions.content;
 
   for (let index = 0; index < content.length; index += 1) {
     walkTopLevel(content[index], [index], state);
@@ -2409,6 +2426,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     },
     repairs: [
       ...structurally.repairs,
+      ...mentions.repairs,
       ...state.repairs,
       ...normalized.repairs,
       ...syncedRefRepairs(normalized.content),
@@ -2456,6 +2474,13 @@ import {
   sanitizeLinkUrl,
   unsafePastedLinkRepairs,
 } from "./editor-link-url";
+import {
+  MENTION_ENTITY_TYPE,
+  allocateMentionId,
+  isStoredMention,
+  mentionInputPlainText,
+  sanitizeMentionLabel,
+} from "./editor-mention-node";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import {
@@ -2508,6 +2533,7 @@ let activePasteRepairs: Repair[] | undefined;
 // The table override sanitizes the fragment again. An image that became a paragraph
 // on the first pass is gone on the second, so those repairs are kept until the outer insert finishes.
 let pendingImageRepairs: Repair[] = [];
+let pendingMentionInputRepairs: Repair[] = [];
 
 function rememberImageRepair(repair: Repair): void {
   activePasteRepairs?.push(repair);
@@ -2516,6 +2542,10 @@ function rememberImageRepair(repair: Repair): void {
 
 function clearPendingImageRepairs(): void {
   pendingImageRepairs = [];
+}
+
+function clearPendingMentionInputRepairs(): void {
+  pendingMentionInputRepairs = [];
 }
 
 type IsInline = (node: Record<string, unknown>) => boolean;
@@ -3315,12 +3345,45 @@ function finishTable(node: TElement, pieces: TElement[]): TElement[] {
   });
 }
 
+function noteMentionInputPaste(): void {
+  const repair: Repair = {
+    path: [],
+    message: "A mention input was turned into plain text.",
+  };
+  activePasteRepairs?.push(repair);
+  pendingMentionInputRepairs.push(repair);
+}
+
+function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
+  if (!isRecord(node) || !isStoredMention(node)) {
+    const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
+    return label === undefined ? [] : [{ text: label }];
+  }
+
+  const mention = elementNode(KEYS.mention, [{ text: "" }], allocateMentionId(seen));
+  mention.entityType = MENTION_ENTITY_TYPE;
+  mention.entityId = node.entityId;
+  mention.label = node.label;
+  return [mention];
+}
+
 function expandBlock(
   node: TElement,
   isInline: IsInline,
   seen: Set<string>,
   nesting: Nesting = emptyNesting,
 ): TElement[] {
+  if (node.type === KEYS.mentionInput) {
+    noteMentionInputPaste();
+    const text = isRecord(node) ? mentionInputPlainText(node) : "@";
+    return [paragraph([{ text }])];
+  }
+
+  if (node.type === KEYS.mention) {
+    const nodes = pastedMentionNodes(node, seen);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === KEYS.img) {
       return pastedImage(node, seen);
@@ -3440,6 +3503,21 @@ function inlineNodes(
   seen: Set<string>,
   allowMarks = true,
 ): Descendant[] {
+  if (node.type === KEYS.mentionInput) {
+    noteMentionInputPaste();
+    const text = isRecord(node) ? mentionInputPlainText(node) : "@";
+    return text.length > 0 ? [{ text }] : [];
+  }
+
+  if (node.type === KEYS.mention) {
+    if (!allowMarks) {
+      const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
+      return label === undefined ? [] : [{ text: label }];
+    }
+
+    return pastedMentionNodes(node, seen);
+  }
+
   if (node.type === KEYS.link) {
     const url = typeof node.url === "string" ? node.url : "";
     const safe = sanitizeLinkUrl(url);
@@ -3581,6 +3659,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of pendingMentionInputRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   for (const repair of unsafePastedLinkRepairs()) {
     if (!repairs.some((item) => item.message === repair.message)) {
       repairs.push(repair);
@@ -3613,6 +3696,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
         insertFragment(preparePastedFragment(editor, fragment), options);
       } finally {
         clearPendingImageRepairs();
+        clearPendingMentionInputRepairs();
         clearUnsafePastedLinkRepairs();
       }
     },
@@ -3673,6 +3757,7 @@ import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/medi
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
+import { BaseMentionInputPlugin } from "@platejs/mention";
 import { TocPlugin } from "@platejs/toc/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
@@ -3718,6 +3803,13 @@ import { VideoElement } from "./video-element";
 import { embedHtmlDeserializer } from "./editor-embed";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "./link-element";
+import {
+  mentionPlugin,
+  mentionUiPlugin,
+  onMentionKeyDown,
+  setMentionComposing,
+} from "./editor-mention";
+import { MentionElement, MentionInputElement } from "./mention-element";
 import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
@@ -5305,6 +5397,23 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
+const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
+  render: { node: MentionElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onMentionKeyDown(editor, event);
+    },
+    onCompositionStart: ({ editor }) => {
+      setMentionComposing(editor, true);
+    },
+    onCompositionEnd: ({ editor }) => {
+      setMentionComposing(editor, false);
+    },
+  },
+}).configurePlugin(BaseMentionInputPlugin, {
+  render: { node: MentionInputElement },
+});
+
 const syncedRefPlugin = toPlatePlugin(
   createSlatePlugin({
     key: SYNCED_REF_KEY,
@@ -5593,6 +5702,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
+    mentionPlatePlugin,
+    mentionUiPlugin,
     pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
@@ -19892,6 +20003,1151 @@ function LinkPopoverForm({
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/editor-mention-node.ts
+```ts
+import { KEYS, nanoid, type Descendant, type TElement, type TText } from "platejs";
+
+import { formatBlockLabel } from "./editor-document";
+import type { Repair } from "./editor-document-ids";
+import type { TableGridIssue } from "./editor-table-grid";
+import type { EditorValue } from "./editor-value";
+
+// Plate's mention node stores `value` (display text) and `key` (item id).
+// @platejs/mention 53.0.0 BaseMentionPlugin-uPSCCRSr.js insert.mention, lines 32-38.
+// This document stores label for Plate's value and entityId for Plate's key.
+// entityType is not a Plate field. Identity is entityType + entityId, never the label.
+export const MENTION_ENTITY_TYPE = "person";
+export const MENTION_ENTITY_ID_MAX = 128;
+export const MENTION_LABEL_MAX = 120;
+
+export type MentionEntityType = typeof MENTION_ENTITY_TYPE;
+
+export type MentionEntity = {
+  entityType: MentionEntityType;
+  entityId: string;
+  label: string;
+  email?: string;
+};
+
+export type MentionProvider = {
+  search: (query: string, signal: AbortSignal) => Promise<MentionEntity[]>;
+  resolve?: (
+    entityType: string,
+    entityId: string,
+    signal: AbortSignal,
+  ) => Promise<MentionEntity | null>;
+};
+
+function hasControlChar(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isStoredMentionEntityId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= MENTION_ENTITY_ID_MAX &&
+    !hasControlChar(value)
+  );
+}
+
+export function isStoredMentionLabel(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= MENTION_LABEL_MAX &&
+    !hasControlChar(value)
+  );
+}
+
+export function isStoredMention(node: Record<string, unknown>): boolean {
+  return (
+    node.entityType === MENTION_ENTITY_TYPE &&
+    isStoredMentionEntityId(node.entityId) &&
+    isStoredMentionLabel(node.label)
+  );
+}
+
+export function sanitizeMentionLabel(value: string): string | undefined {
+  let next = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      continue;
+    }
+
+    next += value.charAt(index);
+  }
+
+  const trimmed = next.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  if (trimmed.length > MENTION_LABEL_MAX) {
+    return trimmed.slice(0, MENTION_LABEL_MAX);
+  }
+
+  return trimmed;
+}
+
+export function checkMentionNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if (isStoredMention(node)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported mention. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+export function allocateMentionId(seen?: Set<string>): string {
+  let id = nanoid(10);
+  let suffix = 1;
+  while (id.length === 0 || seen?.has(id) === true) {
+    id = `${nanoid(10)}-${suffix}`;
+    suffix += 1;
+  }
+
+  seen?.add(id);
+  return id;
+}
+
+function isElementNode(node: unknown): node is TElement {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "type" in node &&
+    typeof node.type === "string" &&
+    "children" in node &&
+    Array.isArray(node.children)
+  );
+}
+
+function isTextNode(node: Descendant): node is TText {
+  return "text" in node && typeof node.text === "string" && !("children" in node);
+}
+
+function childText(node: Record<string, unknown>): string {
+  if (!Array.isArray(node.children)) {
+    return "";
+  }
+
+  let text = "";
+  for (const child of node.children) {
+    if (
+      typeof child === "object" &&
+      child !== null &&
+      "text" in child &&
+      typeof child.text === "string"
+    ) {
+      text += child.text;
+    }
+  }
+
+  return text;
+}
+
+export function mentionInputPlainText(node: Record<string, unknown>, pendingQuery = ""): string {
+  const trigger = typeof node.trigger === "string" && node.trigger.length > 0 ? node.trigger : "@";
+  const queryFromNode = typeof node.query === "string" ? node.query : "";
+  const fromChildren = childText(node);
+  let typed = pendingQuery;
+  if (queryFromNode.length > 0) {
+    typed = queryFromNode;
+  } else if (fromChildren.length > 0) {
+    typed = fromChildren;
+  }
+
+  if (typed.length === 0) {
+    return trigger;
+  }
+
+  if (typed.startsWith(trigger)) {
+    return typed;
+  }
+
+  return `${trigger}${typed}`;
+}
+
+function mentionInputRepair(path: number[]): Repair {
+  return {
+    path,
+    message: `${formatBlockLabel(path)} had a mention input. It was turned into plain text.`,
+  };
+}
+
+function pushText(children: Descendant[], text: string): void {
+  const last = children[children.length - 1];
+  if (last !== undefined && isTextNode(last)) {
+    children[children.length - 1] = { ...last, text: last.text + text };
+    return;
+  }
+
+  children.push({ text });
+}
+
+function repairBlock(
+  node: TElement,
+  path: number[],
+  repairs: Repair[],
+  pendingQuery: string,
+): TElement {
+  if (node.type === KEYS.mentionInput) {
+    repairs.push(mentionInputRepair(path));
+    return {
+      type: KEYS.p,
+      children: [{ text: mentionInputPlainText(node, pendingQuery) }],
+    };
+  }
+
+  if (!Array.isArray(node.children)) {
+    return node;
+  }
+
+  let changed = false;
+  const children: Descendant[] = [];
+  for (let index = 0; index < node.children.length; index += 1) {
+    const child = node.children[index];
+    if (child === undefined) {
+      continue;
+    }
+
+    if (isElementNode(child) && child.type === KEYS.mentionInput) {
+      changed = true;
+      repairs.push(mentionInputRepair([...path, index]));
+      pushText(children, mentionInputPlainText(child, pendingQuery));
+      continue;
+    }
+
+    if (isElementNode(child)) {
+      const repaired = repairBlock(child, [...path, index], repairs, pendingQuery);
+      if (repaired !== child) {
+        changed = true;
+      }
+
+      children.push(repaired);
+      continue;
+    }
+
+    children.push(child);
+  }
+
+  if (!changed) {
+    return node;
+  }
+
+  return { ...node, children };
+}
+
+export function repairMentionInputs(
+  content: EditorValue,
+  pendingQuery = "",
+): { content: EditorValue; repairs: Repair[] } {
+  const repairs: Repair[] = [];
+  let changed = false;
+  const next = content.map((node, index) => {
+    const repaired = repairBlock(node, [index], repairs, pendingQuery);
+    if (repaired !== node) {
+      changed = true;
+    }
+
+    return repaired;
+  });
+
+  if (!changed) {
+    return { content, repairs };
+  }
+
+  return { content: next, repairs };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/editor-mention.ts
+```ts
+import { BaseMentionPlugin } from "@platejs/mention";
+import { ElementApi, KEYS, createSlatePlugin, type SlateEditor, type TElement } from "platejs";
+
+import type { EditorCommand } from "./editor-commands";
+import { selectionInCodeBlock } from "./editor-code";
+import {
+  MENTION_ENTITY_TYPE,
+  allocateMentionId,
+  isStoredMentionEntityId,
+  mentionInputPlainText,
+  sanitizeMentionLabel,
+  type MentionEntity,
+  type MentionProvider,
+} from "./editor-mention-node";
+
+export const MENTION_SEARCH_DEBOUNCE_MS = 150;
+export const MENTION_EMPTY_LABEL = "No people found";
+export const MENTION_ERROR_LABEL = "Couldn't load people";
+export const MENTION_LOADING_LABEL = "Loading…";
+export const MENTION_UNKNOWN_LABEL = "Unknown person";
+
+export type { MentionEntity, MentionProvider };
+
+export type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
+
+type MentionSearchClock = {
+  setTimeout: (callback: () => void, delayMs: number) => unknown;
+  clearTimeout: (id: unknown) => void;
+};
+
+type MentionSearchSession = {
+  generation: number;
+  timer: unknown;
+  controller: AbortController | null;
+};
+
+type MentionInputKey = {
+  key: string;
+  preventDefault: () => void;
+  shiftKey?: boolean;
+  defaultPrevented?: boolean;
+};
+
+const providers = new WeakMap<SlateEditor, MentionProvider>();
+const clocks = new WeakMap<SlateEditor, MentionSearchClock>();
+const sessions = new WeakMap<SlateEditor, MentionSearchSession>();
+const inputComposing = new WeakMap<SlateEditor, boolean>();
+const committing = new WeakSet<SlateEditor>();
+
+const browserHandles = new Map<number, ReturnType<typeof setTimeout>>();
+let browserHandleId = 1;
+
+const browserClock: MentionSearchClock = {
+  setTimeout: (callback, delayMs) => {
+    const id = browserHandleId;
+    browserHandleId += 1;
+    browserHandles.set(id, setTimeout(callback, delayMs));
+    return id;
+  },
+  clearTimeout: (id) => {
+    if (typeof id !== "number") {
+      return;
+    }
+
+    const handle = browserHandles.get(id);
+    if (handle === undefined) {
+      return;
+    }
+
+    clearTimeout(handle);
+    browserHandles.delete(id);
+  },
+};
+
+function mentionUiOptions(): {
+  query: string;
+  status: MentionSearchStatus;
+  results: MentionEntity[];
+  activeIndex: number;
+} {
+  return {
+    query: "",
+    status: "idle",
+    results: [],
+    activeIndex: 0,
+  };
+}
+
+export const mentionUiPlugin = createSlatePlugin({
+  key: "mentionUi",
+  options: mentionUiOptions(),
+});
+
+function sessionFor(editor: SlateEditor): MentionSearchSession {
+  const existing = sessions.get(editor);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const created: MentionSearchSession = { generation: 0, timer: undefined, controller: null };
+  sessions.set(editor, created);
+  return created;
+}
+
+function clockFor(editor: SlateEditor): MentionSearchClock {
+  return clocks.get(editor) ?? browserClock;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && "name" in error && error.name === "AbortError"
+  );
+}
+
+function resetMentionUi(editor: SlateEditor): void {
+  const session = sessionFor(editor);
+  session.generation += 1;
+  if (session.controller !== null) {
+    session.controller.abort();
+    session.controller = null;
+  }
+
+  if (session.timer !== undefined) {
+    clockFor(editor).clearTimeout(session.timer);
+    session.timer = undefined;
+  }
+
+  editor.setOption(mentionUiPlugin, "query", "");
+  editor.setOption(mentionUiPlugin, "status", "idle");
+  editor.setOption(mentionUiPlugin, "results", []);
+  editor.setOption(mentionUiPlugin, "activeIndex", 0);
+}
+
+export function attachMentionProvider(editor: SlateEditor, provider: MentionProvider | null): void {
+  if (provider === null) {
+    providers.delete(editor);
+    return;
+  }
+
+  providers.set(editor, provider);
+}
+
+export function setMentionSearchClock(editor: SlateEditor, clock: MentionSearchClock | null): void {
+  if (clock === null) {
+    clocks.delete(editor);
+    return;
+  }
+
+  clocks.set(editor, clock);
+}
+
+export function setMentionComposing(editor: SlateEditor, composing: boolean): void {
+  editor.composing = composing;
+}
+
+export function setMentionInputComposing(editor: SlateEditor, composing: boolean): void {
+  inputComposing.set(editor, composing);
+}
+
+function mentionIsComposing(editor: SlateEditor): boolean {
+  if (editor.composing === true || inputComposing.get(editor) === true) {
+    return true;
+  }
+
+  const dom: unknown = editor.dom;
+  return typeof dom === "object" && dom !== null && "composing" in dom && dom.composing === true;
+}
+
+function mentionInputEntry(editor: SlateEditor): [TElement, number[]] | undefined {
+  for (const entry of editor.api.nodes({
+    at: [],
+    match: (node) => ElementApi.isElement(node) && node.type === editor.getType(KEYS.mentionInput),
+  })) {
+    if (ElementApi.isElement(entry[0])) {
+      return [entry[0], entry[1]];
+    }
+  }
+
+  return undefined;
+}
+
+function caretInLink(editor: SlateEditor): boolean {
+  return (
+    editor.api.above({
+      match: (node) => ElementApi.isElement(node) && node.type === editor.getType(KEYS.link),
+    }) !== undefined
+  );
+}
+
+function caretHasCodeMark(editor: SlateEditor): boolean {
+  const marks = editor.api.marks();
+  return marks !== null && Reflect.get(marks, KEYS.code) === true;
+}
+
+export function mentionTriggerAllowed(editor: SlateEditor): boolean {
+  if (editor.dom.readOnly === true || mentionIsComposing(editor)) {
+    return false;
+  }
+
+  if (providers.get(editor) === undefined) {
+    return false;
+  }
+
+  if (editor.selection === null || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  if (selectionInCodeBlock(editor) || caretInLink(editor) || caretHasCodeMark(editor)) {
+    return false;
+  }
+
+  return mentionInputEntry(editor) === undefined;
+}
+
+export const mentionPlugin = BaseMentionPlugin.configure({
+  options: {
+    trigger: "@",
+    triggerPreviousCharPattern: /^\s?$/,
+    insertSpaceAfterMention: false,
+    triggerQuery: (editor) => mentionTriggerAllowed(editor),
+    createComboboxInput: (trigger) => ({
+      children: [{ text: "" }],
+      trigger,
+      type: KEYS.mentionInput,
+    }),
+  },
+});
+
+function storedPeople(results: readonly MentionEntity[]): MentionEntity[] {
+  const people: MentionEntity[] = [];
+  for (const entity of results) {
+    const label = sanitizeMentionLabel(entity.label);
+    if (
+      entity.entityType !== MENTION_ENTITY_TYPE ||
+      !isStoredMentionEntityId(entity.entityId) ||
+      label === undefined
+    ) {
+      continue;
+    }
+
+    people.push({ ...entity, label });
+  }
+
+  return people;
+}
+
+async function runMentionSearch(
+  editor: SlateEditor,
+  query: string,
+  generation: number,
+): Promise<void> {
+  const session = sessionFor(editor);
+  if (session.generation !== generation || editor.dom.readOnly === true) {
+    return;
+  }
+
+  const provider = providers.get(editor);
+  if (provider === undefined) {
+    editor.setOption(mentionUiPlugin, "status", "idle");
+    editor.setOption(mentionUiPlugin, "results", []);
+    return;
+  }
+
+  const controller = new AbortController();
+  session.controller = controller;
+  try {
+    const results = await provider.search(query, controller.signal);
+    if (session.generation !== generation || controller.signal.aborted) {
+      return;
+    }
+
+    const people = storedPeople(results);
+    editor.setOption(mentionUiPlugin, "results", people);
+    editor.setOption(mentionUiPlugin, "status", people.length === 0 ? "empty" : "ready");
+    editor.setOption(mentionUiPlugin, "activeIndex", 0);
+  } catch (error: unknown) {
+    if (session.generation !== generation || controller.signal.aborted || isAbortError(error)) {
+      return;
+    }
+
+    editor.setOption(mentionUiPlugin, "results", []);
+    editor.setOption(mentionUiPlugin, "status", "error");
+  }
+}
+
+function scheduleMentionSearch(editor: SlateEditor, query: string): void {
+  const session = sessionFor(editor);
+  session.generation += 1;
+  const generation = session.generation;
+  if (session.controller !== null) {
+    session.controller.abort();
+    session.controller = null;
+  }
+
+  const clock = clockFor(editor);
+  if (session.timer !== undefined) {
+    clock.clearTimeout(session.timer);
+    session.timer = undefined;
+  }
+
+  editor.setOption(mentionUiPlugin, "status", "loading");
+  editor.setOption(mentionUiPlugin, "results", []);
+  session.timer = clock.setTimeout(() => {
+    session.timer = undefined;
+    void runMentionSearch(editor, query, generation);
+  }, MENTION_SEARCH_DEBOUNCE_MS);
+}
+
+export function setMentionQuery(editor: SlateEditor, query: string): void {
+  editor.setOption(mentionUiPlugin, "query", query);
+  editor.setOption(mentionUiPlugin, "activeIndex", 0);
+  if (mentionIsComposing(editor) || editor.dom.readOnly === true) {
+    return;
+  }
+
+  scheduleMentionSearch(editor, query);
+}
+
+function moveActiveMention(editor: SlateEditor, delta: number): void {
+  const results = editor.getOption(mentionUiPlugin, "results");
+  if (results.length === 0) {
+    return;
+  }
+
+  const current = editor.getOption(mentionUiPlugin, "activeIndex");
+  const next = Math.min(results.length - 1, Math.max(0, current + delta));
+  editor.setOption(mentionUiPlugin, "activeIndex", next);
+}
+
+function insertMentionAtom(editor: SlateEditor, entity: MentionEntity): void {
+  const label = sanitizeMentionLabel(entity.label);
+  if (
+    entity.entityType !== MENTION_ENTITY_TYPE ||
+    !isStoredMentionEntityId(entity.entityId) ||
+    label === undefined
+  ) {
+    return;
+  }
+
+  const input = mentionInputEntry(editor);
+  editor.tf.withNewBatch(() => {
+    if (input !== undefined) {
+      editor.tf.select(input[1]);
+      editor.tf.removeNodes({ at: input[1] });
+    }
+
+    editor.tf.insertNodes({
+      type: editor.getType(KEYS.mention),
+      id: allocateMentionId(),
+      entityType: MENTION_ENTITY_TYPE,
+      entityId: entity.entityId,
+      label,
+      children: [{ text: "" }],
+    });
+    const inserted =
+      editor.selection === null
+        ? undefined
+        : editor.api.above({
+            at: editor.selection,
+            match: (node) =>
+              ElementApi.isElement(node) && node.type === editor.getType(KEYS.mention),
+          });
+    if (inserted !== undefined) {
+      const after = editor.api.after(inserted[1]);
+      if (after !== undefined) {
+        editor.tf.select(after);
+      }
+    }
+    editor.tf.insertText(" ");
+  });
+  editor.tf.setSplittingOnce(true);
+  resetMentionUi(editor);
+}
+
+export function commitMention(editor: SlateEditor, entity: MentionEntity): boolean {
+  committing.add(editor);
+  try {
+    insertMentionAtom(editor, entity);
+  } finally {
+    committing.delete(editor);
+  }
+
+  return true;
+}
+
+export function commitActiveMention(editor: SlateEditor): boolean {
+  const results = editor.getOption(mentionUiPlugin, "results");
+  const entity = results[editor.getOption(mentionUiPlugin, "activeIndex")];
+  if (entity === undefined) {
+    return false;
+  }
+
+  return commitMention(editor, entity);
+}
+
+export function cancelMentionInput(editor: SlateEditor): void {
+  if (committing.has(editor)) {
+    return;
+  }
+
+  const input = mentionInputEntry(editor);
+  if (input === undefined) {
+    return;
+  }
+
+  const text = mentionInputPlainText(input[0], editor.getOption(mentionUiPlugin, "query"));
+  editor.tf.withNewBatch(() => {
+    editor.tf.select(input[1]);
+    editor.tf.removeNodes({ at: input[1] });
+    // `at` skips the combobox trigger. A bare "@" would otherwise reopen the input.
+    const at = editor.selection;
+    if (at !== null) {
+      editor.tf.insertText(text, { at });
+    }
+  });
+  editor.tf.setSplittingOnce(true);
+  resetMentionUi(editor);
+}
+
+export function onMentionInputKeyDown(editor: SlateEditor, event: MentionInputKey): boolean {
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    moveActiveMention(editor, 1);
+    return true;
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    moveActiveMention(editor, -1);
+    return true;
+  }
+
+  if (event.key === "Enter" || (event.key === "Tab" && event.shiftKey !== true)) {
+    event.preventDefault();
+    commitActiveMention(editor);
+    return true;
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    cancelMentionInput(editor);
+    return true;
+  }
+
+  if (event.key === "Backspace" && editor.getOption(mentionUiPlugin, "query").length === 0) {
+    event.preventDefault();
+    cancelMentionInput(editor);
+    return true;
+  }
+
+  return false;
+}
+
+function skipMentionArrow(editor: SlateEditor, key: "ArrowLeft" | "ArrowRight"): boolean {
+  const selection = editor.selection;
+  if (selection === null || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  const mentionType = editor.getType(KEYS.mention);
+  const anchor = selection.anchor;
+  const parentPath = anchor.path.slice(0, -1);
+  const parentEntry = editor.api.node(parentPath);
+  if (parentEntry === undefined || !ElementApi.isElement(parentEntry[0])) {
+    return false;
+  }
+
+  const parent = parentEntry[0];
+  if (parent.type === mentionType) {
+    const point =
+      key === "ArrowLeft" ? editor.api.before(parentPath) : editor.api.after(parentPath);
+    if (point === undefined) {
+      return false;
+    }
+
+    editor.tf.select(point);
+    return true;
+  }
+
+  const index = anchor.path[anchor.path.length - 1];
+  if (index === undefined) {
+    return false;
+  }
+
+  if (key === "ArrowLeft" && anchor.offset === 0) {
+    const previousPath = [...parentPath, index - 1];
+    const previous = editor.api.node(previousPath);
+    if (
+      previous !== undefined &&
+      ElementApi.isElement(previous[0]) &&
+      previous[0].type === mentionType
+    ) {
+      const point = editor.api.before(previousPath);
+      if (point === undefined) {
+        return false;
+      }
+
+      editor.tf.select(point);
+      return true;
+    }
+  }
+
+  if (key === "ArrowRight") {
+    const current = parent.children[index];
+    const length =
+      current !== undefined && "text" in current && typeof current.text === "string"
+        ? current.text.length
+        : 0;
+    if (anchor.offset !== length) {
+      return false;
+    }
+
+    const nextPath = [...parentPath, index + 1];
+    const next = editor.api.node(nextPath);
+    if (next !== undefined && ElementApi.isElement(next[0]) && next[0].type === mentionType) {
+      const point = editor.api.after(nextPath);
+      if (point === undefined) {
+        return false;
+      }
+
+      editor.tf.select(point);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function onMentionKeyDown(editor: SlateEditor, event: MentionInputKey): void {
+  if (
+    (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+    mentionInputEntry(editor) === undefined &&
+    skipMentionArrow(editor, event.key)
+  ) {
+    event.preventDefault();
+    return;
+  }
+
+  if (event.key !== "Escape" || mentionInputEntry(editor) === undefined || event.defaultPrevented) {
+    return;
+  }
+
+  onMentionInputKeyDown(editor, event);
+}
+
+export function openMentionInput(editor: SlateEditor): boolean {
+  if (editor.dom.readOnly === true || !mentionTriggerAllowed(editor)) {
+    return false;
+  }
+
+  editor.tf.insertNodes({
+    type: editor.getType(KEYS.mentionInput),
+    trigger: "@",
+    children: [{ text: "" }],
+  });
+  setMentionQuery(editor, "");
+  return true;
+}
+
+export const insertMention: EditorCommand = {
+  id: "inline.mention.insert",
+  label: "Mention",
+  group: "insert",
+  isEnabled: (editor) => editor.dom.readOnly !== true && mentionTriggerAllowed(editor),
+  run: (editor) => {
+    if (editor.dom.readOnly === true) {
+      return;
+    }
+
+    openMentionInput(editor);
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/mention-element.tsx
+```tsx
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
+
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { cn } from "@/lib/utils";
+
+import {
+  MENTION_EMPTY_LABEL,
+  MENTION_ERROR_LABEL,
+  MENTION_LOADING_LABEL,
+  MENTION_UNKNOWN_LABEL,
+  attachMentionProvider,
+  commitMention,
+  mentionUiPlugin,
+  onMentionInputKeyDown,
+  setMentionInputComposing,
+  setMentionQuery,
+} from "./editor-mention";
+import type { MentionProvider } from "./editor-mention-node";
+
+const MentionProviderContext = createContext<MentionProvider | null>(null);
+
+export function MentionScope({
+  provider,
+  children,
+}: {
+  provider: MentionProvider | null;
+  children: ReactNode;
+}) {
+  const editor = useEditorRef();
+  // During render, not in an effect: child effects run first, and the chip resolves in that same commit.
+  attachMentionProvider(editor, provider);
+  return (
+    <MentionProviderContext.Provider value={provider}>{children}</MentionProviderContext.Provider>
+  );
+}
+
+type MentionState = "pending" | "known" | "unknown";
+
+function storedField(element: PlateElementProps["element"], key: string): string {
+  const value = element[key];
+  return typeof value === "string" ? value : "";
+}
+
+export function MentionElement({ attributes, children, element }: PlateElementProps) {
+  "use no memo";
+
+  const provider = useContext(MentionProviderContext);
+  const entityType = storedField(element, "entityType");
+  const entityId = storedField(element, "entityId");
+  const label = storedField(element, "label");
+  const resolve = provider?.resolve;
+
+  return (
+    <MentionChip
+      key={`${entityType}\0${entityId}\0${resolve === undefined ? "stored" : "resolve"}`}
+      attributes={attributes}
+      entityType={entityType}
+      entityId={entityId}
+      label={label}
+      resolve={resolve}
+    >
+      {children}
+    </MentionChip>
+  );
+}
+
+function MentionChip({
+  attributes,
+  children,
+  entityType,
+  entityId,
+  label,
+  resolve,
+}: {
+  attributes: PlateElementProps["attributes"];
+  children: ReactNode;
+  entityType: string;
+  entityId: string;
+  label: string;
+  resolve: MentionProvider["resolve"];
+}) {
+  const [state, setState] = useState<MentionState>(resolve === undefined ? "known" : "pending");
+
+  useEffect(() => {
+    if (resolve === undefined) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let alive = true;
+    void resolve(entityType, entityId, controller.signal)
+      .then((entity) => {
+        if (!alive) {
+          return;
+        }
+
+        setState(entity === null ? "unknown" : "known");
+      })
+      .catch(() => {
+        if (!alive) {
+          return;
+        }
+
+        setState("known");
+      });
+
+    return () => {
+      alive = false;
+      controller.abort();
+    };
+  }, [resolve, entityType, entityId]);
+
+  const slateClass = typeof attributes.className === "string" ? attributes.className : "";
+  const unknown = state === "unknown";
+
+  return (
+    <span
+      {...attributes}
+      contentEditable={false}
+      className={cn(
+        slateClass,
+        "inline-flex items-baseline rounded-md px-1 align-baseline",
+        unknown ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground",
+      )}
+      data-mention-entity-type={entityType}
+      data-mention-entity-id={entityId}
+      data-mention-state={state}
+      title={unknown ? MENTION_UNKNOWN_LABEL : undefined}
+    >
+      @{label}
+      {children}
+    </span>
+  );
+}
+
+export function MentionInputElement({ attributes, children }: PlateElementProps) {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const query = usePluginOption(mentionUiPlugin, "query");
+  const status = usePluginOption(mentionUiPlugin, "status");
+  const results = usePluginOption(mentionUiPlugin, "results");
+  const activeIndex = usePluginOption(mentionUiPlugin, "activeIndex");
+
+  useEffect(() => {
+    if (readOnly) {
+      return;
+    }
+
+    inputRef.current?.focus();
+    setMentionQuery(editor, editor.getOption(mentionUiPlugin, "query"));
+  }, [editor, readOnly]);
+
+  const slateClass = typeof attributes.className === "string" ? attributes.className : "";
+  if (readOnly) {
+    return (
+      <span {...attributes} className={slateClass}>
+        @{query}
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Popover open modal={false}>
+      <PopoverAnchor asChild>
+        <span
+          {...attributes}
+          contentEditable={false}
+          className={cn(
+            slateClass,
+            "bg-accent text-accent-foreground inline-flex items-baseline rounded-md px-1 align-baseline",
+          )}
+          data-mention-input=""
+        >
+          <span>@</span>
+          <input
+            ref={inputRef}
+            value={query}
+            className="text-accent-foreground placeholder:text-accent-foreground/70 w-auto min-w-[1ch] bg-transparent outline-none"
+            style={{ width: `${Math.max(query.length, 1) + 0.5}ch` }}
+            aria-label="Mention"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={true}
+            aria-controls="mention-results"
+            onChange={(event) => {
+              const next = event.currentTarget.value;
+              const native = event.nativeEvent;
+              if ("isComposing" in native && native.isComposing === true) {
+                editor.setOption(mentionUiPlugin, "query", next);
+                return;
+              }
+
+              setMentionQuery(editor, next);
+            }}
+            onCompositionStart={(event) => {
+              event.stopPropagation();
+              setMentionInputComposing(editor, true);
+            }}
+            onCompositionEnd={(event) => {
+              event.stopPropagation();
+              setMentionInputComposing(editor, false);
+              setMentionQuery(editor, event.currentTarget.value);
+            }}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              onMentionInputKeyDown(editor, event);
+            }}
+          />
+          {children}
+        </span>
+      </PopoverAnchor>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        className="w-64 p-0"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+      >
+        <div id="mention-results">
+          <Command shouldFilter={false}>
+            <CommandList>
+              {status === "loading" ? (
+                <div
+                  className="text-muted-foreground px-2 py-3 text-sm"
+                  data-mention-status="loading"
+                >
+                  {MENTION_LOADING_LABEL}
+                </div>
+              ) : null}
+              {status === "empty" ? (
+                <div
+                  className="text-muted-foreground px-2 py-3 text-sm"
+                  data-mention-status="empty"
+                >
+                  {MENTION_EMPTY_LABEL}
+                </div>
+              ) : null}
+              {status === "error" ? (
+                <div
+                  className="text-muted-foreground px-2 py-3 text-sm"
+                  data-mention-status="error"
+                >
+                  {MENTION_ERROR_LABEL}
+                </div>
+              ) : null}
+              {status === "ready" ? (
+                <CommandGroup>
+                  {results.map((person, index) => (
+                    <CommandItem
+                      key={person.entityId}
+                      value={person.entityId}
+                      data-mention-entity-id={person.entityId}
+                      data-mention-active={index === activeIndex ? "true" : "false"}
+                      className={index === activeIndex ? "bg-muted" : undefined}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                      }}
+                      onSelect={() => {
+                        commitMention(editor, person);
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span>{person.label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {person.email ?? person.entityId}
+                        </span>
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+            </CommandList>
+          </Command>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/paste-url-menu.tsx
 ```tsx
 import { useEffect } from "react";
@@ -24448,10 +25704,13 @@ import type { EditorValue } from "./editor-value";
 import { AudioRuntime } from "./audio-element";
 import { LinkPreviewProvider } from "./bookmark-element";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
+import { mentionUiPlugin } from "./editor-mention";
+import { repairMentionInputs, type MentionProvider } from "./editor-mention-node";
 import { FileRuntime } from "./file-element";
 import { ImageRuntime } from "./image-element";
 import { LinkToolbar } from "./link-element";
 import { LinkPopover } from "./link-popover";
+import { MentionScope } from "./mention-element";
 import { PasteUrlMenu } from "./paste-url-menu";
 import { VideoRuntime } from "./video-element";
 
@@ -24463,6 +25722,7 @@ type EditorSurfaceProps = {
   className: string;
   assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
+  mentionProvider?: MentionProvider | null;
 };
 
 export function EditorSurface({
@@ -24473,40 +25733,44 @@ export function EditorSurface({
   className,
   assetStore = null,
   linkPreview = null,
+  mentionProvider = null,
 }: EditorSurfaceProps) {
   return (
     <Plate
       editor={editor}
       readOnly={readOnly}
       onValueChange={({ value }) => {
-        onValueChange?.(value);
+        const query = editor?.getOption(mentionUiPlugin, "query") ?? "";
+        onValueChange?.(repairMentionInputs(value, query).content);
       }}
     >
-      <LinkPreviewProvider adapter={linkPreview}>
-        <ImageRuntime store={assetStore} />
-        <VideoRuntime store={assetStore} />
-        <AudioRuntime store={assetStore} />
-        <FileRuntime store={assetStore} />
-        <PasteUrlMenu />
-        <LinkToolbar />
-        <LinkPopover />
-        <PlateContent
-          placeholder={readOnly ? undefined : placeholder}
-          // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-          // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-          // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-          className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-          renderPlaceholder={(placeholderProps) => (
-            <span
-              {...placeholderProps.attributes}
-              className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-              style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-            >
-              {placeholderProps.children}
-            </span>
-          )}
-        />
-      </LinkPreviewProvider>
+      <MentionScope provider={mentionProvider}>
+        <LinkPreviewProvider adapter={linkPreview}>
+          <ImageRuntime store={assetStore} />
+          <VideoRuntime store={assetStore} />
+          <AudioRuntime store={assetStore} />
+          <FileRuntime store={assetStore} />
+          <PasteUrlMenu />
+          <LinkToolbar />
+          <LinkPopover />
+          <PlateContent
+            placeholder={readOnly ? undefined : placeholder}
+            // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+            // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+            // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+            className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+            renderPlaceholder={(placeholderProps) => (
+              <span
+                {...placeholderProps.attributes}
+                className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+              >
+                {placeholderProps.children}
+              </span>
+            )}
+          />
+        </LinkPreviewProvider>
+      </MentionScope>
     </Plate>
   );
 }
@@ -24709,6 +25973,7 @@ export function MemoryEditor({
   className,
   assetStore = null,
   linkPreview = null,
+  mentionProvider = null,
 }: NotionLikeEditorBlockProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -24721,6 +25986,7 @@ export function MemoryEditor({
         onValueChange={onChange}
         assetStore={assetStore}
         linkPreview={linkPreview}
+        mentionProvider={mentionProvider}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
@@ -24737,6 +26003,7 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "./editor-autosave";
 import type { AssetStore } from "./editor-assets";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
+import type { MentionProvider } from "./editor-mention-node";
 import type { EditorValue } from "./editor-value";
 import { useNotionLikeEditor } from "./use-notion-like-editor";
 
@@ -24752,6 +26019,7 @@ type ReadyEditorProps = {
   onRetry: () => void;
   assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
+  mentionProvider?: MentionProvider | null;
 };
 
 export function ReadyEditor({
@@ -24766,6 +26034,7 @@ export function ReadyEditor({
   onRetry,
   assetStore = null,
   linkPreview = null,
+  mentionProvider = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -24784,6 +26053,7 @@ export function ReadyEditor({
         }}
         assetStore={assetStore}
         linkPreview={linkPreview}
+        mentionProvider={mentionProvider}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
       />
     </div>
@@ -24814,6 +26084,7 @@ export function PersistedEditor({
   adapter,
   assetStore = null,
   linkPreview = null,
+  mentionProvider = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -24840,6 +26111,7 @@ export function PersistedEditor({
           onContentChange={session.onContentChange}
           assetStore={assetStore}
           linkPreview={linkPreview}
+          mentionProvider={mentionProvider}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -24858,6 +26130,7 @@ export function PersistedEditor({
 
 import type { AssetStore } from "./editor-assets";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
+import type { MentionProvider } from "./editor-mention-node";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import type { EditorValue } from "./editor-value";
 import { MemoryEditor } from "./memory-editor";
@@ -24873,6 +26146,7 @@ export type NotionLikeEditorBlockProps = {
   adapter?: EditorPersistenceAdapter;
   assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
+  mentionProvider?: MentionProvider | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -24939,6 +26213,22 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "p",
     id: "demo-unicode",
     children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+  },
+  {
+    type: "p",
+    id: "demo-mention",
+    children: [
+      { text: "Ask " },
+      {
+        type: "mention",
+        id: "demo-mention-alex",
+        entityType: "person",
+        entityId: "person-alex-kim",
+        label: "Alex Kim",
+        children: [{ text: "" }],
+      },
+      { text: " when the draft is ready." },
+    ],
   },
   {
     type: "toc",
@@ -26158,6 +27448,91 @@ function abortError(): Error {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/demo-mention.ts
+```ts
+import type { MentionEntity, MentionProvider } from "./editor-mention-node";
+
+const DEMO_PEOPLE: readonly MentionEntity[] = [
+  {
+    entityType: "person",
+    entityId: "person-alex-kim",
+    label: "Alex Kim",
+    email: "alex.kim@example.com",
+  },
+  {
+    entityType: "person",
+    entityId: "person-alex-kim-2",
+    label: "Alex Kim",
+    email: "alex.kim.studio@example.com",
+  },
+  {
+    entityType: "person",
+    entityId: "person-ngo-gia",
+    label: "Ngô Gia",
+    email: "gia@example.com",
+  },
+  {
+    entityType: "person",
+    entityId: "person-tran-mai",
+    label: "Trần Mai",
+    email: "mai@example.com",
+  },
+  {
+    entityType: "person",
+    entityId: "person-lena-ortiz",
+    label: "Lena Ortiz",
+    email: "lena@example.com",
+  },
+  {
+    entityType: "person",
+    entityId: "person-minh-pham",
+    label: "Minh Phạm",
+    email: "minh@example.com",
+  },
+];
+
+function fold(value: string): string {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("en");
+}
+
+function abortError(): Error {
+  const error = new Error("The mention search was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
+function matches(person: MentionEntity, query: string): boolean {
+  if (query.length === 0) {
+    return true;
+  }
+
+  const label = fold(person.label);
+  const email = fold(person.email ?? "");
+  return label.includes(query) || email.includes(query);
+}
+
+export const demoMentionProvider: MentionProvider = {
+  search(query, signal) {
+    if (signal.aborted) {
+      return Promise.reject(abortError());
+    }
+
+    const folded = fold(query.trim());
+    return Promise.resolve(DEMO_PEOPLE.filter((person) => matches(person, folded)));
+  },
+  resolve(entityType, entityId, signal) {
+    if (signal.aborted) {
+      return Promise.reject(abortError());
+    }
+
+    const found = DEMO_PEOPLE.find(
+      (person) => person.entityType === entityType && person.entityId === entityId,
+    );
+    return Promise.resolve(found ?? null);
+  },
+};
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
 ```tsx
 "use client";
@@ -26166,6 +27541,7 @@ import { useSyncExternalStore } from "react";
 
 import type { AssetStore } from "./editor-assets";
 import { demoLinkPreviewAdapter } from "./demo-link-preview";
+import { demoMentionProvider } from "./demo-mention";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo-document";
 import { createIndexedDbAssetStore } from "./indexed-db-asset-store";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
@@ -26238,6 +27614,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       assetStore={getDemoStore()}
       linkPreview={demoLinkPreviewAdapter}
+      mentionProvider={demoMentionProvider}
     />
   );
 }
@@ -26459,6 +27836,18 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/link-popover.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-mention-node.ts",
+    code: readSource(`${BLOCK_DIR}/editor-mention-node.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-mention.ts",
+    code: readSource(`${BLOCK_DIR}/editor-mention.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/mention-element.tsx",
+    code: readSource(`${BLOCK_DIR}/mention-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
@@ -26565,6 +27954,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/demo-link-preview.ts",
     code: readSource(`${BLOCK_DIR}/demo-link-preview.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/demo-mention.ts",
+    code: readSource(`${BLOCK_DIR}/demo-mention.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

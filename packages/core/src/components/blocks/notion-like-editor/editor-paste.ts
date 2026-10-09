@@ -35,6 +35,13 @@ import {
   sanitizeLinkUrl,
   unsafePastedLinkRepairs,
 } from "./editor-link-url";
+import {
+  MENTION_ENTITY_TYPE,
+  allocateMentionId,
+  isStoredMention,
+  mentionInputPlainText,
+  sanitizeMentionLabel,
+} from "./editor-mention-node";
 import { capPastedTable, repairTableGrid } from "./editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "./editor-table-grid";
 import {
@@ -87,6 +94,7 @@ let activePasteRepairs: Repair[] | undefined;
 // The table override sanitizes the fragment again. An image that became a paragraph
 // on the first pass is gone on the second, so those repairs are kept until the outer insert finishes.
 let pendingImageRepairs: Repair[] = [];
+let pendingMentionInputRepairs: Repair[] = [];
 
 function rememberImageRepair(repair: Repair): void {
   activePasteRepairs?.push(repair);
@@ -95,6 +103,10 @@ function rememberImageRepair(repair: Repair): void {
 
 function clearPendingImageRepairs(): void {
   pendingImageRepairs = [];
+}
+
+function clearPendingMentionInputRepairs(): void {
+  pendingMentionInputRepairs = [];
 }
 
 type IsInline = (node: Record<string, unknown>) => boolean;
@@ -894,12 +906,45 @@ function finishTable(node: TElement, pieces: TElement[]): TElement[] {
   });
 }
 
+function noteMentionInputPaste(): void {
+  const repair: Repair = {
+    path: [],
+    message: "A mention input was turned into plain text.",
+  };
+  activePasteRepairs?.push(repair);
+  pendingMentionInputRepairs.push(repair);
+}
+
+function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
+  if (!isRecord(node) || !isStoredMention(node)) {
+    const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
+    return label === undefined ? [] : [{ text: label }];
+  }
+
+  const mention = elementNode(KEYS.mention, [{ text: "" }], allocateMentionId(seen));
+  mention.entityType = MENTION_ENTITY_TYPE;
+  mention.entityId = node.entityId;
+  mention.label = node.label;
+  return [mention];
+}
+
 function expandBlock(
   node: TElement,
   isInline: IsInline,
   seen: Set<string>,
   nesting: Nesting = emptyNesting,
 ): TElement[] {
+  if (node.type === KEYS.mentionInput) {
+    noteMentionInputPaste();
+    const text = isRecord(node) ? mentionInputPlainText(node) : "@";
+    return [paragraph([{ text }])];
+  }
+
+  if (node.type === KEYS.mention) {
+    const nodes = pastedMentionNodes(node, seen);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === KEYS.img) {
       return pastedImage(node, seen);
@@ -1019,6 +1064,21 @@ function inlineNodes(
   seen: Set<string>,
   allowMarks = true,
 ): Descendant[] {
+  if (node.type === KEYS.mentionInput) {
+    noteMentionInputPaste();
+    const text = isRecord(node) ? mentionInputPlainText(node) : "@";
+    return text.length > 0 ? [{ text }] : [];
+  }
+
+  if (node.type === KEYS.mention) {
+    if (!allowMarks) {
+      const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
+      return label === undefined ? [] : [{ text: label }];
+    }
+
+    return pastedMentionNodes(node, seen);
+  }
+
   if (node.type === KEYS.link) {
     const url = typeof node.url === "string" ? node.url : "";
     const safe = sanitizeLinkUrl(url);
@@ -1160,6 +1220,11 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  for (const repair of pendingMentionInputRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   for (const repair of unsafePastedLinkRepairs()) {
     if (!repairs.some((item) => item.message === repair.message)) {
       repairs.push(repair);
@@ -1192,6 +1257,7 @@ export const PasteFallbackPlugin = createSlatePlugin({
         insertFragment(preparePastedFragment(editor, fragment), options);
       } finally {
         clearPendingImageRepairs();
+        clearPendingMentionInputRepairs();
         clearUnsafePastedLinkRepairs();
       }
     },

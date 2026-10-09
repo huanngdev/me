@@ -19,6 +19,7 @@ import {
   type EmbedProvider,
 } from "./editor-embed-url";
 import { sanitizeLinkUrl } from "./editor-link-url";
+import { checkMentionNode } from "./editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "./editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -1170,6 +1171,14 @@ export const EDITOR_ELEMENT_RULES = [
     type: KEYS.link,
     attrs: ["id", "url"],
     repairAttrs: ["url"],
+  },
+  // Inline mention. Plate stores value (display text) and key (item id).
+  // This document stores label, entityId, and entityType. value and key are not attributes.
+  {
+    type: KEYS.mention,
+    attrs: ["id", "entityType", "entityId", "label"],
+    isVoid: true,
+    validateChildren: (node, path) => checkMentionNode(node, path),
   },
 ] as const satisfies readonly EditorElementRule[];
 

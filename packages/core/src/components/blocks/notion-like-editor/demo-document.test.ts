@@ -88,7 +88,7 @@ describe("demo document", () => {
   });
 
   test("the demo table of contents sits after the intro", () => {
-    const intro = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-unicode");
+    const intro = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-mention");
     const toc = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-toc");
     const headings = DEMO_DOCUMENT_VALUE.findIndex((item) => item.id === "demo-headings");
     if (!toc) {
@@ -1026,7 +1026,7 @@ describe("demo document", () => {
   });
 
   test("the demo includes an external link, a mailto link, and an autolink example", () => {
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(95);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(96);
     const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");

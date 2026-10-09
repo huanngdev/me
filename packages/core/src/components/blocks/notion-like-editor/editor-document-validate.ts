@@ -27,6 +27,7 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-columns";
+import { repairMentionInputs } from "./editor-mention-node";
 import { syncedRefRepairs } from "./editor-synced-block";
 import type { EditorValue } from "./editor-value";
 
@@ -203,7 +204,9 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
       return true;
     }
 
-    return childType === KEYS.link && parentAllowsInlineLink(parentType);
+    return (
+      (childType === KEYS.link || childType === KEYS.mention) && parentAllowsInlineLink(parentType)
+    );
   }
 
   return childType !== undefined && childTypes.some((type) => type === childType);
@@ -555,7 +558,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     repairs: [],
   };
   const structurally = repairColumnContent(envelope.data.content);
-  const content = structurally.content;
+  const mentions = repairMentionInputs(structurally.content);
+  const content = mentions.content;
 
   for (let index = 0; index < content.length; index += 1) {
     walkTopLevel(content[index], [index], state);
@@ -588,6 +592,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     },
     repairs: [
       ...structurally.repairs,
+      ...mentions.repairs,
       ...state.repairs,
       ...normalized.repairs,
       ...syncedRefRepairs(normalized.content),

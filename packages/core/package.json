@@ -35,6 +35,7 @@
     "@platejs/link": "53.3.5",
     "@platejs/list": "53.3.13",
     "@platejs/media": "53.1.4",
+    "@platejs/mention": "53.0.0",
     "@platejs/table": "53.0.9",
     "@platejs/toc": "53.0.0",
     "@react-three/drei": "^10.7.8",
@@ -71,6 +72,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@platejs/combobox": "53.0.0",
     "@platejs/math": "53.3.12",
     "@repo/eslint-config": "workspace:*",
     "@repo/prettier-config": "workspace:*",

@@ -212,6 +212,18 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/link-popover.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/editor-mention-node.ts",
+    code: readSource(`${BLOCK_DIR}/editor-mention-node.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/editor-mention.ts",
+    code: readSource(`${BLOCK_DIR}/editor-mention.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/mention-element.tsx",
+    code: readSource(`${BLOCK_DIR}/mention-element.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/paste-url-menu.tsx",
     code: readSource(`${BLOCK_DIR}/paste-url-menu.tsx`),
   },
@@ -318,6 +330,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/demo-link-preview.ts",
     code: readSource(`${BLOCK_DIR}/demo-link-preview.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/demo-mention.ts",
+    code: readSource(`${BLOCK_DIR}/demo-mention.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

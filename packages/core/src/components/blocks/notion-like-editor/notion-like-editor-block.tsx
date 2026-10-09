@@ -2,6 +2,7 @@
 
 import type { AssetStore } from "./editor-assets";
 import type { LinkPreviewAdapter } from "./editor-bookmark-url";
+import type { MentionProvider } from "./editor-mention-node";
 import type { EditorPersistenceAdapter } from "./editor-persistence";
 import type { EditorValue } from "./editor-value";
 import { MemoryEditor } from "./memory-editor";
@@ -17,6 +18,7 @@ export type NotionLikeEditorBlockProps = {
   adapter?: EditorPersistenceAdapter;
   assetStore?: AssetStore | null;
   linkPreview?: LinkPreviewAdapter | null;
+  mentionProvider?: MentionProvider | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {

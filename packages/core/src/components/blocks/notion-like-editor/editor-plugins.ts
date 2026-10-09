@@ -27,6 +27,7 @@ import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/medi
 import { indent, setIndent } from "@platejs/indent";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
+import { BaseMentionInputPlugin } from "@platejs/mention";
 import { TocPlugin } from "@platejs/toc/react";
 import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
 import { ListPlugin } from "@platejs/list/react";
@@ -72,6 +73,13 @@ import { VideoElement } from "./video-element";
 import { embedHtmlDeserializer } from "./editor-embed";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "./link-element";
+import {
+  mentionPlugin,
+  mentionUiPlugin,
+  onMentionKeyDown,
+  setMentionComposing,
+} from "./editor-mention";
+import { MentionElement, MentionInputElement } from "./mention-element";
 import { pasteUrlPlugin } from "./editor-paste-url";
 import {
   flushPastedImageUploads,
@@ -1659,6 +1667,23 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
+const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
+  render: { node: MentionElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onMentionKeyDown(editor, event);
+    },
+    onCompositionStart: ({ editor }) => {
+      setMentionComposing(editor, true);
+    },
+    onCompositionEnd: ({ editor }) => {
+      setMentionComposing(editor, false);
+    },
+  },
+}).configurePlugin(BaseMentionInputPlugin, {
+  render: { node: MentionInputElement },
+});
+
 const syncedRefPlugin = toPlatePlugin(
   createSlatePlugin({
     key: SYNCED_REF_KEY,
@@ -1947,6 +1972,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
+    mentionPlatePlugin,
+    mentionUiPlugin,
     pasteUrlPlugin,
     PasteFallbackPlugin,
     voidKeyboardPlugin,
