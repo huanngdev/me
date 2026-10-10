@@ -165,6 +165,8 @@ export function CalloutElement(props: PlateElementProps) {
             />
             <DropdownMenuContent
               align="start"
+              collisionPadding={8}
+              hideWhenDetached
               className="w-64"
               onCloseAutoFocus={(event) => {
                 // Radix would focus the trigger here, which drops the text selection.

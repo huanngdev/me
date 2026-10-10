@@ -116,6 +116,8 @@ export function TableControls({
         />
         <DropdownMenuContent
           align="end"
+          collisionPadding={8}
+          hideWhenDetached
           className="w-64"
           onCloseAutoFocus={(event) => {
             event.preventDefault();

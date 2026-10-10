@@ -154,6 +154,8 @@ export function TocElement(props: PlateElementProps) {
               />
               <DropdownMenuContent
                 align="end"
+                collisionPadding={8}
+                hideWhenDetached
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                 }}

@@ -284,6 +284,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
               />
               <DropdownMenuContent
                 align="start"
+                collisionPadding={8}
+                hideWhenDetached
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                 }}

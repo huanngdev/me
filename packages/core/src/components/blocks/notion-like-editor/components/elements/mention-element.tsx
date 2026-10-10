@@ -241,6 +241,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         className="w-64 p-0"
         onOpenAutoFocus={(event) => {
           event.preventDefault();

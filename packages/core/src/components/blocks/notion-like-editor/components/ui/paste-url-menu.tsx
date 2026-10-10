@@ -64,6 +64,7 @@ export function PasteUrlMenu() {
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}

@@ -239,6 +239,8 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverAnchor>
         <PopoverContent
           className="w-[min(28rem,calc(100vw-2rem))]"
+          collisionPadding={8}
+          hideWhenDetached
           onCloseAutoFocus={(event) => {
             event.preventDefault();
           }}

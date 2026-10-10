@@ -152,6 +152,8 @@ export function CodeBlockElement(props: PlateElementProps) {
             />
             <DropdownMenuContent
               align="end"
+              collisionPadding={8}
+              hideWhenDetached
               className="max-h-80 w-44 overflow-y-auto"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();

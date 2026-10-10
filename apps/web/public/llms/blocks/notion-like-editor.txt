@@ -6252,6 +6252,8 @@ export function CalloutElement(props: PlateElementProps) {
             />
             <DropdownMenuContent
               align="start"
+              collisionPadding={8}
+              hideWhenDetached
               className="w-64"
               onCloseAutoFocus={(event) => {
                 // Radix would focus the trigger here, which drops the text selection.
@@ -6668,6 +6670,8 @@ export function CodeBlockElement(props: PlateElementProps) {
             />
             <DropdownMenuContent
               align="end"
+              collisionPadding={8}
+              hideWhenDetached
               className="max-h-80 w-44 overflow-y-auto"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
@@ -9838,6 +9842,8 @@ export function TableControls({
         />
         <DropdownMenuContent
           align="end"
+          collisionPadding={8}
+          hideWhenDetached
           className="w-64"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
@@ -12730,6 +12736,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
               />
               <DropdownMenuContent
                 align="start"
+                collisionPadding={8}
+                hideWhenDetached
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                 }}
@@ -13238,6 +13246,8 @@ export function TocElement(props: PlateElementProps) {
               />
               <DropdownMenuContent
                 align="end"
+                collisionPadding={8}
+                hideWhenDetached
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                 }}
@@ -13727,6 +13737,8 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverAnchor>
         <PopoverContent
           className="w-[min(28rem,calc(100vw-2rem))]"
+          collisionPadding={8}
+          hideWhenDetached
           onCloseAutoFocus={(event) => {
             event.preventDefault();
           }}
@@ -15552,6 +15564,7 @@ export function LinkToolbar() {
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -15790,6 +15803,7 @@ function LinkPopoverForm({
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
@@ -16970,6 +16984,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         className="w-64 p-0"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -17111,6 +17126,7 @@ export function PasteUrlMenu() {
         align="start"
         sideOffset={4}
         collisionPadding={8}
+        hideWhenDetached
         onOpenAutoFocus={(event) => {
           event.preventDefault();
         }}
