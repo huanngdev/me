@@ -19,6 +19,7 @@ import { BlockHandle } from "../ui/block-handle";
 import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
+import { SlashMenu } from "../ui/slash-menu";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -55,6 +56,7 @@ export function EditorSurface({
           <LinkPreviewProvider adapter={linkPreview}>
             <PasteRepairNotice />
             <PasteUrlMenu />
+            <SlashMenu />
             <LinkToolbar />
             <LinkPopover />
             <PlateContent

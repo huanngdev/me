@@ -77,6 +77,7 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
   backspaceToggleLabel,
@@ -1828,6 +1829,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     linkUiPlugin,
     mentionPlatePlugin,
     mentionUiPlugin,
+    slashUiPlugin,
+    slashWatchPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
     PasteFallbackPlugin,
