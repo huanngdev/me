@@ -1,36 +1,69 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  useDraggable,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+  type DraggableAttributes,
+} from "@dnd-kit/core";
 import { ElementApi, type Descendant, type SlateEditor } from "platejs";
 import { useEditorRef } from "platejs/react";
 
 import { moveBlock, runEditorCommand } from "../../lib/commands/editor-commands";
 import {
-  blockDropDecision,
   captureEditorScroll,
-  dragPastThreshold,
   listItemUnit,
   resolveDropIndicator,
-  type DropBand,
   type DropIndicator,
+  type DropRect,
 } from "../../lib/features/editor-block-drop";
 import { setBlockDragArmed, type BlockHandleHit } from "../../lib/features/editor-block-handle";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
-const EDGE_PX = 48;
-const SCROLL_STEP_PX = 14;
+export const DRAG_ACTIVATION_DISTANCE_PX = 4;
+export const DRAG_HORIZONTAL_BAND_PX = 200;
+
+const HORIZONTAL_BAND_PX = DRAG_HORIZONTAL_BAND_PX;
+const VERTICAL_BAND_PX = 32;
 const SOURCE_DIM = "opacity-40";
+const PREVIEW_OPACITY = 0.8;
+const PREVIEW_MAX_VIEWPORT_RATIO = 0.6;
+// A drop's caret is re-placed once, after dnd kit removed its selection-change
+// listener (it clears any selection until ~50ms after the drag ends) and React
+// committed the moved nodes.
+const CARET_DELAY_MS = 80;
 
 type SavedSelection = SlateEditor["selection"];
 
 type DragSession = {
   path: number[];
   id: string;
-  x: number;
-  y: number;
+  startX: number;
+  startY: number;
   pointerX: number;
   pointerY: number;
-  dragging: boolean;
   selection: SavedSelection;
+};
+
+type DragListeners = ReturnType<typeof useDraggable>["listeners"];
+
+type DragBand = { left: number; right: number; top: number; bottom: number };
+
+type PreviewData = {
+  nodes: HTMLElement[];
+  width: number;
+  cap: number;
+  offsetX: number;
+  offsetY: number;
 };
 
 function cloneSelection(selection: SavedSelection): SavedSelection {
@@ -160,6 +193,76 @@ function restoreEditorScroll(snap: ReturnType<typeof captureEditorScroll>): void
   window.scrollTo(snap.windowX, snap.windowY);
 }
 
+function editorRoot(editor: SlateEditor): HTMLElement | null {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(first);
+  const editable = dom?.closest("[data-slate-editor]");
+  return editable instanceof HTMLElement ? editable : null;
+}
+
+// One cached box per rendered block. The slot comes from these boxes, so the
+// drag reads layout once and then only does arithmetic as the pointer moves.
+function buildDropRects(editor: SlateEditor): DropRect[] {
+  const editable = editorRoot(editor);
+  if (!editable) {
+    return [];
+  }
+  const rects: DropRect[] = [];
+  for (const node of editable.querySelectorAll("[data-block-id]")) {
+    if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = node.getAttribute("data-block-id");
+    if (id === null || id.length === 0) {
+      continue;
+    }
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const rect = node.getBoundingClientRect();
+    if (rect.height <= 0) {
+      continue;
+    }
+    rects.push({
+      path: [...entry[1]],
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+    });
+  }
+  return rects;
+}
+
+function buildBand(editor: SlateEditor, rects: readonly DropRect[]): DragBand | null {
+  const editable = editorRoot(editor);
+  if (!editable) {
+    return null;
+  }
+  const viewport = editable.closest("[data-block-viewport]");
+  const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  for (const rect of rects) {
+    left = Math.min(left, rect.left);
+    right = Math.max(right, rect.right);
+  }
+  if (!Number.isFinite(left)) {
+    left = frame.left;
+    right = frame.right;
+  }
+  return {
+    left: left - HORIZONTAL_BAND_PX,
+    right: right + HORIZONTAL_BAND_PX,
+    top: frame.top - VERTICAL_BAND_PX,
+    bottom: frame.bottom + VERTICAL_BAND_PX,
+  };
+}
+
 function escapeId(id: string): string {
   if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
     return CSS.escape(id);
@@ -167,439 +270,445 @@ function escapeId(id: string): string {
   return id.replace(/["\\]/g, "\\$&");
 }
 
-function editorViewport(editor: SlateEditor): HTMLElement | null {
-  const first = editor.children[0];
-  if (!first || !ElementApi.isElement(first)) {
-    return null;
+function sourceNodes(id: string): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  for (const node of document.querySelectorAll(`[data-block-id="${escapeId(id)}"]`)) {
+    if (node instanceof HTMLElement && !node.closest("[data-preview-path]")) {
+      found.push(node);
+    }
   }
-  const dom = editor.api.toDOMNode(first);
-  const viewport = dom?.closest("[data-block-viewport]");
-  return viewport instanceof HTMLElement ? viewport : null;
+  return found;
 }
 
-function listIndentInset(dom: HTMLElement): number {
-  for (const child of dom.children) {
-    if (!(child instanceof HTMLElement)) {
+// The preview is a copy of the already-rendered DOM, so it carries the real
+// typography and chrome (callout surface, table grid, code surface, list
+// markers, a toggle with its children) with no second render. Every hook the
+// editor queries on the document is stripped so the copy stays invisible to it.
+function sanitizeClone(source: HTMLElement): HTMLElement {
+  const clone = source.cloneNode(true) as HTMLElement;
+  for (const node of [clone, ...clone.querySelectorAll("*")]) {
+    if (!(node instanceof HTMLElement)) {
       continue;
     }
-    if (child.tagName !== "UL" && child.tagName !== "OL") {
-      continue;
+    // The source block is dimmed before the copy is taken; the copy must not
+    // carry that dim class or the overlay's own opacity multiplies it.
+    node.classList.remove(SOURCE_DIM);
+    node.removeAttribute("data-block-id");
+    node.removeAttribute("data-cell-selected");
+    node.removeAttribute("id");
+    node.removeAttribute("contenteditable");
+    node.removeAttribute("tabindex");
+    for (const name of node.getAttributeNames()) {
+      if (name.startsWith("data-slate")) {
+        node.removeAttribute(name);
+      }
     }
-    const padding = Number.parseFloat(getComputedStyle(child).paddingLeft);
-    return Number.isFinite(padding) ? padding : 0;
   }
-  return 0;
+  return clone;
 }
 
-function contentBox(dom: HTMLElement): {
-  top: number;
-  height: number;
-  left: number;
-  width: number;
-} {
-  const rect = dom.getBoundingClientRect();
-  const style = getComputedStyle(dom);
-  const padLeft = (Number.parseFloat(style.paddingLeft) || 0) + listIndentInset(dom);
-  const padRight = Number.parseFloat(style.paddingRight) || 0;
-  return {
-    top: rect.top,
-    height: rect.height,
-    left: rect.left + padLeft,
-    width: Math.max(0, rect.width - padLeft - padRight),
-  };
-}
-
-function bandFor(editor: SlateEditor, path: number[]): DropBand | null {
-  const entry = editor.api.node(path);
-  if (!entry || !ElementApi.isElement(entry[0])) {
-    return null;
-  }
-  const dom: unknown = editor.api.toDOMNode(entry[0]);
-  if (!(dom instanceof HTMLElement) || dom.closest("[data-preview-path]")) {
-    return null;
-  }
-  const rect = contentBox(dom);
-  return {
-    path: [...path],
-    top: rect.top,
-    height: rect.height,
-    left: rect.left,
-    width: rect.width,
-  };
-}
-
-function unitBox(editor: SlateEditor, from: number[]): { first: DropBand; last: DropBand } | null {
-  const parent = from.slice(0, -1);
-  const index = from[from.length - 1] ?? 0;
-  const decision = blockDropDecision(editor.children, from, parent, index);
-  const [start, end] = decision.unit;
-  if (end <= start) {
-    return null;
-  }
-  const first = bandFor(editor, [...parent, start]);
-  const last = bandFor(editor, [...parent, end - 1]);
-  if (!first || !last) {
-    return null;
-  }
-  return { first, last };
-}
-
-function bandsUnderPointer(editor: SlateEditor, x: number, y: number): DropBand[] {
-  if (typeof document.elementsFromPoint !== "function") {
-    return [];
-  }
-  const bands: DropBand[] = [];
-  const seen = new Set<string>();
-  for (const element of document.elementsFromPoint(x, y)) {
-    if (element.closest("[data-block-handle], [data-block-menu], [data-block-drop-indicator]")) {
-      continue;
-    }
-    const block = element.closest("[data-block-id]");
-    if (!(block instanceof HTMLElement) || block.closest("[data-preview-path]")) {
-      continue;
-    }
-    const id = block.getAttribute("data-block-id");
-    if (id === null || id.length === 0 || seen.has(id)) {
-      continue;
-    }
-    seen.add(id);
+function buildPreview(
+  editor: SlateEditor,
+  ids: readonly string[],
+  activeRect: { top: number; left: number } | null,
+): PreviewData | null {
+  const sources: HTMLElement[] = [];
+  for (const id of ids) {
     const entry = findBlockById(editor, id);
     if (!entry) {
       continue;
     }
-    const rect = contentBox(block);
-    bands.push({
-      path: [...entry[1]],
-      top: rect.top,
-      height: rect.height,
-      left: rect.left,
-      width: rect.width,
-    });
-  }
-  return bands;
-}
-
-function scrollAtEdge(viewport: HTMLElement | null, clientY: number): boolean {
-  let scrolled = false;
-  if (viewport) {
-    const rect = viewport.getBoundingClientRect();
-    if (clientY >= rect.top && clientY < rect.top + EDGE_PX) {
-      const next = Math.max(0, viewport.scrollTop - SCROLL_STEP_PX);
-      if (next !== viewport.scrollTop) {
-        viewport.scrollTop = next;
-        scrolled = true;
-      }
-    } else if (clientY <= rect.bottom && clientY > rect.bottom - EDGE_PX) {
-      const max = viewport.scrollHeight - viewport.clientHeight;
-      const next = Math.min(max, viewport.scrollTop + SCROLL_STEP_PX);
-      if (next !== viewport.scrollTop) {
-        viewport.scrollTop = next;
-        scrolled = true;
-      }
+    const dom: unknown = editor.api.toDOMNode(entry[0]);
+    if (dom instanceof HTMLElement) {
+      sources.push(dom);
     }
   }
-  if (clientY < EDGE_PX) {
-    const before = window.scrollY;
-    window.scrollBy(0, -SCROLL_STEP_PX);
-    scrolled = scrolled || window.scrollY !== before;
-  } else if (clientY > window.innerHeight - EDGE_PX) {
-    const before = window.scrollY;
-    window.scrollBy(0, SCROLL_STEP_PX);
-    scrolled = scrolled || window.scrollY !== before;
+  const first = sources[0];
+  if (!first) {
+    return null;
   }
-  return scrolled;
+  let width = 0;
+  for (const source of sources) {
+    width = Math.max(width, source.getBoundingClientRect().width);
+  }
+  const rect = first.getBoundingClientRect();
+  return {
+    nodes: sources.map((source) => sanitizeClone(source)),
+    width,
+    cap: Math.max(120, Math.round(window.innerHeight * PREVIEW_MAX_VIEWPORT_RATIO)),
+    offsetX: activeRect ? rect.left - activeRect.left : 0,
+    offsetY: activeRect ? rect.top - activeRect.top : 0,
+  };
 }
 
 export function BlockDropIndicator({ line }: { line: DropIndicator }) {
   return (
     <div
       data-block-drop-indicator=""
+      data-drop-target={line.to.join(".")}
+      data-drop-top={String(line.top)}
       aria-hidden="true"
-      className="bg-primary pointer-events-none fixed z-30 h-0.5 motion-reduce:transition-none"
-      style={{ top: line.top, left: line.left, width: line.width }}
+      className="bg-muted-foreground/60 pointer-events-none fixed top-0 left-0 z-30 h-0.5 transition-transform duration-150 ease-out motion-reduce:transition-none"
+      style={{ width: line.width, transform: `translate3d(${line.left}px, ${line.top}px, 0)` }}
     />
   );
 }
 
-type DragListeners = {
-  move: (event: PointerEvent) => void;
-  up: () => void;
-  cancel: () => void;
-  key: (event: KeyboardEvent) => void;
-  blur: () => void;
-  select: (event: Event) => void;
+function DragPreview({ preview }: { preview: PreviewData | null }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host || !preview) {
+      return;
+    }
+    host.replaceChildren(...preview.nodes);
+    return () => {
+      host.replaceChildren();
+    };
+  }, [preview]);
+  if (!preview) {
+    return null;
+  }
+  return (
+    <div
+      data-block-drag-overlay=""
+      ref={hostRef}
+      aria-hidden="true"
+      inert
+      contentEditable={false}
+      className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
+      style={{
+        width: preview.width,
+        maxHeight: preview.cap,
+        overflow: "hidden",
+        opacity: PREVIEW_OPACITY,
+        transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
+      }}
+    />
+  );
+}
+
+export type BlockDragHandlers = {
+  onDragStart: (event: DragStartEvent) => void;
+  onDragMove: (event: DragMoveEvent) => void;
+  onDragEnd: (event: DragEndEvent) => void;
+  onDragCancel: () => void;
 };
 
-export function useBlockDrag(closeMenu: () => void): {
+export type BlockDragApi = BlockDragHandlers & {
+  attributes: DraggableAttributes;
+  listeners: DragListeners;
+  setNodeRef: (node: HTMLElement | null) => void;
   indicator: DropIndicator | null;
   dragging: boolean;
-  onGripPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, target: BlockHandleHit) => void;
-  consumeGripClick: () => boolean;
-} {
+  overlay: ReactNode;
+  consumeClick: () => boolean;
+};
+
+type Options = {
+  target: BlockHandleHit | null;
+  closeMenu: () => void;
+  clearPointer: () => void;
+  rehover: (x?: number, y?: number) => void;
+  apiRef: RefObject<BlockDragHandlers | null>;
+};
+
+export function useBlockDrag({
+  target,
+  closeMenu,
+  clearPointer,
+  rehover,
+  apiRef,
+}: Options): BlockDragApi {
   const editor = useEditorRef();
-  const [indicator, setIndicator] = useState<DropIndicator | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const session = useRef<DragSession | null>(null);
-  const indicatorRef = useRef<DropIndicator | null>(null);
-  const suppressClick = useRef(false);
-  const swallowClick = useRef(false);
-  const closeRef = useRef(closeMenu);
-  const frame = useRef(0);
-  const dimmed = useRef<HTMLElement[]>([]);
-  const cursor = useRef("");
-  const userSelect = useRef("");
-  const listeners = useRef<DragListeners | null>(null);
   const editorRef = useRef(editor);
-  const stopRef = useRef<(restoreSelection: boolean) => void>(() => undefined);
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: "notion-block-grip",
+    disabled: target === null,
+    data: target ? { path: [...target.path], id: target.id } : undefined,
+  });
+
+  const [indicator, setIndicator] = useState<DropIndicator | null>(null);
+  const [overlay, setOverlay] = useState<ReactNode>(null);
+  const sessionRef = useRef<DragSession | null>(null);
+  const rectsRef = useRef<DropRect[]>([]);
+  const bandRef = useRef<DragBand | null>(null);
+  const indicatorRef = useRef<DropIndicator | null>(null);
+  const closeRef = useRef(closeMenu);
+  const clearPointerRef = useRef(clearPointer);
+  const rehoverRef = useRef(rehover);
+  const dimmedRef = useRef<HTMLElement[]>([]);
+  const cursorRef = useRef("");
+  const userSelectRef = useRef("");
+  const suppressClickRef = useRef(false);
+  const caretTimerRef = useRef(0);
 
   useEffect(() => {
     closeRef.current = closeMenu;
-    editorRef.current = editor;
-  }, [closeMenu, editor]);
+    clearPointerRef.current = clearPointer;
+    rehoverRef.current = rehover;
+  }, [closeMenu, clearPointer, rehover]);
 
-  useEffect(() => {
-    const onClick = (event: MouseEvent): void => {
-      if (!swallowClick.current) {
-        return;
-      }
-      swallowClick.current = false;
-      event.preventDefault();
-      event.stopPropagation();
-    };
-    window.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("click", onClick, true);
-      stopRef.current(false);
-    };
-  }, []);
-
-  function setLine(next: DropIndicator | null): void {
-    indicatorRef.current = next;
-    setIndicator(next);
-  }
-
-  function dimSource(id: string): void {
-    const nodes = document.querySelectorAll(`[data-block-id="${escapeId(id)}"]`);
-    for (const node of nodes) {
-      if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
-        continue;
-      }
-      node.classList.add(SOURCE_DIM);
-      dimmed.current.push(node);
-    }
-  }
-
-  function undim(): void {
-    for (const node of dimmed.current) {
+  const undim = useCallback(() => {
+    for (const node of dimmedRef.current) {
       node.classList.remove(SOURCE_DIM);
     }
-    dimmed.current = [];
-  }
+    dimmedRef.current = [];
+  }, []);
 
-  function unlisten(): void {
-    const current = listeners.current;
-    if (!current) {
-      return;
+  const clearCaretTimer = useCallback(() => {
+    if (caretTimerRef.current !== 0) {
+      window.clearTimeout(caretTimerRef.current);
+      caretTimerRef.current = 0;
     }
-    listeners.current = null;
-    window.removeEventListener("pointermove", current.move);
-    window.removeEventListener("pointerup", current.up);
-    window.removeEventListener("pointercancel", current.cancel);
-    window.removeEventListener("keydown", current.key);
-    window.removeEventListener("blur", current.blur);
-    document.removeEventListener("selectstart", current.select);
-  }
+  }, []);
 
-  function stop(restoreSelection: boolean): void {
-    const current = session.current;
-    session.current = null;
-    cancelAnimationFrame(frame.current);
-    unlisten();
-    undim();
-    document.documentElement.style.cursor = cursor.current;
-    document.body.style.userSelect = userSelect.current;
-    document.body.removeAttribute("data-block-dragging");
-    setBlockDragArmed(false);
-    setDragging(false);
-    setLine(null);
-    if (!restoreSelection || !current) {
-      return;
+  const setLine = useCallback((next: DropIndicator | null) => {
+    indicatorRef.current = next;
+    setIndicator((current) => (sameIndicator(current, next) ? current : next));
+  }, []);
+
+  const inBand = useCallback((x: number, y: number): boolean => {
+    const band = bandRef.current;
+    if (!band) {
+      return false;
     }
+    return x >= band.left && x <= band.right && y >= band.top && y <= band.bottom;
+  }, []);
+
+  const updateIndicator = useCallback(() => {
+    const session = sessionRef.current;
     const live = editorRef.current;
-    if (sameSelection(live.selection, current.selection)) {
+    if (!session) {
       return;
     }
-    const saved = current.selection;
-    live.tf.withoutSaving(() => {
-      if (saved) {
-        live.tf.select(saved);
-      } else {
-        live.tf.deselect();
-      }
-    });
-  }
-
-  useEffect(() => {
-    stopRef.current = stop;
-  });
-
-  function updateIndicator(): void {
-    const current = session.current;
-    const live = editorRef.current;
-    if (!current?.dragging) {
+    if (!inBand(session.pointerX, session.pointerY)) {
+      document.documentElement.style.cursor = "grabbing";
+      setLine(null);
       return;
     }
-    const bands = bandsUnderPointer(live, current.pointerX, current.pointerY);
     const line = resolveDropIndicator(
       live.children,
-      current.path,
-      bands,
-      current.pointerY,
-      unitBox(live, current.path),
+      session.path,
+      rectsRef.current,
+      session.pointerY,
     );
     document.documentElement.style.cursor = line ? "grabbing" : "not-allowed";
     setLine(line);
-  }
+  }, [inBand, setLine]);
 
-  function tick(): void {
-    const current = session.current;
-    if (!current?.dragging) {
-      return;
-    }
-    if (scrollAtEdge(editorViewport(editorRef.current), current.pointerY)) {
-      updateIndicator();
-    }
-    frame.current = requestAnimationFrame(tick);
-  }
-
-  function begin(current: DragSession): void {
-    current.dragging = true;
-    suppressClick.current = true;
-    swallowClick.current = true;
-    closeRef.current();
-    cursor.current = document.documentElement.style.cursor;
-    userSelect.current = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
-    document.body.setAttribute("data-block-dragging", "");
-    setDragging(true);
-    for (const id of movingBlockIds(editorRef.current, current.path)) {
-      dimSource(id);
-    }
-    const select = listeners.current?.select;
-    if (select) {
-      document.addEventListener("selectstart", select);
-    }
-    updateIndicator();
-    frame.current = requestAnimationFrame(tick);
-  }
-
-  function finish(drop: boolean): void {
-    const current = session.current;
-    const line = indicatorRef.current;
-    const dragging = current?.dragging === true;
-    stop(dragging && !drop);
-    if (!drop || !dragging || !current || !line || line.noop) {
-      return;
-    }
+  const refreshRects = useCallback(() => {
     const live = editorRef.current;
-    const movedId = current.id;
+    rectsRef.current = buildDropRects(live);
+    bandRef.current = buildBand(live, rectsRef.current);
+    updateIndicator();
+  }, [updateIndicator]);
+
+  const stop = useCallback(
+    (restoreSelection: boolean) => {
+      const session = sessionRef.current;
+      sessionRef.current = null;
+      undim();
+      document.documentElement.style.cursor = cursorRef.current;
+      document.body.style.userSelect = userSelectRef.current;
+      document.body.removeAttribute("data-block-dragging");
+      setBlockDragArmed(false);
+      setLine(null);
+      setOverlay(null);
+      window.removeEventListener("scroll", refreshRects, true);
+      window.removeEventListener("resize", refreshRects);
+      if (!restoreSelection || !session) {
+        return;
+      }
+      const live = editorRef.current;
+      if (sameSelection(live.selection, session.selection)) {
+        return;
+      }
+      const saved = session.selection;
+      live.tf.withoutSaving(() => {
+        if (saved) {
+          live.tf.select(saved);
+        } else {
+          live.tf.deselect();
+        }
+      });
+    },
+    [refreshRects, setLine, undim],
+  );
+
+  const finish = useCallback(() => {
+    const session = sessionRef.current;
+    const line = indicatorRef.current;
+    const dropping = line !== null && !line.noop;
+    stop(!dropping);
+    clearCaretTimer();
+    if (!dropping || !session || !line) {
+      return;
+    }
+    // Drop the handle's current target before the move so it is never painted
+    // at the slot the block came from; re-resolve under the pointer once the
+    // moved nodes have rendered.
+    clearPointerRef.current();
+    const live = editorRef.current;
+    const movedId = session.id;
     const snap = captureEditorScroll();
     retainScroll(() => {
-      runEditorCommand(live, moveBlock, { from: [...current.path], to: line.to });
+      runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
     });
-    // The grip blurs the editor, so Slate never copies the model caret into the
-    // DOM, and focusing the editor parks that caret at the top of the document.
-    // The moved nodes are clones, so the DOM range exists only after React commits.
-    const apply = (): void => {
-      placeMovedCaret(editorRef.current, movedId);
-      restoreEditorScroll(snap);
-    };
-    queueMicrotask(apply);
     requestAnimationFrame(() => {
-      apply();
-      requestAnimationFrame(() => {
-        apply();
-        setTimeout(apply, 0);
-      });
+      restoreEditorScroll(snap);
+      rehoverRef.current(session.pointerX, session.pointerY);
+      clearCaretTimer();
+      caretTimerRef.current = window.setTimeout(() => {
+        caretTimerRef.current = 0;
+        placeMovedCaret(editorRef.current, movedId);
+      }, CARET_DELAY_MS);
     });
-  }
+  }, [clearCaretTimer, stop]);
 
-  function onGripPointerDown(
-    event: ReactPointerEvent<HTMLButtonElement>,
-    target: BlockHandleHit,
-  ): void {
-    if (event.button !== 0 || event.pointerType === "touch" || editor.dom.readOnly === true) {
-      return;
-    }
-    stop(false);
-    setBlockDragArmed(true);
-    suppressClick.current = false;
-    session.current = {
-      path: [...target.path],
-      id: target.id,
-      x: event.clientX,
-      y: event.clientY,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      dragging: false,
-      selection: cloneSelection(editor.selection),
-    };
-    const move = (pointer: PointerEvent): void => {
-      const current = session.current;
-      if (!current || pointer.pointerType === "touch") {
+  const onDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const data = event.active.data.current as { path?: number[]; id?: string } | undefined;
+      if (!data?.path || typeof data.id !== "string") {
         return;
       }
-      current.pointerX = pointer.clientX;
-      current.pointerY = pointer.clientY;
-      if (!current.dragging) {
-        if (!dragPastThreshold(pointer.clientX - current.x, pointer.clientY - current.y)) {
-          return;
+      const activator = event.activatorEvent as PointerEvent | undefined;
+      const startX = activator?.clientX ?? 0;
+      const startY = activator?.clientY ?? 0;
+      closeRef.current();
+      clearCaretTimer();
+      suppressClickRef.current = true;
+      setBlockDragArmed(true);
+      const live = editorRef.current;
+      sessionRef.current = {
+        path: [...data.path],
+        id: data.id,
+        startX,
+        startY,
+        pointerX: startX,
+        pointerY: startY,
+        selection: cloneSelection(live.selection),
+      };
+      cursorRef.current = document.documentElement.style.cursor;
+      userSelectRef.current = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      document.body.setAttribute("data-block-dragging", "");
+      document.documentElement.style.cursor = "grabbing";
+      const ids = movingBlockIds(live, data.path);
+      for (const id of ids) {
+        for (const node of sourceNodes(id)) {
+          node.classList.add(SOURCE_DIM);
+          dimmedRef.current.push(node);
         }
-        begin(current);
-        return;
       }
-      pointer.preventDefault();
+      // dnd kit positions the DragOverlay at the draggable node's rect (the
+      // grip), which may not be measured yet at activation. Read the live grip
+      // rect instead so the copy is offset from the grip to the unit exactly.
+      const gripDom = document.querySelector("[data-block-handle-grip]");
+      const gripRect = gripDom instanceof HTMLElement ? gripDom.getBoundingClientRect() : null;
+      setOverlay(
+        <DragPreview
+          preview={buildPreview(
+            live,
+            ids,
+            gripRect ? { top: gripRect.top, left: gripRect.left } : null,
+          )}
+        />,
+      );
+      rectsRef.current = buildDropRects(live);
+      bandRef.current = buildBand(live, rectsRef.current);
+      window.addEventListener("scroll", refreshRects, true);
+      window.addEventListener("resize", refreshRects);
       updateIndicator();
-    };
-    const cancel = (): void => {
-      if (session.current?.dragging) {
-        suppressClick.current = true;
-      }
-      stop(true);
-    };
-    const attached: DragListeners = {
-      move,
-      up: () => {
-        finish(true);
-      },
-      cancel,
-      key: (keyEvent) => {
-        if (keyEvent.key !== "Escape") {
-          return;
-        }
-        keyEvent.preventDefault();
-        cancel();
-      },
-      blur: cancel,
-      select: (selectEvent) => {
-        selectEvent.preventDefault();
-      },
-    };
-    listeners.current = attached;
-    window.addEventListener("pointermove", attached.move);
-    window.addEventListener("pointerup", attached.up);
-    window.addEventListener("pointercancel", attached.cancel);
-    window.addEventListener("keydown", attached.key);
-    window.addEventListener("blur", attached.blur);
-  }
+    },
+    [clearCaretTimer, refreshRects, updateIndicator],
+  );
 
-  function consumeGripClick(): boolean {
-    if (!suppressClick.current) {
+  const onDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const session = sessionRef.current;
+      if (!session) {
+        return;
+      }
+      session.pointerX = session.startX + event.delta.x;
+      session.pointerY = session.startY + event.delta.y;
+      updateIndicator();
+    },
+    [updateIndicator],
+  );
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const session = sessionRef.current;
+      if (session) {
+        session.pointerX = session.startX + event.delta.x;
+        session.pointerY = session.startY + event.delta.y;
+        updateIndicator();
+      }
+      finish();
+    },
+    [finish, updateIndicator],
+  );
+
+  const onDragCancel = useCallback(() => {
+    suppressClickRef.current = true;
+    stop(true);
+  }, [stop]);
+
+  useEffect(() => {
+    apiRef.current = { onDragStart, onDragMove, onDragEnd, onDragCancel };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef, onDragStart, onDragMove, onDragEnd, onDragCancel]);
+
+  useEffect(() => {
+    return () => {
+      stop(false);
+      clearCaretTimer();
+    };
+  }, [stop, clearCaretTimer]);
+
+  const consumeClick = useCallback(() => {
+    if (!suppressClickRef.current) {
       return false;
     }
-    suppressClick.current = false;
+    suppressClickRef.current = false;
+    return true;
+  }, []);
+
+  return {
+    attributes,
+    listeners,
+    setNodeRef,
+    indicator,
+    dragging: isDragging,
+    overlay,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDragCancel,
+    consumeClick,
+  };
+}
+
+function sameIndicator(current: DropIndicator | null, next: DropIndicator | null): boolean {
+  if (current === next) {
     return true;
   }
-
-  return { indicator, dragging, onGripPointerDown, consumeGripClick };
+  if (!current || !next) {
+    return false;
+  }
+  return (
+    current.top === next.top &&
+    current.left === next.left &&
+    current.width === next.width &&
+    current.noop === next.noop &&
+    current.to.length === next.to.length &&
+    current.to.every((value, index) => value === next.to[index])
+  );
 }

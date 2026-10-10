@@ -31,13 +31,20 @@ export type BlockDropDecision = {
 
 export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
 
-export type DropBand = {
+// A rendered block box, cached at drag start. Falling back to these means the
+// slot comes from the pointer's vertical position, not from a hit-test, so a
+// drag that stays in the gutter still resolves a target.
+export type DropRect = {
   path: number[];
   top: number;
-  height: number;
+  bottom: number;
   left: number;
-  width: number;
+  right: number;
 };
+
+// The normal vertical gap between blocks (Tailwind space-y-4). A line before the
+// first or after the last block sits half a gap outside.
+export const BLOCK_GAP_PX = 16;
 
 export type DropIndicator = {
   top: number;
@@ -380,42 +387,102 @@ export function siblingMove(
   return { ok: true, to: [...parent, toIndex] };
 }
 
-function indicatorFor(band: DropBand, above: boolean, to: number[], noop: boolean): DropIndicator {
-  return {
-    top: above ? band.top - 1 : band.top + band.height - 1,
-    left: band.left,
-    width: band.width,
-    to,
-    noop,
-  };
+function findByPath(rects: readonly DropRect[], path: readonly number[]): DropRect | null {
+  for (const rect of rects) {
+    if (samePath(rect.path, path)) {
+      return rect;
+    }
+  }
+  return null;
+}
+
+function rectDistance(rect: DropRect, y: number): number {
+  if (y < rect.top) {
+    return rect.top - y;
+  }
+  if (y > rect.bottom) {
+    return y - rect.bottom;
+  }
+  return 0;
+}
+
+// Candidate blocks nearest the pointer first, innermost on a tie. This mirrors
+// the old topmost-element order while reading only cached numbers.
+function orderCandidates(rects: readonly DropRect[], y: number): DropRect[] {
+  return [...rects].sort((left, right) => {
+    const byDistance = rectDistance(left, y) - rectDistance(right, y);
+    if (byDistance !== 0) {
+      return byDistance;
+    }
+    return right.path.length - left.path.length;
+  });
+}
+
+// "Below A" and "above B" are the same slot, so the line is the midpoint
+// between A's bottom and B's top. Before the first and after the last block the
+// line sits half a normal gap outside.
+function indicatorSlot(
+  rects: readonly DropRect[],
+  to: number[],
+  noop: boolean,
+): DropIndicator | null {
+  const toIndex = to[to.length - 1];
+  if (toIndex === undefined) {
+    return null;
+  }
+  const parent = to.slice(0, -1);
+  const previous = findByPath(rects, [...parent, toIndex - 1]);
+  const next = findByPath(rects, [...parent, toIndex]);
+  if (!previous && !next) {
+    return null;
+  }
+  if (previous && next) {
+    const top = (previous.bottom + next.top) / 2;
+    const left = Math.min(previous.left, next.left);
+    const width = Math.max(previous.right, next.right) - left;
+    return { top, left, width, to, noop };
+  }
+  const anchor = previous ?? next;
+  if (!anchor) {
+    return null;
+  }
+  const top = previous ? previous.bottom + BLOCK_GAP_PX / 2 : (next?.top ?? 0) - BLOCK_GAP_PX / 2;
+  return { top, left: anchor.left, width: anchor.right - anchor.left, to, noop };
 }
 
 export function resolveDropIndicator(
   roots: readonly Descendant[],
   from: readonly number[],
-  bands: readonly DropBand[],
+  rects: readonly DropRect[],
   pointerY: number,
-  unitBox: { first: DropBand; last: DropBand } | null,
 ): DropIndicator | null {
-  for (const band of bands) {
-    const index = band.path[band.path.length - 1] ?? 0;
-    const parent = band.path.slice(0, -1);
-    const above = pointerY < band.top + band.height / 2;
+  for (const rect of orderCandidates(rects, pointerY)) {
+    const index = rect.path[rect.path.length - 1] ?? 0;
+    const parent = rect.path.slice(0, -1);
+    const above = pointerY < rect.top + (rect.bottom - rect.top) / 2;
     const toIndex = above ? index : index + 1;
     const decision = blockDropDecision(roots, from, parent, toIndex);
     if (decision.allowed) {
-      return indicatorFor(band, above, [...parent, toIndex], decision.noop);
+      const slot = indicatorSlot(rects, [...parent, toIndex], decision.noop);
+      if (slot) {
+        return slot;
+      }
     }
-    if (decision.reason === INTO_SELF && unitBox) {
-      const unionTop = unitBox.first.top;
-      const unionBottom = unitBox.last.top + unitBox.last.height;
-      const boundaryAbove = pointerY < (unionTop + unionBottom) / 2;
+    if (decision.reason === INTO_SELF) {
       const fromParent = from.slice(0, -1);
-      const boundaryIndex = boundaryAbove ? decision.unit[0] : decision.unit[1];
-      const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
-      if (boundary.allowed) {
-        const box = boundaryAbove ? unitBox.first : unitBox.last;
-        return indicatorFor(box, boundaryAbove, [...fromParent, boundaryIndex], boundary.noop);
+      const [start, end] = decision.unit;
+      const first = findByPath(rects, [...fromParent, start]);
+      const last = findByPath(rects, [...fromParent, end - 1]);
+      if (first && last) {
+        const boundaryAbove = pointerY < (first.top + last.bottom) / 2;
+        const boundaryIndex = boundaryAbove ? start : end;
+        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
+        if (boundary.allowed) {
+          const slot = indicatorSlot(rects, [...fromParent, boundaryIndex], boundary.noop);
+          if (slot) {
+            return slot;
+          }
+        }
       }
     }
   }

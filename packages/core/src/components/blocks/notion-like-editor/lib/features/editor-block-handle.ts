@@ -26,6 +26,95 @@ const ELIGIBLE = new Set<string>([
   KEYS.columnGroup,
 ]);
 
+// Blocks whose first line of text lives inside a widget (KaTeX, table grid,
+// code editor, columns, a preview) or that paint no editable text at all.
+// Their handle anchors to the block's top edge instead of the block's middle,
+// so a tall equation never gets the handle at its center or bottom.
+export const HANDLE_TOP_ANCHOR_TYPES = new Set<string>([
+  KEYS.equation,
+  KEYS.hr,
+  BOOKMARK_KEY,
+  KEYS.table,
+  KEYS.codeBlock,
+  KEYS.toc,
+  KEYS.columnGroup,
+  SYNCED_REF_KEY,
+  KEYS.callout,
+  KEYS.toggle,
+]);
+
+// First-line height of body text. A widget-anchored block gets the handle's
+// center one body line below its top edge, matching a normal paragraph.
+export const BODY_LINE_HEIGHT_PX = 24;
+
+export type HandleTextBox = { top: number; height: number } | null;
+
+export type HandleAnchor = { lineTop: number; lineHeight: number };
+
+// The vertical anchor for the handle. A plain text block centers on its first
+// text line. A widget-anchored block (or one with no measured line) sits on its
+// top edge with the handle center on the first body line.
+export function handleAnchorLine(
+  type: string,
+  block: { top: number; bottom: number },
+  textLine: HandleTextBox,
+  bodyLineHeight = BODY_LINE_HEIGHT_PX,
+): HandleAnchor {
+  if (textLine && textLine.height > 0 && !HANDLE_TOP_ANCHOR_TYPES.has(type)) {
+    return { lineTop: textLine.top, lineHeight: textLine.height };
+  }
+  const height =
+    bodyLineHeight > 0 ? bodyLineHeight : Math.max(0, block.bottom - block.top) || bodyLineHeight;
+  return { lineTop: block.top, lineHeight: height };
+}
+
+// One vertical band per rendered target block. The bands are how the handle
+// keeps a target in the gaps between blocks, where no element is hit.
+export type HandleBand = {
+  id: string;
+  path: number[];
+  top: number;
+  bottom: number;
+};
+
+// The target block for a pointer Y inside the editor: the nearest band by
+// vertical distance, ties going to the block below. The current target is kept
+// within `hysteresisPx` of its band so crossing the boundary does not flicker.
+export function pickHandleBandAtY(
+  bands: readonly HandleBand[],
+  y: number,
+  currentId: string | null,
+  hysteresisPx = 6,
+): HandleBand | null {
+  if (bands.length === 0) {
+    return null;
+  }
+  if (currentId !== null) {
+    const held = bands.find((band) => band.id === currentId);
+    if (held && y >= held.top - hysteresisPx && y <= held.bottom + hysteresisPx) {
+      return held;
+    }
+  }
+  let best: HandleBand | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const band of bands) {
+    const distance = y < band.top ? band.top - y : y > band.bottom ? y - band.bottom : 0;
+    if (
+      distance < bestDistance ||
+      (distance === bestDistance && best !== null && band.top > best.top)
+    ) {
+      best = band;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+// Reorder the target list so the input order does not matter for the outcome.
+export function sortHandleBands(bands: readonly HandleBand[]): HandleBand[] {
+  return [...bands].sort((left, right) => left.top - right.top);
+}
+
 export type HandleChainNode = {
   type: string;
   id: string;
@@ -97,15 +186,30 @@ export function blockHandleTarget(chain: readonly HandleChainNode[]): BlockHandl
   return null;
 }
 
-// Horizontal anchor for the gutter. The handle controls `targetId`; when that
-// block sits inside a callout, the anchor is the callout so the buttons stay
-// outside its box.
+// Containers whose left border the handle must stay outside of. A block nested
+// in one of these anchors to the container's left edge, so the buttons never sit
+// on the container's border, background edge, icon, chevron or checkbox.
+const GUTTER_CONTAINERS = new Set<string>([KEYS.blockquote, KEYS.callout, KEYS.toggle]);
+
+// Horizontal anchor for the gutter. The handle controls `targetId`. A block
+// nested in a quote, callout or toggle anchors to the left edge of its
+// **outermost** such container, so a paragraph in a callout in a quote is also
+// outside the quote. A column is the exception: a block in a column anchors to
+// the column's left edge (the page gutter is not next to the right column), and
+// that wins even when the column itself sits inside a quote/callout/toggle.
+// The chain is innermost-first, so the last container seen is the outermost and
+// the first column seen is the innermost column the target sits in.
 export function blockHandleGutterId(chain: readonly HandleChainNode[], targetId: string): string {
-  const callout = chain.find((node) => node.type === KEYS.callout);
-  if (callout && callout.id !== targetId) {
-    return callout.id;
+  let anchorId = targetId;
+  for (const node of chain) {
+    if (node.type === KEYS.column) {
+      return node.id;
+    }
+    if (GUTTER_CONTAINERS.has(node.type)) {
+      anchorId = node.id;
+    }
   }
-  return targetId;
+  return anchorId;
 }
 
 export function chainAtPath(editor: SlateEditor, path: number[]): HandleChainNode[] {
@@ -294,6 +398,7 @@ export function handleCoversForeignBlock(
 export type HandleUiState = {
   typing: boolean;
   pointerId: string | null;
+  pointerOutside: boolean;
   caretId: string | null;
   engagedId: string | null;
   readOnly: boolean;
@@ -301,7 +406,7 @@ export type HandleUiState = {
 };
 
 export type HandleUiEvent =
-  | { type: "pointer-move"; id: string | null; engagedId: string | null }
+  | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }
   | { type: "engage"; id: string | null }
@@ -312,6 +417,7 @@ export function initialHandleUi(readOnly = false, hoverNone = false): HandleUiSt
   return {
     typing: false,
     pointerId: null,
+    pointerOutside: false,
     caretId: null,
     engagedId: null,
     readOnly,
@@ -321,15 +427,24 @@ export function initialHandleUi(readOnly = false, hoverNone = false): HandleUiSt
 
 export function reduceHandleUi(state: HandleUiState, event: HandleUiEvent): HandleUiState {
   switch (event.type) {
-    case "pointer-move":
+    case "pointer-move": {
+      const outside = event.outside ?? false;
       if (
         state.pointerId === event.id &&
         state.engagedId === event.engagedId &&
+        state.pointerOutside === outside &&
         state.typing === false
       ) {
         return state;
       }
-      return { ...state, typing: false, pointerId: event.id, engagedId: event.engagedId };
+      return {
+        ...state,
+        typing: false,
+        pointerId: event.id,
+        pointerOutside: outside,
+        engagedId: event.engagedId,
+      };
+    }
     case "caret":
       if (state.caretId === event.id) {
         return state;
@@ -380,6 +495,11 @@ export function visibleHandleId(state: HandleUiState): string | null {
     return state.engagedId;
   }
   if (state.typing) {
+    return null;
+  }
+  // The pointer owns the target for as long as it is over the editor. Leaving
+  // the editor hides the handle rather than falling back to the model caret.
+  if (state.pointerOutside) {
     return null;
   }
   return state.pointerId ?? state.caretId;

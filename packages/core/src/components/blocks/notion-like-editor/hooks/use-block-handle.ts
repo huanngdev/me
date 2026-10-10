@@ -7,20 +7,26 @@ import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-c
 import {
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
   chainFromDom,
+  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isBlockDragArmed,
   isTypingKey,
+  pickHandleBandAtY,
   placeBlockHandle,
   reduceHandleUi,
+  sortHandleBands,
   targetBlockAtPath,
   visibleHandleId,
   type BlockHandlePaint,
+  type HandleBand,
   type HandleFrame,
+  type HandleTextBox,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
@@ -29,14 +35,6 @@ export type { BlockHandlePaint };
 
 type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
-};
-
-type LineMeasure = {
-  lineTop: number;
-  lineHeight: number;
-  blockLeft: number;
-  blockTop: number;
-  blockBottom: number;
 };
 
 export type BlockHandleController = {
@@ -48,6 +46,8 @@ export type BlockHandleController = {
   onHandleBlur: (related?: EventTarget | null) => void;
   suppressed: boolean;
   holdMenu: (id: string | null) => void;
+  clearPointer: () => void;
+  rehover: (x?: number, y?: number) => void;
 };
 
 const HANDLE_FADE_MS = 150;
@@ -118,41 +118,109 @@ function firstLineText(element: HTMLElement): Node | null {
   return null;
 }
 
-function firstLineBox(element: HTMLElement): LineMeasure | null {
-  const block = element.getBoundingClientRect();
+// The measured first text line of a block, or null when the block paints no
+// editable text (equation, divider, bookmark, table chrome, ...).
+function measuredTextLine(element: HTMLElement): HandleTextBox {
   const text = firstLineText(element);
-  const value = text ? textValue(text) : "";
-  if (text && value.length > 0) {
-    try {
-      const range = document.createRange();
-      range.setStart(text, 0);
-      range.setEnd(text, 1);
-      const rect = range.getClientRects()[0];
-      if (rect && rect.height > 0) {
-        return {
-          lineTop: rect.top,
-          lineHeight: rect.height,
-          blockLeft: block.left,
-          blockTop: block.top,
-          blockBottom: block.bottom,
-        };
-      }
-    } catch {
-      // An unmeasured range falls through to the element box.
-    }
-  }
-
-  if (block.height <= 0 || block.width <= 0) {
+  if (!text) {
     return null;
   }
+  try {
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, Math.min(1, textValue(text).length || 1));
+    const rect = range.getClientRects()[0];
+    if (rect && rect.height > 0) {
+      return { top: rect.top, height: rect.height };
+    }
+  } catch {
+    // An unmeasured range means there is no usable text line.
+  }
+  return null;
+}
 
-  return {
-    lineTop: block.top,
-    lineHeight: block.height,
-    blockLeft: block.left,
-    blockTop: block.top,
-    blockBottom: block.bottom,
-  };
+function bodyLineHeightFor(editor: SlateEditor): number {
+  const editable = editableOf(editor);
+  if (editable) {
+    const value = Number.parseFloat(getComputedStyle(editable).lineHeight);
+    if (Number.isFinite(value) && value >= 8 && value <= 80) {
+      return value;
+    }
+  }
+  return BODY_LINE_HEIGHT_PX;
+}
+
+// One band per rendered target, in document order. Gaps between blocks have no
+// hit element, so the handle resolves a target from these bands instead.
+function handleBands(editor: SlateEditor): HandleBand[] {
+  const editable = editableOf(editor);
+  if (!editable) {
+    return [];
+  }
+  const byId = new Map<string, HandleBand>();
+  for (const node of editable.querySelectorAll("[data-block-id]")) {
+    if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = node.getAttribute("data-block-id");
+    if (id === null || id.length === 0) {
+      continue;
+    }
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const target = blockHandleTarget(chainAtPath(editor, entry[1]));
+    if (!target || byId.has(target.id)) {
+      continue;
+    }
+    const rect = node.getBoundingClientRect();
+    if (rect.height <= 0) {
+      continue;
+    }
+    byId.set(target.id, { id: target.id, path: entry[1], top: rect.top, bottom: rect.bottom });
+  }
+  return sortHandleBands([...byId.values()]);
+}
+
+// The editor's vertical extent: the scroll viewport when there is one, else the
+// editable itself. The gutter and the gaps between blocks both sit inside it.
+function insideEditorArea(editor: SlateEditor, _x: number, y: number): boolean {
+  const editable = editableOf(editor);
+  if (!editable) {
+    return false;
+  }
+  const viewport = editable.closest("[data-block-viewport]");
+  const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
+  return y >= frame.top && y <= frame.bottom;
+}
+
+function pointerBlockId(
+  editor: SlateEditor,
+  target: EventTarget | null,
+  x: number,
+  y: number,
+  currentId: string | null,
+): string | null {
+  const element =
+    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  if (element) {
+    const picked = blockHandleTarget(chainFromDom(editor, element));
+    if (picked && findBlockById(editor, picked.id)) {
+      return picked.id;
+    }
+  }
+  if (typeof document.elementFromPoint === "function") {
+    const hit = document.elementFromPoint(x, y);
+    if (hit instanceof Element) {
+      const picked = blockHandleTarget(chainFromDom(editor, hit));
+      if (picked && findBlockById(editor, picked.id)) {
+        return picked.id;
+      }
+    }
+  }
+  const band = pickHandleBandAtY(handleBands(editor), y, currentId);
+  return band?.id ?? null;
 }
 
 function frameOf(element: HTMLElement): HandleFrame | null {
@@ -202,10 +270,23 @@ function measurePaint(
   if (!(dom instanceof HTMLElement)) {
     return null;
   }
-  const line = firstLineBox(dom);
-  if (!line) {
+  const box = dom.getBoundingClientRect();
+  if (box.height <= 0 || box.width <= 0) {
     return null;
   }
+  const anchor = handleAnchorLine(
+    entry[0].type,
+    { top: box.top, bottom: box.bottom },
+    measuredTextLine(dom),
+    bodyLineHeightFor(editor),
+  );
+  const line = {
+    lineTop: anchor.lineTop,
+    lineHeight: anchor.lineHeight,
+    blockLeft: box.left,
+    blockTop: box.top,
+    blockBottom: box.bottom,
+  };
   const chain = chainAtPath(editor, entry[1]);
   const gutterId = blockHandleGutterId(chain, id);
   let gutterLeft = line.blockLeft;
@@ -286,7 +367,13 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const shownRef = useRef(false);
   const hideTimer = useRef(0);
   const menuLockRef = useRef<string | null>(null);
+  const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
+  const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
+  const visibleIdRef = useRef<string | null>(null);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  useEffect(() => {
+    visibleIdRef.current = visibleId;
+  }, [visibleId]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
@@ -321,19 +408,24 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
             type: "pointer-move",
             id: state.pointerId ?? held,
             engagedId: held,
+            outside: false,
           });
         });
         return;
       }
-      const element =
-        event.target instanceof Element
-          ? event.target
-          : event.target instanceof Node
-            ? event.target.parentElement
-            : null;
-      const picked = element ? blockHandleTarget(chainFromDom(editor, element)) : null;
-      const known = picked && findBlockById(editor, picked.id) ? picked.id : null;
-      setUi((state) => reduceHandleUi(state, { type: "pointer-move", id: known, engagedId: null }));
+      const inside = insideEditorArea(editor, event.clientX, event.clientY);
+      pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
+      const known = inside
+        ? pointerBlockId(editor, event.target, event.clientX, event.clientY, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: null,
+          outside: !inside,
+        }),
+      );
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -392,12 +484,39 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
       publish(next);
     };
+    // On scroll the last pointer position can now sit over a different block.
+    // Re-resolve from that position instead of trusting a stale id.
+    const refreshPointerTarget = (x?: number, y?: number): void => {
+      if (x !== undefined && y !== undefined) {
+        pointerRef.current = { x, y, present: true };
+      }
+      const pointer = pointerRef.current;
+      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
+        return;
+      }
+      const inside = insideEditorArea(editor, pointer.x, pointer.y);
+      const known = inside
+        ? pointerBlockId(editor, null, pointer.x, pointer.y, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: state.engagedId,
+          outside: !inside,
+        }),
+      );
+    };
+    rehoverRef.current = refreshPointerTarget;
     measure();
     const editable = editableOf(editor);
     const viewport = editable?.closest("[data-block-viewport]");
     const onScroll = (): void => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
+      frame = requestAnimationFrame(() => {
+        refreshPointerTarget();
+        measure();
+      });
     };
     viewport?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, true);
@@ -474,6 +593,18 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     setUi((state) => reduceHandleUi(state, { type: "engage", id }));
   }, []);
 
+  // Hide the handle's current target at once. A drop uses this so the handle is
+  // never painted at the slot the block came from.
+  const clearPointer = useCallback(() => {
+    setUi((state) =>
+      reduceHandleUi(state, { type: "pointer-move", id: null, engagedId: null, outside: true }),
+    );
+  }, []);
+
+  const rehover = useCallback((x?: number, y?: number) => {
+    rehoverRef.current(x, y);
+  }, []);
+
   return {
     paint,
     shown,
@@ -482,6 +613,8 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     onHandleFocus,
     onHandleBlur,
     holdMenu,
+    clearPointer,
+    rehover,
     suppressed: readOnly || hoverNone,
   };
 }

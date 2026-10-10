@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ElementApi, KEYS, type Descendant, type SlateEditor, type TElement } from "platejs";
 import { createPlateEditor } from "platejs/react";
 import { act } from "react";
@@ -19,7 +21,7 @@ import {
   listItemUnit,
   resolveDropIndicator,
   siblingMove,
-  type DropBand,
+  type DropRect,
 } from "../lib/features/editor-block-drop";
 import { SYNCED_REF_KEY } from "../lib/features/editor-synced-block";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
@@ -153,8 +155,8 @@ function move(editor: SlateEditor, from: number[], to: number[]): boolean {
   return runEditorCommand(editor, moveBlock, { from, to });
 }
 
-function band(path: number[], top: number, height = 20, left = 40, width = 200): DropBand {
-  return { path, top, height, left, width };
+function rect(path: number[], top: number, height = 20, left = 40, width = 200): DropRect {
+  return { path, top, bottom: top + height, left, right: left + width };
 }
 
 describe("list item unit", () => {
@@ -283,29 +285,29 @@ describe("drop targets", () => {
 
   test("a forbidden inner band walks out to the table, and a list interior uses the unit edge", () => {
     const roots = [table(), paragraph("after", "After")];
-    const line = resolveDropIndicator(
-      roots,
-      [1],
-      [band([0, 0, 0, 0], 40), band([0], 20, 80)],
-      30,
-      null,
-    );
-    expect(line).toMatchObject({ top: 19, left: 40, width: 200, to: [0], noop: false });
-    const below = resolveDropIndicator(
-      roots,
-      [1],
-      [band([0, 0, 0, 0], 40), band([0], 20, 80)],
-      90,
-      null,
-    );
-    expect(below).toMatchObject({ top: 99, to: [1] });
+    const tableRects = [rect([0, 0, 0, 0], 40), rect([0], 20, 80)];
+    const line = resolveDropIndicator(roots, [1], tableRects, 30);
+    // A line before the first block sits half a gap above it.
+    expect(line).toMatchObject({ top: 12, left: 40, width: 200, to: [0], noop: false });
+    const below = resolveDropIndicator(roots, [1], tableRects, 90);
+    expect(below).toMatchObject({ top: 108, to: [1], noop: true });
 
     const lists = [item("a", "A", 1), item("a1", "A1", 2), item("a2", "A2", 2)];
-    const interior = resolveDropIndicator(lists, [0], [band([1], 40)], 50, {
-      first: band([0], 10, 20, 10, 180),
-      last: band([2], 60, 20, 28, 160),
-    });
-    expect(interior).toMatchObject({ noop: true, to: [3], top: 79, left: 28, width: 160 });
+    const listRects = [rect([0], 10, 20, 10, 180), rect([1], 40), rect([2], 60, 20, 28, 160)];
+    const interior = resolveDropIndicator(lists, [0], listRects, 50);
+    expect(interior).toMatchObject({ noop: true, to: [3], top: 88, left: 28, width: 160 });
+  });
+
+  test("below A and above B are one slot with one midpoint line", () => {
+    const roots = [paragraph("a", "A"), paragraph("b", "B")];
+    const rects = [rect([0], 100, 40), rect([1], 160, 40)];
+    const line = resolveDropIndicator(roots, [0], rects, 150);
+    expect(line).toMatchObject({ to: [1], top: 150 });
+    // Every pointer Y between A's midpoint (120) and B's midpoint (180) is the
+    // same slot with the same coordinates.
+    for (let y = 120; y <= 179; y += 1) {
+      expect(resolveDropIndicator(roots, [0], rects, y)).toEqual(line);
+    }
   });
 });
 
@@ -696,15 +698,17 @@ describe("grip click and drag", () => {
             clientY: 10,
             button: 0,
             pointerType: "mouse",
+            isPrimary: true,
           }),
         );
-        window.dispatchEvent(
+        document.dispatchEvent(
           new PointerEvent("pointerup", {
             bubbles: true,
             clientX: 10,
             clientY: 10,
             button: 0,
             pointerType: "mouse",
+            isPrimary: true,
           }),
         );
         grip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -717,7 +721,9 @@ describe("grip click and drag", () => {
       await act(async () => {
         document
           .querySelector("[data-block-menu]")
-          ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+          ?.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+          );
       });
       const hadResizeObserver = "ResizeObserver" in globalThis;
       const previousResizeObserver = globalThis.ResizeObserver;
@@ -733,6 +739,7 @@ describe("grip click and drag", () => {
             new PointerEvent("pointermove", {
               bubbles: true,
               pointerType: "mouse",
+              isPrimary: true,
               clientX: 12,
               clientY: 12,
             }),
@@ -762,9 +769,10 @@ describe("grip click and drag", () => {
             clientY: 10,
             button: 0,
             pointerType: "mouse",
+            isPrimary: true,
           }),
         );
-        window.dispatchEvent(
+        document.dispatchEvent(
           new PointerEvent("pointermove", {
             bubbles: true,
             cancelable: true,
@@ -772,28 +780,34 @@ describe("grip click and drag", () => {
             clientY: 10,
             button: 0,
             pointerType: "mouse",
+            isPrimary: true,
           }),
         );
       });
       expect(document.body.getAttribute("data-block-dragging")).toBe("");
       expect(document.querySelector("[data-block-menu]")).toBeNull();
-      expect(document.querySelector("[data-block-handle]")).toBeNull();
-      expect(document.querySelector("[data-block-handle-tooltip]")).toBeNull();
+      // The grip stays mounted so dnd kit can keep tracking it, but it is hidden.
+      expect(document.querySelector("[data-block-handle]")?.getAttribute("data-visible")).toBe(
+        "false",
+      );
       const other = mounted.host.querySelector("[data-block-id='block-2']");
       await act(async () => {
         other?.dispatchEvent(
           new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse" }),
         );
       });
-      expect(document.querySelector("[data-block-handle]")).toBeNull();
+      expect(
+        document.querySelector("[data-block-handle-for]")?.getAttribute("data-block-handle-for"),
+      ).toBe("block-1");
       await act(async () => {
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+        );
       });
       expect(document.body.hasAttribute("data-block-dragging")).toBe(false);
       expect(
         document.querySelector("[data-block-handle-for]")?.getAttribute("data-block-handle-for"),
       ).toBe("block-1");
-      expect(document.querySelector("[data-block-handle-tooltip]")).toBeNull();
       expect(mounted.editor.history.undos.length).toBe(undos);
       expect(mounted.editor.selection).toEqual(held);
       await act(async () => {
@@ -809,34 +823,43 @@ describe("grip click and drag", () => {
     }
   });
 
-  async function mountBlocks(
-    value: TElement[],
-    overId: string,
-  ): Promise<{
-    host: HTMLDivElement;
-    editor: ReturnType<typeof createPlateEditor>;
-    root: Root;
-    restore: () => void;
-  }> {
-    const originalRect = HTMLElement.prototype.getBoundingClientRect;
-    const hadFromPoint = typeof document.elementsFromPoint === "function";
-    const originalFromPoint = hadFromPoint ? document.elementsFromPoint.bind(document) : null;
+  // Each top-level block gets its own vertical box so the pointer's Y picks a
+  // distinct slot, which is what the drag actually keys on.
+  function installRects(ids: readonly string[]): () => void {
+    const original = HTMLElement.prototype.getBoundingClientRect;
     HTMLElement.prototype.getBoundingClientRect = function () {
       if (this.hasAttribute("data-block-handle")) {
         return domRect(230, 96, 66, 32);
+      }
+      if (this.hasAttribute("data-block-id")) {
+        const id = this.getAttribute("data-block-id") ?? "";
+        const index = ids.indexOf(id);
+        return domRect(300, 100 + Math.max(0, index) * 40, 400, 24);
       }
       if (this.hasAttribute("data-slate-node")) {
         return domRect(300, 100, 400, 24);
       }
       return domRect(0, 0, 1280, 800);
     };
+    return () => {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    };
+  }
+
+  async function mountBlocks(
+    value: TElement[],
+    readOnly = false,
+  ): Promise<{
+    host: HTMLDivElement;
+    editor: ReturnType<typeof createPlateEditor>;
+    root: Root;
+    restore: () => void;
+  }> {
+    const ids = value.flatMap((node) => (typeof node.id === "string" ? [node.id] : []));
+    const restore = installRects(ids);
     const host = document.createElement("div");
     host.setAttribute("data-block-viewport", "");
     document.body.appendChild(host);
-    document.elementsFromPoint = () => {
-      const target = host.querySelector(`[data-block-id="${overId}"]`);
-      return target instanceof Element ? [target] : [];
-    };
     const editor = createPlateEditor({
       plugins: createEditorPlugins(),
       value: value as EditorValue,
@@ -847,21 +870,14 @@ describe("grip click and drag", () => {
     const root = createRoot(host);
     await act(async () => {
       root.render(
-        <EditorSurface editor={editor} readOnly={false} placeholder="" className="editor" />,
+        <EditorSurface editor={editor} readOnly={readOnly} placeholder="" className="editor" />,
       );
     });
     return {
       host,
       editor,
       root,
-      restore: () => {
-        HTMLElement.prototype.getBoundingClientRect = originalRect;
-        if (originalFromPoint) {
-          document.elementsFromPoint = originalFromPoint;
-        } else {
-          Reflect.deleteProperty(document, "elementsFromPoint");
-        }
-      },
+      restore,
     };
   }
 
@@ -887,19 +903,25 @@ describe("grip click and drag", () => {
       clientY: y,
       button: 0,
       pointerType: "mouse",
+      isPrimary: true,
     });
   }
 
-  async function pull(grip: HTMLElement): Promise<void> {
+  // dnd kit's PointerSensor listens on the owner document, so the move and up
+  // must be dispatched there, not on the window.
+  async function pull(grip: HTMLElement, toY: number): Promise<void> {
     await act(async () => {
-      grip.dispatchEvent(pointer("pointerdown", 10, 10));
-      window.dispatchEvent(pointer("pointermove", 10, 140));
+      grip.dispatchEvent(pointer("pointerdown", 230, 10));
+      // First move crosses the 4px activation distance, the second carries the
+      // pointer to the target Y. dnd kit only emits onDragMove after activation.
+      document.dispatchEvent(pointer("pointermove", 230, 20));
+      document.dispatchEvent(pointer("pointermove", 230, toY));
     });
   }
 
-  async function release(): Promise<void> {
+  async function release(toY: number): Promise<void> {
     await act(async () => {
-      window.dispatchEvent(pointer("pointerup", 10, 140));
+      document.dispatchEvent(pointer("pointerup", 230, toY));
     });
     await act(async () => {
       await new Promise((resolve) => {
@@ -908,7 +930,7 @@ describe("grip click and drag", () => {
         });
       });
       await new Promise((resolve) => {
-        setTimeout(resolve, 0);
+        setTimeout(resolve, 120);
       });
     });
   }
@@ -944,11 +966,12 @@ describe("grip click and drag", () => {
     expect(domCaret()).toEqual({ id, offset: 0, collapsed: true });
   }
 
-  test("a drop leaves the caret at the start of the moved block", async () => {
-    const mounted = await mountBlocks(
-      [paragraph("a", "Alpha"), paragraph("b", "Beta"), paragraph("c", "Gamma")],
-      "c",
-    );
+  test("a drop leaves the caret at the start of the moved block, one undo, ids kept", async () => {
+    const mounted = await mountBlocks([
+      paragraph("a", "Alpha"),
+      paragraph("b", "Beta"),
+      paragraph("c", "Gamma"),
+    ]);
     let scrollTop = 36;
     Object.defineProperty(mounted.host, "scrollTop", {
       configurable: true,
@@ -961,17 +984,27 @@ describe("grip click and drag", () => {
       await act(async () => {
         mounted.editor.tf.select(caret([0, 0], 0));
       });
+      const before = JSON.stringify(
+        mounted.editor.children.map((node) => (ElementApi.isElement(node) ? node.id : "")),
+      );
       const grip = await hoverId(mounted.host, "b");
-      await pull(grip);
+      await pull(grip, 200);
       expect(hasDim(mounted.host, "b")).toBe(true);
       expect(hasDim(mounted.host, "a")).toBe(false);
       expect(hasDim(mounted.host, "c")).toBe(false);
-      const before = scrollTop;
-      await release();
+      const heldScroll = scrollTop;
+      await release(200);
       expect(topIds(mounted.editor)).toEqual(["a", "c", "b"]);
       expectCaret(mounted.editor, "b");
-      expect(scrollTop).toBe(before);
+      expect(scrollTop).toBe(heldScroll);
       expect(hasDim(mounted.host, "b")).toBe(false);
+      expect(mounted.editor.history.undos.length).toBe(1);
+      mounted.editor.tf.undo();
+      expect(
+        JSON.stringify(
+          mounted.editor.children.map((node) => (ElementApi.isElement(node) ? node.id : "")),
+        ),
+      ).toBe(before);
     } finally {
       await act(async () => {
         mounted.root.unmount();
@@ -981,38 +1014,38 @@ describe("grip click and drag", () => {
     }
   });
 
-  test("a list-unit drag dims every block and drops the caret on the parent", async () => {
-    const mounted = await mountBlocks(
-      [
-        item("a", "Alpha", 1),
-        item("a1", "Nested", 2),
-        item("a2", "Deeper", 3),
-        item("b", "Beta", 1),
-      ],
-      "b",
-    );
+  test("a list-unit drag dims every block, Escape cancels, and a drop moves the unit", async () => {
+    const mounted = await mountBlocks([
+      item("a", "Alpha", 1),
+      item("a1", "Nested", 2),
+      item("a2", "Deeper", 3),
+      item("b", "Beta", 1),
+    ]);
     try {
       await act(async () => {
         mounted.editor.tf.select(caret([3, 0], 0));
       });
       const grip = await hoverId(mounted.host, "a");
-      await pull(grip);
+      await pull(grip, 260);
       expect(hasDim(mounted.host, "a")).toBe(true);
       expect(hasDim(mounted.host, "a1")).toBe(true);
       expect(hasDim(mounted.host, "a2")).toBe(true);
       expect(hasDim(mounted.host, "b")).toBe(false);
       await act(async () => {
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+        );
       });
       expect(hasDim(mounted.host, "a")).toBe(false);
       expect(hasDim(mounted.host, "a1")).toBe(false);
       expect(hasDim(mounted.host, "a2")).toBe(false);
       expect(topIds(mounted.editor)).toEqual(["a", "a1", "a2", "b"]);
+      expect(mounted.editor.history.undos.length).toBe(0);
 
       const again = await hoverId(mounted.host, "a");
-      await pull(again);
+      await pull(again, 260);
       expect(hasDim(mounted.host, "a1")).toBe(true);
-      await release();
+      await release(260);
       expect(topIds(mounted.editor)).toEqual(["b", "a", "a1", "a2"]);
       expectCaret(mounted.editor, "a");
       expect(hasDim(mounted.host, "a")).toBe(false);
@@ -1025,5 +1058,145 @@ describe("grip click and drag", () => {
       mounted.host.remove();
       mounted.restore();
     }
+  });
+
+  test("read-only renders no grip and cannot drag", async () => {
+    const mounted = await mountBlocks([paragraph("a", "A"), paragraph("b", "B")], true);
+    try {
+      const block = mounted.host.querySelector("[data-block-id='a']");
+      await act(async () => {
+        block?.dispatchEvent(
+          new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse" }),
+        );
+      });
+      expect(document.querySelector("[data-block-handle-grip]")).toBeNull();
+      expect(document.querySelector("[data-block-drag-overlay]")).toBeNull();
+      expect(mounted.editor.history.undos.length).toBe(0);
+    } finally {
+      await act(async () => {
+        mounted.root.unmount();
+      });
+      mounted.host.remove();
+      mounted.restore();
+    }
+  });
+
+  test("after a drop the handle re-hovers under the pointer, not the moved source", async () => {
+    const mounted = await mountBlocks([
+      paragraph("a", "Alpha"),
+      paragraph("b", "Beta"),
+      paragraph("c", "Gamma"),
+    ]);
+    try {
+      await act(async () => {
+        mounted.editor.tf.select(caret([0, 0], 0));
+      });
+      const grip = await hoverId(mounted.host, "a");
+      // The pointer ends below block c's midpoint (its band, lower half).
+      await pull(grip, 202);
+      await release(202);
+      expect(topIds(mounted.editor)).toEqual(["b", "c", "a"]);
+      const handle = document.querySelector("[data-block-handle]");
+      const target = handle ? handle.getAttribute("data-block-handle-for") : null;
+      // Never the dragged source's stale target; the block under the pointer.
+      expect(target).not.toBe("a");
+      expect(target).toBe("c");
+    } finally {
+      await act(async () => {
+        mounted.root.unmount();
+      });
+      mounted.host.remove();
+      mounted.restore();
+    }
+  });
+
+  test("the drag preview is an inert copy of the unit", async () => {
+    const mounted = await mountBlocks([paragraph("a", "Alpha"), paragraph("b", "Beta")]);
+    try {
+      const grip = await hoverId(mounted.host, "b");
+      await pull(grip, 120);
+      const overlay = document.querySelector("[data-block-drag-overlay]");
+      expect(overlay).not.toBeNull();
+      expect(overlay?.textContent).toContain("Beta");
+      expect(overlay?.hasAttribute("inert")).toBe(true);
+      expect(overlay?.getAttribute("aria-hidden")).toBe("true");
+      expect(overlay?.getAttribute("contenteditable")).toBe("false");
+      // The editor's own queries must not see the copy.
+      expect(overlay?.querySelector("[data-block-id]")).toBeNull();
+      expect(overlay?.querySelector("[data-slate-node]")).toBeNull();
+      // The source is dimmed before the copy is taken; the copy must not carry
+      // that dim or the overlay opacity multiplies it.
+      expect(overlay?.querySelector(".opacity-40")).toBeNull();
+      expect(overlay?.classList.contains("opacity-40")).toBe(false);
+      await act(async () => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+        );
+      });
+    } finally {
+      await act(async () => {
+        mounted.root.unmount();
+      });
+      mounted.host.remove();
+      mounted.restore();
+    }
+  });
+
+  test("the drag preview copies a list unit's nested items with their markers", async () => {
+    const mounted = await mountBlocks([
+      item("a", "Alpha", 1),
+      item("a1", "Nested", 2),
+      item("a2", "Deeper", 3),
+      item("b", "Beta", 1),
+    ]);
+    try {
+      const grip = await hoverId(mounted.host, "a");
+      await pull(grip, 260);
+      const overlay = document.querySelector("[data-block-drag-overlay]");
+      expect(overlay?.textContent).toContain("Alpha");
+      expect(overlay?.textContent).toContain("Nested");
+      expect(overlay?.textContent).toContain("Deeper");
+      expect(overlay?.querySelectorAll("[data-list-item]").length).toBe(3);
+      expect(overlay?.querySelectorAll("ul").length).toBe(3);
+      await act(async () => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+        );
+      });
+    } finally {
+      await act(async () => {
+        mounted.root.unmount();
+      });
+      mounted.host.remove();
+      mounted.restore();
+    }
+  });
+
+  test("the drag preview copies a callout's chrome and text", async () => {
+    const mounted = await mountBlocks([callout("call", [paragraph("note", "Note text")])]);
+    try {
+      const grip = await hoverId(mounted.host, "call");
+      await pull(grip, 120);
+      const overlay = document.querySelector("[data-block-drag-overlay]");
+      expect(overlay?.textContent).toContain("Note text");
+      expect(overlay?.querySelectorAll(".slate-callout").length).toBe(1);
+      await act(async () => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+        );
+      });
+    } finally {
+      await act(async () => {
+        mounted.root.unmount();
+      });
+      mounted.host.remove();
+      mounted.restore();
+    }
+  });
+
+  test("the drag overlay has no drop animation", () => {
+    const source = readFileSync(join(import.meta.dir, "../components/ui/block-handle.tsx"), "utf8");
+    expect(source).toContain("dropAnimation={null}");
+    expect(source).not.toMatch(/dropAnimation=\{(?!null)/);
   });
 });

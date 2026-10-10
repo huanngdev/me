@@ -11,17 +11,22 @@ import {
   BLOCK_HANDLE_GAP,
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
   chainFromDom,
+  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isTypingKey,
+  pickHandleBandAtY,
   placeBlockHandle,
   reduceHandleUi,
+  sortHandleBands,
   targetBlockAtPath,
   visibleHandleId,
+  type HandleBand,
   type HandleChainNode,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
@@ -174,7 +179,9 @@ describe("block handle target", () => {
     ];
 
     expect(blockHandleTarget(chain)).toEqual({ id: "paragraph", type: KEYS.p });
-    expect(blockHandleGutterId(chain, "paragraph")).toBe("callout");
+    // The column is the horizontal boundary: the anchor is the column, not the
+    // callout inside it.
+    expect(blockHandleGutterId(chain, "paragraph")).toBe("column");
     expect(blockHandleTarget([chainNode(KEYS.p, "row", 0, KEYS.callout), callout])).toEqual({
       id: "callout",
       type: KEYS.callout,
@@ -245,6 +252,38 @@ describe("block handle visibility", () => {
     expect(visibleHandleId(left)).toBe("block");
   });
 
+  test("the pointer owns the target and never bounces back to the caret", () => {
+    let state = reduceHandleUi(initialHandleUi(), { type: "caret", id: "A" });
+    expect(visibleHandleId(state)).toBe("A");
+    state = reduceHandleUi(state, { type: "pointer-move", id: "A", engagedId: null });
+    const painted = [visibleHandleId(state)];
+    // A scroll re-resolves the pointer position and lands on B.
+    state = reduceHandleUi(state, { type: "pointer-move", id: "B", engagedId: null });
+    painted.push(visibleHandleId(state));
+    state = reduceHandleUi(state, { type: "pointer-move", id: "B", engagedId: null });
+    painted.push(visibleHandleId(state));
+    expect(painted).toEqual(["A", "B", "B"]);
+  });
+
+  test("leaving the editor hides the handle even with a caret", () => {
+    let state = reduceHandleUi(initialHandleUi(), { type: "caret", id: "A" });
+    state = reduceHandleUi(state, {
+      type: "pointer-move",
+      id: null,
+      engagedId: null,
+      outside: true,
+    });
+    expect(visibleHandleId(state)).toBeNull();
+    // Re-entering restores the pointer target.
+    state = reduceHandleUi(state, {
+      type: "pointer-move",
+      id: "B",
+      engagedId: null,
+      outside: false,
+    });
+    expect(visibleHandleId(state)).toBe("B");
+  });
+
   test("a touch device renders nothing", () => {
     const state = reduceHandleUi(initialHandleUi(), { type: "hover-none", value: true });
     expect(show(state, { type: "pointer-move", id: "block", engagedId: null })).toBeNull();
@@ -269,6 +308,151 @@ describe("block handle visibility", () => {
         isComposing: true,
       }),
     ).toBe(true);
+  });
+});
+
+describe("handle anchor line", () => {
+  const block = { top: 100, bottom: 400 };
+  const textLine = { top: 120, height: 26 };
+
+  test("a text block centers on its first text line", () => {
+    expect(handleAnchorLine(KEYS.p, block, textLine)).toEqual({ lineTop: 120, lineHeight: 26 });
+    expect(handleAnchorLine(KEYS.h1, block, textLine)).toEqual({ lineTop: 120, lineHeight: 26 });
+    expect(handleAnchorLine(KEYS.blockquote, block, textLine)).toEqual({
+      lineTop: 120,
+      lineHeight: 26,
+    });
+  });
+
+  test("widget blocks anchor to the top edge even with a measured line", () => {
+    for (const type of [
+      KEYS.equation,
+      KEYS.hr,
+      KEYS.table,
+      KEYS.codeBlock,
+      KEYS.toc,
+      KEYS.columnGroup,
+      KEYS.callout,
+      KEYS.toggle,
+    ]) {
+      expect(handleAnchorLine(type, block, textLine)).toEqual({
+        lineTop: 100,
+        lineHeight: BODY_LINE_HEIGHT_PX,
+      });
+    }
+  });
+
+  test("a text block with no measured line anchors to the top edge", () => {
+    expect(handleAnchorLine(KEYS.p, block, null)).toEqual({
+      lineTop: 100,
+      lineHeight: BODY_LINE_HEIGHT_PX,
+    });
+    expect(handleAnchorLine(KEYS.p, block, { top: 0, height: 0 })).toEqual({
+      lineTop: 100,
+      lineHeight: BODY_LINE_HEIGHT_PX,
+    });
+  });
+
+  test("the anchor never depends on the block's measured height", () => {
+    const tall = handleAnchorLine(KEYS.equation, { top: 100, bottom: 900 }, null);
+    const short = handleAnchorLine(KEYS.equation, { top: 100, bottom: 120 }, null);
+    expect(tall).toEqual(short);
+    expect(tall.lineTop).toBe(100);
+  });
+});
+
+describe("handle band picking", () => {
+  const bands: HandleBand[] = [
+    { id: "a", path: [0], top: 100, bottom: 140 },
+    { id: "b", path: [1], top: 160, bottom: 200 },
+  ];
+
+  test("inside a block picks that block", () => {
+    expect(pickHandleBandAtY(bands, 110, null)?.id).toBe("a");
+    expect(pickHandleBandAtY(bands, 190, null)?.id).toBe("b");
+  });
+
+  test("a gap picks the nearer block and ties go below", () => {
+    expect(pickHandleBandAtY(bands, 145, null)?.id).toBe("a");
+    expect(pickHandleBandAtY(bands, 155, null)?.id).toBe("b");
+    expect(pickHandleBandAtY(bands, 150, null)?.id).toBe("b");
+  });
+
+  test("the current target is held within the hysteresis window", () => {
+    const close: HandleBand[] = [
+      { id: "a", path: [0], top: 100, bottom: 140 },
+      { id: "b", path: [1], top: 142, bottom: 182 },
+    ];
+    // The pointer is inside A, but B was the last target and is within a few
+    // pixels, so B stays. With A as the target the same point keeps A.
+    expect(pickHandleBandAtY(close, 139, "b")?.id).toBe("b");
+    expect(pickHandleBandAtY(close, 139, "a")?.id).toBe("a");
+    // Past the window, the nearest band wins again.
+    expect(pickHandleBandAtY(close, 130, "b")?.id).toBe("a");
+  });
+
+  test("an empty band list has no target", () => {
+    expect(pickHandleBandAtY([], 100, null)).toBeNull();
+  });
+
+  test("sorting puts bands in document order", () => {
+    expect(sortHandleBands([bands[1]!, bands[0]!]).map((band) => band.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("block handle gutter anchor", () => {
+  test("a quote child anchors to the quote's left edge", () => {
+    const chain = [
+      chainNode(KEYS.p, "line", 0, KEYS.blockquote),
+      chainNode(KEYS.blockquote, "quote", 0, null),
+    ];
+    expect(blockHandleGutterId(chain, "line")).toBe("quote");
+  });
+
+  test("a callout child inside a quote anchors to the outermost container", () => {
+    const chain = [
+      chainNode(KEYS.p, "note", 1, KEYS.callout),
+      chainNode(KEYS.callout, "call", 0, KEYS.blockquote),
+      chainNode(KEYS.blockquote, "quote", 0, null),
+    ];
+    expect(blockHandleGutterId(chain, "note")).toBe("quote");
+  });
+
+  test("a toggle child anchors to the toggle's left edge", () => {
+    const chain = [
+      chainNode(KEYS.p, "body", 1, KEYS.toggle),
+      chainNode(KEYS.toggle, "tog", 0, null),
+    ];
+    expect(blockHandleGutterId(chain, "body")).toBe("tog");
+  });
+
+  test("a nested list item in a quote anchors to the quote", () => {
+    const chain = [
+      chainNode(KEYS.p, "item", 2, KEYS.blockquote),
+      chainNode(KEYS.blockquote, "quote", 0, null),
+    ];
+    expect(blockHandleGutterId(chain, "item")).toBe("quote");
+  });
+
+  test("a top-level list item anchors to itself", () => {
+    const chain = [chainNode(KEYS.p, "item", 0, null)];
+    expect(blockHandleGutterId(chain, "item")).toBe("item");
+  });
+
+  test("a column child anchors to the column, and the column wins inside a quote", () => {
+    const plain = [
+      chainNode(KEYS.p, "cell", 0, KEYS.column),
+      chainNode(KEYS.column, "col", 0, KEYS.columnGroup),
+      chainNode(KEYS.columnGroup, "group", 0, null),
+    ];
+    expect(blockHandleGutterId(plain, "cell")).toBe("col");
+    const nested = [
+      chainNode(KEYS.p, "cell", 0, KEYS.column),
+      chainNode(KEYS.column, "col", 0, KEYS.columnGroup),
+      chainNode(KEYS.columnGroup, "group", 0, KEYS.blockquote),
+      chainNode(KEYS.blockquote, "quote", 0, null),
+    ];
+    expect(blockHandleGutterId(nested, "cell")).toBe("col");
   });
 });
 

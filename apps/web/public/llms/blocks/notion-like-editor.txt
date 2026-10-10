@@ -3326,9 +3326,21 @@ export function mediaStringAttr(element: TElement, key: string): string | undefi
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 ```tsx
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragCancelEvent,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { GripVertical, Plus } from "lucide-react";
+import { useEditorReadOnly } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
@@ -3337,7 +3349,12 @@ import { cn } from "@/lib/utils";
 import { useBlockHandle } from "../../hooks/use-block-handle";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
-import { BlockDropIndicator, useBlockDrag } from "./block-drag";
+import {
+  BlockDropIndicator,
+  DRAG_ACTIVATION_DISTANCE_PX,
+  useBlockDrag,
+  type BlockDragHandlers,
+} from "./block-drag";
 import { BlockMenu } from "./block-menu";
 
 const ADD_LABEL = "Click to add below";
@@ -3361,6 +3378,56 @@ function useClientPortal(): boolean {
 }
 
 export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
+  const client = useClientPortal();
+  // A read-only editor paints no handle, so it should not mount the drag layer
+  // (and its body portal) either.
+  const readOnly = useEditorReadOnly();
+  const apiRef = useRef<BlockDragHandlers | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE_PX },
+    }),
+  );
+  const onDragStart = useCallback((event: DragStartEvent) => {
+    apiRef.current?.onDragStart(event);
+  }, []);
+  const onDragMove = useCallback((event: DragMoveEvent) => {
+    apiRef.current?.onDragMove(event);
+  }, []);
+  const onDragEnd = useCallback((event: DragEndEvent) => {
+    apiRef.current?.onDragEnd(event);
+  }, []);
+  const onDragCancel = useCallback((event: DragCancelEvent) => {
+    void event;
+    apiRef.current?.onDragCancel();
+  }, []);
+
+  if (!client || readOnly) {
+    return null;
+  }
+
+  return createPortal(
+    <DndContext
+      sensors={sensors}
+      autoScroll
+      onDragStart={onDragStart}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onDragCancel={onDragCancel}
+    >
+      <BlockHandleContent onInsertedBelow={onInsertedBelow} apiRef={apiRef} />
+    </DndContext>,
+    document.body,
+  );
+}
+
+function BlockHandleContent({
+  onInsertedBelow,
+  apiRef,
+}: {
+  onInsertedBelow?: (blockId: string) => void;
+  apiRef: RefObject<BlockDragHandlers | null>;
+}) {
   const handle = useBlockHandle({ onInsertedBelow });
   const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
     handle;
@@ -3374,10 +3441,13 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
   const bindCloser = useCallback((close: () => void) => {
     closeMenu.current = close;
   }, []);
-  const drag = useBlockDrag(() => {
-    closeMenu.current();
+  const drag = useBlockDrag({
+    target: paint?.target ?? null,
+    closeMenu: () => closeMenu.current(),
+    clearPointer: handle.clearPointer,
+    rehover: handle.rehover,
+    apiRef,
   });
-  const client = useClientPortal();
 
   useLayoutEffect(() => {
     const row = rowRef.current;
@@ -3387,7 +3457,7 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
-  if (suppressed || !client) {
+  if (suppressed) {
     return null;
   }
 
@@ -3404,91 +3474,88 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
   const gutterWidth = paint ? Math.max(0, paint.blockLeft - (paint.left + paint.width)) : 0;
   const gutterTop = paint ? paint.blockTop - paint.top : 0;
   const gutterHeight = paint ? Math.max(paint.height, paint.blockBottom - paint.blockTop) : 0;
+  const visible = shown && !drag.dragging;
 
-  const handleNode =
-    paint && !drag.dragging ? (
-      <div
-        data-block-handle=""
-        data-block-handle-for={paint.target.id}
-        data-visible={shown ? "true" : "false"}
-        className={cn(
-          "fixed z-20 transition-opacity duration-150 ease-out motion-reduce:transition-none",
-          shown ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-          "[@media(hover:none)]:hidden",
-        )}
-        style={{ top: paint.top, left: paint.left }}
-        onFocus={onHandleFocus}
-        onBlur={(event) => {
-          onHandleBlur(event.relatedTarget);
-        }}
-      >
-        <div ref={rowRef} className="flex items-center gap-0.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={ADD_LABEL}
-                data-block-handle-add=""
-                onMouseDown={keepEditorSelection}
-                onPointerDown={keepEditorSelection}
-                onClick={addBelow}
-              >
-                <Plus aria-hidden="true" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                ref={gripRef}
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={BLOCK_MENU_GRIP_LABEL}
-                data-block-handle-grip=""
-                onMouseDown={(event) => {
-                  keepEditorSelection(event);
-                  event.stopPropagation();
-                }}
-                onPointerDown={(event) => {
-                  keepEditorSelection(event);
-                  event.stopPropagation();
-                  drag.onGripPointerDown(event, paint.target);
-                }}
-                onClick={() => {
-                  if (drag.consumeGripClick()) {
-                    return;
-                  }
-                  openMenu.current(paint.target);
-                }}
-              >
-                <GripVertical aria-hidden="true" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
-          </Tooltip>
-        </div>
-        <div
-          data-block-handle-gutter=""
-          aria-hidden="true"
-          className="absolute"
-          style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
-        />
-      </div>
-    ) : null;
-
-  // The preview frame uses a drop-shadow filter, which would trap a fixed
-  // overlay and clip it. The body portal keeps the gutter on the viewport.
-  return createPortal(
+  return (
     <>
-      {handleNode}
+      {paint ? (
+        <div
+          data-block-handle=""
+          data-block-handle-for={paint.target.id}
+          data-visible={visible ? "true" : "false"}
+          className={cn(
+            "fixed z-20 transition-opacity duration-150 ease-out motion-reduce:transition-none",
+            visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+            "[@media(hover:none)]:hidden",
+          )}
+          style={{ top: paint.top, left: paint.left }}
+          onFocus={onHandleFocus}
+          onBlur={(event) => {
+            onHandleBlur(event.relatedTarget);
+          }}
+        >
+          <div ref={rowRef} className="flex items-center gap-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={ADD_LABEL}
+                  data-block-handle-add=""
+                  onMouseDown={keepEditorSelection}
+                  onPointerDown={keepEditorSelection}
+                  onClick={addBelow}
+                >
+                  <Plus aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  ref={(node) => {
+                    gripRef.current = node;
+                    drag.setNodeRef(node);
+                  }}
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={BLOCK_MENU_GRIP_LABEL}
+                  data-block-handle-grip=""
+                  {...drag.attributes}
+                  {...drag.listeners}
+                  onMouseDown={keepEditorSelection}
+                  onClick={() => {
+                    if (drag.consumeClick()) {
+                      return;
+                    }
+                    if (paint) {
+                      openMenu.current(paint.target);
+                    }
+                  }}
+                >
+                  <GripVertical aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+            </Tooltip>
+          </div>
+          <div
+            data-block-handle-gutter=""
+            aria-hidden="true"
+            className="absolute"
+            style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
+          />
+        </div>
+      ) : null}
       {drag.indicator ? <BlockDropIndicator line={drag.indicator} /> : null}
+      {/* No drop animation: on release the preview disappears at once and the
+          block is simply at its new position (no fly-back to the old slot). */}
+      <DragOverlay dropAnimation={null}>{drag.overlay}</DragOverlay>
       {menu}
-    </>,
-    document.body,
+    </>
   );
 }
 ```
@@ -4097,39 +4164,72 @@ export function BlockMenu({
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
 ```tsx
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  useDraggable,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+  type DraggableAttributes,
+} from "@dnd-kit/core";
 import { ElementApi, type Descendant, type SlateEditor } from "platejs";
 import { useEditorRef } from "platejs/react";
 
 import { moveBlock, runEditorCommand } from "../../lib/commands/editor-commands";
 import {
-  blockDropDecision,
   captureEditorScroll,
-  dragPastThreshold,
   listItemUnit,
   resolveDropIndicator,
-  type DropBand,
   type DropIndicator,
+  type DropRect,
 } from "../../lib/features/editor-block-drop";
 import { setBlockDragArmed, type BlockHandleHit } from "../../lib/features/editor-block-handle";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
-const EDGE_PX = 48;
-const SCROLL_STEP_PX = 14;
+export const DRAG_ACTIVATION_DISTANCE_PX = 4;
+export const DRAG_HORIZONTAL_BAND_PX = 200;
+
+const HORIZONTAL_BAND_PX = DRAG_HORIZONTAL_BAND_PX;
+const VERTICAL_BAND_PX = 32;
 const SOURCE_DIM = "opacity-40";
+const PREVIEW_OPACITY = 0.8;
+const PREVIEW_MAX_VIEWPORT_RATIO = 0.6;
+// A drop's caret is re-placed once, after dnd kit removed its selection-change
+// listener (it clears any selection until ~50ms after the drag ends) and React
+// committed the moved nodes.
+const CARET_DELAY_MS = 80;
 
 type SavedSelection = SlateEditor["selection"];
 
 type DragSession = {
   path: number[];
   id: string;
-  x: number;
-  y: number;
+  startX: number;
+  startY: number;
   pointerX: number;
   pointerY: number;
-  dragging: boolean;
   selection: SavedSelection;
+};
+
+type DragListeners = ReturnType<typeof useDraggable>["listeners"];
+
+type DragBand = { left: number; right: number; top: number; bottom: number };
+
+type PreviewData = {
+  nodes: HTMLElement[];
+  width: number;
+  cap: number;
+  offsetX: number;
+  offsetY: number;
 };
 
 function cloneSelection(selection: SavedSelection): SavedSelection {
@@ -4259,6 +4359,76 @@ function restoreEditorScroll(snap: ReturnType<typeof captureEditorScroll>): void
   window.scrollTo(snap.windowX, snap.windowY);
 }
 
+function editorRoot(editor: SlateEditor): HTMLElement | null {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(first);
+  const editable = dom?.closest("[data-slate-editor]");
+  return editable instanceof HTMLElement ? editable : null;
+}
+
+// One cached box per rendered block. The slot comes from these boxes, so the
+// drag reads layout once and then only does arithmetic as the pointer moves.
+function buildDropRects(editor: SlateEditor): DropRect[] {
+  const editable = editorRoot(editor);
+  if (!editable) {
+    return [];
+  }
+  const rects: DropRect[] = [];
+  for (const node of editable.querySelectorAll("[data-block-id]")) {
+    if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = node.getAttribute("data-block-id");
+    if (id === null || id.length === 0) {
+      continue;
+    }
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const rect = node.getBoundingClientRect();
+    if (rect.height <= 0) {
+      continue;
+    }
+    rects.push({
+      path: [...entry[1]],
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+    });
+  }
+  return rects;
+}
+
+function buildBand(editor: SlateEditor, rects: readonly DropRect[]): DragBand | null {
+  const editable = editorRoot(editor);
+  if (!editable) {
+    return null;
+  }
+  const viewport = editable.closest("[data-block-viewport]");
+  const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  for (const rect of rects) {
+    left = Math.min(left, rect.left);
+    right = Math.max(right, rect.right);
+  }
+  if (!Number.isFinite(left)) {
+    left = frame.left;
+    right = frame.right;
+  }
+  return {
+    left: left - HORIZONTAL_BAND_PX,
+    right: right + HORIZONTAL_BAND_PX,
+    top: frame.top - VERTICAL_BAND_PX,
+    bottom: frame.bottom + VERTICAL_BAND_PX,
+  };
+}
+
 function escapeId(id: string): string {
   if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
     return CSS.escape(id);
@@ -4266,441 +4436,447 @@ function escapeId(id: string): string {
   return id.replace(/["\\]/g, "\\$&");
 }
 
-function editorViewport(editor: SlateEditor): HTMLElement | null {
-  const first = editor.children[0];
-  if (!first || !ElementApi.isElement(first)) {
-    return null;
+function sourceNodes(id: string): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  for (const node of document.querySelectorAll(`[data-block-id="${escapeId(id)}"]`)) {
+    if (node instanceof HTMLElement && !node.closest("[data-preview-path]")) {
+      found.push(node);
+    }
   }
-  const dom = editor.api.toDOMNode(first);
-  const viewport = dom?.closest("[data-block-viewport]");
-  return viewport instanceof HTMLElement ? viewport : null;
+  return found;
 }
 
-function listIndentInset(dom: HTMLElement): number {
-  for (const child of dom.children) {
-    if (!(child instanceof HTMLElement)) {
+// The preview is a copy of the already-rendered DOM, so it carries the real
+// typography and chrome (callout surface, table grid, code surface, list
+// markers, a toggle with its children) with no second render. Every hook the
+// editor queries on the document is stripped so the copy stays invisible to it.
+function sanitizeClone(source: HTMLElement): HTMLElement {
+  const clone = source.cloneNode(true) as HTMLElement;
+  for (const node of [clone, ...clone.querySelectorAll("*")]) {
+    if (!(node instanceof HTMLElement)) {
       continue;
     }
-    if (child.tagName !== "UL" && child.tagName !== "OL") {
-      continue;
+    // The source block is dimmed before the copy is taken; the copy must not
+    // carry that dim class or the overlay's own opacity multiplies it.
+    node.classList.remove(SOURCE_DIM);
+    node.removeAttribute("data-block-id");
+    node.removeAttribute("data-cell-selected");
+    node.removeAttribute("id");
+    node.removeAttribute("contenteditable");
+    node.removeAttribute("tabindex");
+    for (const name of node.getAttributeNames()) {
+      if (name.startsWith("data-slate")) {
+        node.removeAttribute(name);
+      }
     }
-    const padding = Number.parseFloat(getComputedStyle(child).paddingLeft);
-    return Number.isFinite(padding) ? padding : 0;
   }
-  return 0;
+  return clone;
 }
 
-function contentBox(dom: HTMLElement): {
-  top: number;
-  height: number;
-  left: number;
-  width: number;
-} {
-  const rect = dom.getBoundingClientRect();
-  const style = getComputedStyle(dom);
-  const padLeft = (Number.parseFloat(style.paddingLeft) || 0) + listIndentInset(dom);
-  const padRight = Number.parseFloat(style.paddingRight) || 0;
-  return {
-    top: rect.top,
-    height: rect.height,
-    left: rect.left + padLeft,
-    width: Math.max(0, rect.width - padLeft - padRight),
-  };
-}
-
-function bandFor(editor: SlateEditor, path: number[]): DropBand | null {
-  const entry = editor.api.node(path);
-  if (!entry || !ElementApi.isElement(entry[0])) {
-    return null;
-  }
-  const dom: unknown = editor.api.toDOMNode(entry[0]);
-  if (!(dom instanceof HTMLElement) || dom.closest("[data-preview-path]")) {
-    return null;
-  }
-  const rect = contentBox(dom);
-  return {
-    path: [...path],
-    top: rect.top,
-    height: rect.height,
-    left: rect.left,
-    width: rect.width,
-  };
-}
-
-function unitBox(editor: SlateEditor, from: number[]): { first: DropBand; last: DropBand } | null {
-  const parent = from.slice(0, -1);
-  const index = from[from.length - 1] ?? 0;
-  const decision = blockDropDecision(editor.children, from, parent, index);
-  const [start, end] = decision.unit;
-  if (end <= start) {
-    return null;
-  }
-  const first = bandFor(editor, [...parent, start]);
-  const last = bandFor(editor, [...parent, end - 1]);
-  if (!first || !last) {
-    return null;
-  }
-  return { first, last };
-}
-
-function bandsUnderPointer(editor: SlateEditor, x: number, y: number): DropBand[] {
-  if (typeof document.elementsFromPoint !== "function") {
-    return [];
-  }
-  const bands: DropBand[] = [];
-  const seen = new Set<string>();
-  for (const element of document.elementsFromPoint(x, y)) {
-    if (element.closest("[data-block-handle], [data-block-menu], [data-block-drop-indicator]")) {
-      continue;
-    }
-    const block = element.closest("[data-block-id]");
-    if (!(block instanceof HTMLElement) || block.closest("[data-preview-path]")) {
-      continue;
-    }
-    const id = block.getAttribute("data-block-id");
-    if (id === null || id.length === 0 || seen.has(id)) {
-      continue;
-    }
-    seen.add(id);
+function buildPreview(
+  editor: SlateEditor,
+  ids: readonly string[],
+  activeRect: { top: number; left: number } | null,
+): PreviewData | null {
+  const sources: HTMLElement[] = [];
+  for (const id of ids) {
     const entry = findBlockById(editor, id);
     if (!entry) {
       continue;
     }
-    const rect = contentBox(block);
-    bands.push({
-      path: [...entry[1]],
-      top: rect.top,
-      height: rect.height,
-      left: rect.left,
-      width: rect.width,
-    });
-  }
-  return bands;
-}
-
-function scrollAtEdge(viewport: HTMLElement | null, clientY: number): boolean {
-  let scrolled = false;
-  if (viewport) {
-    const rect = viewport.getBoundingClientRect();
-    if (clientY >= rect.top && clientY < rect.top + EDGE_PX) {
-      const next = Math.max(0, viewport.scrollTop - SCROLL_STEP_PX);
-      if (next !== viewport.scrollTop) {
-        viewport.scrollTop = next;
-        scrolled = true;
-      }
-    } else if (clientY <= rect.bottom && clientY > rect.bottom - EDGE_PX) {
-      const max = viewport.scrollHeight - viewport.clientHeight;
-      const next = Math.min(max, viewport.scrollTop + SCROLL_STEP_PX);
-      if (next !== viewport.scrollTop) {
-        viewport.scrollTop = next;
-        scrolled = true;
-      }
+    const dom: unknown = editor.api.toDOMNode(entry[0]);
+    if (dom instanceof HTMLElement) {
+      sources.push(dom);
     }
   }
-  if (clientY < EDGE_PX) {
-    const before = window.scrollY;
-    window.scrollBy(0, -SCROLL_STEP_PX);
-    scrolled = scrolled || window.scrollY !== before;
-  } else if (clientY > window.innerHeight - EDGE_PX) {
-    const before = window.scrollY;
-    window.scrollBy(0, SCROLL_STEP_PX);
-    scrolled = scrolled || window.scrollY !== before;
+  const first = sources[0];
+  if (!first) {
+    return null;
   }
-  return scrolled;
+  let width = 0;
+  for (const source of sources) {
+    width = Math.max(width, source.getBoundingClientRect().width);
+  }
+  const rect = first.getBoundingClientRect();
+  return {
+    nodes: sources.map((source) => sanitizeClone(source)),
+    width,
+    cap: Math.max(120, Math.round(window.innerHeight * PREVIEW_MAX_VIEWPORT_RATIO)),
+    offsetX: activeRect ? rect.left - activeRect.left : 0,
+    offsetY: activeRect ? rect.top - activeRect.top : 0,
+  };
 }
 
 export function BlockDropIndicator({ line }: { line: DropIndicator }) {
   return (
     <div
       data-block-drop-indicator=""
+      data-drop-target={line.to.join(".")}
+      data-drop-top={String(line.top)}
       aria-hidden="true"
-      className="bg-primary pointer-events-none fixed z-30 h-0.5 motion-reduce:transition-none"
-      style={{ top: line.top, left: line.left, width: line.width }}
+      className="bg-muted-foreground/60 pointer-events-none fixed top-0 left-0 z-30 h-0.5 transition-transform duration-150 ease-out motion-reduce:transition-none"
+      style={{ width: line.width, transform: `translate3d(${line.left}px, ${line.top}px, 0)` }}
     />
   );
 }
 
-type DragListeners = {
-  move: (event: PointerEvent) => void;
-  up: () => void;
-  cancel: () => void;
-  key: (event: KeyboardEvent) => void;
-  blur: () => void;
-  select: (event: Event) => void;
+function DragPreview({ preview }: { preview: PreviewData | null }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host || !preview) {
+      return;
+    }
+    host.replaceChildren(...preview.nodes);
+    return () => {
+      host.replaceChildren();
+    };
+  }, [preview]);
+  if (!preview) {
+    return null;
+  }
+  return (
+    <div
+      data-block-drag-overlay=""
+      ref={hostRef}
+      aria-hidden="true"
+      inert
+      contentEditable={false}
+      className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
+      style={{
+        width: preview.width,
+        maxHeight: preview.cap,
+        overflow: "hidden",
+        opacity: PREVIEW_OPACITY,
+        transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
+      }}
+    />
+  );
+}
+
+export type BlockDragHandlers = {
+  onDragStart: (event: DragStartEvent) => void;
+  onDragMove: (event: DragMoveEvent) => void;
+  onDragEnd: (event: DragEndEvent) => void;
+  onDragCancel: () => void;
 };
 
-export function useBlockDrag(closeMenu: () => void): {
+export type BlockDragApi = BlockDragHandlers & {
+  attributes: DraggableAttributes;
+  listeners: DragListeners;
+  setNodeRef: (node: HTMLElement | null) => void;
   indicator: DropIndicator | null;
   dragging: boolean;
-  onGripPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, target: BlockHandleHit) => void;
-  consumeGripClick: () => boolean;
-} {
+  overlay: ReactNode;
+  consumeClick: () => boolean;
+};
+
+type Options = {
+  target: BlockHandleHit | null;
+  closeMenu: () => void;
+  clearPointer: () => void;
+  rehover: (x?: number, y?: number) => void;
+  apiRef: RefObject<BlockDragHandlers | null>;
+};
+
+export function useBlockDrag({
+  target,
+  closeMenu,
+  clearPointer,
+  rehover,
+  apiRef,
+}: Options): BlockDragApi {
   const editor = useEditorRef();
-  const [indicator, setIndicator] = useState<DropIndicator | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const session = useRef<DragSession | null>(null);
-  const indicatorRef = useRef<DropIndicator | null>(null);
-  const suppressClick = useRef(false);
-  const swallowClick = useRef(false);
-  const closeRef = useRef(closeMenu);
-  const frame = useRef(0);
-  const dimmed = useRef<HTMLElement[]>([]);
-  const cursor = useRef("");
-  const userSelect = useRef("");
-  const listeners = useRef<DragListeners | null>(null);
   const editorRef = useRef(editor);
-  const stopRef = useRef<(restoreSelection: boolean) => void>(() => undefined);
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: "notion-block-grip",
+    disabled: target === null,
+    data: target ? { path: [...target.path], id: target.id } : undefined,
+  });
+
+  const [indicator, setIndicator] = useState<DropIndicator | null>(null);
+  const [overlay, setOverlay] = useState<ReactNode>(null);
+  const sessionRef = useRef<DragSession | null>(null);
+  const rectsRef = useRef<DropRect[]>([]);
+  const bandRef = useRef<DragBand | null>(null);
+  const indicatorRef = useRef<DropIndicator | null>(null);
+  const closeRef = useRef(closeMenu);
+  const clearPointerRef = useRef(clearPointer);
+  const rehoverRef = useRef(rehover);
+  const dimmedRef = useRef<HTMLElement[]>([]);
+  const cursorRef = useRef("");
+  const userSelectRef = useRef("");
+  const suppressClickRef = useRef(false);
+  const caretTimerRef = useRef(0);
 
   useEffect(() => {
     closeRef.current = closeMenu;
-    editorRef.current = editor;
-  }, [closeMenu, editor]);
+    clearPointerRef.current = clearPointer;
+    rehoverRef.current = rehover;
+  }, [closeMenu, clearPointer, rehover]);
 
-  useEffect(() => {
-    const onClick = (event: MouseEvent): void => {
-      if (!swallowClick.current) {
-        return;
-      }
-      swallowClick.current = false;
-      event.preventDefault();
-      event.stopPropagation();
-    };
-    window.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("click", onClick, true);
-      stopRef.current(false);
-    };
-  }, []);
-
-  function setLine(next: DropIndicator | null): void {
-    indicatorRef.current = next;
-    setIndicator(next);
-  }
-
-  function dimSource(id: string): void {
-    const nodes = document.querySelectorAll(`[data-block-id="${escapeId(id)}"]`);
-    for (const node of nodes) {
-      if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
-        continue;
-      }
-      node.classList.add(SOURCE_DIM);
-      dimmed.current.push(node);
-    }
-  }
-
-  function undim(): void {
-    for (const node of dimmed.current) {
+  const undim = useCallback(() => {
+    for (const node of dimmedRef.current) {
       node.classList.remove(SOURCE_DIM);
     }
-    dimmed.current = [];
-  }
+    dimmedRef.current = [];
+  }, []);
 
-  function unlisten(): void {
-    const current = listeners.current;
-    if (!current) {
-      return;
+  const clearCaretTimer = useCallback(() => {
+    if (caretTimerRef.current !== 0) {
+      window.clearTimeout(caretTimerRef.current);
+      caretTimerRef.current = 0;
     }
-    listeners.current = null;
-    window.removeEventListener("pointermove", current.move);
-    window.removeEventListener("pointerup", current.up);
-    window.removeEventListener("pointercancel", current.cancel);
-    window.removeEventListener("keydown", current.key);
-    window.removeEventListener("blur", current.blur);
-    document.removeEventListener("selectstart", current.select);
-  }
+  }, []);
 
-  function stop(restoreSelection: boolean): void {
-    const current = session.current;
-    session.current = null;
-    cancelAnimationFrame(frame.current);
-    unlisten();
-    undim();
-    document.documentElement.style.cursor = cursor.current;
-    document.body.style.userSelect = userSelect.current;
-    document.body.removeAttribute("data-block-dragging");
-    setBlockDragArmed(false);
-    setDragging(false);
-    setLine(null);
-    if (!restoreSelection || !current) {
-      return;
+  const setLine = useCallback((next: DropIndicator | null) => {
+    indicatorRef.current = next;
+    setIndicator((current) => (sameIndicator(current, next) ? current : next));
+  }, []);
+
+  const inBand = useCallback((x: number, y: number): boolean => {
+    const band = bandRef.current;
+    if (!band) {
+      return false;
     }
+    return x >= band.left && x <= band.right && y >= band.top && y <= band.bottom;
+  }, []);
+
+  const updateIndicator = useCallback(() => {
+    const session = sessionRef.current;
     const live = editorRef.current;
-    if (sameSelection(live.selection, current.selection)) {
+    if (!session) {
       return;
     }
-    const saved = current.selection;
-    live.tf.withoutSaving(() => {
-      if (saved) {
-        live.tf.select(saved);
-      } else {
-        live.tf.deselect();
-      }
-    });
-  }
-
-  useEffect(() => {
-    stopRef.current = stop;
-  });
-
-  function updateIndicator(): void {
-    const current = session.current;
-    const live = editorRef.current;
-    if (!current?.dragging) {
+    if (!inBand(session.pointerX, session.pointerY)) {
+      document.documentElement.style.cursor = "grabbing";
+      setLine(null);
       return;
     }
-    const bands = bandsUnderPointer(live, current.pointerX, current.pointerY);
     const line = resolveDropIndicator(
       live.children,
-      current.path,
-      bands,
-      current.pointerY,
-      unitBox(live, current.path),
+      session.path,
+      rectsRef.current,
+      session.pointerY,
     );
     document.documentElement.style.cursor = line ? "grabbing" : "not-allowed";
     setLine(line);
-  }
+  }, [inBand, setLine]);
 
-  function tick(): void {
-    const current = session.current;
-    if (!current?.dragging) {
-      return;
-    }
-    if (scrollAtEdge(editorViewport(editorRef.current), current.pointerY)) {
-      updateIndicator();
-    }
-    frame.current = requestAnimationFrame(tick);
-  }
-
-  function begin(current: DragSession): void {
-    current.dragging = true;
-    suppressClick.current = true;
-    swallowClick.current = true;
-    closeRef.current();
-    cursor.current = document.documentElement.style.cursor;
-    userSelect.current = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
-    document.body.setAttribute("data-block-dragging", "");
-    setDragging(true);
-    for (const id of movingBlockIds(editorRef.current, current.path)) {
-      dimSource(id);
-    }
-    const select = listeners.current?.select;
-    if (select) {
-      document.addEventListener("selectstart", select);
-    }
-    updateIndicator();
-    frame.current = requestAnimationFrame(tick);
-  }
-
-  function finish(drop: boolean): void {
-    const current = session.current;
-    const line = indicatorRef.current;
-    const dragging = current?.dragging === true;
-    stop(dragging && !drop);
-    if (!drop || !dragging || !current || !line || line.noop) {
-      return;
-    }
+  const refreshRects = useCallback(() => {
     const live = editorRef.current;
-    const movedId = current.id;
+    rectsRef.current = buildDropRects(live);
+    bandRef.current = buildBand(live, rectsRef.current);
+    updateIndicator();
+  }, [updateIndicator]);
+
+  const stop = useCallback(
+    (restoreSelection: boolean) => {
+      const session = sessionRef.current;
+      sessionRef.current = null;
+      undim();
+      document.documentElement.style.cursor = cursorRef.current;
+      document.body.style.userSelect = userSelectRef.current;
+      document.body.removeAttribute("data-block-dragging");
+      setBlockDragArmed(false);
+      setLine(null);
+      setOverlay(null);
+      window.removeEventListener("scroll", refreshRects, true);
+      window.removeEventListener("resize", refreshRects);
+      if (!restoreSelection || !session) {
+        return;
+      }
+      const live = editorRef.current;
+      if (sameSelection(live.selection, session.selection)) {
+        return;
+      }
+      const saved = session.selection;
+      live.tf.withoutSaving(() => {
+        if (saved) {
+          live.tf.select(saved);
+        } else {
+          live.tf.deselect();
+        }
+      });
+    },
+    [refreshRects, setLine, undim],
+  );
+
+  const finish = useCallback(() => {
+    const session = sessionRef.current;
+    const line = indicatorRef.current;
+    const dropping = line !== null && !line.noop;
+    stop(!dropping);
+    clearCaretTimer();
+    if (!dropping || !session || !line) {
+      return;
+    }
+    // Drop the handle's current target before the move so it is never painted
+    // at the slot the block came from; re-resolve under the pointer once the
+    // moved nodes have rendered.
+    clearPointerRef.current();
+    const live = editorRef.current;
+    const movedId = session.id;
     const snap = captureEditorScroll();
     retainScroll(() => {
-      runEditorCommand(live, moveBlock, { from: [...current.path], to: line.to });
+      runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
     });
-    // The grip blurs the editor, so Slate never copies the model caret into the
-    // DOM, and focusing the editor parks that caret at the top of the document.
-    // The moved nodes are clones, so the DOM range exists only after React commits.
-    const apply = (): void => {
-      placeMovedCaret(editorRef.current, movedId);
-      restoreEditorScroll(snap);
-    };
-    queueMicrotask(apply);
     requestAnimationFrame(() => {
-      apply();
-      requestAnimationFrame(() => {
-        apply();
-        setTimeout(apply, 0);
-      });
+      restoreEditorScroll(snap);
+      rehoverRef.current(session.pointerX, session.pointerY);
+      clearCaretTimer();
+      caretTimerRef.current = window.setTimeout(() => {
+        caretTimerRef.current = 0;
+        placeMovedCaret(editorRef.current, movedId);
+      }, CARET_DELAY_MS);
     });
-  }
+  }, [clearCaretTimer, stop]);
 
-  function onGripPointerDown(
-    event: ReactPointerEvent<HTMLButtonElement>,
-    target: BlockHandleHit,
-  ): void {
-    if (event.button !== 0 || event.pointerType === "touch" || editor.dom.readOnly === true) {
-      return;
-    }
-    stop(false);
-    setBlockDragArmed(true);
-    suppressClick.current = false;
-    session.current = {
-      path: [...target.path],
-      id: target.id,
-      x: event.clientX,
-      y: event.clientY,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      dragging: false,
-      selection: cloneSelection(editor.selection),
-    };
-    const move = (pointer: PointerEvent): void => {
-      const current = session.current;
-      if (!current || pointer.pointerType === "touch") {
+  const onDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const data = event.active.data.current as { path?: number[]; id?: string } | undefined;
+      if (!data?.path || typeof data.id !== "string") {
         return;
       }
-      current.pointerX = pointer.clientX;
-      current.pointerY = pointer.clientY;
-      if (!current.dragging) {
-        if (!dragPastThreshold(pointer.clientX - current.x, pointer.clientY - current.y)) {
-          return;
+      const activator = event.activatorEvent as PointerEvent | undefined;
+      const startX = activator?.clientX ?? 0;
+      const startY = activator?.clientY ?? 0;
+      closeRef.current();
+      clearCaretTimer();
+      suppressClickRef.current = true;
+      setBlockDragArmed(true);
+      const live = editorRef.current;
+      sessionRef.current = {
+        path: [...data.path],
+        id: data.id,
+        startX,
+        startY,
+        pointerX: startX,
+        pointerY: startY,
+        selection: cloneSelection(live.selection),
+      };
+      cursorRef.current = document.documentElement.style.cursor;
+      userSelectRef.current = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      document.body.setAttribute("data-block-dragging", "");
+      document.documentElement.style.cursor = "grabbing";
+      const ids = movingBlockIds(live, data.path);
+      for (const id of ids) {
+        for (const node of sourceNodes(id)) {
+          node.classList.add(SOURCE_DIM);
+          dimmedRef.current.push(node);
         }
-        begin(current);
-        return;
       }
-      pointer.preventDefault();
+      // dnd kit positions the DragOverlay at the draggable node's rect (the
+      // grip), which may not be measured yet at activation. Read the live grip
+      // rect instead so the copy is offset from the grip to the unit exactly.
+      const gripDom = document.querySelector("[data-block-handle-grip]");
+      const gripRect = gripDom instanceof HTMLElement ? gripDom.getBoundingClientRect() : null;
+      setOverlay(
+        <DragPreview
+          preview={buildPreview(
+            live,
+            ids,
+            gripRect ? { top: gripRect.top, left: gripRect.left } : null,
+          )}
+        />,
+      );
+      rectsRef.current = buildDropRects(live);
+      bandRef.current = buildBand(live, rectsRef.current);
+      window.addEventListener("scroll", refreshRects, true);
+      window.addEventListener("resize", refreshRects);
       updateIndicator();
-    };
-    const cancel = (): void => {
-      if (session.current?.dragging) {
-        suppressClick.current = true;
-      }
-      stop(true);
-    };
-    const attached: DragListeners = {
-      move,
-      up: () => {
-        finish(true);
-      },
-      cancel,
-      key: (keyEvent) => {
-        if (keyEvent.key !== "Escape") {
-          return;
-        }
-        keyEvent.preventDefault();
-        cancel();
-      },
-      blur: cancel,
-      select: (selectEvent) => {
-        selectEvent.preventDefault();
-      },
-    };
-    listeners.current = attached;
-    window.addEventListener("pointermove", attached.move);
-    window.addEventListener("pointerup", attached.up);
-    window.addEventListener("pointercancel", attached.cancel);
-    window.addEventListener("keydown", attached.key);
-    window.addEventListener("blur", attached.blur);
-  }
+    },
+    [clearCaretTimer, refreshRects, updateIndicator],
+  );
 
-  function consumeGripClick(): boolean {
-    if (!suppressClick.current) {
+  const onDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const session = sessionRef.current;
+      if (!session) {
+        return;
+      }
+      session.pointerX = session.startX + event.delta.x;
+      session.pointerY = session.startY + event.delta.y;
+      updateIndicator();
+    },
+    [updateIndicator],
+  );
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const session = sessionRef.current;
+      if (session) {
+        session.pointerX = session.startX + event.delta.x;
+        session.pointerY = session.startY + event.delta.y;
+        updateIndicator();
+      }
+      finish();
+    },
+    [finish, updateIndicator],
+  );
+
+  const onDragCancel = useCallback(() => {
+    suppressClickRef.current = true;
+    stop(true);
+  }, [stop]);
+
+  useEffect(() => {
+    apiRef.current = { onDragStart, onDragMove, onDragEnd, onDragCancel };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef, onDragStart, onDragMove, onDragEnd, onDragCancel]);
+
+  useEffect(() => {
+    return () => {
+      stop(false);
+      clearCaretTimer();
+    };
+  }, [stop, clearCaretTimer]);
+
+  const consumeClick = useCallback(() => {
+    if (!suppressClickRef.current) {
       return false;
     }
-    suppressClick.current = false;
+    suppressClickRef.current = false;
+    return true;
+  }, []);
+
+  return {
+    attributes,
+    listeners,
+    setNodeRef,
+    indicator,
+    dragging: isDragging,
+    overlay,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDragCancel,
+    consumeClick,
+  };
+}
+
+function sameIndicator(current: DropIndicator | null, next: DropIndicator | null): boolean {
+  if (current === next) {
     return true;
   }
-
-  return { indicator, dragging, onGripPointerDown, consumeGripClick };
+  if (!current || !next) {
+    return false;
+  }
+  return (
+    current.top === next.top &&
+    current.left === next.left &&
+    current.width === next.width &&
+    current.noop === next.noop &&
+    current.to.length === next.to.length &&
+    current.to.every((value, index) => value === next.to[index])
+  );
 }
 ```
 
@@ -18633,6 +18809,95 @@ const ELIGIBLE = new Set<string>([
   KEYS.columnGroup,
 ]);
 
+// Blocks whose first line of text lives inside a widget (KaTeX, table grid,
+// code editor, columns, a preview) or that paint no editable text at all.
+// Their handle anchors to the block's top edge instead of the block's middle,
+// so a tall equation never gets the handle at its center or bottom.
+export const HANDLE_TOP_ANCHOR_TYPES = new Set<string>([
+  KEYS.equation,
+  KEYS.hr,
+  BOOKMARK_KEY,
+  KEYS.table,
+  KEYS.codeBlock,
+  KEYS.toc,
+  KEYS.columnGroup,
+  SYNCED_REF_KEY,
+  KEYS.callout,
+  KEYS.toggle,
+]);
+
+// First-line height of body text. A widget-anchored block gets the handle's
+// center one body line below its top edge, matching a normal paragraph.
+export const BODY_LINE_HEIGHT_PX = 24;
+
+export type HandleTextBox = { top: number; height: number } | null;
+
+export type HandleAnchor = { lineTop: number; lineHeight: number };
+
+// The vertical anchor for the handle. A plain text block centers on its first
+// text line. A widget-anchored block (or one with no measured line) sits on its
+// top edge with the handle center on the first body line.
+export function handleAnchorLine(
+  type: string,
+  block: { top: number; bottom: number },
+  textLine: HandleTextBox,
+  bodyLineHeight = BODY_LINE_HEIGHT_PX,
+): HandleAnchor {
+  if (textLine && textLine.height > 0 && !HANDLE_TOP_ANCHOR_TYPES.has(type)) {
+    return { lineTop: textLine.top, lineHeight: textLine.height };
+  }
+  const height =
+    bodyLineHeight > 0 ? bodyLineHeight : Math.max(0, block.bottom - block.top) || bodyLineHeight;
+  return { lineTop: block.top, lineHeight: height };
+}
+
+// One vertical band per rendered target block. The bands are how the handle
+// keeps a target in the gaps between blocks, where no element is hit.
+export type HandleBand = {
+  id: string;
+  path: number[];
+  top: number;
+  bottom: number;
+};
+
+// The target block for a pointer Y inside the editor: the nearest band by
+// vertical distance, ties going to the block below. The current target is kept
+// within `hysteresisPx` of its band so crossing the boundary does not flicker.
+export function pickHandleBandAtY(
+  bands: readonly HandleBand[],
+  y: number,
+  currentId: string | null,
+  hysteresisPx = 6,
+): HandleBand | null {
+  if (bands.length === 0) {
+    return null;
+  }
+  if (currentId !== null) {
+    const held = bands.find((band) => band.id === currentId);
+    if (held && y >= held.top - hysteresisPx && y <= held.bottom + hysteresisPx) {
+      return held;
+    }
+  }
+  let best: HandleBand | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const band of bands) {
+    const distance = y < band.top ? band.top - y : y > band.bottom ? y - band.bottom : 0;
+    if (
+      distance < bestDistance ||
+      (distance === bestDistance && best !== null && band.top > best.top)
+    ) {
+      best = band;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+// Reorder the target list so the input order does not matter for the outcome.
+export function sortHandleBands(bands: readonly HandleBand[]): HandleBand[] {
+  return [...bands].sort((left, right) => left.top - right.top);
+}
+
 export type HandleChainNode = {
   type: string;
   id: string;
@@ -18704,15 +18969,30 @@ export function blockHandleTarget(chain: readonly HandleChainNode[]): BlockHandl
   return null;
 }
 
-// Horizontal anchor for the gutter. The handle controls `targetId`; when that
-// block sits inside a callout, the anchor is the callout so the buttons stay
-// outside its box.
+// Containers whose left border the handle must stay outside of. A block nested
+// in one of these anchors to the container's left edge, so the buttons never sit
+// on the container's border, background edge, icon, chevron or checkbox.
+const GUTTER_CONTAINERS = new Set<string>([KEYS.blockquote, KEYS.callout, KEYS.toggle]);
+
+// Horizontal anchor for the gutter. The handle controls `targetId`. A block
+// nested in a quote, callout or toggle anchors to the left edge of its
+// **outermost** such container, so a paragraph in a callout in a quote is also
+// outside the quote. A column is the exception: a block in a column anchors to
+// the column's left edge (the page gutter is not next to the right column), and
+// that wins even when the column itself sits inside a quote/callout/toggle.
+// The chain is innermost-first, so the last container seen is the outermost and
+// the first column seen is the innermost column the target sits in.
 export function blockHandleGutterId(chain: readonly HandleChainNode[], targetId: string): string {
-  const callout = chain.find((node) => node.type === KEYS.callout);
-  if (callout && callout.id !== targetId) {
-    return callout.id;
+  let anchorId = targetId;
+  for (const node of chain) {
+    if (node.type === KEYS.column) {
+      return node.id;
+    }
+    if (GUTTER_CONTAINERS.has(node.type)) {
+      anchorId = node.id;
+    }
   }
-  return targetId;
+  return anchorId;
 }
 
 export function chainAtPath(editor: SlateEditor, path: number[]): HandleChainNode[] {
@@ -18901,6 +19181,7 @@ export function handleCoversForeignBlock(
 export type HandleUiState = {
   typing: boolean;
   pointerId: string | null;
+  pointerOutside: boolean;
   caretId: string | null;
   engagedId: string | null;
   readOnly: boolean;
@@ -18908,7 +19189,7 @@ export type HandleUiState = {
 };
 
 export type HandleUiEvent =
-  | { type: "pointer-move"; id: string | null; engagedId: string | null }
+  | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }
   | { type: "engage"; id: string | null }
@@ -18919,6 +19200,7 @@ export function initialHandleUi(readOnly = false, hoverNone = false): HandleUiSt
   return {
     typing: false,
     pointerId: null,
+    pointerOutside: false,
     caretId: null,
     engagedId: null,
     readOnly,
@@ -18928,15 +19210,24 @@ export function initialHandleUi(readOnly = false, hoverNone = false): HandleUiSt
 
 export function reduceHandleUi(state: HandleUiState, event: HandleUiEvent): HandleUiState {
   switch (event.type) {
-    case "pointer-move":
+    case "pointer-move": {
+      const outside = event.outside ?? false;
       if (
         state.pointerId === event.id &&
         state.engagedId === event.engagedId &&
+        state.pointerOutside === outside &&
         state.typing === false
       ) {
         return state;
       }
-      return { ...state, typing: false, pointerId: event.id, engagedId: event.engagedId };
+      return {
+        ...state,
+        typing: false,
+        pointerId: event.id,
+        pointerOutside: outside,
+        engagedId: event.engagedId,
+      };
+    }
     case "caret":
       if (state.caretId === event.id) {
         return state;
@@ -18987,6 +19278,11 @@ export function visibleHandleId(state: HandleUiState): string | null {
     return state.engagedId;
   }
   if (state.typing) {
+    return null;
+  }
+  // The pointer owns the target for as long as it is over the editor. Leaving
+  // the editor hides the handle rather than falling back to the model caret.
+  if (state.pointerOutside) {
     return null;
   }
   return state.pointerId ?? state.caretId;
@@ -20096,13 +20392,20 @@ export type BlockDropDecision = {
 
 export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
 
-export type DropBand = {
+// A rendered block box, cached at drag start. Falling back to these means the
+// slot comes from the pointer's vertical position, not from a hit-test, so a
+// drag that stays in the gutter still resolves a target.
+export type DropRect = {
   path: number[];
   top: number;
-  height: number;
+  bottom: number;
   left: number;
-  width: number;
+  right: number;
 };
+
+// The normal vertical gap between blocks (Tailwind space-y-4). A line before the
+// first or after the last block sits half a gap outside.
+export const BLOCK_GAP_PX = 16;
 
 export type DropIndicator = {
   top: number;
@@ -20445,42 +20748,102 @@ export function siblingMove(
   return { ok: true, to: [...parent, toIndex] };
 }
 
-function indicatorFor(band: DropBand, above: boolean, to: number[], noop: boolean): DropIndicator {
-  return {
-    top: above ? band.top - 1 : band.top + band.height - 1,
-    left: band.left,
-    width: band.width,
-    to,
-    noop,
-  };
+function findByPath(rects: readonly DropRect[], path: readonly number[]): DropRect | null {
+  for (const rect of rects) {
+    if (samePath(rect.path, path)) {
+      return rect;
+    }
+  }
+  return null;
+}
+
+function rectDistance(rect: DropRect, y: number): number {
+  if (y < rect.top) {
+    return rect.top - y;
+  }
+  if (y > rect.bottom) {
+    return y - rect.bottom;
+  }
+  return 0;
+}
+
+// Candidate blocks nearest the pointer first, innermost on a tie. This mirrors
+// the old topmost-element order while reading only cached numbers.
+function orderCandidates(rects: readonly DropRect[], y: number): DropRect[] {
+  return [...rects].sort((left, right) => {
+    const byDistance = rectDistance(left, y) - rectDistance(right, y);
+    if (byDistance !== 0) {
+      return byDistance;
+    }
+    return right.path.length - left.path.length;
+  });
+}
+
+// "Below A" and "above B" are the same slot, so the line is the midpoint
+// between A's bottom and B's top. Before the first and after the last block the
+// line sits half a normal gap outside.
+function indicatorSlot(
+  rects: readonly DropRect[],
+  to: number[],
+  noop: boolean,
+): DropIndicator | null {
+  const toIndex = to[to.length - 1];
+  if (toIndex === undefined) {
+    return null;
+  }
+  const parent = to.slice(0, -1);
+  const previous = findByPath(rects, [...parent, toIndex - 1]);
+  const next = findByPath(rects, [...parent, toIndex]);
+  if (!previous && !next) {
+    return null;
+  }
+  if (previous && next) {
+    const top = (previous.bottom + next.top) / 2;
+    const left = Math.min(previous.left, next.left);
+    const width = Math.max(previous.right, next.right) - left;
+    return { top, left, width, to, noop };
+  }
+  const anchor = previous ?? next;
+  if (!anchor) {
+    return null;
+  }
+  const top = previous ? previous.bottom + BLOCK_GAP_PX / 2 : (next?.top ?? 0) - BLOCK_GAP_PX / 2;
+  return { top, left: anchor.left, width: anchor.right - anchor.left, to, noop };
 }
 
 export function resolveDropIndicator(
   roots: readonly Descendant[],
   from: readonly number[],
-  bands: readonly DropBand[],
+  rects: readonly DropRect[],
   pointerY: number,
-  unitBox: { first: DropBand; last: DropBand } | null,
 ): DropIndicator | null {
-  for (const band of bands) {
-    const index = band.path[band.path.length - 1] ?? 0;
-    const parent = band.path.slice(0, -1);
-    const above = pointerY < band.top + band.height / 2;
+  for (const rect of orderCandidates(rects, pointerY)) {
+    const index = rect.path[rect.path.length - 1] ?? 0;
+    const parent = rect.path.slice(0, -1);
+    const above = pointerY < rect.top + (rect.bottom - rect.top) / 2;
     const toIndex = above ? index : index + 1;
     const decision = blockDropDecision(roots, from, parent, toIndex);
     if (decision.allowed) {
-      return indicatorFor(band, above, [...parent, toIndex], decision.noop);
+      const slot = indicatorSlot(rects, [...parent, toIndex], decision.noop);
+      if (slot) {
+        return slot;
+      }
     }
-    if (decision.reason === INTO_SELF && unitBox) {
-      const unionTop = unitBox.first.top;
-      const unionBottom = unitBox.last.top + unitBox.last.height;
-      const boundaryAbove = pointerY < (unionTop + unionBottom) / 2;
+    if (decision.reason === INTO_SELF) {
       const fromParent = from.slice(0, -1);
-      const boundaryIndex = boundaryAbove ? decision.unit[0] : decision.unit[1];
-      const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
-      if (boundary.allowed) {
-        const box = boundaryAbove ? unitBox.first : unitBox.last;
-        return indicatorFor(box, boundaryAbove, [...fromParent, boundaryIndex], boundary.noop);
+      const [start, end] = decision.unit;
+      const first = findByPath(rects, [...fromParent, start]);
+      const last = findByPath(rects, [...fromParent, end - 1]);
+      if (first && last) {
+        const boundaryAbove = pointerY < (first.top + last.bottom) / 2;
+        const boundaryIndex = boundaryAbove ? start : end;
+        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
+        if (boundary.allowed) {
+          const slot = indicatorSlot(rects, [...fromParent, boundaryIndex], boundary.noop);
+          if (slot) {
+            return slot;
+          }
+        }
       }
     }
   }
@@ -22205,20 +22568,26 @@ import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-c
 import {
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
   chainFromDom,
+  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isBlockDragArmed,
   isTypingKey,
+  pickHandleBandAtY,
   placeBlockHandle,
   reduceHandleUi,
+  sortHandleBands,
   targetBlockAtPath,
   visibleHandleId,
   type BlockHandlePaint,
+  type HandleBand,
   type HandleFrame,
+  type HandleTextBox,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
@@ -22227,14 +22596,6 @@ export type { BlockHandlePaint };
 
 type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
-};
-
-type LineMeasure = {
-  lineTop: number;
-  lineHeight: number;
-  blockLeft: number;
-  blockTop: number;
-  blockBottom: number;
 };
 
 export type BlockHandleController = {
@@ -22246,6 +22607,8 @@ export type BlockHandleController = {
   onHandleBlur: (related?: EventTarget | null) => void;
   suppressed: boolean;
   holdMenu: (id: string | null) => void;
+  clearPointer: () => void;
+  rehover: (x?: number, y?: number) => void;
 };
 
 const HANDLE_FADE_MS = 150;
@@ -22316,41 +22679,109 @@ function firstLineText(element: HTMLElement): Node | null {
   return null;
 }
 
-function firstLineBox(element: HTMLElement): LineMeasure | null {
-  const block = element.getBoundingClientRect();
+// The measured first text line of a block, or null when the block paints no
+// editable text (equation, divider, bookmark, table chrome, ...).
+function measuredTextLine(element: HTMLElement): HandleTextBox {
   const text = firstLineText(element);
-  const value = text ? textValue(text) : "";
-  if (text && value.length > 0) {
-    try {
-      const range = document.createRange();
-      range.setStart(text, 0);
-      range.setEnd(text, 1);
-      const rect = range.getClientRects()[0];
-      if (rect && rect.height > 0) {
-        return {
-          lineTop: rect.top,
-          lineHeight: rect.height,
-          blockLeft: block.left,
-          blockTop: block.top,
-          blockBottom: block.bottom,
-        };
-      }
-    } catch {
-      // An unmeasured range falls through to the element box.
-    }
-  }
-
-  if (block.height <= 0 || block.width <= 0) {
+  if (!text) {
     return null;
   }
+  try {
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, Math.min(1, textValue(text).length || 1));
+    const rect = range.getClientRects()[0];
+    if (rect && rect.height > 0) {
+      return { top: rect.top, height: rect.height };
+    }
+  } catch {
+    // An unmeasured range means there is no usable text line.
+  }
+  return null;
+}
 
-  return {
-    lineTop: block.top,
-    lineHeight: block.height,
-    blockLeft: block.left,
-    blockTop: block.top,
-    blockBottom: block.bottom,
-  };
+function bodyLineHeightFor(editor: SlateEditor): number {
+  const editable = editableOf(editor);
+  if (editable) {
+    const value = Number.parseFloat(getComputedStyle(editable).lineHeight);
+    if (Number.isFinite(value) && value >= 8 && value <= 80) {
+      return value;
+    }
+  }
+  return BODY_LINE_HEIGHT_PX;
+}
+
+// One band per rendered target, in document order. Gaps between blocks have no
+// hit element, so the handle resolves a target from these bands instead.
+function handleBands(editor: SlateEditor): HandleBand[] {
+  const editable = editableOf(editor);
+  if (!editable) {
+    return [];
+  }
+  const byId = new Map<string, HandleBand>();
+  for (const node of editable.querySelectorAll("[data-block-id]")) {
+    if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = node.getAttribute("data-block-id");
+    if (id === null || id.length === 0) {
+      continue;
+    }
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const target = blockHandleTarget(chainAtPath(editor, entry[1]));
+    if (!target || byId.has(target.id)) {
+      continue;
+    }
+    const rect = node.getBoundingClientRect();
+    if (rect.height <= 0) {
+      continue;
+    }
+    byId.set(target.id, { id: target.id, path: entry[1], top: rect.top, bottom: rect.bottom });
+  }
+  return sortHandleBands([...byId.values()]);
+}
+
+// The editor's vertical extent: the scroll viewport when there is one, else the
+// editable itself. The gutter and the gaps between blocks both sit inside it.
+function insideEditorArea(editor: SlateEditor, _x: number, y: number): boolean {
+  const editable = editableOf(editor);
+  if (!editable) {
+    return false;
+  }
+  const viewport = editable.closest("[data-block-viewport]");
+  const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
+  return y >= frame.top && y <= frame.bottom;
+}
+
+function pointerBlockId(
+  editor: SlateEditor,
+  target: EventTarget | null,
+  x: number,
+  y: number,
+  currentId: string | null,
+): string | null {
+  const element =
+    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  if (element) {
+    const picked = blockHandleTarget(chainFromDom(editor, element));
+    if (picked && findBlockById(editor, picked.id)) {
+      return picked.id;
+    }
+  }
+  if (typeof document.elementFromPoint === "function") {
+    const hit = document.elementFromPoint(x, y);
+    if (hit instanceof Element) {
+      const picked = blockHandleTarget(chainFromDom(editor, hit));
+      if (picked && findBlockById(editor, picked.id)) {
+        return picked.id;
+      }
+    }
+  }
+  const band = pickHandleBandAtY(handleBands(editor), y, currentId);
+  return band?.id ?? null;
 }
 
 function frameOf(element: HTMLElement): HandleFrame | null {
@@ -22400,10 +22831,23 @@ function measurePaint(
   if (!(dom instanceof HTMLElement)) {
     return null;
   }
-  const line = firstLineBox(dom);
-  if (!line) {
+  const box = dom.getBoundingClientRect();
+  if (box.height <= 0 || box.width <= 0) {
     return null;
   }
+  const anchor = handleAnchorLine(
+    entry[0].type,
+    { top: box.top, bottom: box.bottom },
+    measuredTextLine(dom),
+    bodyLineHeightFor(editor),
+  );
+  const line = {
+    lineTop: anchor.lineTop,
+    lineHeight: anchor.lineHeight,
+    blockLeft: box.left,
+    blockTop: box.top,
+    blockBottom: box.bottom,
+  };
   const chain = chainAtPath(editor, entry[1]);
   const gutterId = blockHandleGutterId(chain, id);
   let gutterLeft = line.blockLeft;
@@ -22484,7 +22928,13 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const shownRef = useRef(false);
   const hideTimer = useRef(0);
   const menuLockRef = useRef<string | null>(null);
+  const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
+  const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
+  const visibleIdRef = useRef<string | null>(null);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  useEffect(() => {
+    visibleIdRef.current = visibleId;
+  }, [visibleId]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
@@ -22519,19 +22969,24 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
             type: "pointer-move",
             id: state.pointerId ?? held,
             engagedId: held,
+            outside: false,
           });
         });
         return;
       }
-      const element =
-        event.target instanceof Element
-          ? event.target
-          : event.target instanceof Node
-            ? event.target.parentElement
-            : null;
-      const picked = element ? blockHandleTarget(chainFromDom(editor, element)) : null;
-      const known = picked && findBlockById(editor, picked.id) ? picked.id : null;
-      setUi((state) => reduceHandleUi(state, { type: "pointer-move", id: known, engagedId: null }));
+      const inside = insideEditorArea(editor, event.clientX, event.clientY);
+      pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
+      const known = inside
+        ? pointerBlockId(editor, event.target, event.clientX, event.clientY, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: null,
+          outside: !inside,
+        }),
+      );
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -22590,12 +23045,39 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
       publish(next);
     };
+    // On scroll the last pointer position can now sit over a different block.
+    // Re-resolve from that position instead of trusting a stale id.
+    const refreshPointerTarget = (x?: number, y?: number): void => {
+      if (x !== undefined && y !== undefined) {
+        pointerRef.current = { x, y, present: true };
+      }
+      const pointer = pointerRef.current;
+      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
+        return;
+      }
+      const inside = insideEditorArea(editor, pointer.x, pointer.y);
+      const known = inside
+        ? pointerBlockId(editor, null, pointer.x, pointer.y, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: state.engagedId,
+          outside: !inside,
+        }),
+      );
+    };
+    rehoverRef.current = refreshPointerTarget;
     measure();
     const editable = editableOf(editor);
     const viewport = editable?.closest("[data-block-viewport]");
     const onScroll = (): void => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
+      frame = requestAnimationFrame(() => {
+        refreshPointerTarget();
+        measure();
+      });
     };
     viewport?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, true);
@@ -22672,6 +23154,18 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     setUi((state) => reduceHandleUi(state, { type: "engage", id }));
   }, []);
 
+  // Hide the handle's current target at once. A drop uses this so the handle is
+  // never painted at the slot the block came from.
+  const clearPointer = useCallback(() => {
+    setUi((state) =>
+      reduceHandleUi(state, { type: "pointer-move", id: null, engagedId: null, outside: true }),
+    );
+  }, []);
+
+  const rehover = useCallback((x?: number, y?: number) => {
+    rehoverRef.current(x, y);
+  }, []);
+
   return {
     paint,
     shown,
@@ -22680,6 +23174,8 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     onHandleFocus,
     onHandleBlur,
     holdMenu,
+    clearPointer,
+    rehover,
     suppressed: readOnly || hoverNone,
   };
 }
