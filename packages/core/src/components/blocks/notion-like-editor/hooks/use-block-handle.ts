@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ElementApi, PathApi, type SlateEditor } from "platejs";
-import { useEditorRef, useEditorSelector, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 import { focusEditorWithoutScroll, retainScroll } from "../components/ui/block-toolbar";
 import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-commands";
@@ -46,6 +46,7 @@ export type BlockHandleController = {
   onHandleFocus: () => void;
   onHandleBlur: (related?: EventTarget | null) => void;
   suppressed: boolean;
+  holdMenu: (id: string | null) => void;
 };
 
 const HANDLE_FADE_MS = 150;
@@ -170,7 +171,7 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
   if (!(hit instanceof Element)) {
     return false;
   }
-  if (hit.closest("[data-block-handle], [data-block-handle-tooltip]")) {
+  if (hit.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]")) {
     return false;
   }
   const block = hit.closest("[data-block-id]");
@@ -183,7 +184,7 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
 function isHandleLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("[data-block-handle], [data-block-handle-tooltip]") !== null
+    target.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]") !== null
   );
 }
 
@@ -264,7 +265,9 @@ function samePaint(current: BlockHandlePaint | null, next: BlockHandlePaint | nu
 
 export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHandleController {
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  // BlockHandle sits beside PlateContent, outside Slate's Editable, so the
+  // slate-react read-only context is always false here. The plate store is the one Plate sets.
+  const readOnly = useEditorReadOnly();
   const opCount = useEditorSelector((instance) => instance.operations.length, []);
   const caretId = useEditorSelector((instance) => {
     const selection = instance.selection;
@@ -281,6 +284,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const pathRef = useRef<number[] | null>(null);
   const shownRef = useRef(false);
   const hideTimer = useRef(0);
+  const menuLockRef = useRef<string | null>(null);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
 
   useEffect(() => {
@@ -303,6 +307,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   useEffect(() => {
     const onPointerMove = (event: PointerEvent): void => {
       if (event.pointerType === "touch") {
+        return;
+      }
+      // The open menu keeps its target. A pointer move must not retarget or dismiss it.
+      if (menuLockRef.current) {
         return;
       }
       if (isHandleLayer(event.target)) {
@@ -328,7 +336,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (isHandleLayer(event.target)) {
+      if (menuLockRef.current || isHandleLayer(event.target)) {
         return;
       }
       setUi((state) =>
@@ -454,10 +462,15 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   }, [caretId]);
 
   const onHandleBlur = useCallback((related?: EventTarget | null) => {
-    if (isHandleLayer(related ?? null)) {
+    if (menuLockRef.current || isHandleLayer(related ?? null)) {
       return;
     }
     setUi((state) => reduceHandleUi(state, { type: "engage", id: null }));
+  }, []);
+
+  const holdMenu = useCallback((id: string | null) => {
+    menuLockRef.current = id;
+    setUi((state) => reduceHandleUi(state, { type: "engage", id }));
   }, []);
 
   return {
@@ -467,6 +480,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     addBelow,
     onHandleFocus,
     onHandleBlur,
+    holdMenu,
     suppressed: readOnly || hoverNone,
   };
 }

@@ -15,6 +15,12 @@ import {
   type TText,
 } from "platejs";
 
+import {
+  applyBlockTurn,
+  deleteBlockAt,
+  duplicateBlockAt,
+  type BlockMenuKind,
+} from "../features/editor-block-menu";
 import { openAncestorToggle } from "../plugins/editor-toggle";
 import {
   CALLOUT_ICONS,
@@ -1277,6 +1283,54 @@ export const insertParagraphBelow: EditorCommand<{ path: number[] }> = {
     if (start) {
       editor.tf.select(start);
     }
+  },
+};
+
+export type BlockMenuTurnPayload = {
+  path: number[];
+  kind: BlockMenuKind;
+};
+
+// Selection-scoped, same registry shape as the heading commands. The block menu
+// uses turnBlockInto so the handle target changes and the caret does not.
+export const turnIntoParagraph: EditorCommand = {
+  id: "block.turn-into.paragraph",
+  label: "Text",
+  group: "turn-into",
+  run: (editor) => {
+    const entry = editor.api.block();
+    if (!entry) {
+      return;
+    }
+
+    applyBlockTurn(editor, entry[1], "paragraph");
+  },
+};
+
+export const turnBlockInto: EditorCommand<BlockMenuTurnPayload> = {
+  id: "block.menu.turn-into",
+  label: "Turn into",
+  group: "turn-into",
+  run: (editor, payload) => {
+    applyBlockTurn(editor, payload.path, payload.kind);
+  },
+};
+
+export const duplicateBlock: EditorCommand<{ path: number[] }> = {
+  id: "block.menu.duplicate",
+  label: "Duplicate",
+  group: "action",
+  run: (editor, payload) => {
+    duplicateBlockAt(editor, payload.path);
+  },
+};
+
+export const deleteBlock: EditorCommand<{ path: number[] }> = {
+  id: "block.menu.delete",
+  label: "Delete",
+  group: "action",
+  run: (editor, payload) => {
+    deleteBlockAt(editor, payload.path);
   },
 };
 

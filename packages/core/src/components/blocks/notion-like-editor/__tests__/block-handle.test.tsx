@@ -502,7 +502,7 @@ describe("block handle overlay", () => {
         "Click to add below",
       );
       expect(document.querySelector("[data-block-handle-grip]")?.getAttribute("aria-label")).toBe(
-        "Drag to move",
+        "Drag to move · Click to open menu",
       );
 
       const editable = mounted.host.querySelector("[data-slate-editor]");

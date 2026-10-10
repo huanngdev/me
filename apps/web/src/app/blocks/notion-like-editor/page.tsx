@@ -64,6 +64,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-handle.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/block-menu.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-menu.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
     code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
@@ -214,6 +218,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/lib/features/editor-block-handle.ts",
     code: readSource(`${BLOCK_DIR}/lib/features/editor-block-handle.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/features/editor-block-menu.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-block-menu.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",

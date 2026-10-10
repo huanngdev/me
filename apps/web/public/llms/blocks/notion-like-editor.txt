@@ -19,64 +19,66 @@
 9. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
 10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
 11. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
-12. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
-13. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-14. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-15. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-16. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-17. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-18. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-19. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-20. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-22. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-23. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-24. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-25. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-26. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-27. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-28. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-29. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-30. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-31. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-33. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-35. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-37. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-39. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-41. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-42. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-43. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-44. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-45. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-46. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-47. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-51. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-52. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-53. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-55. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-56. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-57. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-58. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-59. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-60. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-61. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-62. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-63. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-64. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-65. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-66. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-67. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-69. apps/web/src/app/blocks/notion-like-editor/page.tsx
+12. packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
+13. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+14. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+15. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+16. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+17. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+18. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+19. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+21. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+22. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+24. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+25. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+26. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+27. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+28. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+29. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+30. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+31. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+32. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+33. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+34. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+35. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+36. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+37. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+38. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+39. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+40. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+41. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+42. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+43. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+44. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+45. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+47. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+48. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+52. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+53. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+54. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+56. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+58. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+59. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+60. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+61. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+62. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+63. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+64. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+65. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+66. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+67. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+68. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+69. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+71. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -3322,7 +3324,7 @@ export function mediaStringAttr(element: TElement, key: string): string | undefi
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 ```tsx
-import { useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { GripVertical, Plus } from "lucide-react";
 
@@ -3331,9 +3333,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
+import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
+import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { BlockMenu } from "./block-menu";
 
 const ADD_LABEL = "Click to add below";
-const GRIP_LABEL = "Drag to move";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -3343,12 +3347,27 @@ function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
 
+// renderToString throws on a portal. The menu stays mounted on the client even
+// when the grip is not painted, so a shortcut can open it.
+function useClientPortal(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}
+
 export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
   const handle = useBlockHandle({ onInsertedBelow });
   const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
     handle;
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
+  const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
+  const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
+    openMenu.current = open;
+  }, []);
+  const client = useClientPortal();
 
   useLayoutEffect(() => {
     const row = rowRef.current;
@@ -3358,16 +3377,18 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
-  if (suppressed || !paint) {
+  if (suppressed || !client) {
     return null;
   }
+
+  const menu = <BlockMenu gripRef={gripRef} holdMenu={handle.holdMenu} bindOpener={bindOpener} />;
   // Stop at the block edge. A pixel inside the box covers a control that sits
   // on that edge, such as the toggle chevron.
-  const gutterWidth = Math.max(0, paint.blockLeft - (paint.left + paint.width));
-  const gutterTop = paint.blockTop - paint.top;
-  const gutterHeight = Math.max(paint.height, paint.blockBottom - paint.blockTop);
+  const gutterWidth = paint ? Math.max(0, paint.blockLeft - (paint.left + paint.width)) : 0;
+  const gutterTop = paint ? paint.blockTop - paint.top : 0;
+  const gutterHeight = paint ? Math.max(paint.height, paint.blockBottom - paint.blockTop) : 0;
 
-  const handleNode = (
+  const handleNode = paint ? (
     <div
       data-block-handle=""
       data-block-handle-for={paint.target.id}
@@ -3408,15 +3429,24 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
               type="button"
               size="icon"
               variant="ghost"
-              aria-label={GRIP_LABEL}
+              aria-label={BLOCK_MENU_GRIP_LABEL}
               data-block-handle-grip=""
-              onMouseDown={keepEditorSelection}
-              onPointerDown={keepEditorSelection}
+              onMouseDown={(event) => {
+                keepEditorSelection(event);
+                event.stopPropagation();
+              }}
+              onPointerDown={(event) => {
+                keepEditorSelection(event);
+                event.stopPropagation();
+              }}
+              onClick={() => {
+                openMenu.current(paint.target);
+              }}
             >
               <GripVertical aria-hidden="true" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent data-block-handle-tooltip="">{GRIP_LABEL}</TooltipContent>
+          <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
         </Tooltip>
       </div>
       <div
@@ -3426,11 +3456,559 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
         style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
       />
     </div>
-  );
+  ) : null;
 
   // The preview frame uses a drop-shadow filter, which would trap a fixed
   // overlay and clip it. The body portal keeps the gutter on the viewport.
-  return createPortal(handleNode, document.body);
+  return createPortal(
+    <>
+      {handleNode}
+      {menu}
+    </>,
+    document.body,
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
+```tsx
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import {
+  ArrowRightLeft,
+  ChevronRight,
+  Code,
+  Copy,
+  Heading1,
+  Heading2,
+  Heading3,
+  Lightbulb,
+  List,
+  ListOrdered,
+  ListTodo,
+  TextQuote,
+  Trash2,
+  Type,
+} from "lucide-react";
+import { ElementApi, KEYS, RangeApi, type SlateEditor } from "platejs";
+import { useEditorRef } from "platejs/react";
+
+import { Button } from "@/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+
+import {
+  deleteBlock,
+  duplicateBlock,
+  runEditorCommand,
+  turnBlockInto,
+} from "../../lib/commands/editor-commands";
+import {
+  blockHandleTarget,
+  chainFromDom,
+  targetBlockAtPath,
+  type BlockHandleHit,
+} from "../../lib/features/editor-block-handle";
+import {
+  BLOCK_MENU_KINDS,
+  blockMenuDecisions,
+  currentBlockMenuKind,
+  isBlockMenuShortcut,
+  keepNativeContextMenu,
+  menuBlockView,
+  type BlockMenuKind,
+  type NativeMenuProbe,
+} from "../../lib/features/editor-block-menu";
+import { findBlockById } from "../../lib/features/editor-synced-block";
+import { retainScroll } from "./block-toolbar";
+
+type AnchorBox = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+type MenuSession = {
+  target: BlockHandleHit;
+  anchor: AnchorBox;
+};
+
+const TURN_ICONS = {
+  paragraph: Type,
+  h1: Heading1,
+  h2: Heading2,
+  h3: Heading3,
+  bulleted: List,
+  numbered: ListOrdered,
+  todo: ListTodo,
+  toggle: ChevronRight,
+  "toggle-h1": Heading1,
+  "toggle-h2": Heading2,
+  "toggle-h3": Heading3,
+  quote: TextQuote,
+  callout: Lightbulb,
+  code: Code,
+} as const satisfies Record<BlockMenuKind, typeof Type>;
+
+const CONTROL_SELECTOR =
+  "button, input, textarea, select, [role='menu'], [role='menuitem'], [data-block-handle], [data-block-menu]";
+
+const PAGE_CONTROL_SELECTOR =
+  "a, button, input, textarea, select, summary, [role='tab'], [role='button']";
+
+function cloneRange(selection: SlateEditor["selection"]) {
+  if (!selection) {
+    return null;
+  }
+  return {
+    anchor: { path: [...selection.anchor.path], offset: selection.anchor.offset },
+    focus: { path: [...selection.focus.path], offset: selection.focus.offset },
+  };
+}
+
+function editableOf(editor: SlateEditor): HTMLElement | null {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(first);
+  const editable = dom?.closest("[data-slate-editor]");
+  return editable instanceof HTMLElement ? editable : null;
+}
+
+function boxOf(rect: DOMRect): AnchorBox {
+  return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+}
+
+function blockBox(editor: SlateEditor, id: string): AnchorBox | null {
+  const entry = findBlockById(editor, id);
+  if (!entry) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(entry[0]);
+  if (!(dom instanceof HTMLElement)) {
+    return null;
+  }
+  const rect = dom.getBoundingClientRect();
+  if (rect.width <= 0 && rect.height <= 0) {
+    return null;
+  }
+  return { top: rect.top, left: rect.left, width: 0, height: 0 };
+}
+
+function slateLink(editor: SlateEditor, target: Element): boolean {
+  let current: Element | null = target;
+  while (current) {
+    if (current.tagName === "A" || current.hasAttribute("data-link-url")) {
+      return true;
+    }
+    if (current.hasAttribute("data-slate-node")) {
+      const slate = editor.api.toSlateNode(current);
+      if (ElementApi.isElement(slate) && slate.type === KEYS.link) {
+        return true;
+      }
+    }
+    current = current.parentElement;
+  }
+  return false;
+}
+
+function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
+  const target = event.target instanceof Element ? event.target : null;
+  const slateSelection = editor.selection;
+  const selectionCollapsed = slateSelection === null || RangeApi.isCollapsed(slateSelection);
+  let pointInsideSelection = false;
+  const domSelection = window.getSelection();
+  if (
+    !selectionCollapsed &&
+    domSelection !== null &&
+    !domSelection.isCollapsed &&
+    domSelection.rangeCount > 0 &&
+    event.target instanceof Node
+  ) {
+    pointInsideSelection = domSelection.getRangeAt(0).intersectsNode(event.target);
+  }
+
+  const code = target?.closest("code") ?? null;
+
+  return {
+    selectionCollapsed,
+    pointInsideSelection,
+    insideLink: target !== null && slateLink(editor, target),
+    insideTableCell: target?.closest("td, th") !== null,
+    insideCodeText: code !== null && code.parentElement?.tagName === "PRE",
+    insideControl: target?.closest(CONTROL_SELECTOR) !== null,
+    hasBlockTarget: target !== null && blockHandleTarget(chainFromDom(editor, target)) !== null,
+  };
+}
+
+function isKind(value: string): value is BlockMenuKind {
+  return BLOCK_MENU_KINDS.some((kind) => kind === value);
+}
+
+function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
+  const editor = useEditorRef();
+  const located = findBlockById(editor, target.id);
+  const path = located?.[1];
+  const view = path === undefined ? null : menuBlockView(editor, path);
+  const decisions = view === null ? null : blockMenuDecisions(view);
+  const current = view === null ? null : currentBlockMenuKind(view);
+
+  function turn(kind: BlockMenuKind): void {
+    if (!path || kind === current) {
+      return;
+    }
+    const decision = decisions?.find((item) => item.kind === kind);
+    if (!decision || !decision.allowed) {
+      return;
+    }
+    onActed();
+    runEditorCommand(editor, turnBlockInto, { path: [...path], kind });
+  }
+
+  function duplicate(): void {
+    if (!path) {
+      return;
+    }
+    onActed();
+    runEditorCommand(editor, duplicateBlock, { path: [...path] });
+  }
+
+  function remove(): void {
+    if (!path) {
+      return;
+    }
+    onActed();
+    runEditorCommand(editor, deleteBlock, { path: [...path] });
+  }
+
+  return (
+    <>
+      {decisions === null ? null : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <ArrowRightLeft aria-hidden="true" />
+            Turn into
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent collisionPadding={8} hideWhenDetached>
+            <DropdownMenuRadioGroup
+              value={current ?? ""}
+              onValueChange={(value) => {
+                if (isKind(value)) {
+                  turn(value);
+                }
+              }}
+            >
+              {decisions.map((item) => {
+                const Icon = TURN_ICONS[item.kind];
+                return (
+                  <DropdownMenuRadioItem
+                    key={item.kind}
+                    value={item.kind}
+                    disabled={!item.allowed}
+                    data-block-menu-kind={item.kind}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span className="flex min-w-0 flex-col items-start">
+                      <span>{item.label}</span>
+                      {item.reason === undefined ? null : (
+                        <span className="text-muted-foreground text-xs whitespace-normal">
+                          {item.reason}
+                        </span>
+                      )}
+                    </span>
+                  </DropdownMenuRadioItem>
+                );
+              })}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
+      <DropdownMenuItem
+        onSelect={() => {
+          duplicate();
+        }}
+      >
+        <Copy aria-hidden="true" />
+        Duplicate
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        variant="destructive"
+        onSelect={() => {
+          remove();
+        }}
+      >
+        <Trash2 aria-hidden="true" />
+        Delete
+      </DropdownMenuItem>
+    </>
+  );
+}
+
+export function BlockMenu({
+  gripRef,
+  holdMenu,
+  bindOpener,
+}: {
+  gripRef: RefObject<HTMLButtonElement | null>;
+  holdMenu: (id: string | null) => void;
+  bindOpener: (open: (target: BlockHandleHit) => void) => void;
+}) {
+  const editor = useEditorRef();
+  const [session, setSession] = useState<MenuSession | null>(null);
+  const savedSelection = useRef(editor.selection);
+  const acted = useRef(false);
+  const sessionRef = useRef<MenuSession | null>(null);
+  const pending = useRef<BlockHandleHit | null>(null);
+  const frame = useRef(0);
+
+  const close = useCallback(() => {
+    pending.current = null;
+    cancelAnimationFrame(frame.current);
+    sessionRef.current = null;
+    setSession(null);
+    holdMenu(null);
+  }, [holdMenu]);
+
+  const openAt = useCallback(
+    (target: BlockHandleHit, anchor: AnchorBox) => {
+      const entry = findBlockById(editor, target.id);
+      if (!entry || typeof entry[0].type !== "string") {
+        return;
+      }
+      savedSelection.current = cloneRange(editor.selection);
+      acted.current = false;
+      pending.current = null;
+      // Opening focuses the menu. Put the scroll ports back after that focus.
+      retainScroll(() => undefined);
+      cancelAnimationFrame(frame.current);
+      holdMenu(target.id);
+      const next = {
+        target: { id: target.id, type: entry[0].type, path: [...entry[1]] },
+        anchor,
+      };
+      sessionRef.current = next;
+      setSession(next);
+    },
+    [editor, holdMenu],
+  );
+
+  const openFromGrip = useCallback(
+    (target: BlockHandleHit) => {
+      if (sessionRef.current?.target.id === target.id) {
+        close();
+        return;
+      }
+      const grip = gripRef.current?.getBoundingClientRect();
+      const anchor = grip && grip.width > 0 ? boxOf(grip) : blockBox(editor, target.id);
+      if (!anchor) {
+        return;
+      }
+      openAt(target, anchor);
+    },
+    [close, editor, gripRef, openAt],
+  );
+
+  useLayoutEffect(() => {
+    bindOpener(openFromGrip);
+  }, [bindOpener, openFromGrip]);
+
+  useEffect(() => {
+    return () => {
+      cancelAnimationFrame(frame.current);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const editable = editableOf(editor);
+    if (!editable) {
+      return;
+    }
+
+    const onContextMenu = (event: MouseEvent): void => {
+      if (keepNativeContextMenu(contextProbe(editor, event))) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      const picked = target ? blockHandleTarget(chainFromDom(editor, target)) : null;
+      if (!picked) {
+        return;
+      }
+      const entry = findBlockById(editor, picked.id);
+      if (!entry) {
+        return;
+      }
+      event.preventDefault();
+      openAt(
+        { id: picked.id, type: picked.type, path: [...entry[1]] },
+        { top: event.clientY, left: event.clientX, width: 0, height: 0 },
+      );
+    };
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isBlockMenuShortcut(event) || event.isComposing) {
+        return;
+      }
+      const eventTarget = event.target instanceof Element ? event.target : null;
+      if (eventTarget?.closest("input, textarea, select, [role='menu'], [data-block-menu]")) {
+        return;
+      }
+      const selection = editor.selection;
+      if (!selection) {
+        return;
+      }
+      const hit = targetBlockAtPath(editor, selection.anchor.path);
+      if (!hit) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const grip = gripRef.current?.getBoundingClientRect();
+      if (grip && grip.width > 0) {
+        openAt(hit, boxOf(grip));
+        return;
+      }
+      pending.current = hit;
+      holdMenu(hit.id);
+      cancelAnimationFrame(frame.current);
+      // The handle paints on the next layout. A second frame sees the grip, or the block.
+      frame.current = requestAnimationFrame(() => {
+        frame.current = requestAnimationFrame(() => {
+          const waiting = pending.current;
+          if (!waiting) {
+            return;
+          }
+          const shown = gripRef.current?.getBoundingClientRect();
+          const anchor = shown && shown.width > 0 ? boxOf(shown) : blockBox(editor, waiting.id);
+          if (anchor) {
+            openAt(waiting, anchor);
+          }
+        });
+      });
+    };
+
+    editable.addEventListener("contextmenu", onContextMenu);
+    editable.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      editable.removeEventListener("contextmenu", onContextMenu);
+      editable.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [editor, gripRef, holdMenu, openAt]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+    // A click on the page chrome must not move the caret. Real controls still receive it.
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        !target ||
+        target.closest("[data-block-menu], [data-block-menu-anchor], [data-block-handle]")
+      ) {
+        return;
+      }
+      const editable = editableOf(editor);
+      if (editable?.contains(target) || target.closest(PAGE_CONTROL_SELECTOR)) {
+        return;
+      }
+      event.preventDefault();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
+  }, [editor, session]);
+
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <DropdownMenu
+      open
+      modal={false}
+      onOpenChange={(next) => {
+        if (!next) {
+          close();
+        }
+      }}
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label="Block menu"
+              tabIndex={-1}
+              data-block-menu-anchor=""
+              className="pointer-events-none fixed p-0 opacity-0"
+              style={{
+                top: session.anchor.top,
+                left: session.anchor.left,
+                width: session.anchor.width,
+                height: session.anchor.height,
+              }}
+            >
+              <Type aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Block menu</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        collisionPadding={8}
+        hideWhenDetached
+        data-block-menu=""
+        data-block-menu-for={session.target.id}
+        className="w-64"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const selection = cloneRange(acted.current ? editor.selection : savedSelection.current);
+          // Chrome places the caret under the pointer when focus returns from a click.
+          // Deselect first so the saved range is written, then again after that placement.
+          const restore = (): void => {
+            editor.tf.withoutSaving(() => {
+              editor.tf.focus();
+              if (!selection) {
+                return;
+              }
+              editor.tf.deselect();
+              editor.tf.select(selection);
+            });
+          };
+          retainScroll(restore);
+          requestAnimationFrame(() => {
+            retainScroll(restore);
+          });
+        }}
+      >
+        <BlockMenuItems
+          target={session.target}
+          onActed={() => {
+            acted.current = true;
+          }}
+        />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 ```
 
@@ -17697,6 +18275,1063 @@ export function visibleHandleId(state: HandleUiState): string | null {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  NodeApi,
+  PathApi,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { SYNCED_REF_KEY } from "./editor-synced-block";
+import {
+  allowedChildTypes,
+  allowsFirstChild,
+  containerContentType,
+  maxNesting,
+} from "../document/editor-document-schema";
+
+/** Grip tooltip. Drag reuses this exact string. */
+export const BLOCK_MENU_GRIP_LABEL = "Drag to move · Click to open menu";
+
+export const BLOCK_MENU_KINDS = [
+  "paragraph",
+  "h1",
+  "h2",
+  "h3",
+  "bulleted",
+  "numbered",
+  "todo",
+  "toggle",
+  "toggle-h1",
+  "toggle-h2",
+  "toggle-h3",
+  "quote",
+  "callout",
+  "code",
+] as const;
+
+export type BlockMenuKind = (typeof BLOCK_MENU_KINDS)[number];
+
+export const BLOCK_MENU_TURNS: readonly {
+  kind: BlockMenuKind;
+  label: string;
+  commandId: string;
+}[] = [
+  { kind: "paragraph", label: "Text", commandId: "block.turn-into.paragraph" },
+  { kind: "h1", label: "Heading 1", commandId: "block.turn-into.h1" },
+  { kind: "h2", label: "Heading 2", commandId: "block.turn-into.h2" },
+  { kind: "h3", label: "Heading 3", commandId: "block.turn-into.h3" },
+  { kind: "bulleted", label: "Bulleted list", commandId: "block.turn-into.bulleted-list" },
+  { kind: "numbered", label: "Numbered list", commandId: "block.turn-into.numbered-list" },
+  { kind: "todo", label: "To-do list", commandId: "block.turn-into.todo-list" },
+  { kind: "toggle", label: "Toggle", commandId: "block.turn-into.toggle" },
+  { kind: "toggle-h1", label: "Toggle heading 1", commandId: "block.turn-into.toggle-h1" },
+  { kind: "toggle-h2", label: "Toggle heading 2", commandId: "block.turn-into.toggle-h2" },
+  { kind: "toggle-h3", label: "Toggle heading 3", commandId: "block.turn-into.toggle-h3" },
+  { kind: "quote", label: "Quote", commandId: "block.turn-into.blockquote" },
+  { kind: "callout", label: "Callout", commandId: "block.turn-into.callout" },
+  { kind: "code", label: "Code", commandId: "block.turn-into.code-block" },
+];
+
+export type TurnEffect =
+  "same" | "retype-leaf" | "wrap" | "retype-container" | "lift" | "to-code" | "from-code";
+
+export type TurnDecision = {
+  kind: BlockMenuKind;
+  label: string;
+  commandId: string;
+  allowed: boolean;
+  reason?: string;
+  effect: TurnEffect;
+};
+
+export type MenuChildView = {
+  type: string;
+  listStyleType?: string;
+  rich: boolean;
+};
+
+export type MenuBlockView = {
+  type: string;
+  listStyleType?: string;
+  rich: boolean;
+  children: readonly MenuChildView[];
+  parentType: string | null;
+  index: number;
+  toggleAncestors: number;
+};
+
+export type NativeMenuProbe = {
+  selectionCollapsed: boolean;
+  pointInsideSelection: boolean;
+  insideLink: boolean;
+  insideTableCell: boolean;
+  insideCodeText: boolean;
+  insideControl: boolean;
+  hasBlockTarget: boolean;
+};
+
+const STRUCTURAL = new Set<string>([
+  KEYS.table,
+  KEYS.columnGroup,
+  KEYS.column,
+  KEYS.tr,
+  KEYS.td,
+  KEYS.th,
+  KEYS.hr,
+  BOOKMARK_KEY,
+  KEYS.equation,
+  KEYS.toc,
+  SYNCED_REF_KEY,
+  KEYS.codeLine,
+]);
+
+const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
+
+const LIST_ATTRS = [
+  "listStyleType",
+  "indent",
+  "checked",
+  "listStart",
+  "listRestart",
+  "listRestartPolite",
+] as const;
+
+const TEXT_TYPES = new Set<string>([KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3]);
+
+// Keep the browser menu for spellcheck and copy. A right-click opens this menu
+// only when every flag below is false and the point resolves to a block.
+export function keepNativeContextMenu(probe: NativeMenuProbe): boolean {
+  if (probe.insideControl) {
+    return true;
+  }
+  if (!probe.selectionCollapsed && probe.pointInsideSelection) {
+    return true;
+  }
+  if (probe.insideLink || probe.insideTableCell || probe.insideCodeText) {
+    return true;
+  }
+  return !probe.hasBlockTarget;
+}
+
+export function isBlockMenuShortcut(event: {
+  key: string;
+  code?: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+}): boolean {
+  if (event.altKey || event.shiftKey) {
+    return false;
+  }
+  // Exactly one of Meta or Ctrl. Help is Shift+Mod+/, so Shift stays native.
+  if (event.metaKey === event.ctrlKey) {
+    return false;
+  }
+  return event.key === "/" || event.code === "Slash";
+}
+
+export function blockMenuDecisions(view: MenuBlockView): readonly TurnDecision[] | null {
+  if (STRUCTURAL.has(view.type) || currentKind(view) === null) {
+    return null;
+  }
+
+  return BLOCK_MENU_TURNS.map((item) => decide(view, item));
+}
+
+export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null {
+  return currentKind(view);
+}
+
+export function menuBlockView(editor: SlateEditor, path: number[]): MenuBlockView | null {
+  const entry = editor.api.node(path);
+  const node = entry?.[0];
+  if (!entry || !ElementApi.isElement(node) || typeof node.type !== "string") {
+    return null;
+  }
+
+  return viewAt(editor, node, entry[1]);
+}
+
+export function applyBlockTurn(editor: SlateEditor, path: number[], kind: BlockMenuKind): boolean {
+  const at = [...path];
+  const entry = editor.api.node(at);
+  const node = entry?.[0];
+  if (!entry || !ElementApi.isElement(node)) {
+    return false;
+  }
+
+  const view = viewAt(editor, node, entry[1]);
+  const decision = blockMenuDecisions(view)?.find((item) => item.kind === kind);
+  if (!decision || !decision.allowed || decision.effect === "same") {
+    return false;
+  }
+
+  const seen = collectIds(editor);
+  const replacement = replacementNodes(node, decision.effect, kind, seen);
+  editor.tf.withoutNormalizing(() => {
+    replaceAt(editor, at, replacement);
+  });
+  selectStart(editor, at);
+  return true;
+}
+
+export function duplicateBlockAt(editor: SlateEditor, path: number[]): boolean {
+  const at = [...path];
+  const entry = editor.api.node(at);
+  const node = entry?.[0];
+  if (!entry || !ElementApi.isElement(node)) {
+    return false;
+  }
+
+  const dest = PathApi.next(at);
+  if (!dest) {
+    return false;
+  }
+
+  const copy = structuredClone(node);
+  assignNewIds(copy, collectIds(editor));
+  editor.tf.insertNodes(copy, { at: dest });
+  selectStart(editor, dest);
+  return true;
+}
+
+export function deleteBlockAt(editor: SlateEditor, path: number[]): boolean {
+  const at = [...path];
+  const entry = editor.api.node(at);
+  if (!entry || !ElementApi.isElement(entry[0])) {
+    return false;
+  }
+
+  const parentPath = at.slice(0, -1);
+  editor.tf.removeNodes({ at });
+
+  if (parentPath.length === 0 && editor.children.length === 0) {
+    const id = createId(collectIds(editor));
+    editor.tf.insertNodes(textBlock(id, "paragraph", [{ text: "" }]), { at: [0] });
+    selectStart(editor, [0]);
+    return true;
+  }
+
+  if (parentPath.length > 0) {
+    const parent = editor.api.node(parentPath);
+    const parentNode = parent?.[0];
+    if (
+      parent &&
+      ElementApi.isElement(parentNode) &&
+      typeof parentNode.type === "string" &&
+      parentNode.children.length === 0
+    ) {
+      const content = containerContentType(parentNode.type) ?? KEYS.p;
+      const id = createId(collectIds(editor));
+      const child =
+        content === KEYS.p
+          ? textBlock(id, "paragraph", [{ text: "" }])
+          : { type: content, id, children: [{ text: "" }] };
+      const childPath = parentPath.concat(0);
+      editor.tf.insertNodes(child, { at: childPath });
+      selectStart(editor, childPath);
+      return true;
+    }
+  }
+
+  if (editor.api.node(at)) {
+    selectStart(editor, at);
+    return true;
+  }
+
+  const index = at[at.length - 1] ?? 0;
+  if (index > 0) {
+    const previous = at.slice(0, -1).concat(index - 1);
+    if (editor.api.node(previous)) {
+      selectStart(editor, previous);
+    }
+  }
+
+  return true;
+}
+
+function decide(view: MenuBlockView, item: (typeof BLOCK_MENU_TURNS)[number]): TurnDecision {
+  const effect = effectFor(view, item.kind);
+  // Staying the same kind is a no-op, except a code block: only Text is offered.
+  if (effect === "same" && view.type !== KEYS.codeBlock) {
+    return { ...item, allowed: true, effect };
+  }
+
+  const reason = refusal(view, item.kind);
+  if (reason !== undefined) {
+    return { ...item, allowed: false, reason, effect };
+  }
+
+  return { ...item, allowed: true, effect };
+}
+
+function refusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
+  if (view.type === KEYS.codeBlock && kind !== "paragraph") {
+    return "Code turns into text.";
+  }
+
+  if (kind === "code" && !codeKeepsContent(view)) {
+    return "Code keeps plain text only.";
+  }
+
+  const placed = parentRefusal(view.parentType, view.index, kind);
+  if (placed !== undefined) {
+    return placed;
+  }
+
+  const nested = nestingRefusal(view, kind);
+  if (nested !== undefined) {
+    return nested;
+  }
+
+  if (isContainerType(view.type) && isContainerKind(kind)) {
+    return containerChildRefusal(view, kind);
+  }
+
+  if (isContainerType(view.type) && isLeafKind(kind)) {
+    return liftedChildRefusal(view, kind);
+  }
+
+  return undefined;
+}
+
+function effectFor(view: MenuBlockView, kind: BlockMenuKind): TurnEffect {
+  const current = currentKind(view);
+  if (current === kind) {
+    return "same";
+  }
+  if (view.type === KEYS.codeBlock) {
+    return "from-code";
+  }
+  if (kind === "code") {
+    return "to-code";
+  }
+  if (isContainerType(view.type) && isContainerKind(kind)) {
+    return "retype-container";
+  }
+  if (isContainerType(view.type)) {
+    return "lift";
+  }
+  if (isContainerKind(kind)) {
+    return "wrap";
+  }
+  return "retype-leaf";
+}
+
+function codeKeepsContent(view: MenuBlockView): boolean {
+  if (view.rich || view.listStyleType !== undefined) {
+    return false;
+  }
+  if (!isContainerType(view.type)) {
+    return TEXT_TYPES.has(view.type);
+  }
+
+  return view.children.every(
+    (child) => TEXT_TYPES.has(child.type) && !child.rich && child.listStyleType === undefined,
+  );
+}
+
+function parentRefusal(
+  parentType: string | null,
+  index: number,
+  kind: BlockMenuKind,
+): string | undefined {
+  return typeRefusal(parentType, index, slateType(kind), listStyleOf(kind) !== undefined, kind);
+}
+
+function typeRefusal(
+  parentType: string | null,
+  index: number,
+  type: string,
+  asList: boolean,
+  kind?: BlockMenuKind,
+): string | undefined {
+  if (parentType === null) {
+    return undefined;
+  }
+
+  if (parentType === KEYS.toggle && index === 0) {
+    if (asList) {
+      return "A toggle label cannot be a list.";
+    }
+    if (!allowsFirstChild(parentType, type)) {
+      return "A toggle label must be text or a heading.";
+    }
+    return undefined;
+  }
+
+  const allowed = allowedChildTypes(parentType);
+  if (allowed !== undefined && allowed.some((child) => child === type)) {
+    return undefined;
+  }
+
+  return parentBlockReason(
+    parentType,
+    kind ?? kindForChild({ type, listStyleType: asList ? "disc" : undefined, rich: false }),
+  );
+}
+
+function nestingRefusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
+  if (!TOGGLE_KINDS.has(kind) || view.type === KEYS.toggle) {
+    return undefined;
+  }
+
+  const limit = maxNesting(KEYS.toggle) ?? 3;
+  if (view.toggleAncestors + 1 > limit) {
+    return "Toggles can only nest three levels deep.";
+  }
+
+  return undefined;
+}
+
+function containerChildRefusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
+  if (kind === "quote" || kind === "callout") {
+    for (const child of view.children) {
+      if (TEXT_TYPES.has(child.type)) {
+        continue;
+      }
+      const name = child.type === KEYS.toggle ? "a toggle" : article(child.type);
+      return kind === "quote" ? `A quote cannot hold ${name}.` : `A callout cannot hold ${name}.`;
+    }
+  }
+
+  return undefined;
+}
+
+// Children that cannot become the target leaf stay in the parent. Refuse when
+// that parent would reject them, so a lift never hands the normalizer a block to drop.
+function liftedChildRefusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
+  const first = view.children[0];
+  const lifted =
+    first !== undefined && canRepresent(first, kind) ? view.children.slice(1) : view.children;
+  for (const child of lifted) {
+    const reason = typeRefusal(
+      view.parentType,
+      view.index + 1,
+      child.type,
+      child.listStyleType !== undefined,
+    );
+    if (reason !== undefined) {
+      return reason;
+    }
+  }
+
+  return undefined;
+}
+
+function kindForChild(child: MenuChildView): BlockMenuKind {
+  if (child.listStyleType === "disc") {
+    return "bulleted";
+  }
+  if (child.listStyleType === "decimal") {
+    return "numbered";
+  }
+  if (child.listStyleType === "todo") {
+    return "todo";
+  }
+  if (child.type === KEYS.h1) {
+    return "h1";
+  }
+  if (child.type === KEYS.h2) {
+    return "h2";
+  }
+  if (child.type === KEYS.h3) {
+    return "h3";
+  }
+  if (child.type === KEYS.blockquote) {
+    return "quote";
+  }
+  if (child.type === KEYS.callout) {
+    return "callout";
+  }
+  if (child.type === KEYS.toggle) {
+    return "toggle";
+  }
+  if (child.type === KEYS.codeBlock) {
+    return "code";
+  }
+  return "paragraph";
+}
+
+function parentBlockReason(parentType: string, kind: BlockMenuKind): string {
+  const child = kindNoun(kind);
+  if (parentType === KEYS.td || parentType === KEYS.th) {
+    return "A table cell can only hold text.";
+  }
+  if (parentType === KEYS.blockquote) {
+    return `A quote cannot hold ${child}.`;
+  }
+  if (parentType === KEYS.callout) {
+    return `A callout cannot hold ${child}.`;
+  }
+  if (parentType === KEYS.toggle) {
+    return `A toggle cannot hold ${child}.`;
+  }
+  if (parentType === KEYS.codeBlock) {
+    return "A code block can only hold code lines.";
+  }
+  return `This block cannot hold ${child}.`;
+}
+
+function kindNoun(kind: BlockMenuKind): string {
+  if (kind === "h1" || kind === "h2" || kind === "h3" || kind.startsWith("toggle-h")) {
+    return "a heading";
+  }
+  if (kind === "bulleted" || kind === "numbered" || kind === "todo") {
+    return "a list";
+  }
+  if (kind === "toggle") {
+    return "a toggle";
+  }
+  if (kind === "quote") {
+    return "a quote";
+  }
+  if (kind === "callout") {
+    return "a callout";
+  }
+  if (kind === "code") {
+    return "a code block";
+  }
+  return "text";
+}
+
+function article(type: string): string {
+  if (type === KEYS.table) {
+    return "a table";
+  }
+  if (type === KEYS.codeBlock) {
+    return "a code block";
+  }
+  if (type === KEYS.blockquote) {
+    return "a quote";
+  }
+  if (type === KEYS.callout) {
+    return "a callout";
+  }
+  if (type === KEYS.hr) {
+    return "a divider";
+  }
+  return "that block";
+}
+
+function currentKind(view: MenuBlockView): BlockMenuKind | null {
+  if (STRUCTURAL.has(view.type)) {
+    return null;
+  }
+  if (view.type === KEYS.h1) {
+    return "h1";
+  }
+  if (view.type === KEYS.h2) {
+    return "h2";
+  }
+  if (view.type === KEYS.h3) {
+    return "h3";
+  }
+  if (view.type === KEYS.blockquote) {
+    return "quote";
+  }
+  if (view.type === KEYS.callout) {
+    return "callout";
+  }
+  if (view.type === KEYS.codeBlock) {
+    return "code";
+  }
+  if (view.type === KEYS.toggle) {
+    const label = view.children[0]?.type;
+    if (label === KEYS.h1) {
+      return "toggle-h1";
+    }
+    if (label === KEYS.h2) {
+      return "toggle-h2";
+    }
+    if (label === KEYS.h3) {
+      return "toggle-h3";
+    }
+    return "toggle";
+  }
+  if (view.type === KEYS.p) {
+    if (view.listStyleType === "disc") {
+      return "bulleted";
+    }
+    if (view.listStyleType === "decimal") {
+      return "numbered";
+    }
+    if (view.listStyleType === "todo") {
+      return "todo";
+    }
+    return "paragraph";
+  }
+  return null;
+}
+
+function replacementNodes(
+  node: TElement,
+  effect: TurnEffect,
+  kind: BlockMenuKind,
+  seen: Set<string>,
+): TElement[] {
+  if (effect === "from-code") {
+    return codeToParagraphs(node, seen);
+  }
+  if (effect === "to-code") {
+    return [toCode(node, seen)];
+  }
+  if (effect === "retype-leaf") {
+    return [retypeLeaf(node, kind)];
+  }
+  if (effect === "wrap") {
+    return [wrapLeaf(node, kind, seen)];
+  }
+  if (effect === "retype-container") {
+    return [retypeContainer(node, kind, seen)];
+  }
+  if (effect === "lift") {
+    const lifted = containerToLeaf(node, kind);
+    return [lifted.leaf, ...lifted.rest];
+  }
+  return [structuredClone(node)];
+}
+
+function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
+  const align = stringProp(node, "align");
+  const lineHeight = stringProp(node, "lineHeight");
+  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight);
+}
+
+function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
+  const align = stringProp(node, "align");
+  const lineHeight = stringProp(node, "lineHeight");
+  const inlines = structuredClone(node.children);
+  const label = labelKind(kind, node);
+  const inner = textBlock(createId(seen), label, inlines, align, lineHeight);
+  return containerNode(nodeId(node), kind, [inner]);
+}
+
+function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
+  const next = structuredClone(node);
+  next.type = slateType(kind);
+  unsetProp(next, "icon");
+  unsetProp(next, "variant");
+  unsetProp(next, "lineHeight");
+  for (const key of LIST_ATTRS) {
+    unsetProp(next, key);
+  }
+
+  if (TOGGLE_KINDS.has(kind)) {
+    normalizeToggleLabel(next, kind, seen);
+    return next;
+  }
+
+  for (const child of blockElements(next)) {
+    if (child.type === KEYS.h1 || child.type === KEYS.h2 || child.type === KEYS.h3) {
+      child.type = KEYS.p;
+      unsetProp(child, "lineHeight");
+    }
+  }
+
+  return next;
+}
+
+function containerToLeaf(
+  node: TElement,
+  kind: BlockMenuKind,
+): { leaf: TElement; rest: TElement[] } {
+  const children = blockElements(node);
+  const first = children[0];
+  if (first && canRepresent(childView(first), kind)) {
+    const leaf = textBlock(
+      nodeId(node),
+      kind,
+      structuredClone(first.children),
+      stringProp(first, "align"),
+      stringProp(first, "lineHeight"),
+    );
+    return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
+  }
+
+  return {
+    leaf: textBlock(nodeId(node), kind, [{ text: "" }]),
+    rest: children.map((child) => structuredClone(child)),
+  };
+}
+
+function toCode(node: TElement, seen: Set<string>): TElement {
+  const lines = isContainerType(node.type)
+    ? blockElements(node).map((child) => codeLine(keptId(child, seen), NodeApi.string(child)))
+    : [codeLine(createId(seen), NodeApi.string(node))];
+  const children = lines.length > 0 ? lines : [codeLine(createId(seen), "")];
+  return { type: KEYS.codeBlock, id: nodeId(node), children };
+}
+
+function codeToParagraphs(node: TElement, seen: Set<string>): TElement[] {
+  const lines = blockElements(node);
+  if (lines.length === 0) {
+    return [textBlock(nodeId(node), "paragraph", [{ text: "" }])];
+  }
+
+  return lines.map((line, index) => {
+    const id = index === 0 ? nodeId(node) : keptId(line, seen);
+    return textBlock(id, "paragraph", [{ text: NodeApi.string(line) }]);
+  });
+}
+
+function normalizeToggleLabel(node: TElement, kind: BlockMenuKind, seen: Set<string>): void {
+  const children = blockElements(node);
+  const first = children[0];
+  const wanted = labelType(kind);
+  if (first && (first.type === KEYS.p || isHeadingType(first.type)) && !hasListStyle(first)) {
+    first.type = wanted;
+    for (const key of LIST_ATTRS) {
+      unsetProp(first, key);
+    }
+    if (wanted !== KEYS.p) {
+      unsetProp(first, "lineHeight");
+    }
+    return;
+  }
+
+  const label = textBlock(createId(seen), labelKindFromType(wanted), [{ text: "" }]);
+  node.children = [label, ...node.children];
+}
+
+function labelKind(kind: BlockMenuKind, source: TElement): BlockMenuKind {
+  if (TOGGLE_KINDS.has(kind)) {
+    return labelKindFromType(labelType(kind));
+  }
+  if (hasListStyle(source)) {
+    return kindForChild(childView(source));
+  }
+  return "paragraph";
+}
+
+function labelKindFromType(type: string): BlockMenuKind {
+  if (type === KEYS.h1) {
+    return "h1";
+  }
+  if (type === KEYS.h2) {
+    return "h2";
+  }
+  if (type === KEYS.h3) {
+    return "h3";
+  }
+  return "paragraph";
+}
+
+function canRepresent(child: MenuChildView, kind: BlockMenuKind): boolean {
+  if (!TEXT_TYPES.has(child.type)) {
+    return false;
+  }
+  return child.listStyleType === listStyleOf(kind);
+}
+
+function childView(node: TElement): MenuChildView {
+  return {
+    type: node.type,
+    listStyleType: stringProp(node, "listStyleType"),
+    rich: isRich(node),
+  };
+}
+
+function textBlock(
+  id: string,
+  kind: BlockMenuKind,
+  children: Descendant[],
+  align?: string,
+  lineHeight?: string,
+): TElement {
+  const node: TElement = { type: slateType(kind), id, children };
+  if (align !== undefined && allowsAlign(kind)) {
+    setProp(node, "align", align);
+  }
+  if (lineHeight !== undefined && allowsLineHeight(kind)) {
+    setProp(node, "lineHeight", lineHeight);
+  }
+  const style = listStyleOf(kind);
+  if (style !== undefined) {
+    setProp(node, "listStyleType", style);
+    setProp(node, "indent", 1);
+  }
+  if (kind === "numbered") {
+    setProp(node, "listStart", 1);
+  }
+  if (kind === "todo") {
+    setProp(node, "checked", false);
+  }
+  return node;
+}
+
+function containerNode(id: string, kind: BlockMenuKind, children: Descendant[]): TElement {
+  return { type: slateType(kind), id, children };
+}
+
+function codeLine(id: string, text: string): TElement {
+  return { type: KEYS.codeLine, id, children: [{ text }] };
+}
+
+function allowsAlign(kind: BlockMenuKind): boolean {
+  return isLeafKind(kind);
+}
+
+function allowsLineHeight(kind: BlockMenuKind): boolean {
+  return kind === "paragraph" || kind === "bulleted" || kind === "numbered" || kind === "todo";
+}
+
+function slateType(kind: BlockMenuKind): string {
+  if (kind === "h1" || kind === "toggle-h1") {
+    return kind === "toggle-h1" ? KEYS.toggle : KEYS.h1;
+  }
+  if (kind === "h2") {
+    return KEYS.h2;
+  }
+  if (kind === "h3") {
+    return KEYS.h3;
+  }
+  if (kind === "quote") {
+    return KEYS.blockquote;
+  }
+  if (kind === "callout") {
+    return KEYS.callout;
+  }
+  if (TOGGLE_KINDS.has(kind)) {
+    return KEYS.toggle;
+  }
+  if (kind === "code") {
+    return KEYS.codeBlock;
+  }
+  return KEYS.p;
+}
+
+function labelType(kind: BlockMenuKind): string {
+  if (kind === "toggle-h1") {
+    return KEYS.h1;
+  }
+  if (kind === "toggle-h2") {
+    return KEYS.h2;
+  }
+  if (kind === "toggle-h3") {
+    return KEYS.h3;
+  }
+  return KEYS.p;
+}
+
+function listStyleOf(kind: BlockMenuKind): "disc" | "decimal" | "todo" | undefined {
+  if (kind === "bulleted") {
+    return "disc";
+  }
+  if (kind === "numbered") {
+    return "decimal";
+  }
+  if (kind === "todo") {
+    return "todo";
+  }
+  return undefined;
+}
+
+function isLeafKind(kind: BlockMenuKind): boolean {
+  return (
+    kind === "paragraph" ||
+    kind === "h1" ||
+    kind === "h2" ||
+    kind === "h3" ||
+    kind === "bulleted" ||
+    kind === "numbered" ||
+    kind === "todo"
+  );
+}
+
+function isContainerKind(kind: BlockMenuKind): boolean {
+  return kind === "quote" || kind === "callout" || TOGGLE_KINDS.has(kind);
+}
+
+function isContainerType(type: string): boolean {
+  return (
+    type === KEYS.blockquote ||
+    type === KEYS.callout ||
+    type === KEYS.toggle ||
+    type === KEYS.codeBlock
+  );
+}
+
+function isHeadingType(type: string): boolean {
+  return type === KEYS.h1 || type === KEYS.h2 || type === KEYS.h3;
+}
+
+function hasListStyle(node: TElement): boolean {
+  return stringProp(node, "listStyleType") !== undefined;
+}
+
+function blockElements(node: TElement): TElement[] {
+  const blocks: TElement[] = [];
+  for (const child of node.children) {
+    if (!ElementApi.isElement(child) || typeof child.type !== "string") {
+      continue;
+    }
+    if (child.type === KEYS.link || child.type === KEYS.mention) {
+      continue;
+    }
+    blocks.push(child);
+  }
+  return blocks;
+}
+
+function viewAt(editor: SlateEditor, node: TElement, path: number[]): MenuBlockView {
+  const parentPath = path.slice(0, -1);
+  let parentType: string | null = null;
+  let toggleAncestors = 0;
+  for (let depth = 1; depth < path.length; depth += 1) {
+    const ancestor = editor.api.node(path.slice(0, depth));
+    const ancestorNode = ancestor?.[0];
+    if (!ancestor || !ElementApi.isElement(ancestorNode) || typeof ancestorNode.type !== "string") {
+      continue;
+    }
+    if (ancestorNode.type === KEYS.toggle) {
+      toggleAncestors += 1;
+    }
+    if (depth === path.length - 1) {
+      parentType = ancestorNode.type;
+    }
+  }
+  if (parentType === null && parentPath.length > 0) {
+    const parent = editor.api.node(parentPath);
+    const parentNode = parent?.[0];
+    if (parent && ElementApi.isElement(parentNode) && typeof parentNode.type === "string") {
+      parentType = parentNode.type;
+    }
+  }
+
+  return {
+    type: node.type,
+    listStyleType: stringProp(node, "listStyleType"),
+    rich: isRich(node),
+    children: blockElements(node).map((child) => childView(child)),
+    parentType,
+    index: path[path.length - 1] ?? 0,
+    toggleAncestors,
+  };
+}
+
+function isRich(node: Descendant): boolean {
+  if (ElementApi.isElement(node)) {
+    if (node.type === KEYS.link || node.type === KEYS.mention) {
+      return true;
+    }
+    return node.children.some((child) => isRich(child));
+  }
+
+  if (!("text" in node)) {
+    return false;
+  }
+
+  for (const key of Object.keys(node)) {
+    if (key !== "text") {
+      return true;
+    }
+  }
+  return false;
+}
+
+function replaceAt(editor: SlateEditor, path: number[], nodes: readonly TElement[]): void {
+  editor.tf.removeNodes({ at: path });
+  let at = path;
+  for (const node of nodes) {
+    editor.tf.insertNodes(node, { at });
+    const next = PathApi.next(at);
+    if (!next) {
+      return;
+    }
+    at = next;
+  }
+}
+
+function selectStart(editor: SlateEditor, path: number[]): void {
+  const start = editor.api.start(path);
+  if (start) {
+    editor.tf.select(start);
+  }
+}
+
+function collectIds(editor: SlateEditor): Set<string> {
+  const seen = new Set<string>();
+  const visit = (node: Descendant): void => {
+    if (!ElementApi.isElement(node)) {
+      return;
+    }
+    const id = nodeId(node);
+    if (id.length > 0) {
+      seen.add(id);
+    }
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+  for (const child of editor.children) {
+    visit(child);
+  }
+  return seen;
+}
+
+function assignNewIds(node: TElement, seen: Set<string>): void {
+  setProp(node, "id", createId(seen));
+  for (const child of node.children) {
+    if (ElementApi.isElement(child)) {
+      assignNewIds(child, seen);
+    }
+  }
+}
+
+function keptId(node: TElement, seen: Set<string>): string {
+  const id = nodeId(node);
+  if (id.length > 0 && !seen.has(id)) {
+    seen.add(id);
+    return id;
+  }
+  // The code block reuses its own id on the first paragraph, so a line that
+  // shared it would collide. Allocate instead of writing the same id twice.
+  if (id.length > 0 && seen.has(id)) {
+    return createId(seen);
+  }
+  return createId(seen);
+}
+
+function createId(seen: Set<string>): string {
+  let id = nanoid(10);
+  let suffix = 1;
+  while (id.length === 0 || seen.has(id)) {
+    id = `${nanoid(10)}-${suffix}`;
+    suffix += 1;
+  }
+  seen.add(id);
+  return id;
+}
+
+function nodeId(node: TElement): string {
+  const id: unknown = Reflect.get(node, "id");
+  return typeof id === "string" ? id : "";
+}
+
+function stringProp(node: TElement, key: string): string | undefined {
+  const value: unknown = Reflect.get(node, key);
+  return typeof value === "string" ? value : undefined;
+}
+
+function setProp(node: TElement, key: string, value: string | number | boolean): void {
+  Reflect.set(node, key, value);
+}
+
+function unsetProp(node: TElement, key: string): void {
+  Reflect.deleteProperty(node, key);
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
@@ -17716,6 +19351,12 @@ import {
   type TText,
 } from "platejs";
 
+import {
+  applyBlockTurn,
+  deleteBlockAt,
+  duplicateBlockAt,
+  type BlockMenuKind,
+} from "../features/editor-block-menu";
 import { openAncestorToggle } from "../plugins/editor-toggle";
 import {
   CALLOUT_ICONS,
@@ -18981,6 +20622,54 @@ export const insertParagraphBelow: EditorCommand<{ path: number[] }> = {
   },
 };
 
+export type BlockMenuTurnPayload = {
+  path: number[];
+  kind: BlockMenuKind;
+};
+
+// Selection-scoped, same registry shape as the heading commands. The block menu
+// uses turnBlockInto so the handle target changes and the caret does not.
+export const turnIntoParagraph: EditorCommand = {
+  id: "block.turn-into.paragraph",
+  label: "Text",
+  group: "turn-into",
+  run: (editor) => {
+    const entry = editor.api.block();
+    if (!entry) {
+      return;
+    }
+
+    applyBlockTurn(editor, entry[1], "paragraph");
+  },
+};
+
+export const turnBlockInto: EditorCommand<BlockMenuTurnPayload> = {
+  id: "block.menu.turn-into",
+  label: "Turn into",
+  group: "turn-into",
+  run: (editor, payload) => {
+    applyBlockTurn(editor, payload.path, payload.kind);
+  },
+};
+
+export const duplicateBlock: EditorCommand<{ path: number[] }> = {
+  id: "block.menu.duplicate",
+  label: "Duplicate",
+  group: "action",
+  run: (editor, payload) => {
+    duplicateBlockAt(editor, payload.path);
+  },
+};
+
+export const deleteBlock: EditorCommand<{ path: number[] }> = {
+  id: "block.menu.delete",
+  label: "Delete",
+  group: "action",
+  run: (editor, payload) => {
+    deleteBlockAt(editor, payload.path);
+  },
+};
+
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
   label: "Clear formatting",
@@ -19074,7 +20763,7 @@ export function useNotionLikeEditor({
 ```ts
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ElementApi, PathApi, type SlateEditor } from "platejs";
-import { useEditorRef, useEditorSelector, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 import { focusEditorWithoutScroll, retainScroll } from "../components/ui/block-toolbar";
 import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-commands";
@@ -19120,6 +20809,7 @@ export type BlockHandleController = {
   onHandleFocus: () => void;
   onHandleBlur: (related?: EventTarget | null) => void;
   suppressed: boolean;
+  holdMenu: (id: string | null) => void;
 };
 
 const HANDLE_FADE_MS = 150;
@@ -19244,7 +20934,7 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
   if (!(hit instanceof Element)) {
     return false;
   }
-  if (hit.closest("[data-block-handle], [data-block-handle-tooltip]")) {
+  if (hit.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]")) {
     return false;
   }
   const block = hit.closest("[data-block-id]");
@@ -19257,7 +20947,7 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
 function isHandleLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("[data-block-handle], [data-block-handle-tooltip]") !== null
+    target.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]") !== null
   );
 }
 
@@ -19338,7 +21028,9 @@ function samePaint(current: BlockHandlePaint | null, next: BlockHandlePaint | nu
 
 export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHandleController {
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  // BlockHandle sits beside PlateContent, outside Slate's Editable, so the
+  // slate-react read-only context is always false here. The plate store is the one Plate sets.
+  const readOnly = useEditorReadOnly();
   const opCount = useEditorSelector((instance) => instance.operations.length, []);
   const caretId = useEditorSelector((instance) => {
     const selection = instance.selection;
@@ -19355,6 +21047,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const pathRef = useRef<number[] | null>(null);
   const shownRef = useRef(false);
   const hideTimer = useRef(0);
+  const menuLockRef = useRef<string | null>(null);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
 
   useEffect(() => {
@@ -19377,6 +21070,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   useEffect(() => {
     const onPointerMove = (event: PointerEvent): void => {
       if (event.pointerType === "touch") {
+        return;
+      }
+      // The open menu keeps its target. A pointer move must not retarget or dismiss it.
+      if (menuLockRef.current) {
         return;
       }
       if (isHandleLayer(event.target)) {
@@ -19402,7 +21099,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (isHandleLayer(event.target)) {
+      if (menuLockRef.current || isHandleLayer(event.target)) {
         return;
       }
       setUi((state) =>
@@ -19528,10 +21225,15 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   }, [caretId]);
 
   const onHandleBlur = useCallback((related?: EventTarget | null) => {
-    if (isHandleLayer(related ?? null)) {
+    if (menuLockRef.current || isHandleLayer(related ?? null)) {
       return;
     }
     setUi((state) => reduceHandleUi(state, { type: "engage", id: null }));
+  }, []);
+
+  const holdMenu = useCallback((id: string | null) => {
+    menuLockRef.current = id;
+    setUi((state) => reduceHandleUi(state, { type: "engage", id }));
   }, []);
 
   return {
@@ -19541,6 +21243,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     addBelow,
     onHandleFocus,
     onHandleBlur,
+    holdMenu,
     suppressed: readOnly || hoverNone,
   };
 }
@@ -22311,6 +24014,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-handle.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/block-menu.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-menu.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
     code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
@@ -22461,6 +24168,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/lib/features/editor-block-handle.ts",
     code: readSource(`${BLOCK_DIR}/lib/features/editor-block-handle.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/features/editor-block-menu.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-block-menu.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",

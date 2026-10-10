@@ -28,6 +28,7 @@ const floatingSources = [
   "components/elements/toc-element.tsx",
   "components/elements/column-element.tsx",
   "components/elements/code-block-element.tsx",
+  "components/ui/block-menu.tsx",
 ];
 
 function isReactContainer(value: object): value is Parameters<typeof createRoot>[0] {
@@ -40,7 +41,8 @@ describe("floating ui positioning", () => {
 
     for (const path of floatingSources) {
       const text = readFileSync(join(editorRoot, path), "utf8");
-      const surfaces = text.match(/<PopoverContent|<DropdownMenuContent/g) ?? [];
+      const surfaces =
+        text.match(/<PopoverContent|<DropdownMenuContent|<DropdownMenuSubContent/g) ?? [];
       const hidden = text.match(/hideWhenDetached/g) ?? [];
       const padding = text.match(/collisionPadding=\{8\}/g) ?? [];
       if (surfaces.length === 0) {

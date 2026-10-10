@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { GripVertical, Plus } from "lucide-react";
 
@@ -7,9 +7,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
+import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
+import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { BlockMenu } from "./block-menu";
 
 const ADD_LABEL = "Click to add below";
-const GRIP_LABEL = "Drag to move";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -19,12 +21,27 @@ function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
 
+// renderToString throws on a portal. The menu stays mounted on the client even
+// when the grip is not painted, so a shortcut can open it.
+function useClientPortal(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}
+
 export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
   const handle = useBlockHandle({ onInsertedBelow });
   const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
     handle;
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
+  const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
+  const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
+    openMenu.current = open;
+  }, []);
+  const client = useClientPortal();
 
   useLayoutEffect(() => {
     const row = rowRef.current;
@@ -34,16 +51,18 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
-  if (suppressed || !paint) {
+  if (suppressed || !client) {
     return null;
   }
+
+  const menu = <BlockMenu gripRef={gripRef} holdMenu={handle.holdMenu} bindOpener={bindOpener} />;
   // Stop at the block edge. A pixel inside the box covers a control that sits
   // on that edge, such as the toggle chevron.
-  const gutterWidth = Math.max(0, paint.blockLeft - (paint.left + paint.width));
-  const gutterTop = paint.blockTop - paint.top;
-  const gutterHeight = Math.max(paint.height, paint.blockBottom - paint.blockTop);
+  const gutterWidth = paint ? Math.max(0, paint.blockLeft - (paint.left + paint.width)) : 0;
+  const gutterTop = paint ? paint.blockTop - paint.top : 0;
+  const gutterHeight = paint ? Math.max(paint.height, paint.blockBottom - paint.blockTop) : 0;
 
-  const handleNode = (
+  const handleNode = paint ? (
     <div
       data-block-handle=""
       data-block-handle-for={paint.target.id}
@@ -84,15 +103,24 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
               type="button"
               size="icon"
               variant="ghost"
-              aria-label={GRIP_LABEL}
+              aria-label={BLOCK_MENU_GRIP_LABEL}
               data-block-handle-grip=""
-              onMouseDown={keepEditorSelection}
-              onPointerDown={keepEditorSelection}
+              onMouseDown={(event) => {
+                keepEditorSelection(event);
+                event.stopPropagation();
+              }}
+              onPointerDown={(event) => {
+                keepEditorSelection(event);
+                event.stopPropagation();
+              }}
+              onClick={() => {
+                openMenu.current(paint.target);
+              }}
             >
               <GripVertical aria-hidden="true" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent data-block-handle-tooltip="">{GRIP_LABEL}</TooltipContent>
+          <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
         </Tooltip>
       </div>
       <div
@@ -102,9 +130,15 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
         style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
       />
     </div>
-  );
+  ) : null;
 
   // The preview frame uses a drop-shadow filter, which would trap a fixed
   // overlay and clip it. The body portal keeps the gutter on the viewport.
-  return createPortal(handleNode, document.body);
+  return createPortal(
+    <>
+      {handleNode}
+      {menu}
+    </>,
+    document.body,
+  );
 }
