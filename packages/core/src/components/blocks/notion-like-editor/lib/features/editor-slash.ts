@@ -1,4 +1,4 @@
-import { AtSign, Link, type LucideIcon } from "lucide-react";
+import { AtSign, Bookmark, Link, type LucideIcon } from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -9,6 +9,8 @@ import {
   type TElement,
 } from "platejs";
 
+import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
 import { inlineTriggerBlocked, insertMention } from "../plugins/editor-mention";
@@ -28,6 +30,7 @@ export type SlashItem = {
   group: SlashGroup;
   block?: BlockPickerItem;
   inline?: "mention" | "link";
+  bookmark?: boolean;
 };
 
 export type SlashAnchor = {
@@ -219,7 +222,7 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
     .filter((item) => !item.disabled)
     .map(slashBlockItem);
   const inline = INLINE_ITEMS.filter((item) => inlineItemEnabled(editor, item.inline));
-  return [...blocks, ...inline];
+  return insertBookmarkSlashItem(blocks, bookmarkSlashItem(editor, session), inline);
 }
 
 export function slashItemsForSession(editor: SlateEditor, session: SlashSession): SlashItem[] {
@@ -242,6 +245,56 @@ export function slashItemsForSession(editor: SlateEditor, session: SlashSession)
 
 export function slashShowsGroups(query: string): boolean {
   return query.length === 0;
+}
+
+function insertBookmarkSlashItem(
+  blocks: SlashItem[],
+  bookmark: SlashItem | null,
+  inline: SlashItem[],
+): SlashItem[] {
+  if (bookmark === null) {
+    return [...blocks, ...inline];
+  }
+
+  const columnsAt = blocks.findIndex((item) => item.id === "columns");
+  const at = columnsAt === -1 ? blocks.length : columnsAt + 1;
+  return [...blocks.slice(0, at), bookmark, ...blocks.slice(at), ...inline];
+}
+
+function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !bookmarkPlaceable(editor, session)) {
+    return null;
+  }
+
+  return {
+    id: "bookmark",
+    label: "Bookmark",
+    description: "Save a link as a card",
+    keywords: ["web", "url", "embed"],
+    icon: Bookmark,
+    group: "Advanced",
+    bookmark: true,
+  };
+}
+
+function bookmarkPlaceable(editor: SlateEditor, session: SlashSession): boolean {
+  const index = session.blockPath[session.blockPath.length - 1];
+  if (index === undefined) {
+    return false;
+  }
+
+  const parentPath = session.blockPath.slice(0, -1);
+  let parentType: string | null = null;
+  if (parentPath.length > 0) {
+    const parent = editor.api.node([...parentPath]);
+    if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
+      return false;
+    }
+    parentType = parent[0].type;
+  }
+
+  const toIndex = session.replaceInPlace ? index : index + 1;
+  return blockPlacementRefusal(parentType, toIndex, BOOKMARK_KEY, false) === undefined;
 }
 
 function slashBlockItem(item: BlockPickerItem): SlashItem {

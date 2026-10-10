@@ -21,6 +21,7 @@ import {
   normalizeLinkInput,
   noteUnsafePastedLink,
   sanitizeLinkUrl,
+  typedAutolinkUrl,
 } from "../features/editor-link-url";
 
 // Native LinkRules.autolink (dist/index.js getAutolinkMatch) keeps trailing
@@ -589,13 +590,13 @@ function trimLinkToken(text: string): { url: string; lead: number; trailing: str
     end -= 1;
   }
 
-  const direct = sanitizeLinkUrl(text.slice(0, end));
+  const direct = typedAutolinkUrl(text.slice(0, end));
   if (direct !== undefined) {
     return { url: direct, lead: 0, trailing: text.slice(end) };
   }
 
   if (end > 1 && LEADING_PUNCTUATION.has(text.charAt(0))) {
-    const wrapped = sanitizeLinkUrl(text.slice(1, end));
+    const wrapped = typedAutolinkUrl(text.slice(1, end));
     if (wrapped !== undefined) {
       return { url: wrapped, lead: 1, trailing: text.slice(end) };
     }

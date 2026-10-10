@@ -13,6 +13,7 @@ import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url"
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
+import { BookmarkUrlPopover } from "../ui/bookmark-url-popover";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
@@ -59,6 +60,7 @@ export function EditorSurface({
             <SlashMenu />
             <LinkToolbar />
             <LinkPopover />
+            <BookmarkUrlPopover />
             <PlateContent
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

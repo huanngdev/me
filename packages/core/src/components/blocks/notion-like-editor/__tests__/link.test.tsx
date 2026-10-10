@@ -26,6 +26,7 @@ import {
   UNSAFE_LINK_PASTE,
   normalizeLinkInput,
   sanitizeLinkUrl,
+  typedAutolinkUrl,
 } from "../lib/features/editor-link-url";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { pasteRepairsOf } from "../lib/paste/editor-paste";
@@ -498,6 +499,17 @@ describe("link editing", () => {
     expect(nestedText(linkNodes(editor.children)[0])).toBe("mail");
   });
 
+  test("the link popover still saves a root-relative path and an anchor", () => {
+    for (const url of ["/blog", "#top"]) {
+      const editor = createEditor([paragraph("")]);
+      editor.tf.select(caret([0, 0], 0));
+      openLinkPopover(editor);
+      expect(commitLinkPopover(editor, url, "")).toBe(true);
+      expect(linkNodes(editor.children)[0]?.url).toBe(url);
+      expect(nestedText(linkNodes(editor.children)[0])).toBe(url);
+    }
+  });
+
   test("an invalid url shows an error and writes nothing, and escape closes without writing", () => {
     const editor = createEditor([paragraph("Hello")]);
     editor.tf.select(textRange([0, 0], 0, 5));
@@ -589,6 +601,45 @@ describe("autolink", () => {
     code.tf.insertText(" ");
     expect(linkNodes(code.children)).toEqual([]);
     expect(nestedText(code.children)).toBe(`${HTTPS} `);
+  });
+
+  test("typed slash and hash text stays plain, and scheme urls still link", () => {
+    for (const token of ["/table", "/blog/post", "#section"]) {
+      for (const end of [" ", "enter"] as const) {
+        const editor = createEditor([paragraph("")]);
+        editor.tf.select(caret([0, 0], 0));
+        editor.tf.insertText(token);
+        if (end === " ") {
+          editor.tf.insertText(" ");
+          expect(blockString(editor)).toBe(`${token} `);
+        } else {
+          editor.tf.insertBreak();
+          expect(editor.children).toHaveLength(2);
+          expect(blockString(editor, 0)).toBe(token);
+        }
+        expect(linkNodes(editor.children)).toEqual([]);
+      }
+    }
+
+    for (const token of ["https://example.com", "http://x.dev/a", "mailto:a@b.co", "tel:+123"]) {
+      const editor = createEditor([paragraph("")]);
+      editor.tf.select(caret([0, 0], 0));
+      editor.tf.insertText(token);
+      const typed = editor.history.undos.length;
+      editor.tf.insertText(" ");
+      expect(linkNodes(editor.children).map((node) => node.url)).toEqual([token]);
+      expect(blockString(editor)).toBe(`${token} `);
+      editor.tf.undo();
+      expect(linkNodes(editor.children)).toEqual([]);
+      expect(blockString(editor)).toBe(token);
+      expect(editor.history.undos.length).toBe(typed);
+      expect(typedAutolinkUrl(token)).toBe(token);
+    }
+
+    expect(typedAutolinkUrl("/blog")).toBeUndefined();
+    expect(typedAutolinkUrl("#section")).toBeUndefined();
+    expect(sanitizeLinkUrl("/blog")).toBe("/blog");
+    expect(sanitizeLinkUrl("#section")).toBe("#section");
   });
 
   test("composition does not autolink", () => {

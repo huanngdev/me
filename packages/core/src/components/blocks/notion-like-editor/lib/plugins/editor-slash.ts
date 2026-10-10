@@ -16,6 +16,7 @@ import {
   type SlashSession,
 } from "../features/editor-slash";
 import { retainScroll } from "../../components/ui/block-toolbar";
+import { openBookmarkUrlPopover } from "./editor-bookmark-popover";
 import { openLinkPopover } from "./editor-link";
 import { editorIsComposing, openMentionInput } from "./editor-mention";
 
@@ -175,6 +176,11 @@ function chooseSlash(editor: SlateEditor, id: string): void {
   }
   if (item.inline === "link") {
     openLinkPopover(editor);
+    return;
+  }
+  if (item.bookmark === true) {
+    editor.tf.setSplittingOnce(true);
+    openBookmarkUrlPopover(editor, session.anchor.blockId);
     return;
   }
   const block = item.block;

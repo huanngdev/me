@@ -77,6 +77,7 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
@@ -1831,6 +1832,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
+    bookmarkUrlPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
     PasteFallbackPlugin,

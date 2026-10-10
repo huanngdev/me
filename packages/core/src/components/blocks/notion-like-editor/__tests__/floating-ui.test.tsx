@@ -19,6 +19,7 @@ const editorRoot = join(import.meta.dir, "..");
 // Every portaled editor surface. The prop is the shared detach behavior.
 const floatingSources = [
   "components/ui/link-popover.tsx",
+  "components/ui/bookmark-url-popover.tsx",
   "components/ui/paste-url-menu.tsx",
   "components/elements/link-element.tsx",
   "components/elements/mention-element.tsx",

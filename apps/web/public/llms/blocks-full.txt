@@ -7490,6 +7490,7 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
@@ -9244,6 +9245,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
+    bookmarkUrlPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
     PasteFallbackPlugin,
@@ -18837,6 +18839,22 @@ export function sanitizeLinkUrl(raw: string): string | undefined {
   return raw;
 }
 
+// Typed space/Enter autolink only. Popover, paste, HTML, and stored links still use sanitizeLinkUrl.
+export function typedAutolinkUrl(raw: string): string | undefined {
+  const url = sanitizeLinkUrl(raw);
+  if (url === undefined) {
+    return undefined;
+  }
+
+  const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(url);
+  const scheme = match?.[1];
+  if (scheme === undefined || !ALLOWED_SCHEMES.has(scheme.toLowerCase())) {
+    return undefined;
+  }
+
+  return url;
+}
+
 // Only the link popover uses this. Paste and autolink keep the typed characters.
 export function normalizeLinkInput(raw: string): string {
   const trimmed = raw.trim();
@@ -18910,6 +18928,7 @@ import {
   normalizeLinkInput,
   noteUnsafePastedLink,
   sanitizeLinkUrl,
+  typedAutolinkUrl,
 } from "../features/editor-link-url";
 
 // Native LinkRules.autolink (dist/index.js getAutolinkMatch) keeps trailing
@@ -19478,13 +19497,13 @@ function trimLinkToken(text: string): { url: string; lead: number; trailing: str
     end -= 1;
   }
 
-  const direct = sanitizeLinkUrl(text.slice(0, end));
+  const direct = typedAutolinkUrl(text.slice(0, end));
   if (direct !== undefined) {
     return { url: direct, lead: 0, trailing: text.slice(end) };
   }
 
   if (end > 1 && LEADING_PUNCTUATION.has(text.charAt(0))) {
-    const wrapped = sanitizeLinkUrl(text.slice(1, end));
+    const wrapped = typedAutolinkUrl(text.slice(1, end));
     if (wrapped !== undefined) {
       return { url: wrapped, lead: 1, trailing: text.slice(end) };
     }
@@ -26497,6 +26516,7 @@ import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url"
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
+import { BookmarkUrlPopover } from "../ui/bookmark-url-popover";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
@@ -26543,6 +26563,7 @@ export function EditorSurface({
             <SlashMenu />
             <LinkToolbar />
             <LinkPopover />
+            <BookmarkUrlPopover />
             <PlateContent
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
