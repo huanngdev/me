@@ -21,6 +21,14 @@ import {
   duplicateBlockAt,
   type BlockMenuKind,
 } from "../features/editor-block-menu";
+import {
+  blockMoveDirection,
+  blockMoveTarget,
+  captureEditorScroll,
+  moveBlockAt,
+  settleMovedBlock,
+  siblingMove,
+} from "../features/editor-block-drop";
 import { openAncestorToggle } from "../plugins/editor-toggle";
 import {
   CALLOUT_ICONS,
@@ -1333,6 +1341,58 @@ export const deleteBlock: EditorCommand<{ path: number[] }> = {
     deleteBlockAt(editor, payload.path);
   },
 };
+
+export const moveBlock: EditorCommand<{ from: number[]; to: number[] }> = {
+  id: "block.move",
+  label: "Move block",
+  group: "action",
+  run: (editor, payload) => {
+    moveBlockAt(editor, payload.from, payload.to);
+  },
+};
+
+function mentionComboboxOpen(editor: SlateEditor): boolean {
+  const type = editor.getType(KEYS.mentionInput);
+  for (const [node] of editor.api.nodes({
+    at: [],
+    match: (candidate) => ElementApi.isElement(candidate) && candidate.type === type,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function onBlockMoveKeyDown(
+  editor: SlateEditor,
+  event: {
+    key: string;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    altKey: boolean;
+    shiftKey: boolean;
+    preventDefault: () => void;
+  },
+): boolean {
+  const direction = blockMoveDirection(event);
+  if (direction === null || editor.dom.readOnly === true || mentionComboboxOpen(editor)) {
+    return false;
+  }
+  const from = blockMoveTarget(editor);
+  if (!from) {
+    return false;
+  }
+  const step = siblingMove(editor.children, from, direction);
+  event.preventDefault();
+  if (!step.ok) {
+    return true;
+  }
+  const scroll = captureEditorScroll();
+  runEditorCommand(editor, moveBlock, { from: [...from], to: step.to });
+  settleMovedBlock(editor, scroll);
+  return true;
+}
 
 export const clearFormatting: EditorCommand = {
   id: "format.clear",

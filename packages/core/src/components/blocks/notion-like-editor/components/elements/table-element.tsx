@@ -268,7 +268,7 @@ function selectionBox(plate: HTMLElement): SelectionBox | null {
   return { left: left - plateRect.left, top: top - plateRect.top, width, height };
 }
 
-function TableSelectionFrame({ watch }: { watch: unknown }) {
+function TableSelectionFrame({ watch, multi }: { watch: unknown; multi: boolean }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<SelectionBox | null>(null);
   const selectionKey = useEditorSelector((instance) => {
@@ -319,10 +319,15 @@ function TableSelectionFrame({ watch }: { watch: unknown }) {
     <div
       ref={frameRef}
       contentEditable={false}
-      data-table-selection=""
+      data-table-selection={multi ? "range" : "cell"}
       aria-hidden="true"
       hidden={box === null}
-      className="border-primary pointer-events-none absolute box-border border-2 border-solid"
+      // The box already covers the 1px grid line. A 1px border sits on that line,
+      // with the same outer halo as a focused input. A range keeps the 2px stroke.
+      className={cn(
+        "pointer-events-none absolute box-border border-solid",
+        multi ? "border-primary border-2" : "border-ring ring-ring/50 border ring-3",
+      )}
       style={
         box === null
           ? undefined
@@ -477,7 +482,7 @@ export function TableElement(props: PlateElementProps) {
           <TableBody>{props.children}</TableBody>
         </Table>
       </TableResizeContext.Provider>
-      {readOnly ? null : <TableSelectionFrame watch={preview} />}
+      {readOnly ? null : <TableSelectionFrame watch={preview} multi={multi} />}
     </PlateElement>
   );
 }

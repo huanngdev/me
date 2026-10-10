@@ -1161,9 +1161,13 @@ describe("table render", () => {
         expect(classTokens(cell.className)).not.toContain("border");
       }
       expect(mounted.host.querySelectorAll("[data-table-selection]")).toHaveLength(1);
-      expect(mounted.host.querySelector("[data-table-selection]")?.className ?? "").toContain(
-        "border-primary",
-      );
+      const range = mounted.host.querySelector("[data-table-selection]");
+      expect(range?.getAttribute("data-table-selection")).toBe("range");
+      const rangeClass = range?.className ?? "";
+      expect(rangeClass).toContain("border-primary");
+      expect(rangeClass).toContain("border-2");
+      expect(rangeClass).not.toContain("border-ring");
+      expect(rangeClass).not.toContain("ring-3");
       const multi = selected[0]?.closest("[data-slate-node='element'].group");
       expect(multi?.className ?? "").toContain("[&_*::selection]:bg-transparent");
       expect(multi?.className ?? "").toContain("[&_*::selection]:text-current");
@@ -1172,7 +1176,7 @@ describe("table render", () => {
     }
   });
 
-  test("a single active cell uses the same outline, and read-only draws none", async () => {
+  test("a single active cell uses the input outline, and read-only draws none", async () => {
     const mounted = await mountTable([gridTable(2, 2)]);
 
     try {
@@ -1188,6 +1192,14 @@ describe("table render", () => {
 
       expect(mounted.host.querySelectorAll("[data-cell-selected='true']")).toHaveLength(1);
       expect(mounted.host.querySelectorAll("[data-table-selection]")).toHaveLength(1);
+      const cellFrame = mounted.host.querySelector("[data-table-selection]");
+      expect(cellFrame?.getAttribute("data-table-selection")).toBe("cell");
+      const cellClass = cellFrame?.className ?? "";
+      expect(cellClass).toContain("border-ring");
+      expect(cellClass).toContain("ring-3");
+      expect(cellClass).toContain("ring-ring/50");
+      expect(cellClass).not.toContain("border-primary");
+      expect(cellClass).not.toContain("border-2");
       expect(mounted.host.innerHTML).not.toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
       const single = mounted.host.querySelector("[data-cell-selected='true']")?.closest(".group");
       expect(single?.className ?? "").not.toContain("::selection]:bg-transparent");

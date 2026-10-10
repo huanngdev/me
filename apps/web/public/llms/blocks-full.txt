@@ -2404,65 +2404,67 @@ export default function ErrorPageBlockPage() {
 10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
 11. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 12. packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
-13. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
-14. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-15. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-16. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-18. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-19. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-21. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-22. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-24. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-25. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-26. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-27. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-28. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-29. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-30. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-31. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-32. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-33. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-34. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-35. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-36. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-37. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-38. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-39. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-40. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-41. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-42. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-43. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-44. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-45. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-47. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-48. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-52. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-53. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-54. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-55. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-56. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-58. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-59. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-60. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-61. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-62. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-63. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-64. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-65. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-66. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-67. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-68. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-69. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-71. apps/web/src/app/blocks/notion-like-editor/page.tsx
+13. packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
+14. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+15. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+16. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+17. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+18. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+19. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+22. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+24. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+25. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+26. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+27. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+28. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+29. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+30. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+31. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+32. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+33. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+34. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+35. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+37. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+39. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+41. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+43. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+44. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+45. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+46. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+47. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+48. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+49. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+50. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+52. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+55. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+56. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+60. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+61. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+62. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+63. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+64. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+65. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+66. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+67. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+69. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+70. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+71. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+72. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+73. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -5719,6 +5721,7 @@ import { cn } from "@/lib/utils";
 import { useBlockHandle } from "../../hooks/use-block-handle";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { BlockDropIndicator, useBlockDrag } from "./block-drag";
 import { BlockMenu } from "./block-menu";
 
 const ADD_LABEL = "Click to add below";
@@ -5748,9 +5751,16 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
+  const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
     openMenu.current = open;
   }, []);
+  const bindCloser = useCallback((close: () => void) => {
+    closeMenu.current = close;
+  }, []);
+  const drag = useBlockDrag(() => {
+    closeMenu.current();
+  });
   const client = useClientPortal();
 
   useLayoutEffect(() => {
@@ -5765,88 +5775,101 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
     return null;
   }
 
-  const menu = <BlockMenu gripRef={gripRef} holdMenu={handle.holdMenu} bindOpener={bindOpener} />;
+  const menu = (
+    <BlockMenu
+      gripRef={gripRef}
+      holdMenu={handle.holdMenu}
+      bindOpener={bindOpener}
+      bindCloser={bindCloser}
+    />
+  );
   // Stop at the block edge. A pixel inside the box covers a control that sits
   // on that edge, such as the toggle chevron.
   const gutterWidth = paint ? Math.max(0, paint.blockLeft - (paint.left + paint.width)) : 0;
   const gutterTop = paint ? paint.blockTop - paint.top : 0;
   const gutterHeight = paint ? Math.max(paint.height, paint.blockBottom - paint.blockTop) : 0;
 
-  const handleNode = paint ? (
-    <div
-      data-block-handle=""
-      data-block-handle-for={paint.target.id}
-      data-visible={shown ? "true" : "false"}
-      className={cn(
-        "fixed z-20 transition-opacity duration-150 ease-out motion-reduce:transition-none",
-        shown ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-        "[@media(hover:none)]:hidden",
-      )}
-      style={{ top: paint.top, left: paint.left }}
-      onFocus={onHandleFocus}
-      onBlur={(event) => {
-        onHandleBlur(event.relatedTarget);
-      }}
-    >
-      <div ref={rowRef} className="flex items-center gap-0.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={ADD_LABEL}
-              data-block-handle-add=""
-              onMouseDown={keepEditorSelection}
-              onPointerDown={keepEditorSelection}
-              onClick={addBelow}
-            >
-              <Plus aria-hidden="true" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              ref={gripRef}
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={BLOCK_MENU_GRIP_LABEL}
-              data-block-handle-grip=""
-              onMouseDown={(event) => {
-                keepEditorSelection(event);
-                event.stopPropagation();
-              }}
-              onPointerDown={(event) => {
-                keepEditorSelection(event);
-                event.stopPropagation();
-              }}
-              onClick={() => {
-                openMenu.current(paint.target);
-              }}
-            >
-              <GripVertical aria-hidden="true" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
-        </Tooltip>
-      </div>
+  const handleNode =
+    paint && !drag.dragging ? (
       <div
-        data-block-handle-gutter=""
-        aria-hidden="true"
-        className="absolute"
-        style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
-      />
-    </div>
-  ) : null;
+        data-block-handle=""
+        data-block-handle-for={paint.target.id}
+        data-visible={shown ? "true" : "false"}
+        className={cn(
+          "fixed z-20 transition-opacity duration-150 ease-out motion-reduce:transition-none",
+          shown ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+          "[@media(hover:none)]:hidden",
+        )}
+        style={{ top: paint.top, left: paint.left }}
+        onFocus={onHandleFocus}
+        onBlur={(event) => {
+          onHandleBlur(event.relatedTarget);
+        }}
+      >
+        <div ref={rowRef} className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={ADD_LABEL}
+                data-block-handle-add=""
+                onMouseDown={keepEditorSelection}
+                onPointerDown={keepEditorSelection}
+                onClick={addBelow}
+              >
+                <Plus aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                ref={gripRef}
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={BLOCK_MENU_GRIP_LABEL}
+                data-block-handle-grip=""
+                onMouseDown={(event) => {
+                  keepEditorSelection(event);
+                  event.stopPropagation();
+                }}
+                onPointerDown={(event) => {
+                  keepEditorSelection(event);
+                  event.stopPropagation();
+                  drag.onGripPointerDown(event, paint.target);
+                }}
+                onClick={() => {
+                  if (drag.consumeGripClick()) {
+                    return;
+                  }
+                  openMenu.current(paint.target);
+                }}
+              >
+                <GripVertical aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+          </Tooltip>
+        </div>
+        <div
+          data-block-handle-gutter=""
+          aria-hidden="true"
+          className="absolute"
+          style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
+        />
+      </div>
+    ) : null;
 
   // The preview frame uses a drop-shadow filter, which would trap a fixed
   // overlay and clip it. The body portal keeps the gutter on the viewport.
   return createPortal(
     <>
       {handleNode}
+      {drag.indicator ? <BlockDropIndicator line={drag.indicator} /> : null}
       {menu}
     </>,
     document.body,
@@ -5858,7 +5881,9 @@ export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
 ```tsx
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import {
+  ArrowDown,
   ArrowRightLeft,
+  ArrowUp,
   ChevronRight,
   Code,
   Copy,
@@ -5894,9 +5919,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import {
   deleteBlock,
   duplicateBlock,
+  moveBlock,
   runEditorCommand,
   turnBlockInto,
 } from "../../lib/commands/editor-commands";
+import {
+  settleMovedBlock,
+  siblingMove,
+  captureEditorScroll,
+} from "../../lib/features/editor-block-drop";
 import {
   blockHandleTarget,
   chainFromDom,
@@ -6077,6 +6108,25 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     runEditorCommand(editor, deleteBlock, { path: [...path] });
   }
 
+  function move(direction: "up" | "down"): void {
+    const located = findBlockById(editor, target.id);
+    const at = located?.[1];
+    if (!at) {
+      return;
+    }
+    const step = siblingMove(editor.children, at, direction);
+    if (!step.ok) {
+      return;
+    }
+    onActed();
+    const scroll = captureEditorScroll();
+    runEditorCommand(editor, moveBlock, { from: [...at], to: step.to });
+    settleMovedBlock(editor, scroll);
+  }
+
+  const up = path === undefined ? null : siblingMove(editor.children, path, "up");
+  const down = path === undefined ? null : siblingMove(editor.children, path, "down");
+
   return (
     <>
       {decisions === null ? null : (
@@ -6127,6 +6177,36 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         <Copy aria-hidden="true" />
         Duplicate
       </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={up === null || !up.ok}
+        data-block-menu-move="up"
+        onSelect={() => {
+          move("up");
+        }}
+      >
+        <ArrowUp aria-hidden="true" />
+        <span className="flex min-w-0 flex-col items-start">
+          <span>Move up</span>
+          {up !== null && !up.ok ? (
+            <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
+          ) : null}
+        </span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={down === null || !down.ok}
+        data-block-menu-move="down"
+        onSelect={() => {
+          move("down");
+        }}
+      >
+        <ArrowDown aria-hidden="true" />
+        <span className="flex min-w-0 flex-col items-start">
+          <span>Move down</span>
+          {down !== null && !down.ok ? (
+            <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
+          ) : null}
+        </span>
+      </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
         variant="destructive"
@@ -6145,10 +6225,12 @@ export function BlockMenu({
   gripRef,
   holdMenu,
   bindOpener,
+  bindCloser,
 }: {
   gripRef: RefObject<HTMLButtonElement | null>;
   holdMenu: (id: string | null) => void;
   bindOpener: (open: (target: BlockHandleHit) => void) => void;
+  bindCloser: (close: () => void) => void;
 }) {
   const editor = useEditorRef();
   const [session, setSession] = useState<MenuSession | null>(null);
@@ -6207,7 +6289,8 @@ export function BlockMenu({
 
   useLayoutEffect(() => {
     bindOpener(openFromGrip);
-  }, [bindOpener, openFromGrip]);
+    bindCloser(close);
+  }, [bindCloser, bindOpener, close, openFromGrip]);
 
   useEffect(() => {
     return () => {
@@ -6393,6 +6476,615 @@ export function BlockMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
+```tsx
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { ElementApi, type Descendant, type SlateEditor } from "platejs";
+import { useEditorRef } from "platejs/react";
+
+import { moveBlock, runEditorCommand } from "../../lib/commands/editor-commands";
+import {
+  blockDropDecision,
+  captureEditorScroll,
+  dragPastThreshold,
+  listItemUnit,
+  resolveDropIndicator,
+  type DropBand,
+  type DropIndicator,
+} from "../../lib/features/editor-block-drop";
+import { setBlockDragArmed, type BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { findBlockById } from "../../lib/features/editor-synced-block";
+import { retainScroll } from "./block-toolbar";
+
+const EDGE_PX = 48;
+const SCROLL_STEP_PX = 14;
+const SOURCE_DIM = "opacity-40";
+
+type SavedSelection = SlateEditor["selection"];
+
+type DragSession = {
+  path: number[];
+  id: string;
+  x: number;
+  y: number;
+  pointerX: number;
+  pointerY: number;
+  dragging: boolean;
+  selection: SavedSelection;
+};
+
+function cloneSelection(selection: SavedSelection): SavedSelection {
+  if (!selection) {
+    return null;
+  }
+  return {
+    anchor: { path: [...selection.anchor.path], offset: selection.anchor.offset },
+    focus: { path: [...selection.focus.path], offset: selection.focus.offset },
+  };
+}
+
+function sameSelection(left: SavedSelection, right: SavedSelection): boolean {
+  if (!left || !right) {
+    return left === right;
+  }
+  return (
+    left.anchor.offset === right.anchor.offset &&
+    left.focus.offset === right.focus.offset &&
+    left.anchor.path.join(".") === right.anchor.path.join(".") &&
+    left.focus.path.join(".") === right.focus.path.join(".")
+  );
+}
+
+function elementIdOf(node: Descendant | undefined): string {
+  if (!node || !ElementApi.isElement(node)) {
+    return "";
+  }
+  const id: unknown = Reflect.get(node, "id");
+  return typeof id === "string" ? id : "";
+}
+
+function movingBlockIds(editor: SlateEditor, path: readonly number[]): string[] {
+  const index = path[path.length - 1];
+  if (index === undefined) {
+    return [];
+  }
+  const parentPath = path.slice(0, -1);
+  let siblings: readonly Descendant[] | null = null;
+  if (parentPath.length === 0) {
+    siblings = editor.children;
+  } else {
+    const entry = editor.api.node(parentPath);
+    const node = entry?.[0];
+    if (entry && ElementApi.isElement(node)) {
+      siblings = node.children;
+    }
+  }
+  if (!siblings) {
+    return [];
+  }
+  const [start, end] = listItemUnit(siblings, index);
+  const ids: string[] = [];
+  for (let cursor = start; cursor < end; cursor += 1) {
+    const id = elementIdOf(siblings[cursor]);
+    if (id.length > 0) {
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function samePoint(
+  selection: SavedSelection,
+  point: { path: readonly number[]; offset: number },
+): boolean {
+  if (!selection) {
+    return false;
+  }
+  const anchor = selection.anchor;
+  const focus = selection.focus;
+  if (anchor.offset !== point.offset || focus.offset !== point.offset) {
+    return false;
+  }
+  if (anchor.path.length !== point.path.length || focus.path.length !== point.path.length) {
+    return false;
+  }
+  for (let index = 0; index < point.path.length; index += 1) {
+    if (anchor.path[index] !== point.path[index] || focus.path[index] !== point.path[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function placeMovedCaret(editor: SlateEditor, id: string): void {
+  const landed = findBlockById(editor, id);
+  if (!landed) {
+    return;
+  }
+  const point = editor.api.start(landed[1]);
+  if (!point) {
+    return;
+  }
+  if (!samePoint(editor.selection, point)) {
+    editor.tf.withoutSaving(() => {
+      editor.tf.select(point);
+    });
+  }
+  const dom: unknown = editor.api.toDOMNode(landed[0]);
+  if (!(dom instanceof HTMLElement)) {
+    return;
+  }
+  const range = editor.api.toDOMRange({ anchor: point, focus: point });
+  if (!range) {
+    return;
+  }
+  editor.tf.focus();
+  if (!samePoint(editor.selection, point)) {
+    editor.tf.withoutSaving(() => {
+      editor.tf.select(point);
+    });
+  }
+  const domSelection = window.getSelection();
+  if (!domSelection) {
+    return;
+  }
+  domSelection.removeAllRanges();
+  domSelection.addRange(range);
+}
+
+function restoreEditorScroll(snap: ReturnType<typeof captureEditorScroll>): void {
+  if (snap.viewport) {
+    snap.viewport.scrollTop = snap.top;
+    snap.viewport.scrollLeft = snap.left;
+  }
+  window.scrollTo(snap.windowX, snap.windowY);
+}
+
+function escapeId(id: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(id);
+  }
+  return id.replace(/["\\]/g, "\\$&");
+}
+
+function editorViewport(editor: SlateEditor): HTMLElement | null {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(first);
+  const viewport = dom?.closest("[data-block-viewport]");
+  return viewport instanceof HTMLElement ? viewport : null;
+}
+
+function listIndentInset(dom: HTMLElement): number {
+  for (const child of dom.children) {
+    if (!(child instanceof HTMLElement)) {
+      continue;
+    }
+    if (child.tagName !== "UL" && child.tagName !== "OL") {
+      continue;
+    }
+    const padding = Number.parseFloat(getComputedStyle(child).paddingLeft);
+    return Number.isFinite(padding) ? padding : 0;
+  }
+  return 0;
+}
+
+function contentBox(dom: HTMLElement): {
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+} {
+  const rect = dom.getBoundingClientRect();
+  const style = getComputedStyle(dom);
+  const padLeft = (Number.parseFloat(style.paddingLeft) || 0) + listIndentInset(dom);
+  const padRight = Number.parseFloat(style.paddingRight) || 0;
+  return {
+    top: rect.top,
+    height: rect.height,
+    left: rect.left + padLeft,
+    width: Math.max(0, rect.width - padLeft - padRight),
+  };
+}
+
+function bandFor(editor: SlateEditor, path: number[]): DropBand | null {
+  const entry = editor.api.node(path);
+  if (!entry || !ElementApi.isElement(entry[0])) {
+    return null;
+  }
+  const dom: unknown = editor.api.toDOMNode(entry[0]);
+  if (!(dom instanceof HTMLElement) || dom.closest("[data-preview-path]")) {
+    return null;
+  }
+  const rect = contentBox(dom);
+  return {
+    path: [...path],
+    top: rect.top,
+    height: rect.height,
+    left: rect.left,
+    width: rect.width,
+  };
+}
+
+function unitBox(editor: SlateEditor, from: number[]): { first: DropBand; last: DropBand } | null {
+  const parent = from.slice(0, -1);
+  const index = from[from.length - 1] ?? 0;
+  const decision = blockDropDecision(editor.children, from, parent, index);
+  const [start, end] = decision.unit;
+  if (end <= start) {
+    return null;
+  }
+  const first = bandFor(editor, [...parent, start]);
+  const last = bandFor(editor, [...parent, end - 1]);
+  if (!first || !last) {
+    return null;
+  }
+  return { first, last };
+}
+
+function bandsUnderPointer(editor: SlateEditor, x: number, y: number): DropBand[] {
+  if (typeof document.elementsFromPoint !== "function") {
+    return [];
+  }
+  const bands: DropBand[] = [];
+  const seen = new Set<string>();
+  for (const element of document.elementsFromPoint(x, y)) {
+    if (element.closest("[data-block-handle], [data-block-menu], [data-block-drop-indicator]")) {
+      continue;
+    }
+    const block = element.closest("[data-block-id]");
+    if (!(block instanceof HTMLElement) || block.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = block.getAttribute("data-block-id");
+    if (id === null || id.length === 0 || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const rect = contentBox(block);
+    bands.push({
+      path: [...entry[1]],
+      top: rect.top,
+      height: rect.height,
+      left: rect.left,
+      width: rect.width,
+    });
+  }
+  return bands;
+}
+
+function scrollAtEdge(viewport: HTMLElement | null, clientY: number): boolean {
+  let scrolled = false;
+  if (viewport) {
+    const rect = viewport.getBoundingClientRect();
+    if (clientY >= rect.top && clientY < rect.top + EDGE_PX) {
+      const next = Math.max(0, viewport.scrollTop - SCROLL_STEP_PX);
+      if (next !== viewport.scrollTop) {
+        viewport.scrollTop = next;
+        scrolled = true;
+      }
+    } else if (clientY <= rect.bottom && clientY > rect.bottom - EDGE_PX) {
+      const max = viewport.scrollHeight - viewport.clientHeight;
+      const next = Math.min(max, viewport.scrollTop + SCROLL_STEP_PX);
+      if (next !== viewport.scrollTop) {
+        viewport.scrollTop = next;
+        scrolled = true;
+      }
+    }
+  }
+  if (clientY < EDGE_PX) {
+    const before = window.scrollY;
+    window.scrollBy(0, -SCROLL_STEP_PX);
+    scrolled = scrolled || window.scrollY !== before;
+  } else if (clientY > window.innerHeight - EDGE_PX) {
+    const before = window.scrollY;
+    window.scrollBy(0, SCROLL_STEP_PX);
+    scrolled = scrolled || window.scrollY !== before;
+  }
+  return scrolled;
+}
+
+export function BlockDropIndicator({ line }: { line: DropIndicator }) {
+  return (
+    <div
+      data-block-drop-indicator=""
+      aria-hidden="true"
+      className="bg-primary pointer-events-none fixed z-30 h-0.5 motion-reduce:transition-none"
+      style={{ top: line.top, left: line.left, width: line.width }}
+    />
+  );
+}
+
+type DragListeners = {
+  move: (event: PointerEvent) => void;
+  up: () => void;
+  cancel: () => void;
+  key: (event: KeyboardEvent) => void;
+  blur: () => void;
+  select: (event: Event) => void;
+};
+
+export function useBlockDrag(closeMenu: () => void): {
+  indicator: DropIndicator | null;
+  dragging: boolean;
+  onGripPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, target: BlockHandleHit) => void;
+  consumeGripClick: () => boolean;
+} {
+  const editor = useEditorRef();
+  const [indicator, setIndicator] = useState<DropIndicator | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const session = useRef<DragSession | null>(null);
+  const indicatorRef = useRef<DropIndicator | null>(null);
+  const suppressClick = useRef(false);
+  const swallowClick = useRef(false);
+  const closeRef = useRef(closeMenu);
+  const frame = useRef(0);
+  const dimmed = useRef<HTMLElement[]>([]);
+  const cursor = useRef("");
+  const userSelect = useRef("");
+  const listeners = useRef<DragListeners | null>(null);
+  const editorRef = useRef(editor);
+  const stopRef = useRef<(restoreSelection: boolean) => void>(() => undefined);
+
+  useEffect(() => {
+    closeRef.current = closeMenu;
+    editorRef.current = editor;
+  }, [closeMenu, editor]);
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent): void => {
+      if (!swallowClick.current) {
+        return;
+      }
+      swallowClick.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    window.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("click", onClick, true);
+      stopRef.current(false);
+    };
+  }, []);
+
+  function setLine(next: DropIndicator | null): void {
+    indicatorRef.current = next;
+    setIndicator(next);
+  }
+
+  function dimSource(id: string): void {
+    const nodes = document.querySelectorAll(`[data-block-id="${escapeId(id)}"]`);
+    for (const node of nodes) {
+      if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+        continue;
+      }
+      node.classList.add(SOURCE_DIM);
+      dimmed.current.push(node);
+    }
+  }
+
+  function undim(): void {
+    for (const node of dimmed.current) {
+      node.classList.remove(SOURCE_DIM);
+    }
+    dimmed.current = [];
+  }
+
+  function unlisten(): void {
+    const current = listeners.current;
+    if (!current) {
+      return;
+    }
+    listeners.current = null;
+    window.removeEventListener("pointermove", current.move);
+    window.removeEventListener("pointerup", current.up);
+    window.removeEventListener("pointercancel", current.cancel);
+    window.removeEventListener("keydown", current.key);
+    window.removeEventListener("blur", current.blur);
+    document.removeEventListener("selectstart", current.select);
+  }
+
+  function stop(restoreSelection: boolean): void {
+    const current = session.current;
+    session.current = null;
+    cancelAnimationFrame(frame.current);
+    unlisten();
+    undim();
+    document.documentElement.style.cursor = cursor.current;
+    document.body.style.userSelect = userSelect.current;
+    document.body.removeAttribute("data-block-dragging");
+    setBlockDragArmed(false);
+    setDragging(false);
+    setLine(null);
+    if (!restoreSelection || !current) {
+      return;
+    }
+    const live = editorRef.current;
+    if (sameSelection(live.selection, current.selection)) {
+      return;
+    }
+    const saved = current.selection;
+    live.tf.withoutSaving(() => {
+      if (saved) {
+        live.tf.select(saved);
+      } else {
+        live.tf.deselect();
+      }
+    });
+  }
+
+  useEffect(() => {
+    stopRef.current = stop;
+  });
+
+  function updateIndicator(): void {
+    const current = session.current;
+    const live = editorRef.current;
+    if (!current?.dragging) {
+      return;
+    }
+    const bands = bandsUnderPointer(live, current.pointerX, current.pointerY);
+    const line = resolveDropIndicator(
+      live.children,
+      current.path,
+      bands,
+      current.pointerY,
+      unitBox(live, current.path),
+    );
+    document.documentElement.style.cursor = line ? "grabbing" : "not-allowed";
+    setLine(line);
+  }
+
+  function tick(): void {
+    const current = session.current;
+    if (!current?.dragging) {
+      return;
+    }
+    if (scrollAtEdge(editorViewport(editorRef.current), current.pointerY)) {
+      updateIndicator();
+    }
+    frame.current = requestAnimationFrame(tick);
+  }
+
+  function begin(current: DragSession): void {
+    current.dragging = true;
+    suppressClick.current = true;
+    swallowClick.current = true;
+    closeRef.current();
+    cursor.current = document.documentElement.style.cursor;
+    userSelect.current = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    document.body.setAttribute("data-block-dragging", "");
+    setDragging(true);
+    for (const id of movingBlockIds(editorRef.current, current.path)) {
+      dimSource(id);
+    }
+    const select = listeners.current?.select;
+    if (select) {
+      document.addEventListener("selectstart", select);
+    }
+    updateIndicator();
+    frame.current = requestAnimationFrame(tick);
+  }
+
+  function finish(drop: boolean): void {
+    const current = session.current;
+    const line = indicatorRef.current;
+    const dragging = current?.dragging === true;
+    stop(dragging && !drop);
+    if (!drop || !dragging || !current || !line || line.noop) {
+      return;
+    }
+    const live = editorRef.current;
+    const movedId = current.id;
+    const snap = captureEditorScroll();
+    retainScroll(() => {
+      runEditorCommand(live, moveBlock, { from: [...current.path], to: line.to });
+    });
+    // The grip blurs the editor, so Slate never copies the model caret into the
+    // DOM, and focusing the editor parks that caret at the top of the document.
+    // The moved nodes are clones, so the DOM range exists only after React commits.
+    const apply = (): void => {
+      placeMovedCaret(editorRef.current, movedId);
+      restoreEditorScroll(snap);
+    };
+    queueMicrotask(apply);
+    requestAnimationFrame(() => {
+      apply();
+      requestAnimationFrame(() => {
+        apply();
+        setTimeout(apply, 0);
+      });
+    });
+  }
+
+  function onGripPointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    target: BlockHandleHit,
+  ): void {
+    if (event.button !== 0 || event.pointerType === "touch" || editor.dom.readOnly === true) {
+      return;
+    }
+    stop(false);
+    setBlockDragArmed(true);
+    suppressClick.current = false;
+    session.current = {
+      path: [...target.path],
+      id: target.id,
+      x: event.clientX,
+      y: event.clientY,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      dragging: false,
+      selection: cloneSelection(editor.selection),
+    };
+    const move = (pointer: PointerEvent): void => {
+      const current = session.current;
+      if (!current || pointer.pointerType === "touch") {
+        return;
+      }
+      current.pointerX = pointer.clientX;
+      current.pointerY = pointer.clientY;
+      if (!current.dragging) {
+        if (!dragPastThreshold(pointer.clientX - current.x, pointer.clientY - current.y)) {
+          return;
+        }
+        begin(current);
+        return;
+      }
+      pointer.preventDefault();
+      updateIndicator();
+    };
+    const cancel = (): void => {
+      if (session.current?.dragging) {
+        suppressClick.current = true;
+      }
+      stop(true);
+    };
+    const attached: DragListeners = {
+      move,
+      up: () => {
+        finish(true);
+      },
+      cancel,
+      key: (keyEvent) => {
+        if (keyEvent.key !== "Escape") {
+          return;
+        }
+        keyEvent.preventDefault();
+        cancel();
+      },
+      blur: cancel,
+      select: (selectEvent) => {
+        selectEvent.preventDefault();
+      },
+    };
+    listeners.current = attached;
+    window.addEventListener("pointermove", attached.move);
+    window.addEventListener("pointerup", attached.up);
+    window.addEventListener("pointercancel", attached.cancel);
+    window.addEventListener("keydown", attached.key);
+    window.addEventListener("blur", attached.blur);
+  }
+
+  function consumeGripClick(): boolean {
+    if (!suppressClick.current) {
+      return false;
+    }
+    suppressClick.current = false;
+    return true;
+  }
+
+  return { indicator, dragging, onGripPointerDown, consumeGripClick };
 }
 ```
 
@@ -6599,6 +7291,7 @@ import {
   formatSubscript,
   formatSuperscript,
   formatUnderline,
+  onBlockMoveKeyDown,
   runEditorCommand,
   toggleBulletedList,
   toggleNumberedList,
@@ -8079,6 +8772,13 @@ const syncedRefPlugin = toPlatePlugin(
   },
 );
 
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+const blockMovePlugin = toPlatePlugin(createSlatePlugin({ key: "blockMove" }), {
+  handlers: {
+    onKeyDown: ({ editor, event }) => onBlockMoveKeyDown(editor, event),
+  },
+});
+
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
   handlers: {
@@ -8316,6 +9016,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     equationPlatePlugin,
     syncedRefPlugin,
     columnPlugin,
+    blockMovePlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
@@ -12388,7 +13089,7 @@ function selectionBox(plate: HTMLElement): SelectionBox | null {
   return { left: left - plateRect.left, top: top - plateRect.top, width, height };
 }
 
-function TableSelectionFrame({ watch }: { watch: unknown }) {
+function TableSelectionFrame({ watch, multi }: { watch: unknown; multi: boolean }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<SelectionBox | null>(null);
   const selectionKey = useEditorSelector((instance) => {
@@ -12439,10 +13140,15 @@ function TableSelectionFrame({ watch }: { watch: unknown }) {
     <div
       ref={frameRef}
       contentEditable={false}
-      data-table-selection=""
+      data-table-selection={multi ? "range" : "cell"}
       aria-hidden="true"
       hidden={box === null}
-      className="border-primary pointer-events-none absolute box-border border-2 border-solid"
+      // The box already covers the 1px grid line. A 1px border sits on that line,
+      // with the same outer halo as a focused input. A range keeps the 2px stroke.
+      className={cn(
+        "pointer-events-none absolute box-border border-solid",
+        multi ? "border-primary border-2" : "border-ring ring-ring/50 border ring-3",
+      )}
       style={
         box === null
           ? undefined
@@ -12597,7 +13303,7 @@ export function TableElement(props: PlateElementProps) {
           <TableBody>{props.children}</TableBody>
         </Table>
       </TableResizeContext.Provider>
-      {readOnly ? null : <TableSelectionFrame watch={preview} />}
+      {readOnly ? null : <TableSelectionFrame watch={preview} multi={multi} />}
     </PlateElement>
   );
 }
@@ -20645,6 +21351,18 @@ export function reduceHandleUi(state: HandleUiState, event: HandleUiEvent): Hand
   }
 }
 
+// Set for the whole grip press, including the pixels before the drag threshold.
+// Pointer moves in that window must not retarget the handle.
+let blockDragArmed = false;
+
+export function setBlockDragArmed(armed: boolean): void {
+  blockDragArmed = armed;
+}
+
+export function isBlockDragArmed(): boolean {
+  return blockDragArmed;
+}
+
 export function visibleHandleId(state: HandleUiState): string | null {
   if (state.readOnly || state.hoverNone) {
     return null;
@@ -21062,6 +21780,17 @@ function typeRefusal(
     parentType,
     kind ?? kindForChild({ type, listStyleType: asList ? "disc" : undefined, rich: false }),
   );
+}
+
+// Same parent rules as Turn into and paste. Callers that must refuse a slot the
+// matrix would allow (a table cell, a toggle label) do that before calling this.
+export function blockPlacementRefusal(
+  parentType: string | null,
+  index: number,
+  type: string,
+  asList: boolean,
+): string | undefined {
+  return typeRefusal(parentType, index, type, asList);
 }
 
 function nestingRefusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
@@ -21716,6 +22445,652 @@ function unsetProp(node: TElement, key: string): void {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import { containerContentType, maxNesting } from "../document/editor-document-schema";
+import { targetBlockAtPath } from "./editor-block-handle";
+import { blockPlacementRefusal } from "./editor-block-menu";
+import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
+
+export const BLOCK_DRAG_THRESHOLD_PX = 4;
+
+export const MOVE_ALREADY_FIRST = "This block is already first.";
+export const MOVE_ALREADY_LAST = "This block is already last.";
+
+const INTO_SELF = "A block cannot be dropped into itself.";
+const TOGGLE_NESTING = "Toggles can only nest three levels deep.";
+
+const UNMOVABLE = new Set<string>([KEYS.td, KEYS.th, KEYS.tr, KEYS.column, KEYS.codeLine]);
+
+export type BlockDropDecision = {
+  allowed: boolean;
+  noop: boolean;
+  reason?: string;
+  unit: readonly [number, number];
+};
+
+export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
+
+export type DropBand = {
+  path: number[];
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+};
+
+export type DropIndicator = {
+  top: number;
+  left: number;
+  width: number;
+  to: number[];
+  noop: boolean;
+};
+
+type ScrollSnap = {
+  viewport: HTMLElement | null;
+  top: number;
+  left: number;
+  windowX: number;
+  windowY: number;
+};
+
+const refusedUnit: readonly [number, number] = [0, 0];
+
+function refuse(reason: string, unit: readonly [number, number] = refusedUnit): BlockDropDecision {
+  return { allowed: false, noop: false, reason, unit };
+}
+
+function elementId(node: TElement): string {
+  const id: unknown = Reflect.get(node, "id");
+  return typeof id === "string" ? id : "";
+}
+
+function listIndent(node: TElement): number | null {
+  if (node.type !== KEYS.p) {
+    return null;
+  }
+  const style: unknown = Reflect.get(node, "listStyleType");
+  if (typeof style !== "string" || style.length === 0) {
+    return null;
+  }
+  const indent: unknown = Reflect.get(node, "indent");
+  if (typeof indent !== "number" || !Number.isInteger(indent)) {
+    return 1;
+  }
+  return indent;
+}
+
+function elementAt(roots: readonly Descendant[], path: readonly number[]): TElement | null {
+  let current: Descendant | undefined;
+  let list: readonly Descendant[] = roots;
+  for (const index of path) {
+    current = list[index];
+    if (!current || !ElementApi.isElement(current)) {
+      return null;
+    }
+    list = current.children;
+  }
+  if (!current || !ElementApi.isElement(current)) {
+    return null;
+  }
+  return current;
+}
+
+function childrenAt(
+  roots: readonly Descendant[],
+  parentPath: readonly number[],
+): readonly Descendant[] | null {
+  if (parentPath.length === 0) {
+    return roots;
+  }
+  const parent = elementAt(roots, parentPath);
+  return parent ? parent.children : null;
+}
+
+function samePath(left: readonly number[], right: readonly number[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function startsWithPath(path: readonly number[], prefix: readonly number[]): boolean {
+  if (prefix.length > path.length) {
+    return false;
+  }
+  for (let index = 0; index < prefix.length; index += 1) {
+    if (path[index] !== prefix[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// A list item is a paragraph with listStyleType. Plate stores nested items as
+// the following siblings whose indent is greater. A non-list, or an item at an
+// equal or smaller indent, ends the run. Headings are not list items.
+export function listItemUnit(
+  siblings: readonly Descendant[],
+  index: number,
+): readonly [number, number] {
+  const node = siblings[index];
+  if (!node || !ElementApi.isElement(node)) {
+    return [index, index];
+  }
+  const base = listIndent(node);
+  if (base === null) {
+    return [index, index + 1];
+  }
+  let end = index + 1;
+  while (end < siblings.length) {
+    const next = siblings[end];
+    if (!next || !ElementApi.isElement(next)) {
+      break;
+    }
+    const indent = listIndent(next);
+    if (indent === null || indent <= base) {
+      break;
+    }
+    end += 1;
+  }
+  return [index, end];
+}
+
+function dropParentRefusal(parentType: string | null, toIndex: number): string | undefined {
+  if (parentType === null) {
+    return undefined;
+  }
+  if (parentType === KEYS.td || parentType === KEYS.th) {
+    return "A table cell cannot hold a dropped block.";
+  }
+  if (parentType === KEYS.tr || parentType === KEYS.table) {
+    return "A table moves as one block.";
+  }
+  if (parentType === KEYS.codeBlock || parentType === KEYS.codeLine) {
+    return "A code block cannot hold a dropped block.";
+  }
+  if (parentType === KEYS.columnGroup) {
+    return "Drop inside a column.";
+  }
+  if (parentType === SYNCED_REF_KEY) {
+    return "A synced block cannot hold a dropped block.";
+  }
+  if (parentType === KEYS.toggle && toIndex === 0) {
+    return "A toggle's label cannot be a drop target.";
+  }
+  return undefined;
+}
+
+function sourceRefusal(
+  node: TElement,
+  index: number,
+  parentType: string | null,
+): string | undefined {
+  if (UNMOVABLE.has(node.type)) {
+    return "This block cannot be moved.";
+  }
+  // A cell's paragraph is not a drag target. The table moves as one block.
+  if (parentType === KEYS.td || parentType === KEYS.th) {
+    return "This block cannot be moved.";
+  }
+  if (parentType === KEYS.toggle && index === 0) {
+    return "A toggle label stays with its toggle.";
+  }
+  return undefined;
+}
+
+function toggleDepth(node: TElement): number {
+  let nested = 0;
+  for (const child of node.children) {
+    if (!ElementApi.isElement(child)) {
+      continue;
+    }
+    nested = Math.max(nested, toggleDepth(child));
+  }
+  return (node.type === KEYS.toggle ? 1 : 0) + nested;
+}
+
+function toggleLevel(roots: readonly Descendant[], parentPath: readonly number[]): number {
+  let count = 0;
+  for (let depth = 1; depth <= parentPath.length; depth += 1) {
+    const node = elementAt(roots, parentPath.slice(0, depth));
+    if (node?.type === KEYS.toggle) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function insideMovedUnit(
+  toParent: readonly number[],
+  toIndex: number,
+  fromParent: readonly number[],
+  unit: readonly [number, number],
+): boolean {
+  const [start, end] = unit;
+  for (let index = start; index < end; index += 1) {
+    const unitPath = [...fromParent, index];
+    if (samePath(toParent, unitPath) || startsWithPath(toParent, unitPath)) {
+      return true;
+    }
+  }
+  return samePath(toParent, fromParent) && toIndex > start && toIndex < end;
+}
+
+export function blockDropDecision(
+  roots: readonly Descendant[],
+  from: readonly number[],
+  toParent: readonly number[],
+  toIndex: number,
+): BlockDropDecision {
+  if (from.length === 0 || !Number.isInteger(toIndex) || toIndex < 0) {
+    return refuse("This block cannot be moved.");
+  }
+
+  const fromParent = from.slice(0, -1);
+  const fromIndex = from[from.length - 1] ?? 0;
+  const siblings = childrenAt(roots, fromParent);
+  const source = siblings?.[fromIndex];
+  if (!siblings || !source || !ElementApi.isElement(source)) {
+    return refuse("This block cannot be moved.");
+  }
+
+  const fromParentType =
+    fromParent.length === 0 ? null : (elementAt(roots, fromParent)?.type ?? null);
+  const unit = listItemUnit(siblings, fromIndex);
+  const blocked = sourceRefusal(source, fromIndex, fromParentType);
+  if (blocked !== undefined) {
+    return refuse(blocked, unit);
+  }
+
+  const destination = childrenAt(roots, toParent);
+  if (!destination || toIndex > destination.length) {
+    return refuse("This block cannot be dropped here.", unit);
+  }
+
+  const toParentType = toParent.length === 0 ? null : (elementAt(roots, toParent)?.type ?? null);
+  const parentReason = dropParentRefusal(toParentType, toIndex);
+  if (parentReason !== undefined) {
+    return refuse(parentReason, unit);
+  }
+
+  if (insideMovedUnit(toParent, toIndex, fromParent, unit)) {
+    return refuse(INTO_SELF, unit);
+  }
+
+  if (samePath(toParent, fromParent) && (toIndex === unit[0] || toIndex === unit[1])) {
+    return { allowed: true, noop: true, unit };
+  }
+
+  for (let index = unit[0]; index < unit[1]; index += 1) {
+    const node = siblings[index];
+    if (!node || !ElementApi.isElement(node)) {
+      return refuse("This block cannot be moved.", unit);
+    }
+    const reason = blockPlacementRefusal(
+      toParentType,
+      toIndex,
+      node.type,
+      listIndent(node) !== null,
+    );
+    if (reason !== undefined) {
+      return refuse(reason, unit);
+    }
+  }
+
+  let movedDepth = 0;
+  for (let index = unit[0]; index < unit[1]; index += 1) {
+    const node = siblings[index];
+    if (node && ElementApi.isElement(node)) {
+      movedDepth = Math.max(movedDepth, toggleDepth(node));
+    }
+  }
+  const limit = maxNesting(KEYS.toggle) ?? 3;
+  if (toggleLevel(roots, toParent) + movedDepth > limit) {
+    return refuse(TOGGLE_NESTING, unit);
+  }
+
+  return { allowed: true, noop: false, unit };
+}
+
+function previousRange(
+  siblings: readonly Descendant[],
+  unitStart: number,
+): readonly [number, number] | null {
+  if (unitStart <= 0) {
+    return null;
+  }
+  for (let index = 0; index < unitStart; index += 1) {
+    const range = listItemUnit(siblings, index);
+    if (range[0] === index && range[1] === unitStart) {
+      return range;
+    }
+  }
+  return [unitStart - 1, unitStart];
+}
+
+function nextRange(
+  siblings: readonly Descendant[],
+  unitEnd: number,
+): readonly [number, number] | null {
+  if (unitEnd >= siblings.length) {
+    return null;
+  }
+  return listItemUnit(siblings, unitEnd);
+}
+
+// Stops at the parent's first and last sibling. Dragging can cross containers;
+// this step does not.
+export function siblingMove(
+  roots: readonly Descendant[],
+  from: readonly number[],
+  direction: "up" | "down",
+): SiblingMove {
+  if (from.length === 0) {
+    return { ok: false, reason: "This block cannot be moved." };
+  }
+  const parent = from.slice(0, -1);
+  const index = from[from.length - 1] ?? 0;
+  const siblings = childrenAt(roots, parent);
+  if (!siblings) {
+    return { ok: false, reason: "This block cannot be moved." };
+  }
+  const unit = listItemUnit(siblings, index);
+  const destination =
+    direction === "up" ? previousRange(siblings, unit[0]) : nextRange(siblings, unit[1]);
+  if (!destination) {
+    return { ok: false, reason: direction === "up" ? MOVE_ALREADY_FIRST : MOVE_ALREADY_LAST };
+  }
+  const toIndex = direction === "up" ? destination[0] : destination[1];
+  const decision = blockDropDecision(roots, from, parent, toIndex);
+  if (!decision.allowed || decision.noop) {
+    const edge = direction === "up" ? MOVE_ALREADY_FIRST : MOVE_ALREADY_LAST;
+    // The label is not a sibling the body can trade places with.
+    if (decision.reason === "A toggle's label cannot be a drop target.") {
+      return { ok: false, reason: edge };
+    }
+    return { ok: false, reason: decision.reason ?? edge };
+  }
+  return { ok: true, to: [...parent, toIndex] };
+}
+
+function indicatorFor(band: DropBand, above: boolean, to: number[], noop: boolean): DropIndicator {
+  return {
+    top: above ? band.top - 1 : band.top + band.height - 1,
+    left: band.left,
+    width: band.width,
+    to,
+    noop,
+  };
+}
+
+export function resolveDropIndicator(
+  roots: readonly Descendant[],
+  from: readonly number[],
+  bands: readonly DropBand[],
+  pointerY: number,
+  unitBox: { first: DropBand; last: DropBand } | null,
+): DropIndicator | null {
+  for (const band of bands) {
+    const index = band.path[band.path.length - 1] ?? 0;
+    const parent = band.path.slice(0, -1);
+    const above = pointerY < band.top + band.height / 2;
+    const toIndex = above ? index : index + 1;
+    const decision = blockDropDecision(roots, from, parent, toIndex);
+    if (decision.allowed) {
+      return indicatorFor(band, above, [...parent, toIndex], decision.noop);
+    }
+    if (decision.reason === INTO_SELF && unitBox) {
+      const unionTop = unitBox.first.top;
+      const unionBottom = unitBox.last.top + unitBox.last.height;
+      const boundaryAbove = pointerY < (unionTop + unionBottom) / 2;
+      const fromParent = from.slice(0, -1);
+      const boundaryIndex = boundaryAbove ? decision.unit[0] : decision.unit[1];
+      const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
+      if (boundary.allowed) {
+        const box = boundaryAbove ? unitBox.first : unitBox.last;
+        return indicatorFor(box, boundaryAbove, [...fromParent, boundaryIndex], boundary.noop);
+      }
+    }
+  }
+  return null;
+}
+
+export function dragPastThreshold(dx: number, dy: number): boolean {
+  return dx * dx + dy * dy > BLOCK_DRAG_THRESHOLD_PX * BLOCK_DRAG_THRESHOLD_PX;
+}
+
+export function blockMoveDirection(event: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+}): "up" | "down" | null {
+  if (event.metaKey === event.ctrlKey || !event.altKey || !event.shiftKey) {
+    return null;
+  }
+  if (event.key === "ArrowUp") {
+    return "up";
+  }
+  if (event.key === "ArrowDown") {
+    return "down";
+  }
+  return null;
+}
+
+export function blockMoveTarget(editor: SlateEditor): number[] | null {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+  const hit = targetBlockAtPath(editor, selection.focus.path);
+  return hit ? [...hit.path] : null;
+}
+
+function freshId(editor: SlateEditor): string {
+  const seen = new Set<string>();
+  const visit = (node: Descendant): void => {
+    if (!ElementApi.isElement(node)) {
+      return;
+    }
+    const id = elementId(node);
+    if (id.length > 0) {
+      seen.add(id);
+    }
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+  for (const child of editor.children) {
+    visit(child);
+  }
+  let id = nanoid(10);
+  let suffix = 1;
+  while (id.length === 0 || seen.has(id)) {
+    id = `${nanoid(10)}-${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
+function repairEmptyContainer(editor: SlateEditor, parentPath: number[]): void {
+  if (parentPath.length === 0) {
+    return;
+  }
+  const parent = editor.api.node(parentPath);
+  const node = parent?.[0];
+  if (!parent || !ElementApi.isElement(node) || typeof node.type !== "string") {
+    return;
+  }
+  if (node.children.length !== 0) {
+    return;
+  }
+  const content = containerContentType(node.type);
+  if (content === undefined) {
+    return;
+  }
+  const child: TElement = { type: content, id: freshId(editor), children: [{ text: "" }] };
+  editor.tf.insertNodes(child, { at: [...parentPath, 0] });
+}
+
+function selectMoved(editor: SlateEditor, id: string): void {
+  if (id.length === 0) {
+    return;
+  }
+  const landed = findBlockById(editor, id);
+  if (!landed) {
+    return;
+  }
+  const point = editor.api.start(landed[1]);
+  if (point) {
+    editor.tf.select(point);
+  }
+}
+
+export function moveBlockAt(editor: SlateEditor, from: number[], to: number[]): boolean {
+  const toParent = to.slice(0, -1);
+  const toIndex = to[to.length - 1];
+  if (toIndex === undefined) {
+    return false;
+  }
+  const decision = blockDropDecision(editor.children, from, toParent, toIndex);
+  if (!decision.allowed || decision.noop) {
+    return false;
+  }
+
+  const fromParent = from.slice(0, -1);
+  const [start, end] = decision.unit;
+  const moving: TElement[] = [];
+  for (let index = start; index < end; index += 1) {
+    const entry = editor.api.node([...fromParent, index]);
+    const node = entry?.[0];
+    if (!entry || !ElementApi.isElement(node)) {
+      return false;
+    }
+    moving.push(node);
+  }
+  if (moving.length === 0) {
+    return false;
+  }
+
+  // The remove operation keeps the node for undo. Insert a copy so that snapshot stays put.
+  const copies = moving.map((node) => structuredClone(node));
+  const first = copies[0];
+  if (!first) {
+    return false;
+  }
+  const movedId = elementId(first);
+  const destRef = editor.api.pathRef([...toParent, toIndex]);
+  let inserted = false;
+  editor.tf.withoutNormalizing(() => {
+    for (let index = end - 1; index >= start; index -= 1) {
+      editor.tf.removeNodes({ at: [...fromParent, index] });
+    }
+    repairEmptyContainer(editor, fromParent);
+    const at = destRef.current;
+    if (!at) {
+      return;
+    }
+    let cursor = [...at];
+    for (const copy of copies) {
+      editor.tf.insertNodes(copy, { at: cursor });
+      inserted = true;
+      const next = [...cursor];
+      const last = next[next.length - 1];
+      if (last === undefined) {
+        return;
+      }
+      next[next.length - 1] = last + 1;
+      cursor = next;
+    }
+  });
+  destRef.unref();
+  if (!inserted) {
+    return false;
+  }
+  selectMoved(editor, movedId);
+  return true;
+}
+
+function movedElement(editor: SlateEditor): HTMLElement | null {
+  const selection = editor.selection;
+  if (!selection) {
+    return null;
+  }
+  const target = targetBlockAtPath(editor, selection.anchor.path);
+  if (!target) {
+    return null;
+  }
+  const entry = editor.api.node(target.path);
+  if (!entry || !ElementApi.isElement(entry[0])) {
+    return null;
+  }
+  const dom: unknown = editor.api.toDOMNode(entry[0]);
+  return dom instanceof HTMLElement ? dom : null;
+}
+
+export function captureEditorScroll(): ScrollSnap {
+  const found = document.querySelector("[data-block-viewport]");
+  const viewport = found instanceof HTMLElement ? found : null;
+  return {
+    viewport,
+    top: viewport ? viewport.scrollTop : 0,
+    left: viewport ? viewport.scrollLeft : 0,
+    windowX: window.scrollX,
+    windowY: window.scrollY,
+  };
+}
+
+function outsideFrame(editor: SlateEditor, viewport: HTMLElement | null): boolean {
+  const dom = movedElement(editor);
+  if (!dom) {
+    return false;
+  }
+  const rect = dom.getBoundingClientRect();
+  if (viewport) {
+    const frame = viewport.getBoundingClientRect();
+    return rect.bottom <= frame.top + 1 || rect.top >= frame.bottom - 1;
+  }
+  return rect.bottom <= 0 || rect.top >= window.innerHeight;
+}
+
+export function settleMovedBlock(editor: SlateEditor, snap: ScrollSnap): void {
+  if (outsideFrame(editor, snap.viewport)) {
+    const dom = movedElement(editor);
+    const frame = snap.viewport?.getBoundingClientRect();
+    if (!dom || !snap.viewport || !frame) {
+      dom?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const rect = dom.getBoundingClientRect();
+    const delta = rect.top < frame.top ? rect.top - frame.top : rect.bottom - frame.bottom;
+    snap.viewport.scrollTop += delta;
+    return;
+  }
+  if (snap.viewport) {
+    snap.viewport.scrollTop = snap.top;
+    snap.viewport.scrollLeft = snap.left;
+  }
+  window.scrollTo(snap.windowX, snap.windowY);
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
@@ -21741,6 +23116,14 @@ import {
   duplicateBlockAt,
   type BlockMenuKind,
 } from "../features/editor-block-menu";
+import {
+  blockMoveDirection,
+  blockMoveTarget,
+  captureEditorScroll,
+  moveBlockAt,
+  settleMovedBlock,
+  siblingMove,
+} from "../features/editor-block-drop";
 import { openAncestorToggle } from "../plugins/editor-toggle";
 import {
   CALLOUT_ICONS,
@@ -23054,6 +24437,58 @@ export const deleteBlock: EditorCommand<{ path: number[] }> = {
   },
 };
 
+export const moveBlock: EditorCommand<{ from: number[]; to: number[] }> = {
+  id: "block.move",
+  label: "Move block",
+  group: "action",
+  run: (editor, payload) => {
+    moveBlockAt(editor, payload.from, payload.to);
+  },
+};
+
+function mentionComboboxOpen(editor: SlateEditor): boolean {
+  const type = editor.getType(KEYS.mentionInput);
+  for (const [node] of editor.api.nodes({
+    at: [],
+    match: (candidate) => ElementApi.isElement(candidate) && candidate.type === type,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function onBlockMoveKeyDown(
+  editor: SlateEditor,
+  event: {
+    key: string;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    altKey: boolean;
+    shiftKey: boolean;
+    preventDefault: () => void;
+  },
+): boolean {
+  const direction = blockMoveDirection(event);
+  if (direction === null || editor.dom.readOnly === true || mentionComboboxOpen(editor)) {
+    return false;
+  }
+  const from = blockMoveTarget(editor);
+  if (!from) {
+    return false;
+  }
+  const step = siblingMove(editor.children, from, direction);
+  event.preventDefault();
+  if (!step.ok) {
+    return true;
+  }
+  const scroll = captureEditorScroll();
+  runEditorCommand(editor, moveBlock, { from: [...from], to: step.to });
+  settleMovedBlock(editor, scroll);
+  return true;
+}
+
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
   label: "Clear formatting",
@@ -23160,6 +24595,7 @@ import {
   chainFromDom,
   handleCoversForeignBlock,
   initialHandleUi,
+  isBlockDragArmed,
   isTypingKey,
   placeBlockHandle,
   reduceHandleUi,
@@ -23453,7 +24889,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
 
   useEffect(() => {
     const onPointerMove = (event: PointerEvent): void => {
-      if (event.pointerType === "touch") {
+      if (event.pointerType === "touch" || isBlockDragArmed()) {
         return;
       }
       // The open menu keeps its target. A pointer move must not retarget or dismiss it.
@@ -26402,6 +27838,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-menu.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/block-drag.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-drag.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
     code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
@@ -26556,6 +27996,10 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/lib/features/editor-block-menu.ts",
     code: readSource(`${BLOCK_DIR}/lib/features/editor-block-menu.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/features/editor-block-drop.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-block-drop.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",

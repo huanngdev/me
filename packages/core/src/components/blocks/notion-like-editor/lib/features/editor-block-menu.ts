@@ -401,6 +401,17 @@ function typeRefusal(
   );
 }
 
+// Same parent rules as Turn into and paste. Callers that must refuse a slot the
+// matrix would allow (a table cell, a toggle label) do that before calling this.
+export function blockPlacementRefusal(
+  parentType: string | null,
+  index: number,
+  type: string,
+  asList: boolean,
+): string | undefined {
+  return typeRefusal(parentType, index, type, asList);
+}
+
 function nestingRefusal(view: MenuBlockView, kind: BlockMenuKind): string | undefined {
   if (!TOGGLE_KINDS.has(kind) || view.type === KEYS.toggle) {
     return undefined;

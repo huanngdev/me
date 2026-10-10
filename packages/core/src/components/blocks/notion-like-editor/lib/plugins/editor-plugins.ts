@@ -97,6 +97,7 @@ import {
   formatSubscript,
   formatSuperscript,
   formatUnderline,
+  onBlockMoveKeyDown,
   runEditorCommand,
   toggleBulletedList,
   toggleNumberedList,
@@ -1577,6 +1578,13 @@ const syncedRefPlugin = toPlatePlugin(
   },
 );
 
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+const blockMovePlugin = toPlatePlugin(createSlatePlugin({ key: "blockMove" }), {
+  handlers: {
+    onKeyDown: ({ editor, event }) => onBlockMoveKeyDown(editor, event),
+  },
+});
+
 const columnPlugin = ColumnPlugin.configure({
   render: { node: ColumnGroupElement },
   handlers: {
@@ -1814,6 +1822,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     equationPlatePlugin,
     syncedRefPlugin,
     columnPlugin,
+    blockMovePlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,

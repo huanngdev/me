@@ -360,6 +360,18 @@ export function reduceHandleUi(state: HandleUiState, event: HandleUiEvent): Hand
   }
 }
 
+// Set for the whole grip press, including the pixels before the drag threshold.
+// Pointer moves in that window must not retarget the handle.
+let blockDragArmed = false;
+
+export function setBlockDragArmed(armed: boolean): void {
+  blockDragArmed = armed;
+}
+
+export function isBlockDragArmed(): boolean {
+  return blockDragArmed;
+}
+
 export function visibleHandleId(state: HandleUiState): string | null {
   if (state.readOnly || state.hoverNone) {
     return null;

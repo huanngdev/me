@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import {
+  ArrowDown,
   ArrowRightLeft,
+  ArrowUp,
   ChevronRight,
   Code,
   Copy,
@@ -36,9 +38,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import {
   deleteBlock,
   duplicateBlock,
+  moveBlock,
   runEditorCommand,
   turnBlockInto,
 } from "../../lib/commands/editor-commands";
+import {
+  settleMovedBlock,
+  siblingMove,
+  captureEditorScroll,
+} from "../../lib/features/editor-block-drop";
 import {
   blockHandleTarget,
   chainFromDom,
@@ -219,6 +227,25 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     runEditorCommand(editor, deleteBlock, { path: [...path] });
   }
 
+  function move(direction: "up" | "down"): void {
+    const located = findBlockById(editor, target.id);
+    const at = located?.[1];
+    if (!at) {
+      return;
+    }
+    const step = siblingMove(editor.children, at, direction);
+    if (!step.ok) {
+      return;
+    }
+    onActed();
+    const scroll = captureEditorScroll();
+    runEditorCommand(editor, moveBlock, { from: [...at], to: step.to });
+    settleMovedBlock(editor, scroll);
+  }
+
+  const up = path === undefined ? null : siblingMove(editor.children, path, "up");
+  const down = path === undefined ? null : siblingMove(editor.children, path, "down");
+
   return (
     <>
       {decisions === null ? null : (
@@ -269,6 +296,36 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         <Copy aria-hidden="true" />
         Duplicate
       </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={up === null || !up.ok}
+        data-block-menu-move="up"
+        onSelect={() => {
+          move("up");
+        }}
+      >
+        <ArrowUp aria-hidden="true" />
+        <span className="flex min-w-0 flex-col items-start">
+          <span>Move up</span>
+          {up !== null && !up.ok ? (
+            <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
+          ) : null}
+        </span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={down === null || !down.ok}
+        data-block-menu-move="down"
+        onSelect={() => {
+          move("down");
+        }}
+      >
+        <ArrowDown aria-hidden="true" />
+        <span className="flex min-w-0 flex-col items-start">
+          <span>Move down</span>
+          {down !== null && !down.ok ? (
+            <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
+          ) : null}
+        </span>
+      </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
         variant="destructive"
@@ -287,10 +344,12 @@ export function BlockMenu({
   gripRef,
   holdMenu,
   bindOpener,
+  bindCloser,
 }: {
   gripRef: RefObject<HTMLButtonElement | null>;
   holdMenu: (id: string | null) => void;
   bindOpener: (open: (target: BlockHandleHit) => void) => void;
+  bindCloser: (close: () => void) => void;
 }) {
   const editor = useEditorRef();
   const [session, setSession] = useState<MenuSession | null>(null);
@@ -349,7 +408,8 @@ export function BlockMenu({
 
   useLayoutEffect(() => {
     bindOpener(openFromGrip);
-  }, [bindOpener, openFromGrip]);
+    bindCloser(close);
+  }, [bindCloser, bindOpener, close, openFromGrip]);
 
   useEffect(() => {
     return () => {

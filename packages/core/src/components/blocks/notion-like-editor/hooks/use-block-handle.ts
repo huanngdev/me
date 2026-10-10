@@ -13,6 +13,7 @@ import {
   chainFromDom,
   handleCoversForeignBlock,
   initialHandleUi,
+  isBlockDragArmed,
   isTypingKey,
   placeBlockHandle,
   reduceHandleUi,
@@ -306,7 +307,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
 
   useEffect(() => {
     const onPointerMove = (event: PointerEvent): void => {
-      if (event.pointerType === "touch") {
+      if (event.pointerType === "touch" || isBlockDragArmed()) {
         return;
       }
       // The open menu keeps its target. A pointer move must not retarget or dismiss it.
