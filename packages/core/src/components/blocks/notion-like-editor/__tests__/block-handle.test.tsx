@@ -11,12 +11,10 @@ import {
   BLOCK_HANDLE_GAP,
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
-  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
   chainFromDom,
-  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isTypingKey,
@@ -97,6 +95,38 @@ describe("block handle target", () => {
     expect(targetBlockAtPath(editor, pathOf(editor, "child"))?.id).toBe("child");
   });
 
+  test("the first row of a quote targets the quote and later rows target themselves", () => {
+    const editor = createEditor([
+      {
+        type: KEYS.blockquote,
+        id: "quote",
+        children: [paragraph("row1", "One"), paragraph("row2", "Two"), paragraph("row3", "Three")],
+      },
+    ]);
+
+    expect(targetBlockAtPath(editor, pathOf(editor, "row1"))?.id).toBe("quote");
+    expect(targetBlockAtPath(editor, pathOf(editor, "row2"))?.id).toBe("row2");
+    expect(targetBlockAtPath(editor, pathOf(editor, "row3"))?.id).toBe("row3");
+    // The whole quote stays the gutter anchor for every row.
+    expect(blockHandleGutterId(chainAtPath(editor, pathOf(editor, "row2")), "row2")).toBe("quote");
+  });
+
+  test("a list item that is a quote's first row targets the quote", () => {
+    const editor = createEditor([
+      {
+        type: KEYS.blockquote,
+        id: "quote",
+        children: [
+          { ...paragraph("item", "One"), listStyleType: "disc", indent: 1 },
+          paragraph("row2", "Two"),
+        ],
+      },
+    ]);
+
+    expect(targetBlockAtPath(editor, pathOf(editor, "item"))?.id).toBe("quote");
+    expect(targetBlockAtPath(editor, pathOf(editor, "row2"))?.id).toBe("row2");
+  });
+
   test("callout, quote, and column content target the inner block", () => {
     const editor = createEditor([
       {
@@ -132,7 +162,8 @@ describe("block handle target", () => {
       "callout",
     );
     expect(targetBlockAtPath(editor, pathOf(editor, "callout"))?.id).toBe("callout");
-    expect(targetBlockAtPath(editor, pathOf(editor, "quote-child"))?.id).toBe("quote-child");
+    // The quote's single child is its first row, so it targets the quote.
+    expect(targetBlockAtPath(editor, pathOf(editor, "quote-child"))?.id).toBe("quote");
     expect(targetBlockAtPath(editor, pathOf(editor, "quote"))?.id).toBe("quote");
     expect(targetBlockAtPath(editor, pathOf(editor, "column-child"))?.id).toBe("column-child");
     expect(targetBlockAtPath(editor, pathOf(editor, "column"))?.id).toBe("group");
@@ -311,53 +342,23 @@ describe("block handle visibility", () => {
   });
 });
 
-describe("handle anchor line", () => {
-  const block = { top: 100, bottom: 400 };
-  const textLine = { top: 120, height: 26 };
+describe("handle top alignment", () => {
+  const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
+  const viewport = { width: 1280, height: 800 };
 
-  test("a text block centers on its first text line", () => {
-    expect(handleAnchorLine(KEYS.p, block, textLine)).toEqual({ lineTop: 120, lineHeight: 26 });
-    expect(handleAnchorLine(KEYS.h1, block, textLine)).toEqual({ lineTop: 120, lineHeight: 26 });
-    expect(handleAnchorLine(KEYS.blockquote, block, textLine)).toEqual({
-      lineTop: 120,
-      lineHeight: 26,
-    });
-  });
-
-  test("widget blocks anchor to the top edge even with a measured line", () => {
-    for (const type of [
-      KEYS.equation,
-      KEYS.hr,
-      KEYS.table,
-      KEYS.codeBlock,
-      KEYS.toc,
-      KEYS.columnGroup,
-      KEYS.callout,
-      KEYS.toggle,
-    ]) {
-      expect(handleAnchorLine(type, block, textLine)).toEqual({
-        lineTop: 100,
-        lineHeight: BODY_LINE_HEIGHT_PX,
-      });
+  // The anchor is the block's top edge only, so a short paragraph, a tall TOC
+  // and everything in between get the same rule.
+  test("the handle top is the block's top for every block height", () => {
+    for (const height of [17, 24, 26, 32, 38, 44, 60, 78, 92, 94, 108, 114, 120, 162, 519]) {
+      const placed = placeBlockHandle(
+        { blockTop: 100, blockBottom: 100 + height, blockLeft: 300 },
+        handle,
+        viewport,
+        null,
+      );
+      expect(placed?.top).toBe(100);
+      expect(placed?.left).toBe(300 - BLOCK_HANDLE_GAP - BLOCK_HANDLE_WIDTH);
     }
-  });
-
-  test("a text block with no measured line anchors to the top edge", () => {
-    expect(handleAnchorLine(KEYS.p, block, null)).toEqual({
-      lineTop: 100,
-      lineHeight: BODY_LINE_HEIGHT_PX,
-    });
-    expect(handleAnchorLine(KEYS.p, block, { top: 0, height: 0 })).toEqual({
-      lineTop: 100,
-      lineHeight: BODY_LINE_HEIGHT_PX,
-    });
-  });
-
-  test("the anchor never depends on the block's measured height", () => {
-    const tall = handleAnchorLine(KEYS.equation, { top: 100, bottom: 900 }, null);
-    const short = handleAnchorLine(KEYS.equation, { top: 100, bottom: 120 }, null);
-    expect(tall).toEqual(short);
-    expect(tall.lineTop).toBe(100);
   });
 });
 
@@ -389,6 +390,50 @@ describe("handle band picking", () => {
     expect(pickHandleBandAtY(close, 139, "a")?.id).toBe("a");
     // Past the window, the nearest band wins again.
     expect(pickHandleBandAtY(close, 130, "b")?.id).toBe("a");
+  });
+
+  test("the innermost band at a Y wins over the container around it", () => {
+    // A quote's band is its first row; two later rows sit inside the quote.
+    const quote: HandleBand[] = [
+      { id: "quote", path: [0], top: 100, bottom: 140, depth: 2 },
+      { id: "row2", path: [0, 1], top: 144, bottom: 180, depth: 2 },
+      { id: "row3", path: [0, 2], top: 184, bottom: 220, depth: 2 },
+    ];
+    // The quote's top padding and first row: the quote.
+    expect(pickHandleBandAtY(quote, 104, null)?.id).toBe("quote");
+    expect(pickHandleBandAtY(quote, 130, null)?.id).toBe("quote");
+    expect(pickHandleBandAtY(quote, 160, null)?.id).toBe("row2");
+    expect(pickHandleBandAtY(quote, 200, null)?.id).toBe("row3");
+    // Below the last row (the quote's bottom padding) stays on the last row.
+    expect(pickHandleBandAtY(quote, 226, null)?.id).toBe("row3");
+  });
+
+  test("a vertical sweep changes at row boundaries and never returns", () => {
+    const bands: HandleBand[] = [
+      { id: "quote", path: [0], top: 100, bottom: 140, depth: 2 },
+      { id: "row2", path: [0, 1], top: 144, bottom: 180, depth: 2 },
+      { id: "row3", path: [0, 2], top: 184, bottom: 220, depth: 2 },
+    ];
+    const sequence: Array<string | null> = [];
+    let current: string | null = null;
+    for (let y = 90; y <= 230; y += 2) {
+      current = pickHandleBandAtY(bands, y, current)?.id ?? null;
+      sequence.push(current);
+    }
+    const compressed = sequence.filter(
+      (value, index) => index === 0 || value !== sequence[index - 1],
+    );
+    expect(compressed).toEqual(["quote", "row2", "row3"]);
+    // No target returns after it was left.
+    const seen = new Set<string>();
+    let last: string | null = null;
+    for (const value of compressed) {
+      if (value !== last && value !== null) {
+        expect(seen.has(value)).toBe(false);
+        seen.add(value);
+      }
+      last = value;
+    }
   });
 
   test("an empty band list has no target", () => {
@@ -459,22 +504,22 @@ describe("block handle gutter anchor", () => {
 describe("block handle placement", () => {
   const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
   const viewport = { width: 1280, height: 800 };
-  const line = { lineTop: 100, lineHeight: 24, blockLeft: 300 };
+  const block = { blockTop: 100, blockBottom: 124, blockLeft: 300 };
 
-  test("centers on the first line and leaves a gap before the block", () => {
-    const placed = placeBlockHandle(line, handle, viewport, null);
+  test("places the handle top at the block's top edge with a gap before the block", () => {
+    const placed = placeBlockHandle(block, handle, viewport, null);
 
-    expect(placed).toEqual({ top: 96, left: 300 - BLOCK_HANDLE_GAP - BLOCK_HANDLE_WIDTH });
-    expect(placed && placed.top + handle.height / 2).toBe(line.lineTop + line.lineHeight / 2);
+    expect(placed).toEqual({ top: 100, left: 300 - BLOCK_HANDLE_GAP - BLOCK_HANDLE_WIDTH });
+    expect(placed?.top).toBe(block.blockTop);
   });
 
-  test("hides when the gutter does not fit or the line has left the frame", () => {
-    expect(placeBlockHandle({ ...line, blockLeft: 16 }, handle, viewport, null)).toBeNull();
+  test("hides when the gutter does not fit or the block has left the frame", () => {
+    expect(placeBlockHandle({ ...block, blockLeft: 16 }, handle, viewport, null)).toBeNull();
     expect(
-      placeBlockHandle(line, handle, viewport, { top: 200, right: 1280, bottom: 800, left: 0 }),
+      placeBlockHandle(block, handle, viewport, { top: 200, right: 1280, bottom: 800, left: 0 }),
     ).toBeNull();
     expect(
-      placeBlockHandle(line, handle, viewport, { top: 0, right: 200, bottom: 800, left: 0 }),
+      placeBlockHandle(block, handle, viewport, { top: 0, right: 200, bottom: 800, left: 0 }),
     ).toBeNull();
   });
 
@@ -484,7 +529,7 @@ describe("block handle placement", () => {
     const undos = editor.history.undos.length;
     const selection = editor.selection;
 
-    expect(placeBlockHandle(line, handle, viewport, null)).not.toBeNull();
+    expect(placeBlockHandle(block, handle, viewport, null)).not.toBeNull();
     expect(handleCoversForeignBlock("other", ["block"])).toBe(true);
     expect(handleCoversForeignBlock("block", ["block", "parent"])).toBe(false);
 
@@ -683,7 +728,7 @@ describe("block handle overlay", () => {
       expect(handle?.getAttribute("data-visible")).toBe("true");
       expect(handle?.getAttribute("data-block-handle-for")).toBe("block-1");
       expect(document.querySelector("[data-block-handle-add]")?.getAttribute("aria-label")).toBe(
-        "Click to add below",
+        "Add block below",
       );
       expect(document.querySelector("[data-block-handle-grip]")?.getAttribute("aria-label")).toBe(
         "Drag to move · Click to open menu",

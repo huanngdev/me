@@ -363,7 +363,7 @@ function BookmarkToolbar({
       />
       <EditorIconButton
         variant="destructive"
-        label="Remove"
+        label="Delete"
         icon={<Trash2 aria-hidden="true" />}
         onClick={() => {
           runEditorCommand(editor, removeBookmark, id);

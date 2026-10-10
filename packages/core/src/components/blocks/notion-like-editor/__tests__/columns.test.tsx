@@ -833,7 +833,7 @@ describe("column rendering", () => {
         column("b", "50%", [paragraph("Too", "too")]),
       ]),
     ]);
-    const remove = mounted.host.querySelector("[aria-label='Remove']");
+    const remove = mounted.host.querySelector("[aria-label='Delete']");
     if (!(remove instanceof HTMLButtonElement)) {
       throw new Error("Missing remove button.");
     }

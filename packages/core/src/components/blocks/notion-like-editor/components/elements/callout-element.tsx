@@ -49,6 +49,7 @@ import {
   type CalloutIcon,
   type CalloutTone,
 } from "../../lib/document/editor-document-schema";
+import { MENU_ITEM_ACTIVE, MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import { Button } from "@/components/button";
 
 // role="note" is an ancillary note. An aside would be a complementary landmark.
@@ -205,10 +206,7 @@ export function CalloutElement(props: PlateElementProps) {
                         aria-label={CALLOUT_ICON_GLYPH[choice].label}
                         aria-pressed={selected}
                         data-state={selected ? "on" : "off"}
-                        className={cn(
-                          "justify-center",
-                          selected && "bg-accent text-accent-foreground",
-                        )}
+                        className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
                         onMouseDown={keepEditorSelection}
                         onClick={apply}
                       >
@@ -236,6 +234,7 @@ export function CalloutElement(props: PlateElementProps) {
                   <DropdownMenuRadioItem
                     key={choice}
                     value={choice}
+                    className={MENU_ITEM_ACTIVE_CHECKED}
                     onMouseDown={keepEditorSelection}
                   >
                     <span

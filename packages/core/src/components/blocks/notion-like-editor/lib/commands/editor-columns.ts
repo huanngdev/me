@@ -640,6 +640,29 @@ export function insertColumns(editor: SlateEditor, count: 2 | 3): void {
   });
 }
 
+// Insert a column group as the next sibling of `path`, inside its container.
+// Used by the Add picker; insertColumns above works from the selection.
+export function insertColumnsBelow(
+  editor: SlateEditor,
+  path: readonly number[],
+  count: 2 | 3,
+): void {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return;
+  }
+  const widths = equalColumnWidths(count);
+  const children = widths.map((width) => ({
+    type: KEYS.column,
+    width,
+    children: [emptyParagraph()],
+  }));
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.insertNodes({ type: KEYS.columnGroup, children }, { at });
+    selectPath(editor, at.concat([0, 0]));
+  });
+}
+
 export function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
   const group = columnGroupAbove(editor);
   if (!group || group.node.children.length === count) {
@@ -1008,7 +1031,7 @@ export const setColumnCountCommand: EditorCommand<2 | 3> = {
 
 export const removeColumnCommand: EditorCommand<number> = {
   id: "block.columns.remove-column",
-  label: "Remove column",
+  label: "Delete column",
   group: "action",
   isEnabled: inColumnGroup,
   run: (editor, index) => {

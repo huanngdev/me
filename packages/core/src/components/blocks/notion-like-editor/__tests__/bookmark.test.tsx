@@ -753,7 +753,7 @@ describe("bookmark render", () => {
     expect(html).toContain(`href="${PLATE_DOCS}"`);
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer nofollow"');
-    expect(html).not.toContain('aria-label="Remove"');
+    expect(html).not.toContain('aria-label="Delete"');
 
     const readonly = await mountBookmark(
       [bookmark("rich", { title: "Plate", fetchedAt: "2026-10-08T00:00:00.000Z" })],

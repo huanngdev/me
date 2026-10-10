@@ -280,7 +280,7 @@ export function EquationElement(props: PlateElementProps) {
             />
             <EditorTextButton
               variant="destructive"
-              label="Remove"
+              label="Delete"
               icon={<Trash2 aria-hidden="true" />}
               onClick={remove}
             />

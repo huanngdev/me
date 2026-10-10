@@ -25,7 +25,7 @@ export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
 export const SYNCED_CREATE_LABEL = "Create synced copy";
 export const SYNCED_GO_LABEL = "Go to original";
 export const SYNCED_CONVERT_LABEL = "Convert to copy";
-export const SYNCED_REMOVE_LABEL = "Remove";
+export const SYNCED_REMOVE_LABEL = "Delete";
 export const SYNCED_SELECT_REASON = "Select a block to sync.";
 export const SYNCED_REJECT_REASON = "This block cannot be synced.";
 

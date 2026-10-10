@@ -19,8 +19,15 @@ import {
   type PlateLeafProps,
 } from "platejs/react";
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
 import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
@@ -168,25 +175,31 @@ export function CodeBlockElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuItem
-                onMouseDown={keepEditorSelection}
-                onSelect={() => {
-                  runEditorCommand(editor, setCodeLanguage, { lang: null, at: path });
+              <DropdownMenuRadioGroup
+                value={lang ?? "plaintext"}
+                onValueChange={(value) => {
+                  const next = CODE_LANGS.find((entry) => entry === value) ?? null;
+                  runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
                 }}
               >
-                {CODE_LANG_LABELS.plaintext}
-              </DropdownMenuItem>
-              {CODE_LANGS.map((choice) => (
-                <DropdownMenuItem
-                  key={choice}
+                <DropdownMenuRadioItem
+                  value="plaintext"
+                  className={MENU_ITEM_ACTIVE_CHECKED}
                   onMouseDown={keepEditorSelection}
-                  onSelect={() => {
-                    runEditorCommand(editor, setCodeLanguage, { lang: choice, at: path });
-                  }}
                 >
-                  {CODE_LANG_LABELS[choice]}
-                </DropdownMenuItem>
-              ))}
+                  {CODE_LANG_LABELS.plaintext}
+                </DropdownMenuRadioItem>
+                {CODE_LANGS.map((choice) => (
+                  <DropdownMenuRadioItem
+                    key={choice}
+                    value={choice}
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepEditorSelection}
+                  >
+                    {CODE_LANG_LABELS[choice]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         )}

@@ -68,7 +68,7 @@ export const convertBookmarkToText: EditorCommand<string> = {
 
 export const removeBookmark: EditorCommand<string> = {
   id: "block.bookmark.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   run: (editor, id) => {
     const entry = writableBookmark(editor, id);

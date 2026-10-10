@@ -139,6 +139,19 @@ export function insertEquationBlock(editor: SlateEditor): void {
   openEquationEditor(editor, id);
 }
 
+// Insert an equation as the next sibling of `path`, inside its container. The
+// block menu only converts; the Add picker needs a path-targeted insert.
+export function insertEquationBelow(editor: SlateEditor, path: readonly number[]): string | null {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return null;
+  }
+  const id = nanoid();
+  editor.tf.insertNodes(equationNode(id), { at, select: true });
+  openEquationEditor(editor, id);
+  return id;
+}
+
 export function setEquationExpression(
   editor: SlateEditor,
   path: number[],
@@ -190,7 +203,7 @@ function selectedEquation(editor: SlateEditor): [TElement, number[]] | undefined
 
 export const removeEquationCommand: EditorCommand = {
   id: "block.equation.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   isEnabled: (editor) => selectedEquation(editor) !== undefined,
   run: (editor) => {

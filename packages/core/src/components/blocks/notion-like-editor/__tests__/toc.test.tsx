@@ -725,7 +725,7 @@ describe("toc commands", () => {
         new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
       );
     });
-    const option = [...document.querySelectorAll("[role='menuitem']")].find(
+    const option = [...document.querySelectorAll("[role='menuitemradio'], [role='menuitem']")].find(
       (node) => node.textContent === "H1 only",
     );
     if (!(option instanceof HTMLElement)) {
@@ -738,7 +738,7 @@ describe("toc commands", () => {
     expect(field(mounted.editor.children[2], "maxDepth")).toBe(1);
     expect(mounted.editor.history.undos.length).toBe(undos + 1);
 
-    const remove = mounted.host.querySelector('[aria-label="Remove"]');
+    const remove = mounted.host.querySelector('[aria-label="Delete"]');
     if (!(remove instanceof HTMLButtonElement)) {
       throw new Error("Missing the remove button.");
     }

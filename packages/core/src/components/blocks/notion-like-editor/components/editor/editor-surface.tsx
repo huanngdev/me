@@ -16,6 +16,7 @@ import { LinkToolbar } from "../elements/link-element";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
+import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 
@@ -72,6 +73,7 @@ export function EditorSurface({
                 </span>
               )}
             />
+            <BlockPlaceholders placeholder={placeholder} />
             <BlockHandle onInsertedBelow={onInsertedBelow} />
           </LinkPreviewProvider>
         </MentionScope>

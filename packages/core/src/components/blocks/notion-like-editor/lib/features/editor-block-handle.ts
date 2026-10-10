@@ -26,60 +26,62 @@ const ELIGIBLE = new Set<string>([
   KEYS.columnGroup,
 ]);
 
-// Blocks whose first line of text lives inside a widget (KaTeX, table grid,
-// code editor, columns, a preview) or that paint no editable text at all.
-// Their handle anchors to the block's top edge instead of the block's middle,
-// so a tall equation never gets the handle at its center or bottom.
-export const HANDLE_TOP_ANCHOR_TYPES = new Set<string>([
-  KEYS.equation,
-  KEYS.hr,
-  BOOKMARK_KEY,
-  KEYS.table,
-  KEYS.codeBlock,
-  KEYS.toc,
-  KEYS.columnGroup,
-  SYNCED_REF_KEY,
-  KEYS.callout,
-  KEYS.toggle,
-]);
-
-// First-line height of body text. A widget-anchored block gets the handle's
-// center one body line below its top edge, matching a normal paragraph.
-export const BODY_LINE_HEIGHT_PX = 24;
-
-export type HandleTextBox = { top: number; height: number } | null;
-
-export type HandleAnchor = { lineTop: number; lineHeight: number };
-
-// The vertical anchor for the handle. A plain text block centers on its first
-// text line. A widget-anchored block (or one with no measured line) sits on its
-// top edge with the handle center on the first body line.
-export function handleAnchorLine(
-  type: string,
-  block: { top: number; bottom: number },
-  textLine: HandleTextBox,
-  bodyLineHeight = BODY_LINE_HEIGHT_PX,
-): HandleAnchor {
-  if (textLine && textLine.height > 0 && !HANDLE_TOP_ANCHOR_TYPES.has(type)) {
-    return { lineTop: textLine.top, lineHeight: textLine.height };
-  }
-  const height =
-    bodyLineHeight > 0 ? bodyLineHeight : Math.max(0, block.bottom - block.top) || bodyLineHeight;
-  return { lineTop: block.top, lineHeight: height };
-}
+// The handle is top-aligned to the target block's border box: the handle's top
+// edge and the block's top edge are flush, for every block type. There is no
+// first-text-line mode and no per-type list; a child that has its own handle
+// uses its own border box. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
-// keeps a target in the gaps between blocks, where no element is hit.
+// keeps a target in the gaps between blocks, where no element is hit. `depth`
+// is the target's nesting depth so an inner row wins over the container that
+// encloses it at the same Y.
 export type HandleBand = {
   id: string;
   path: number[];
   top: number;
   bottom: number;
+  depth?: number;
 };
 
-// The target block for a pointer Y inside the editor: the nearest band by
-// vertical distance, ties going to the block below. The current target is kept
-// within `hysteresisPx` of its band so crossing the boundary does not flicker.
+function bandContains(band: HandleBand, y: number): boolean {
+  return y >= band.top && y <= band.bottom;
+}
+
+function bandDistance(band: HandleBand, y: number): number {
+  if (y < band.top) {
+    return band.top - y;
+  }
+  if (y > band.bottom) {
+    return y - band.bottom;
+  }
+  return 0;
+}
+
+function bandWins(candidate: HandleBand, incumbent: HandleBand, y: number): boolean {
+  const candidateInside = bandContains(candidate, y);
+  const incumbentInside = bandContains(incumbent, y);
+  if (candidateInside !== incumbentInside) {
+    return candidateInside;
+  }
+  const candidateDepth = candidate.depth ?? 0;
+  const incumbentDepth = incumbent.depth ?? 0;
+  if (candidateDepth !== incumbentDepth) {
+    return candidateDepth > incumbentDepth;
+  }
+  const candidateDistance = bandDistance(candidate, y);
+  const incumbentDistance = bandDistance(incumbent, y);
+  if (candidateDistance !== incumbentDistance) {
+    return candidateDistance < incumbentDistance;
+  }
+  return candidate.top > incumbent.top;
+}
+
+// The target block for a pointer Y inside the editor. The target is a function
+// of Y alone: the innermost band containing Y wins, so a container's padding,
+// border and the gutter to its left resolve to the same row as the text at that
+// Y. Below all bands, the nearest band wins, ties going to the block below. The
+// current target is kept within `hysteresisPx` of its band so crossing the
+// boundary does not flicker.
 export function pickHandleBandAtY(
   bands: readonly HandleBand[],
   y: number,
@@ -96,15 +98,9 @@ export function pickHandleBandAtY(
     }
   }
   let best: HandleBand | null = null;
-  let bestDistance = Number.POSITIVE_INFINITY;
   for (const band of bands) {
-    const distance = y < band.top ? band.top - y : y > band.bottom ? y - band.bottom : 0;
-    if (
-      distance < bestDistance ||
-      (distance === bestDistance && best !== null && band.top > best.top)
-    ) {
+    if (best === null || bandWins(band, best, y)) {
       best = band;
-      bestDistance = distance;
     }
   }
   return best;
@@ -142,7 +138,11 @@ export type BlockHandlePaint = {
   blockBottom: number;
 };
 
-const SUMMARY_ROW_PARENTS = new Set<string>([KEYS.toggle, KEYS.callout]);
+// A container's first child row stands for the whole container. A toggle's
+// summary row, a callout's first row and a blockquote's first line all target
+// the container, so grabbing the grip there drags the container with all its
+// children. Later children target themselves.
+const SUMMARY_ROW_PARENTS = new Set<string>([KEYS.toggle, KEYS.callout, KEYS.blockquote]);
 
 function isSummaryRow(node: HandleChainNode): boolean {
   return node.index === 0 && node.parentType !== null && SUMMARY_ROW_PARENTS.has(node.parentType);
@@ -322,9 +322,12 @@ export function isTypingKey(event: {
   return event.key.length === 1;
 }
 
-export type HandleLineBox = {
-  lineTop: number;
-  lineHeight: number;
+// The target block's border box, in viewport coordinates. `blockTop` is the
+// handle's top; `blockLeft` is the horizontal anchor (the gutter anchor for a
+// nested block). `blockBottom` is only used for the visibility test.
+export type HandleBlockBox = {
+  blockTop: number;
+  blockBottom: number;
   blockLeft: number;
 };
 
@@ -350,14 +353,16 @@ export type PlacedHandle = {
   left: number;
 };
 
+// Handle top = the target block's top edge (plain top alignment). The handle is
+// placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
 export function placeBlockHandle(
-  line: HandleLineBox,
+  block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
 ): PlacedHandle | null {
-  const top = line.lineTop + line.lineHeight / 2 - handle.height / 2;
-  const left = line.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const top = block.blockTop;
+  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 
@@ -367,14 +372,13 @@ export function placeBlockHandle(
   if (right > viewport.width - BLOCK_HANDLE_PAD || bottom > viewport.height - BLOCK_HANDLE_PAD) {
     return null;
   }
-  if (right > line.blockLeft - 1) {
+  if (right > block.blockLeft - 1) {
     return null;
   }
 
   if (frame) {
-    const lineBottom = line.lineTop + line.lineHeight;
-    const lineVisible = lineBottom > frame.top && line.lineTop < frame.bottom;
-    if (!lineVisible) {
+    const blockVisible = block.blockBottom > frame.top && block.blockTop < frame.bottom;
+    if (!blockVisible) {
       return null;
     }
     if (top < frame.top || bottom > frame.bottom || left < frame.left || right > frame.right) {

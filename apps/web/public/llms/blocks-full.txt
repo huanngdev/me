@@ -5710,7 +5710,15 @@ export function mediaStringAttr(element: TElement, key: string): string | undefi
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 ```tsx
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -5724,13 +5732,19 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { GripVertical, Plus } from "lucide-react";
-import { useEditorReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
+import { runEditorCommand, turnBlockInto } from "../../lib/commands/editor-commands";
+import {
+  insertPickedBlock,
+  type BlockPickerItem,
+  type BlockPickerMode,
+} from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
 import {
@@ -5740,8 +5754,10 @@ import {
   type BlockDragHandlers,
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
+import { BlockPicker, type PickerAnchor } from "./block-picker";
+import { retainScroll } from "./block-toolbar";
 
-const ADD_LABEL = "Click to add below";
+const ADD_LABEL = "Add block below";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -5750,6 +5766,24 @@ type BlockHandleProps = {
 function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
+
+function rectOf(left: number, top: number, width: number, height: number): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON() {
+      return {};
+    },
+  } as DOMRect;
+}
+
+type PickerState = { mode: BlockPickerMode; target: BlockHandleHit };
 
 // renderToString throws on a portal. The menu stays mounted on the client even
 // when the grip is not painted, so a shortcut can open it.
@@ -5812,11 +5846,13 @@ function BlockHandleContent({
   onInsertedBelow?: (blockId: string) => void;
   apiRef: RefObject<BlockDragHandlers | null>;
 }) {
+  const editor = useEditorRef();
   const handle = useBlockHandle({ onInsertedBelow });
-  const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
-    handle;
+  const { paint, setMeasuredSize, shown, suppressed, onHandleFocus, onHandleBlur } = handle;
+  const [picker, setPicker] = useState<PickerState | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
+  const anchorRef = useRef<PickerAnchor>({ getBoundingClientRect: () => rectOf(0, 0, 0, 0) });
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
   const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
@@ -5841,6 +5877,38 @@ function BlockHandleContent({
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
+  // The picker anchors to the handle row (or the grip) without a visible trigger.
+  useEffect(() => {
+    anchorRef.current.getBoundingClientRect = () => {
+      const grip = gripRef.current?.getBoundingClientRect();
+      if (grip && grip.width > 0) {
+        return grip;
+      }
+      return paint ? rectOf(paint.left, paint.top, paint.width, paint.height) : rectOf(0, 0, 0, 0);
+    };
+  });
+
+  const choose = useCallback(
+    (item: BlockPickerItem) => {
+      const active = picker;
+      setPicker(null);
+      if (!active) {
+        return;
+      }
+      if (active.mode === "add") {
+        const insertedId = insertPickedBlock(editor, active.target.path, item);
+        if (insertedId !== null) {
+          onInsertedBelow?.(insertedId);
+        }
+        return;
+      }
+      if (item.kind !== undefined) {
+        runEditorCommand(editor, turnBlockInto, { path: [...active.target.path], kind: item.kind });
+      }
+    },
+    [editor, onInsertedBelow, picker],
+  );
+
   if (suppressed) {
     return null;
   }
@@ -5851,6 +5919,9 @@ function BlockHandleContent({
       holdMenu={handle.holdMenu}
       bindOpener={bindOpener}
       bindCloser={bindCloser}
+      onTurnInto={(target) => {
+        setPicker({ mode: "turn-into", target });
+      }}
     />
   );
   // Stop at the block edge. A pixel inside the box covers a control that sits
@@ -5889,7 +5960,11 @@ function BlockHandleContent({
                   data-block-handle-add=""
                   onMouseDown={keepEditorSelection}
                   onPointerDown={keepEditorSelection}
-                  onClick={addBelow}
+                  onClick={() => {
+                    if (paint) {
+                      setPicker({ mode: "add", target: paint.target });
+                    }
+                  }}
                 >
                   <Plus aria-hidden="true" />
                 </Button>
@@ -5939,6 +6014,26 @@ function BlockHandleContent({
           block is simply at its new position (no fly-back to the old slot). */}
       <DragOverlay dropAnimation={null}>{drag.overlay}</DragOverlay>
       {menu}
+      {picker ? (
+        <BlockPicker
+          open
+          mode={picker.mode}
+          editor={editor}
+          path={[...picker.target.path]}
+          anchorRef={anchorRef}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPicker(null);
+            }
+          }}
+          restoreFocus={() => {
+            retainScroll(() => {
+              editor.tf.focus();
+            });
+          }}
+          onChoose={choose}
+        />
+      ) : null}
     </>
   );
 }
@@ -5947,24 +6042,7 @@ function BlockHandleContent({
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
 ```tsx
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import {
-  ArrowDown,
-  ArrowRightLeft,
-  ArrowUp,
-  ChevronRight,
-  Code,
-  Copy,
-  Heading1,
-  Heading2,
-  Heading3,
-  Lightbulb,
-  List,
-  ListOrdered,
-  ListTodo,
-  TextQuote,
-  Trash2,
-  Type,
-} from "lucide-react";
+import { ArrowDown, ArrowRightLeft, ArrowUp, Copy, Trash2, Type } from "lucide-react";
 import { ElementApi, KEYS, RangeApi, type SlateEditor } from "platejs";
 import { useEditorRef } from "platejs/react";
 
@@ -5974,12 +6052,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 
@@ -5988,7 +6061,6 @@ import {
   duplicateBlock,
   moveBlock,
   runEditorCommand,
-  turnBlockInto,
 } from "../../lib/commands/editor-commands";
 import {
   settleMovedBlock,
@@ -6002,13 +6074,8 @@ import {
   type BlockHandleHit,
 } from "../../lib/features/editor-block-handle";
 import {
-  BLOCK_MENU_KINDS,
-  blockMenuDecisions,
-  currentBlockMenuKind,
   isBlockMenuShortcut,
   keepNativeContextMenu,
-  menuBlockView,
-  type BlockMenuKind,
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
@@ -6025,23 +6092,6 @@ type MenuSession = {
   target: BlockHandleHit;
   anchor: AnchorBox;
 };
-
-const TURN_ICONS = {
-  paragraph: Type,
-  h1: Heading1,
-  h2: Heading2,
-  h3: Heading3,
-  bulleted: List,
-  numbered: ListOrdered,
-  todo: ListTodo,
-  toggle: ChevronRight,
-  "toggle-h1": Heading1,
-  "toggle-h2": Heading2,
-  "toggle-h3": Heading3,
-  quote: TextQuote,
-  callout: Lightbulb,
-  code: Code,
-} as const satisfies Record<BlockMenuKind, typeof Type>;
 
 const CONTROL_SELECTOR =
   "button, input, textarea, select, [role='menu'], [role='menuitem'], [data-block-handle], [data-block-menu]";
@@ -6135,29 +6185,18 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
-function isKind(value: string): value is BlockMenuKind {
-  return BLOCK_MENU_KINDS.some((kind) => kind === value);
-}
-
-function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
+function BlockMenuItems({
+  target,
+  onActed,
+  onTurnInto,
+}: {
+  target: BlockHandleHit;
+  onActed: () => void;
+  onTurnInto: (target: BlockHandleHit) => void;
+}) {
   const editor = useEditorRef();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
-  const view = path === undefined ? null : menuBlockView(editor, path);
-  const decisions = view === null ? null : blockMenuDecisions(view);
-  const current = view === null ? null : currentBlockMenuKind(view);
-
-  function turn(kind: BlockMenuKind): void {
-    if (!path || kind === current) {
-      return;
-    }
-    const decision = decisions?.find((item) => item.kind === kind);
-    if (!decision || !decision.allowed) {
-      return;
-    }
-    onActed();
-    runEditorCommand(editor, turnBlockInto, { path: [...path], kind });
-  }
 
   function duplicate(): void {
     if (!path) {
@@ -6196,46 +6235,10 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
 
   return (
     <>
-      {decisions === null ? null : (
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <ArrowRightLeft aria-hidden="true" />
-            Turn into
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent collisionPadding={8} hideWhenDetached>
-            <DropdownMenuRadioGroup
-              value={current ?? ""}
-              onValueChange={(value) => {
-                if (isKind(value)) {
-                  turn(value);
-                }
-              }}
-            >
-              {decisions.map((item) => {
-                const Icon = TURN_ICONS[item.kind];
-                return (
-                  <DropdownMenuRadioItem
-                    key={item.kind}
-                    value={item.kind}
-                    disabled={!item.allowed}
-                    data-block-menu-kind={item.kind}
-                  >
-                    <Icon aria-hidden="true" />
-                    <span className="flex min-w-0 flex-col items-start">
-                      <span>{item.label}</span>
-                      {item.reason === undefined ? null : (
-                        <span className="text-muted-foreground text-xs whitespace-normal">
-                          {item.reason}
-                        </span>
-                      )}
-                    </span>
-                  </DropdownMenuRadioItem>
-                );
-              })}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      )}
+      <DropdownMenuItem data-block-menu-turn-into="" onSelect={() => onTurnInto(target)}>
+        <ArrowRightLeft aria-hidden="true" />
+        Turn into
+      </DropdownMenuItem>
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -6293,16 +6296,19 @@ export function BlockMenu({
   holdMenu,
   bindOpener,
   bindCloser,
+  onTurnInto,
 }: {
   gripRef: RefObject<HTMLButtonElement | null>;
   holdMenu: (id: string | null) => void;
   bindOpener: (open: (target: BlockHandleHit) => void) => void;
   bindCloser: (close: () => void) => void;
+  onTurnInto: (target: BlockHandleHit) => void;
 }) {
   const editor = useEditorRef();
   const [session, setSession] = useState<MenuSession | null>(null);
   const savedSelection = useRef(editor.selection);
   const acted = useRef(false);
+  const skipRestore = useRef(false);
   const sessionRef = useRef<MenuSession | null>(null);
   const pending = useRef<BlockHandleHit | null>(null);
   const frame = useRef(0);
@@ -6515,6 +6521,12 @@ export function BlockMenu({
         className="w-64"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
+          // Turn into opens the picker, which owns focus. Restoring the editor
+          // here would move focus out and dismiss the picker at once.
+          if (skipRestore.current) {
+            skipRestore.current = false;
+            return;
+          }
           const selection = cloneRange(acted.current ? editor.selection : savedSelection.current);
           // Chrome places the caret under the pointer when focus returns from a click.
           // Deselect first so the saved range is written, then again after that placement.
@@ -6538,6 +6550,11 @@ export function BlockMenu({
           target={session.target}
           onActed={() => {
             acted.current = true;
+          }}
+          onTurnInto={(target) => {
+            acted.current = true;
+            skipRestore.current = true;
+            onTurnInto(target);
           }}
         />
       </DropdownMenuContent>
@@ -10092,6 +10109,7 @@ import {
   type CalloutIcon,
   type CalloutTone,
 } from "../../lib/document/editor-document-schema";
+import { MENU_ITEM_ACTIVE, MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import { Button } from "@/components/button";
 
 // role="note" is an ancillary note. An aside would be a complementary landmark.
@@ -10248,10 +10266,7 @@ export function CalloutElement(props: PlateElementProps) {
                         aria-label={CALLOUT_ICON_GLYPH[choice].label}
                         aria-pressed={selected}
                         data-state={selected ? "on" : "off"}
-                        className={cn(
-                          "justify-center",
-                          selected && "bg-accent text-accent-foreground",
-                        )}
+                        className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
                         onMouseDown={keepEditorSelection}
                         onClick={apply}
                       >
@@ -10279,6 +10294,7 @@ export function CalloutElement(props: PlateElementProps) {
                   <DropdownMenuRadioItem
                     key={choice}
                     value={choice}
+                    className={MENU_ITEM_ACTIVE_CHECKED}
                     onMouseDown={keepEditorSelection}
                   >
                     <span
@@ -10493,8 +10509,15 @@ import {
   type PlateLeafProps,
 } from "platejs/react";
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
 import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
@@ -10642,25 +10665,31 @@ export function CodeBlockElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuItem
-                onMouseDown={keepEditorSelection}
-                onSelect={() => {
-                  runEditorCommand(editor, setCodeLanguage, { lang: null, at: path });
+              <DropdownMenuRadioGroup
+                value={lang ?? "plaintext"}
+                onValueChange={(value) => {
+                  const next = CODE_LANGS.find((entry) => entry === value) ?? null;
+                  runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
                 }}
               >
-                {CODE_LANG_LABELS.plaintext}
-              </DropdownMenuItem>
-              {CODE_LANGS.map((choice) => (
-                <DropdownMenuItem
-                  key={choice}
+                <DropdownMenuRadioItem
+                  value="plaintext"
+                  className={MENU_ITEM_ACTIVE_CHECKED}
                   onMouseDown={keepEditorSelection}
-                  onSelect={() => {
-                    runEditorCommand(editor, setCodeLanguage, { lang: choice, at: path });
-                  }}
                 >
-                  {CODE_LANG_LABELS[choice]}
-                </DropdownMenuItem>
-              ))}
+                  {CODE_LANG_LABELS.plaintext}
+                </DropdownMenuRadioItem>
+                {CODE_LANGS.map((choice) => (
+                  <DropdownMenuRadioItem
+                    key={choice}
+                    value={choice}
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepEditorSelection}
+                  >
+                    {CODE_LANG_LABELS[choice]}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -13710,6 +13739,7 @@ import {
 } from "@/components/dropdown-menu";
 
 import { runEditorCommand, type EditorCommand } from "../../lib/commands/editor-commands";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   deleteTable,
   deleteTableColumn,
@@ -13942,6 +13972,7 @@ export function TableControls({
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
             checked={headerRow}
+            className={MENU_ITEM_ACTIVE_CHECKED}
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(toggleTableHeaderRow, undefined);
@@ -13951,6 +13982,7 @@ export function TableControls({
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={headerColumn}
+            className={MENU_ITEM_ACTIVE_CHECKED}
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(toggleTableHeaderColumn, undefined);
@@ -14891,7 +14923,7 @@ export const convertBookmarkToText: EditorCommand<string> = {
 
 export const removeBookmark: EditorCommand<string> = {
   id: "block.bookmark.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   run: (editor, id) => {
     const entry = writableBookmark(editor, id);
@@ -15357,7 +15389,7 @@ function BookmarkToolbar({
       />
       <EditorIconButton
         variant="destructive"
-        label="Remove"
+        label="Delete"
         icon={<Trash2 aria-hidden="true" />}
         onClick={() => {
           runEditorCommand(editor, removeBookmark, id);
@@ -16012,6 +16044,29 @@ export function insertColumns(editor: SlateEditor, count: 2 | 3): void {
   });
 }
 
+// Insert a column group as the next sibling of `path`, inside its container.
+// Used by the Add picker; insertColumns above works from the selection.
+export function insertColumnsBelow(
+  editor: SlateEditor,
+  path: readonly number[],
+  count: 2 | 3,
+): void {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return;
+  }
+  const widths = equalColumnWidths(count);
+  const children = widths.map((width) => ({
+    type: KEYS.column,
+    width,
+    children: [emptyParagraph()],
+  }));
+  editor.tf.withoutNormalizing(() => {
+    editor.tf.insertNodes({ type: KEYS.columnGroup, children }, { at });
+    selectPath(editor, at.concat([0, 0]));
+  });
+}
+
 export function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
   const group = columnGroupAbove(editor);
   if (!group || group.node.children.length === count) {
@@ -16380,7 +16435,7 @@ export const setColumnCountCommand: EditorCommand<2 | 3> = {
 
 export const removeColumnCommand: EditorCommand<number> = {
   id: "block.columns.remove-column",
-  label: "Remove column",
+  label: "Delete column",
   group: "action",
   isEnabled: inColumnGroup,
   run: (editor, index) => {
@@ -16439,6 +16494,7 @@ import {
   setColumnWidths,
   unwrapColumns,
 } from "../../lib/commands/editor-columns";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -16449,7 +16505,7 @@ import {
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
 export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
-export const COLUMN_REMOVE_CONFIRM = "Remove columns and content?";
+export const COLUMN_REMOVE_CONFIRM = "Delete columns and content?";
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
@@ -16714,10 +16770,18 @@ export function ColumnGroupElement(props: PlateElementProps) {
                     });
                   }}
                 >
-                  <DropdownMenuRadioItem value="2" onMouseDown={keepMediaSelection}>
+                  <DropdownMenuRadioItem
+                    value="2"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepMediaSelection}
+                  >
                     2 columns
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="3" onMouseDown={keepMediaSelection}>
+                  <DropdownMenuRadioItem
+                    value="3"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepMediaSelection}
+                  >
                     3 columns
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
@@ -16735,7 +16799,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
             />
             <EditorTextButton
               variant="destructive"
-              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
+              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Delete"}
               icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
@@ -16976,6 +17040,16 @@ export function insertTocBlock(editor: SlateEditor): void {
   editor.tf.insertNodes(tocNode(), { at, select: true });
 }
 
+// Insert a table of contents as the next sibling of `path`, inside its
+// container. Used by the Add picker.
+export function insertTocBelow(editor: SlateEditor, path: readonly number[]): void {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return;
+  }
+  editor.tf.insertNodes(tocNode(), { at, select: true });
+}
+
 export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
@@ -17036,7 +17110,7 @@ export const setTocDepthCommand: EditorCommand<TocDepth> = {
 
 export const removeTocCommand: EditorCommand = {
   id: "block.toc.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   isEnabled: (editor) => tocAbove(editor) !== undefined,
   run: (editor) => {
@@ -17065,7 +17139,12 @@ import {
 import { ChevronDown, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -17081,6 +17160,7 @@ import {
   type TocEntry,
 } from "../../lib/features/editor-toc";
 import { BLOCK_SELECTED_CLASS } from "./hr-element";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -17213,24 +17293,34 @@ export function TocElement(props: PlateElementProps) {
                   event.preventDefault();
                 }}
               >
-                {([1, 2, 3] as const).map((choice) => (
-                  <DropdownMenuItem
-                    key={choice}
-                    onMouseDown={keepMediaSelection}
-                    onSelect={() => {
-                      runOnToc(() => {
-                        setTocDepth(editor, path, choice);
-                      });
-                    }}
-                  >
-                    {TOC_DEPTH_LABEL[choice]}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuRadioGroup
+                  value={String(isTocDepth(depth) ? depth : 3)}
+                  onValueChange={(value) => {
+                    if (value !== "1" && value !== "2" && value !== "3") {
+                      return;
+                    }
+                    const choice = Number(value) as 1 | 2 | 3;
+                    runOnToc(() => {
+                      setTocDepth(editor, path, choice);
+                    });
+                  }}
+                >
+                  {([1, 2, 3] as const).map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={String(choice)}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepMediaSelection}
+                    >
+                      {TOC_DEPTH_LABEL[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <EditorTextButton
               variant="destructive"
-              label="Remove"
+              label="Delete"
               icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {
@@ -17391,6 +17481,19 @@ export function insertEquationBlock(editor: SlateEditor): void {
   openEquationEditor(editor, id);
 }
 
+// Insert an equation as the next sibling of `path`, inside its container. The
+// block menu only converts; the Add picker needs a path-targeted insert.
+export function insertEquationBelow(editor: SlateEditor, path: readonly number[]): string | null {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return null;
+  }
+  const id = nanoid();
+  editor.tf.insertNodes(equationNode(id), { at, select: true });
+  openEquationEditor(editor, id);
+  return id;
+}
+
 export function setEquationExpression(
   editor: SlateEditor,
   path: number[],
@@ -17442,7 +17545,7 @@ function selectedEquation(editor: SlateEditor): [TElement, number[]] | undefined
 
 export const removeEquationCommand: EditorCommand = {
   id: "block.equation.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   isEnabled: (editor) => selectedEquation(editor) !== undefined,
   run: (editor) => {
@@ -17739,7 +17842,7 @@ export function EquationElement(props: PlateElementProps) {
             />
             <EditorTextButton
               variant="destructive"
-              label="Remove"
+              label="Delete"
               icon={<Trash2 aria-hidden="true" />}
               onClick={remove}
             />
@@ -17804,7 +17907,7 @@ export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
 export const SYNCED_CREATE_LABEL = "Create synced copy";
 export const SYNCED_GO_LABEL = "Go to original";
 export const SYNCED_CONVERT_LABEL = "Convert to copy";
-export const SYNCED_REMOVE_LABEL = "Remove";
+export const SYNCED_REMOVE_LABEL = "Delete";
 export const SYNCED_SELECT_REASON = "Select a block to sync.";
 export const SYNCED_REJECT_REASON = "This block cannot be synced.";
 
@@ -21193,60 +21296,62 @@ const ELIGIBLE = new Set<string>([
   KEYS.columnGroup,
 ]);
 
-// Blocks whose first line of text lives inside a widget (KaTeX, table grid,
-// code editor, columns, a preview) or that paint no editable text at all.
-// Their handle anchors to the block's top edge instead of the block's middle,
-// so a tall equation never gets the handle at its center or bottom.
-export const HANDLE_TOP_ANCHOR_TYPES = new Set<string>([
-  KEYS.equation,
-  KEYS.hr,
-  BOOKMARK_KEY,
-  KEYS.table,
-  KEYS.codeBlock,
-  KEYS.toc,
-  KEYS.columnGroup,
-  SYNCED_REF_KEY,
-  KEYS.callout,
-  KEYS.toggle,
-]);
-
-// First-line height of body text. A widget-anchored block gets the handle's
-// center one body line below its top edge, matching a normal paragraph.
-export const BODY_LINE_HEIGHT_PX = 24;
-
-export type HandleTextBox = { top: number; height: number } | null;
-
-export type HandleAnchor = { lineTop: number; lineHeight: number };
-
-// The vertical anchor for the handle. A plain text block centers on its first
-// text line. A widget-anchored block (or one with no measured line) sits on its
-// top edge with the handle center on the first body line.
-export function handleAnchorLine(
-  type: string,
-  block: { top: number; bottom: number },
-  textLine: HandleTextBox,
-  bodyLineHeight = BODY_LINE_HEIGHT_PX,
-): HandleAnchor {
-  if (textLine && textLine.height > 0 && !HANDLE_TOP_ANCHOR_TYPES.has(type)) {
-    return { lineTop: textLine.top, lineHeight: textLine.height };
-  }
-  const height =
-    bodyLineHeight > 0 ? bodyLineHeight : Math.max(0, block.bottom - block.top) || bodyLineHeight;
-  return { lineTop: block.top, lineHeight: height };
-}
+// The handle is top-aligned to the target block's border box: the handle's top
+// edge and the block's top edge are flush, for every block type. There is no
+// first-text-line mode and no per-type list; a child that has its own handle
+// uses its own border box. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
-// keeps a target in the gaps between blocks, where no element is hit.
+// keeps a target in the gaps between blocks, where no element is hit. `depth`
+// is the target's nesting depth so an inner row wins over the container that
+// encloses it at the same Y.
 export type HandleBand = {
   id: string;
   path: number[];
   top: number;
   bottom: number;
+  depth?: number;
 };
 
-// The target block for a pointer Y inside the editor: the nearest band by
-// vertical distance, ties going to the block below. The current target is kept
-// within `hysteresisPx` of its band so crossing the boundary does not flicker.
+function bandContains(band: HandleBand, y: number): boolean {
+  return y >= band.top && y <= band.bottom;
+}
+
+function bandDistance(band: HandleBand, y: number): number {
+  if (y < band.top) {
+    return band.top - y;
+  }
+  if (y > band.bottom) {
+    return y - band.bottom;
+  }
+  return 0;
+}
+
+function bandWins(candidate: HandleBand, incumbent: HandleBand, y: number): boolean {
+  const candidateInside = bandContains(candidate, y);
+  const incumbentInside = bandContains(incumbent, y);
+  if (candidateInside !== incumbentInside) {
+    return candidateInside;
+  }
+  const candidateDepth = candidate.depth ?? 0;
+  const incumbentDepth = incumbent.depth ?? 0;
+  if (candidateDepth !== incumbentDepth) {
+    return candidateDepth > incumbentDepth;
+  }
+  const candidateDistance = bandDistance(candidate, y);
+  const incumbentDistance = bandDistance(incumbent, y);
+  if (candidateDistance !== incumbentDistance) {
+    return candidateDistance < incumbentDistance;
+  }
+  return candidate.top > incumbent.top;
+}
+
+// The target block for a pointer Y inside the editor. The target is a function
+// of Y alone: the innermost band containing Y wins, so a container's padding,
+// border and the gutter to its left resolve to the same row as the text at that
+// Y. Below all bands, the nearest band wins, ties going to the block below. The
+// current target is kept within `hysteresisPx` of its band so crossing the
+// boundary does not flicker.
 export function pickHandleBandAtY(
   bands: readonly HandleBand[],
   y: number,
@@ -21263,15 +21368,9 @@ export function pickHandleBandAtY(
     }
   }
   let best: HandleBand | null = null;
-  let bestDistance = Number.POSITIVE_INFINITY;
   for (const band of bands) {
-    const distance = y < band.top ? band.top - y : y > band.bottom ? y - band.bottom : 0;
-    if (
-      distance < bestDistance ||
-      (distance === bestDistance && best !== null && band.top > best.top)
-    ) {
+    if (best === null || bandWins(band, best, y)) {
       best = band;
-      bestDistance = distance;
     }
   }
   return best;
@@ -21309,7 +21408,11 @@ export type BlockHandlePaint = {
   blockBottom: number;
 };
 
-const SUMMARY_ROW_PARENTS = new Set<string>([KEYS.toggle, KEYS.callout]);
+// A container's first child row stands for the whole container. A toggle's
+// summary row, a callout's first row and a blockquote's first line all target
+// the container, so grabbing the grip there drags the container with all its
+// children. Later children target themselves.
+const SUMMARY_ROW_PARENTS = new Set<string>([KEYS.toggle, KEYS.callout, KEYS.blockquote]);
 
 function isSummaryRow(node: HandleChainNode): boolean {
   return node.index === 0 && node.parentType !== null && SUMMARY_ROW_PARENTS.has(node.parentType);
@@ -21489,9 +21592,12 @@ export function isTypingKey(event: {
   return event.key.length === 1;
 }
 
-export type HandleLineBox = {
-  lineTop: number;
-  lineHeight: number;
+// The target block's border box, in viewport coordinates. `blockTop` is the
+// handle's top; `blockLeft` is the horizontal anchor (the gutter anchor for a
+// nested block). `blockBottom` is only used for the visibility test.
+export type HandleBlockBox = {
+  blockTop: number;
+  blockBottom: number;
   blockLeft: number;
 };
 
@@ -21517,14 +21623,16 @@ export type PlacedHandle = {
   left: number;
 };
 
+// Handle top = the target block's top edge (plain top alignment). The handle is
+// placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
 export function placeBlockHandle(
-  line: HandleLineBox,
+  block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
 ): PlacedHandle | null {
-  const top = line.lineTop + line.lineHeight / 2 - handle.height / 2;
-  const left = line.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const top = block.blockTop;
+  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 
@@ -21534,14 +21642,13 @@ export function placeBlockHandle(
   if (right > viewport.width - BLOCK_HANDLE_PAD || bottom > viewport.height - BLOCK_HANDLE_PAD) {
     return null;
   }
-  if (right > line.blockLeft - 1) {
+  if (right > block.blockLeft - 1) {
     return null;
   }
 
   if (frame) {
-    const lineBottom = line.lineTop + line.lineHeight;
-    const lineVisible = lineBottom > frame.top && line.lineTop < frame.bottom;
-    if (!lineVisible) {
+    const blockVisible = block.blockBottom > frame.top && block.blockTop < frame.bottom;
+    if (!blockVisible) {
       return null;
     }
     if (top < frame.top || bottom > frame.bottom || left < frame.left || right > frame.right) {
@@ -24952,12 +25059,9 @@ import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-c
 import {
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
-  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
-  chainFromDom,
-  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isBlockDragArmed,
@@ -24971,7 +25075,6 @@ import {
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
-  type HandleTextBox,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
@@ -25021,80 +25124,6 @@ function editableOf(editor: SlateEditor): HTMLElement | null {
   return editable instanceof HTMLElement ? editable : null;
 }
 
-function textValue(node: Node): string {
-  return node.nodeType === Node.TEXT_NODE ? (node.nodeValue ?? "") : "";
-}
-
-function textWithContent(node: Element): Node | null {
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  while (current) {
-    if (textValue(current).trim().length > 0) {
-      return current;
-    }
-    current = walker.nextNode();
-  }
-  return null;
-}
-
-function firstLineText(element: HTMLElement): Node | null {
-  const strings = element.querySelectorAll("[data-slate-string='true']");
-  for (const stringNode of strings) {
-    if (!(stringNode instanceof HTMLElement) || stringNode.closest("[data-preview-path]")) {
-      continue;
-    }
-    const text = textWithContent(stringNode);
-    if (text) {
-      return text;
-    }
-  }
-
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  while (current) {
-    if (textValue(current).trim().length > 0) {
-      const parent = current.parentElement;
-      if (!parent?.closest("button, [data-slot='button'], [role='button']")) {
-        return current;
-      }
-    }
-    current = walker.nextNode();
-  }
-  return null;
-}
-
-// The measured first text line of a block, or null when the block paints no
-// editable text (equation, divider, bookmark, table chrome, ...).
-function measuredTextLine(element: HTMLElement): HandleTextBox {
-  const text = firstLineText(element);
-  if (!text) {
-    return null;
-  }
-  try {
-    const range = document.createRange();
-    range.setStart(text, 0);
-    range.setEnd(text, Math.min(1, textValue(text).length || 1));
-    const rect = range.getClientRects()[0];
-    if (rect && rect.height > 0) {
-      return { top: rect.top, height: rect.height };
-    }
-  } catch {
-    // An unmeasured range means there is no usable text line.
-  }
-  return null;
-}
-
-function bodyLineHeightFor(editor: SlateEditor): number {
-  const editable = editableOf(editor);
-  if (editable) {
-    const value = Number.parseFloat(getComputedStyle(editable).lineHeight);
-    if (Number.isFinite(value) && value >= 8 && value <= 80) {
-      return value;
-    }
-  }
-  return BODY_LINE_HEIGHT_PX;
-}
-
 // One band per rendered target, in document order. Gaps between blocks have no
 // hit element, so the handle resolves a target from these bands instead.
 function handleBands(editor: SlateEditor): HandleBand[] {
@@ -25116,16 +25145,55 @@ function handleBands(editor: SlateEditor): HandleBand[] {
       continue;
     }
     const target = blockHandleTarget(chainAtPath(editor, entry[1]));
-    if (!target || byId.has(target.id)) {
+    if (!target) {
       continue;
     }
     const rect = node.getBoundingClientRect();
     if (rect.height <= 0) {
       continue;
     }
-    byId.set(target.id, { id: target.id, path: entry[1], top: rect.top, bottom: rect.bottom });
+    // A container's target is its first row: an element that maps to an
+    // ancestor (a summary/first row) has a smaller box than the container
+    // itself, so the smaller box wins. A later row keeps its own box. This
+    // makes the container's top padding resolve to the container and its lower
+    // padding resolve to the last row.
+    const existing = byId.get(target.id);
+    if (existing && existing.bottom - existing.top <= rect.height) {
+      continue;
+    }
+    byId.set(target.id, {
+      id: target.id,
+      path: entry[1],
+      top: rect.top,
+      bottom: rect.bottom,
+      depth: entry[1].length,
+    });
   }
   return sortHandleBands([...byId.values()]);
+}
+
+// The target is a function of the pointer's Y alone: the innermost band
+// containing Y. A container's padding, border and the gutter to its left then
+// resolve to the same row as the text at that Y, so the handle cannot flicker
+// between a quote and its child. `bands` are cached; callers refresh them after
+// a render, scroll or resize.
+function pointerBlockId(
+  bands: readonly HandleBand[],
+  y: number,
+  currentId: string | null,
+): string | null {
+  return pickHandleBandAtY(bands, y, currentId)?.id ?? null;
+}
+
+// The handle buttons/menu/tooltip keep the current target while engaged. The
+// gutter strip does not count: a vertical move along it must retarget by Y.
+function isControlLayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(
+      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu]",
+    ) !== null
+  );
 }
 
 // The editor's vertical extent: the scroll viewport when there is one, else the
@@ -25138,34 +25206,6 @@ function insideEditorArea(editor: SlateEditor, _x: number, y: number): boolean {
   const viewport = editable.closest("[data-block-viewport]");
   const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
   return y >= frame.top && y <= frame.bottom;
-}
-
-function pointerBlockId(
-  editor: SlateEditor,
-  target: EventTarget | null,
-  x: number,
-  y: number,
-  currentId: string | null,
-): string | null {
-  const element =
-    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
-  if (element) {
-    const picked = blockHandleTarget(chainFromDom(editor, element));
-    if (picked && findBlockById(editor, picked.id)) {
-      return picked.id;
-    }
-  }
-  if (typeof document.elementFromPoint === "function") {
-    const hit = document.elementFromPoint(x, y);
-    if (hit instanceof Element) {
-      const picked = blockHandleTarget(chainFromDom(editor, hit));
-      if (picked && findBlockById(editor, picked.id)) {
-        return picked.id;
-      }
-    }
-  }
-  const band = pickHandleBandAtY(handleBands(editor), y, currentId);
-  return band?.id ?? null;
 }
 
 function frameOf(element: HTMLElement): HandleFrame | null {
@@ -25219,22 +25259,9 @@ function measurePaint(
   if (box.height <= 0 || box.width <= 0) {
     return null;
   }
-  const anchor = handleAnchorLine(
-    entry[0].type,
-    { top: box.top, bottom: box.bottom },
-    measuredTextLine(dom),
-    bodyLineHeightFor(editor),
-  );
-  const line = {
-    lineTop: anchor.lineTop,
-    lineHeight: anchor.lineHeight,
-    blockLeft: box.left,
-    blockTop: box.top,
-    blockBottom: box.bottom,
-  };
   const chain = chainAtPath(editor, entry[1]);
   const gutterId = blockHandleGutterId(chain, id);
-  let gutterLeft = line.blockLeft;
+  let gutterLeft = box.left;
   if (gutterId !== id) {
     const anchor = findBlockById(editor, gutterId);
     const anchorDom = anchor ? editor.api.toDOMNode(anchor[0]) : null;
@@ -25246,7 +25273,7 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { lineTop: line.lineTop, lineHeight: line.lineHeight, blockLeft: gutterLeft },
+    { blockTop: box.top, blockBottom: box.bottom, blockLeft: gutterLeft },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
@@ -25264,9 +25291,9 @@ function measurePaint(
     left: placed.left,
     width: size.width,
     height: size.height,
-    blockLeft: line.blockLeft,
-    blockTop: line.blockTop,
-    blockBottom: line.blockBottom,
+    blockLeft: box.left,
+    blockTop: box.top,
+    blockBottom: box.bottom,
   };
 }
 
@@ -25315,6 +25342,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
   const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
   const visibleIdRef = useRef<string | null>(null);
+  const bandsRef = useRef<HandleBand[]>([]);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
   useEffect(() => {
     visibleIdRef.current = visibleId;
@@ -25346,28 +25374,21 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       if (menuLockRef.current) {
         return;
       }
-      if (isHandleLayer(event.target)) {
-        setUi((state) => {
-          const held = state.pointerId ?? state.engagedId ?? caretId;
-          return reduceHandleUi(state, {
-            type: "pointer-move",
-            id: state.pointerId ?? held,
-            engagedId: held,
-            outside: false,
-          });
-        });
-        return;
-      }
+      // The target is a function of the pointer's Y: the row at that Y. This
+      // makes the text, the container's padding/border and the gutter strip to
+      // the left all agree, so the handle cannot flicker between a container
+      // and its child. Only the handle's own controls keep the current target.
       const inside = insideEditorArea(editor, event.clientX, event.clientY);
       pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
       const known = inside
-        ? pointerBlockId(editor, event.target, event.clientX, event.clientY, visibleIdRef.current)
+        ? pointerBlockId(bandsRef.current, event.clientY, visibleIdRef.current)
         : null;
+      const control = isControlLayer(event.target);
       setUi((state) =>
         reduceHandleUi(state, {
           type: "pointer-move",
-          id: known,
-          engagedId: null,
+          id: known ?? (control ? state.pointerId : null),
+          engagedId: control ? (known ?? state.pointerId ?? state.engagedId ?? caretId) : null,
           outside: !inside,
         }),
       );
@@ -25424,13 +25445,19 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         reducedMotion() ? 0 : HANDLE_FADE_MS,
       );
     };
+    const rebuildBands = (): void => {
+      bandsRef.current = handleBands(editor);
+    };
     const measure = (): void => {
+      // The bands mirror the current layout; rebuild them whenever the layout
+      // can have changed (a render, scroll, resize or size change).
+      rebuildBands();
       const next =
         visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
       publish(next);
     };
-    // On scroll the last pointer position can now sit over a different block.
-    // Re-resolve from that position instead of trusting a stale id.
+    // On scroll (or after a drop) the last pointer position can now sit over a
+    // different block. Re-resolve from that position instead of a stale id.
     const refreshPointerTarget = (x?: number, y?: number): void => {
       if (x !== undefined && y !== undefined) {
         pointerRef.current = { x, y, present: true };
@@ -25439,9 +25466,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
         return;
       }
+      rebuildBands();
       const inside = insideEditorArea(editor, pointer.x, pointer.y);
       const known = inside
-        ? pointerBlockId(editor, null, pointer.x, pointer.y, visibleIdRef.current)
+        ? pointerBlockId(bandsRef.current, pointer.y, visibleIdRef.current)
         : null;
       setUi((state) =>
         reduceHandleUi(state, {
@@ -26425,6 +26453,7 @@ import { LinkToolbar } from "../elements/link-element";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
+import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 
@@ -26481,6 +26510,7 @@ export function EditorSurface({
                 </span>
               )}
             />
+            <BlockPlaceholders placeholder={placeholder} />
             <BlockHandle onInsertedBelow={onInsertedBelow} />
           </LinkPreviewProvider>
         </MentionScope>

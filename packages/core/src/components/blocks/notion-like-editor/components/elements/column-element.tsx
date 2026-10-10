@@ -26,6 +26,7 @@ import {
   setColumnWidths,
   unwrapColumns,
 } from "../../lib/commands/editor-columns";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -36,7 +37,7 @@ import {
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
 export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
-export const COLUMN_REMOVE_CONFIRM = "Remove columns and content?";
+export const COLUMN_REMOVE_CONFIRM = "Delete columns and content?";
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
@@ -301,10 +302,18 @@ export function ColumnGroupElement(props: PlateElementProps) {
                     });
                   }}
                 >
-                  <DropdownMenuRadioItem value="2" onMouseDown={keepMediaSelection}>
+                  <DropdownMenuRadioItem
+                    value="2"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepMediaSelection}
+                  >
                     2 columns
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="3" onMouseDown={keepMediaSelection}>
+                  <DropdownMenuRadioItem
+                    value="3"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    onMouseDown={keepMediaSelection}
+                  >
                     3 columns
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
@@ -322,7 +331,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
             />
             <EditorTextButton
               variant="destructive"
-              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Remove"}
+              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Delete"}
               icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {

@@ -621,7 +621,7 @@ describe("equation editing", () => {
       });
       expect(writes).toEqual([QUADRATIC]);
       expect(mounted.host.querySelector('[aria-label="Edit"]')).toBeNull();
-      expect(mounted.host.querySelector('[aria-label="Remove"]')).toBeNull();
+      expect(mounted.host.querySelector('[aria-label="Delete"]')).toBeNull();
       expect(mounted.host.querySelector("[data-equation-toolbar]")).toBeNull();
     } finally {
       if (previous) {
@@ -633,7 +633,7 @@ describe("equation editing", () => {
     }
   });
 
-  test("the click popover holds Copy and Remove and there is no hover toolbar or Edit button", async () => {
+  test("the click popover holds Copy and Delete and there is no hover toolbar or Edit button", async () => {
     const mounted = await mountEquation([equation("eq-1", "a")]);
     try {
       await flushKatex();
@@ -648,7 +648,7 @@ describe("equation editing", () => {
       expect(button(document.body, "Copy source").getAttribute("data-variant")).not.toBe(
         "destructive",
       );
-      expect(button(document.body, "Remove").getAttribute("data-variant")).toBe("destructive");
+      expect(button(document.body, "Delete").getAttribute("data-variant")).toBe("destructive");
       expect(button(document.body, "Cancel")).toBeTruthy();
       expect(button(document.body, "Done")).toBeTruthy();
     } finally {

@@ -1,4 +1,12 @@
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -12,13 +20,19 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { GripVertical, Plus } from "lucide-react";
-import { useEditorReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
+import { runEditorCommand, turnBlockInto } from "../../lib/commands/editor-commands";
+import {
+  insertPickedBlock,
+  type BlockPickerItem,
+  type BlockPickerMode,
+} from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
 import {
@@ -28,8 +42,10 @@ import {
   type BlockDragHandlers,
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
+import { BlockPicker, type PickerAnchor } from "./block-picker";
+import { retainScroll } from "./block-toolbar";
 
-const ADD_LABEL = "Click to add below";
+const ADD_LABEL = "Add block below";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -38,6 +54,24 @@ type BlockHandleProps = {
 function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
+
+function rectOf(left: number, top: number, width: number, height: number): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON() {
+      return {};
+    },
+  } as DOMRect;
+}
+
+type PickerState = { mode: BlockPickerMode; target: BlockHandleHit };
 
 // renderToString throws on a portal. The menu stays mounted on the client even
 // when the grip is not painted, so a shortcut can open it.
@@ -100,11 +134,13 @@ function BlockHandleContent({
   onInsertedBelow?: (blockId: string) => void;
   apiRef: RefObject<BlockDragHandlers | null>;
 }) {
+  const editor = useEditorRef();
   const handle = useBlockHandle({ onInsertedBelow });
-  const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
-    handle;
+  const { paint, setMeasuredSize, shown, suppressed, onHandleFocus, onHandleBlur } = handle;
+  const [picker, setPicker] = useState<PickerState | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
+  const anchorRef = useRef<PickerAnchor>({ getBoundingClientRect: () => rectOf(0, 0, 0, 0) });
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
   const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
@@ -129,6 +165,38 @@ function BlockHandleContent({
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
+  // The picker anchors to the handle row (or the grip) without a visible trigger.
+  useEffect(() => {
+    anchorRef.current.getBoundingClientRect = () => {
+      const grip = gripRef.current?.getBoundingClientRect();
+      if (grip && grip.width > 0) {
+        return grip;
+      }
+      return paint ? rectOf(paint.left, paint.top, paint.width, paint.height) : rectOf(0, 0, 0, 0);
+    };
+  });
+
+  const choose = useCallback(
+    (item: BlockPickerItem) => {
+      const active = picker;
+      setPicker(null);
+      if (!active) {
+        return;
+      }
+      if (active.mode === "add") {
+        const insertedId = insertPickedBlock(editor, active.target.path, item);
+        if (insertedId !== null) {
+          onInsertedBelow?.(insertedId);
+        }
+        return;
+      }
+      if (item.kind !== undefined) {
+        runEditorCommand(editor, turnBlockInto, { path: [...active.target.path], kind: item.kind });
+      }
+    },
+    [editor, onInsertedBelow, picker],
+  );
+
   if (suppressed) {
     return null;
   }
@@ -139,6 +207,9 @@ function BlockHandleContent({
       holdMenu={handle.holdMenu}
       bindOpener={bindOpener}
       bindCloser={bindCloser}
+      onTurnInto={(target) => {
+        setPicker({ mode: "turn-into", target });
+      }}
     />
   );
   // Stop at the block edge. A pixel inside the box covers a control that sits
@@ -177,7 +248,11 @@ function BlockHandleContent({
                   data-block-handle-add=""
                   onMouseDown={keepEditorSelection}
                   onPointerDown={keepEditorSelection}
-                  onClick={addBelow}
+                  onClick={() => {
+                    if (paint) {
+                      setPicker({ mode: "add", target: paint.target });
+                    }
+                  }}
                 >
                   <Plus aria-hidden="true" />
                 </Button>
@@ -227,6 +302,26 @@ function BlockHandleContent({
           block is simply at its new position (no fly-back to the old slot). */}
       <DragOverlay dropAnimation={null}>{drag.overlay}</DragOverlay>
       {menu}
+      {picker ? (
+        <BlockPicker
+          open
+          mode={picker.mode}
+          editor={editor}
+          path={[...picker.target.path]}
+          anchorRef={anchorRef}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPicker(null);
+            }
+          }}
+          restoreFocus={() => {
+            retainScroll(() => {
+              editor.tf.focus();
+            });
+          }}
+          onChoose={choose}
+        />
+      ) : null}
     </>
   );
 }

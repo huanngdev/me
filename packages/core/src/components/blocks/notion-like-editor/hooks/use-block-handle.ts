@@ -7,12 +7,9 @@ import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-c
 import {
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
-  BODY_LINE_HEIGHT_PX,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
-  chainFromDom,
-  handleAnchorLine,
   handleCoversForeignBlock,
   initialHandleUi,
   isBlockDragArmed,
@@ -26,7 +23,6 @@ import {
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
-  type HandleTextBox,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
@@ -76,80 +72,6 @@ function editableOf(editor: SlateEditor): HTMLElement | null {
   return editable instanceof HTMLElement ? editable : null;
 }
 
-function textValue(node: Node): string {
-  return node.nodeType === Node.TEXT_NODE ? (node.nodeValue ?? "") : "";
-}
-
-function textWithContent(node: Element): Node | null {
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  while (current) {
-    if (textValue(current).trim().length > 0) {
-      return current;
-    }
-    current = walker.nextNode();
-  }
-  return null;
-}
-
-function firstLineText(element: HTMLElement): Node | null {
-  const strings = element.querySelectorAll("[data-slate-string='true']");
-  for (const stringNode of strings) {
-    if (!(stringNode instanceof HTMLElement) || stringNode.closest("[data-preview-path]")) {
-      continue;
-    }
-    const text = textWithContent(stringNode);
-    if (text) {
-      return text;
-    }
-  }
-
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  while (current) {
-    if (textValue(current).trim().length > 0) {
-      const parent = current.parentElement;
-      if (!parent?.closest("button, [data-slot='button'], [role='button']")) {
-        return current;
-      }
-    }
-    current = walker.nextNode();
-  }
-  return null;
-}
-
-// The measured first text line of a block, or null when the block paints no
-// editable text (equation, divider, bookmark, table chrome, ...).
-function measuredTextLine(element: HTMLElement): HandleTextBox {
-  const text = firstLineText(element);
-  if (!text) {
-    return null;
-  }
-  try {
-    const range = document.createRange();
-    range.setStart(text, 0);
-    range.setEnd(text, Math.min(1, textValue(text).length || 1));
-    const rect = range.getClientRects()[0];
-    if (rect && rect.height > 0) {
-      return { top: rect.top, height: rect.height };
-    }
-  } catch {
-    // An unmeasured range means there is no usable text line.
-  }
-  return null;
-}
-
-function bodyLineHeightFor(editor: SlateEditor): number {
-  const editable = editableOf(editor);
-  if (editable) {
-    const value = Number.parseFloat(getComputedStyle(editable).lineHeight);
-    if (Number.isFinite(value) && value >= 8 && value <= 80) {
-      return value;
-    }
-  }
-  return BODY_LINE_HEIGHT_PX;
-}
-
 // One band per rendered target, in document order. Gaps between blocks have no
 // hit element, so the handle resolves a target from these bands instead.
 function handleBands(editor: SlateEditor): HandleBand[] {
@@ -171,16 +93,55 @@ function handleBands(editor: SlateEditor): HandleBand[] {
       continue;
     }
     const target = blockHandleTarget(chainAtPath(editor, entry[1]));
-    if (!target || byId.has(target.id)) {
+    if (!target) {
       continue;
     }
     const rect = node.getBoundingClientRect();
     if (rect.height <= 0) {
       continue;
     }
-    byId.set(target.id, { id: target.id, path: entry[1], top: rect.top, bottom: rect.bottom });
+    // A container's target is its first row: an element that maps to an
+    // ancestor (a summary/first row) has a smaller box than the container
+    // itself, so the smaller box wins. A later row keeps its own box. This
+    // makes the container's top padding resolve to the container and its lower
+    // padding resolve to the last row.
+    const existing = byId.get(target.id);
+    if (existing && existing.bottom - existing.top <= rect.height) {
+      continue;
+    }
+    byId.set(target.id, {
+      id: target.id,
+      path: entry[1],
+      top: rect.top,
+      bottom: rect.bottom,
+      depth: entry[1].length,
+    });
   }
   return sortHandleBands([...byId.values()]);
+}
+
+// The target is a function of the pointer's Y alone: the innermost band
+// containing Y. A container's padding, border and the gutter to its left then
+// resolve to the same row as the text at that Y, so the handle cannot flicker
+// between a quote and its child. `bands` are cached; callers refresh them after
+// a render, scroll or resize.
+function pointerBlockId(
+  bands: readonly HandleBand[],
+  y: number,
+  currentId: string | null,
+): string | null {
+  return pickHandleBandAtY(bands, y, currentId)?.id ?? null;
+}
+
+// The handle buttons/menu/tooltip keep the current target while engaged. The
+// gutter strip does not count: a vertical move along it must retarget by Y.
+function isControlLayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(
+      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu]",
+    ) !== null
+  );
 }
 
 // The editor's vertical extent: the scroll viewport when there is one, else the
@@ -193,34 +154,6 @@ function insideEditorArea(editor: SlateEditor, _x: number, y: number): boolean {
   const viewport = editable.closest("[data-block-viewport]");
   const frame = (viewport instanceof HTMLElement ? viewport : editable).getBoundingClientRect();
   return y >= frame.top && y <= frame.bottom;
-}
-
-function pointerBlockId(
-  editor: SlateEditor,
-  target: EventTarget | null,
-  x: number,
-  y: number,
-  currentId: string | null,
-): string | null {
-  const element =
-    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
-  if (element) {
-    const picked = blockHandleTarget(chainFromDom(editor, element));
-    if (picked && findBlockById(editor, picked.id)) {
-      return picked.id;
-    }
-  }
-  if (typeof document.elementFromPoint === "function") {
-    const hit = document.elementFromPoint(x, y);
-    if (hit instanceof Element) {
-      const picked = blockHandleTarget(chainFromDom(editor, hit));
-      if (picked && findBlockById(editor, picked.id)) {
-        return picked.id;
-      }
-    }
-  }
-  const band = pickHandleBandAtY(handleBands(editor), y, currentId);
-  return band?.id ?? null;
 }
 
 function frameOf(element: HTMLElement): HandleFrame | null {
@@ -274,22 +207,9 @@ function measurePaint(
   if (box.height <= 0 || box.width <= 0) {
     return null;
   }
-  const anchor = handleAnchorLine(
-    entry[0].type,
-    { top: box.top, bottom: box.bottom },
-    measuredTextLine(dom),
-    bodyLineHeightFor(editor),
-  );
-  const line = {
-    lineTop: anchor.lineTop,
-    lineHeight: anchor.lineHeight,
-    blockLeft: box.left,
-    blockTop: box.top,
-    blockBottom: box.bottom,
-  };
   const chain = chainAtPath(editor, entry[1]);
   const gutterId = blockHandleGutterId(chain, id);
-  let gutterLeft = line.blockLeft;
+  let gutterLeft = box.left;
   if (gutterId !== id) {
     const anchor = findBlockById(editor, gutterId);
     const anchorDom = anchor ? editor.api.toDOMNode(anchor[0]) : null;
@@ -301,7 +221,7 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { lineTop: line.lineTop, lineHeight: line.lineHeight, blockLeft: gutterLeft },
+    { blockTop: box.top, blockBottom: box.bottom, blockLeft: gutterLeft },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
@@ -319,9 +239,9 @@ function measurePaint(
     left: placed.left,
     width: size.width,
     height: size.height,
-    blockLeft: line.blockLeft,
-    blockTop: line.blockTop,
-    blockBottom: line.blockBottom,
+    blockLeft: box.left,
+    blockTop: box.top,
+    blockBottom: box.bottom,
   };
 }
 
@@ -370,6 +290,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
   const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
   const visibleIdRef = useRef<string | null>(null);
+  const bandsRef = useRef<HandleBand[]>([]);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
   useEffect(() => {
     visibleIdRef.current = visibleId;
@@ -401,28 +322,21 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       if (menuLockRef.current) {
         return;
       }
-      if (isHandleLayer(event.target)) {
-        setUi((state) => {
-          const held = state.pointerId ?? state.engagedId ?? caretId;
-          return reduceHandleUi(state, {
-            type: "pointer-move",
-            id: state.pointerId ?? held,
-            engagedId: held,
-            outside: false,
-          });
-        });
-        return;
-      }
+      // The target is a function of the pointer's Y: the row at that Y. This
+      // makes the text, the container's padding/border and the gutter strip to
+      // the left all agree, so the handle cannot flicker between a container
+      // and its child. Only the handle's own controls keep the current target.
       const inside = insideEditorArea(editor, event.clientX, event.clientY);
       pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
       const known = inside
-        ? pointerBlockId(editor, event.target, event.clientX, event.clientY, visibleIdRef.current)
+        ? pointerBlockId(bandsRef.current, event.clientY, visibleIdRef.current)
         : null;
+      const control = isControlLayer(event.target);
       setUi((state) =>
         reduceHandleUi(state, {
           type: "pointer-move",
-          id: known,
-          engagedId: null,
+          id: known ?? (control ? state.pointerId : null),
+          engagedId: control ? (known ?? state.pointerId ?? state.engagedId ?? caretId) : null,
           outside: !inside,
         }),
       );
@@ -479,13 +393,19 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         reducedMotion() ? 0 : HANDLE_FADE_MS,
       );
     };
+    const rebuildBands = (): void => {
+      bandsRef.current = handleBands(editor);
+    };
     const measure = (): void => {
+      // The bands mirror the current layout; rebuild them whenever the layout
+      // can have changed (a render, scroll, resize or size change).
+      rebuildBands();
       const next =
         visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
       publish(next);
     };
-    // On scroll the last pointer position can now sit over a different block.
-    // Re-resolve from that position instead of trusting a stale id.
+    // On scroll (or after a drop) the last pointer position can now sit over a
+    // different block. Re-resolve from that position instead of a stale id.
     const refreshPointerTarget = (x?: number, y?: number): void => {
       if (x !== undefined && y !== undefined) {
         pointerRef.current = { x, y, present: true };
@@ -494,9 +414,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
         return;
       }
+      rebuildBands();
       const inside = insideEditorArea(editor, pointer.x, pointer.y);
       const known = inside
-        ? pointerBlockId(editor, null, pointer.x, pointer.y, visibleIdRef.current)
+        ? pointerBlockId(bandsRef.current, pointer.y, visibleIdRef.current)
         : null;
       setUi((state) =>
         reduceHandleUi(state, {

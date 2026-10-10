@@ -12,7 +12,12 @@ import {
 import { ChevronDown, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -28,6 +33,7 @@ import {
   type TocEntry,
 } from "../../lib/features/editor-toc";
 import { BLOCK_SELECTED_CLASS } from "./hr-element";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -160,24 +166,34 @@ export function TocElement(props: PlateElementProps) {
                   event.preventDefault();
                 }}
               >
-                {([1, 2, 3] as const).map((choice) => (
-                  <DropdownMenuItem
-                    key={choice}
-                    onMouseDown={keepMediaSelection}
-                    onSelect={() => {
-                      runOnToc(() => {
-                        setTocDepth(editor, path, choice);
-                      });
-                    }}
-                  >
-                    {TOC_DEPTH_LABEL[choice]}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuRadioGroup
+                  value={String(isTocDepth(depth) ? depth : 3)}
+                  onValueChange={(value) => {
+                    if (value !== "1" && value !== "2" && value !== "3") {
+                      return;
+                    }
+                    const choice = Number(value) as 1 | 2 | 3;
+                    runOnToc(() => {
+                      setTocDepth(editor, path, choice);
+                    });
+                  }}
+                >
+                  {([1, 2, 3] as const).map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={String(choice)}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepMediaSelection}
+                    >
+                      {TOC_DEPTH_LABEL[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <EditorTextButton
               variant="destructive"
-              label="Remove"
+              label="Delete"
               icon={<Trash2 aria-hidden="true" />}
               onMouseDown={keepMediaSelection}
               onClick={() => {

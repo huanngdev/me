@@ -883,9 +883,16 @@ describe("grip click and drag", () => {
 
   async function hoverId(host: HTMLElement, id: string): Promise<HTMLElement> {
     const block = host.querySelector(`[data-block-id="${id}"]`);
+    // The handle target is a function of the pointer's Y, so the move must
+    // carry coordinates inside the block's box, not default to 0,0.
     await act(async () => {
       block?.dispatchEvent(
-        new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse" }),
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          pointerType: "mouse",
+          clientX: 340,
+          clientY: (block?.getBoundingClientRect().top ?? 0) + 5,
+        }),
       );
     });
     const grip = document.querySelector("[data-block-handle-grip]");

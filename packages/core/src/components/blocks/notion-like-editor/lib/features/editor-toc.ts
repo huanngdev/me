@@ -216,6 +216,16 @@ export function insertTocBlock(editor: SlateEditor): void {
   editor.tf.insertNodes(tocNode(), { at, select: true });
 }
 
+// Insert a table of contents as the next sibling of `path`, inside its
+// container. Used by the Add picker.
+export function insertTocBelow(editor: SlateEditor, path: readonly number[]): void {
+  const at = PathApi.next([...path]);
+  if (!at) {
+    return;
+  }
+  editor.tf.insertNodes(tocNode(), { at, select: true });
+}
+
 export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
@@ -276,7 +286,7 @@ export const setTocDepthCommand: EditorCommand<TocDepth> = {
 
 export const removeTocCommand: EditorCommand = {
   id: "block.toc.remove",
-  label: "Remove",
+  label: "Delete",
   group: "action",
   isEnabled: (editor) => tocAbove(editor) !== undefined,
   run: (editor) => {

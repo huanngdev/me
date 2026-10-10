@@ -23,6 +23,7 @@ import {
 } from "@/components/dropdown-menu";
 
 import { runEditorCommand, type EditorCommand } from "../../lib/commands/editor-commands";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
   deleteTable,
   deleteTableColumn,
@@ -255,6 +256,7 @@ export function TableControls({
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
             checked={headerRow}
+            className={MENU_ITEM_ACTIVE_CHECKED}
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(toggleTableHeaderRow, undefined);
@@ -264,6 +266,7 @@ export function TableControls({
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={headerColumn}
+            className={MENU_ITEM_ACTIVE_CHECKED}
             onMouseDown={keepEditorSelection}
             onSelect={() => {
               apply(toggleTableHeaderColumn, undefined);
