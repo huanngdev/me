@@ -1,120 +1,101 @@
-import type { RefObject } from "react";
-import type { SlateEditor } from "platejs";
+import { Fragment } from "react";
 
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/command";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import {
-  BLOCK_PICKER_GROUPS,
-  blockPickerItems,
-  type BlockPickerItem,
-  type BlockPickerMode,
-} from "../../lib/features/editor-block-picker";
-import { MENU_ITEM_ACTIVE } from "../../lib/features/editor-menu-active";
+import { BLOCK_PICKER_GROUPS, type BlockPickerItem } from "../../lib/features/editor-block-picker";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 
-export type PickerAnchor = { getBoundingClientRect: () => DOMRect };
+function ItemLabel({ item }: { item: BlockPickerItem }) {
+  const Icon = item.icon;
+  return (
+    <>
+      <Icon aria-hidden="true" />
+      <span className="flex min-w-0 flex-col items-start">
+        <span>{item.label}</span>
+        {item.reason === undefined ? null : (
+          <span className="text-muted-foreground text-xs whitespace-normal">{item.reason}</span>
+        )}
+      </span>
+    </>
+  );
+}
 
-type BlockPickerProps = {
-  open: boolean;
-  mode: BlockPickerMode;
-  editor: SlateEditor;
-  path: number[];
-  anchorRef: RefObject<PickerAnchor | null>;
-  onOpenChange: (open: boolean) => void;
-  onChoose: (item: BlockPickerItem) => void;
-  restoreFocus?: () => void;
-};
-
-// One picker for both "Add" and "Turn into". Built from Popover + Command; the
-// search field is CommandInput, which already composes InputGroup + Search icon.
-export function BlockPicker({
-  open,
-  mode,
-  editor,
-  path,
-  anchorRef,
-  onOpenChange,
+// One shared renderer for the grouped block list, used by both the "+" Add menu
+// and the "Turn into" submenu so the two cannot drift. `radio` renders the
+// conversion items as a checked radio group; otherwise they are plain actions.
+export function BlockPickerGroups({
+  items,
   onChoose,
-  restoreFocus,
-}: BlockPickerProps) {
-  const items = blockPickerItems(editor, path, mode);
+  value,
+  radio = false,
+}: {
+  items: readonly BlockPickerItem[];
+  onChoose: (item: BlockPickerItem) => void;
+  value?: string;
+  radio?: boolean;
+}) {
   const groups = BLOCK_PICKER_GROUPS.filter((group) => items.some((item) => item.group === group));
 
+  const rows = groups.map((group, index) => (
+    <Fragment key={group}>
+      {index > 0 ? <DropdownMenuSeparator /> : null}
+      <DropdownMenuGroup>
+        <DropdownMenuLabel>{group}</DropdownMenuLabel>
+        {items
+          .filter((item) => item.group === group)
+          .map((item) =>
+            radio ? (
+              <DropdownMenuRadioItem
+                key={item.id}
+                value={item.id}
+                disabled={item.disabled}
+                data-block-picker-item={item.id}
+                className={cn(item.checked && MENU_ITEM_ACTIVE_CHECKED)}
+              >
+                <ItemLabel item={item} />
+              </DropdownMenuRadioItem>
+            ) : (
+              <DropdownMenuItem
+                key={item.id}
+                disabled={item.disabled}
+                data-block-picker-item={item.id}
+                onSelect={() => {
+                  if (!item.disabled) {
+                    onChoose(item);
+                  }
+                }}
+              >
+                <ItemLabel item={item} />
+              </DropdownMenuItem>
+            ),
+          )}
+      </DropdownMenuGroup>
+    </Fragment>
+  ));
+
+  if (!radio) {
+    return <>{rows}</>;
+  }
+
   return (
-    <Popover open={open} onOpenChange={onOpenChange} modal={false}>
-      <PopoverAnchor virtualRef={anchorRef} />
-      <PopoverContent
-        data-block-picker=""
-        data-block-picker-mode={mode}
-        align="start"
-        side="bottom"
-        sideOffset={4}
-        collisionPadding={8}
-        className="w-72 p-1"
-        onOpenAutoFocus={(event) => {
-          // Focus the search field, not the popover frame.
-          event.preventDefault();
-        }}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          restoreFocus?.();
-        }}
-      >
-        <Command shouldFilter loop>
-          <CommandInput
-            placeholder="Search blocks"
-            autoFocus
-            data-block-picker-search=""
-            aria-label="Search blocks"
-          />
-          <CommandList>
-            <CommandEmpty>No blocks found</CommandEmpty>
-            {groups.map((group) => (
-              <CommandGroup key={group} heading={group}>
-                {items
-                  .filter((item) => item.group === group)
-                  .map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <CommandItem
-                        key={item.id}
-                        value={item.id}
-                        keywords={[item.label, ...item.keywords]}
-                        disabled={item.disabled}
-                        data-block-picker-item={item.id}
-                        data-checked={item.checked ? "true" : undefined}
-                        className={cn(item.checked && MENU_ITEM_ACTIVE)}
-                        onSelect={() => {
-                          if (!item.disabled) {
-                            onChoose(item);
-                          }
-                        }}
-                      >
-                        <Icon aria-hidden="true" />
-                        <span className="flex min-w-0 flex-col items-start">
-                          <span>{item.label}</span>
-                          {item.reason === undefined ? null : (
-                            <span className="text-muted-foreground text-xs whitespace-normal">
-                              {item.reason}
-                            </span>
-                          )}
-                        </span>
-                      </CommandItem>
-                    );
-                  })}
-              </CommandGroup>
-            ))}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <DropdownMenuRadioGroup
+      value={value ?? ""}
+      onValueChange={(next) => {
+        const item = items.find((candidate) => candidate.id === next);
+        if (item && !item.disabled) {
+          onChoose(item);
+        }
+      }}
+    >
+      {rows}
+    </DropdownMenuRadioGroup>
   );
 }

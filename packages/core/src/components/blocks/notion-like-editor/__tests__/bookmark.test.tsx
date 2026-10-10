@@ -681,7 +681,7 @@ describe("bookmark paste menu", () => {
 
 describe("bookmark render", () => {
   test("the skeleton uses the card height, and a long url and unicode title stay inside 360px", async () => {
-    expect(BOOKMARK_CARD_CLASS).toContain("h-28");
+    expect(BOOKMARK_CARD_CLASS).toContain("h-[150px]");
     expect(BOOKMARK_PREVIEW_TIMEOUT_MS).toBe(5000);
     const title = "Tiêu đề 🎉 và đường dẫn";
     const longUrl = `https://example.com/${"a".repeat(280)}`;
@@ -702,11 +702,11 @@ describe("bookmark render", () => {
     );
     const skeleton = mounted.host.querySelector("[data-bookmark-skeleton]");
     const ready = mounted.host.querySelector('[data-bookmark-url="' + longUrl + '"]');
-    expect(skeleton?.className).toContain("h-28");
-    expect(ready?.className).toContain("h-28");
+    expect(skeleton?.className).toContain("h-[150px]");
+    expect(ready?.className).toContain("h-[150px]");
     expect(ready?.textContent).toContain(title);
     expect(ready?.textContent).toContain(longUrl);
-    expect(ready?.innerHTML).toContain("overflow-wrap:anywhere");
+    expect(ready?.innerHTML).toContain("truncate");
     expect(ready?.innerHTML).toContain("line-clamp-2");
     mounted.host.style.width = "360px";
     if (ready instanceof HTMLElement && ready.clientWidth > 0) {

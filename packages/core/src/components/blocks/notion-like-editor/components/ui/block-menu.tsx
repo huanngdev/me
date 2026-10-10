@@ -10,6 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 
@@ -18,7 +21,9 @@ import {
   duplicateBlock,
   moveBlock,
   runEditorCommand,
+  turnBlockInto,
 } from "../../lib/commands/editor-commands";
+import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
 import {
   settleMovedBlock,
   siblingMove,
@@ -36,6 +41,8 @@ import {
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
+import { BlockPickerGroups } from "./block-picker";
+import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 type AnchorBox = {
@@ -142,18 +149,20 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
-function BlockMenuItems({
-  target,
-  onActed,
-  onTurnInto,
-}: {
-  target: BlockHandleHit;
-  onActed: () => void;
-  onTurnInto: (target: BlockHandleHit) => void;
-}) {
+function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
   const editor = useEditorRef();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
+  const turnItems = path === undefined ? [] : blockPickerTurnItems(editor, path);
+  const currentTurn = turnItems.find((item) => item.checked)?.id ?? "";
+
+  function turn(item: BlockPickerItem): void {
+    if (!path || item.kind === undefined) {
+      return;
+    }
+    onActed();
+    runEditorCommand(editor, turnBlockInto, { path: [...path], kind: item.kind });
+  }
 
   function duplicate(): void {
     if (!path) {
@@ -192,10 +201,22 @@ function BlockMenuItems({
 
   return (
     <>
-      <DropdownMenuItem data-block-menu-turn-into="" onSelect={() => onTurnInto(target)}>
-        <ArrowRightLeft aria-hidden="true" />
-        Turn into
-      </DropdownMenuItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger data-block-menu-turn-into="">
+          <ArrowRightLeft aria-hidden="true" />
+          Turn into
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent
+          data-block-turn-into-menu=""
+          collisionPadding={8}
+          hideWhenDetached
+          className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+        >
+          <MenuScrollArea>
+            <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+          </MenuScrollArea>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -253,19 +274,16 @@ export function BlockMenu({
   holdMenu,
   bindOpener,
   bindCloser,
-  onTurnInto,
 }: {
   gripRef: RefObject<HTMLButtonElement | null>;
   holdMenu: (id: string | null) => void;
   bindOpener: (open: (target: BlockHandleHit) => void) => void;
   bindCloser: (close: () => void) => void;
-  onTurnInto: (target: BlockHandleHit) => void;
 }) {
   const editor = useEditorRef();
   const [session, setSession] = useState<MenuSession | null>(null);
   const savedSelection = useRef(editor.selection);
   const acted = useRef(false);
-  const skipRestore = useRef(false);
   const sessionRef = useRef<MenuSession | null>(null);
   const pending = useRef<BlockHandleHit | null>(null);
   const frame = useRef(0);
@@ -478,12 +496,6 @@ export function BlockMenu({
         className="w-64"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          // Turn into opens the picker, which owns focus. Restoring the editor
-          // here would move focus out and dismiss the picker at once.
-          if (skipRestore.current) {
-            skipRestore.current = false;
-            return;
-          }
           const selection = cloneRange(acted.current ? editor.selection : savedSelection.current);
           // Chrome places the caret under the pointer when focus returns from a click.
           // Deselect first so the saved range is written, then again after that placement.
@@ -507,11 +519,6 @@ export function BlockMenu({
           target={session.target}
           onActed={() => {
             acted.current = true;
-          }}
-          onTurnInto={(target) => {
-            acted.current = true;
-            skipRestore.current = true;
-            onTurnInto(target);
           }}
         />
       </DropdownMenuContent>

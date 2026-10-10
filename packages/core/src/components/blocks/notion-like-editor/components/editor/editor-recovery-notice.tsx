@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/copy-button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
 import { EditorTextButton } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import { EDITOR_SCHEMA_VERSION } from "../../lib/document/editor-document";
 import type { EditorRecoveryResult } from "../../hooks/use-editor-document";
@@ -83,13 +84,18 @@ export function EditorRecoveryNotice({
           ) : null}
           {extra > 0 ? <p className="mt-2">{`${String(extra)} more.`}</p> : null}
         </AlertDescription>
-        <pre
-          tabIndex={0}
-          aria-label="Document JSON"
-          className="border-border bg-muted text-foreground mt-3 max-h-60 w-full max-w-full min-w-0 overflow-auto rounded-md border p-3 font-mono text-sm"
+        <ScrollFadeArea
+          orientation="vertical"
+          className="border-border bg-muted text-foreground mt-3 max-h-60 w-full max-w-full min-w-0 rounded-md border"
         >
-          {text}
-        </pre>
+          <pre
+            tabIndex={0}
+            aria-label="Document JSON"
+            className="w-full p-3 font-mono text-sm [overflow-wrap:anywhere] whitespace-pre-wrap"
+          >
+            {text}
+          </pre>
+        </ScrollFadeArea>
         {error ? (
           <p role="alert" className="text-destructive mt-3 text-sm text-pretty">
             {error}

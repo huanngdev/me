@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
+import { MenuScrollArea } from "../ui/editor-scroll";
 import {
   resetCallout,
   runEditorCommand,
@@ -168,7 +169,7 @@ export function CalloutElement(props: PlateElementProps) {
               align="start"
               collisionPadding={8}
               hideWhenDetached
-              className="w-64"
+              className="w-64 overflow-hidden"
               onCloseAutoFocus={(event) => {
                 // Radix would focus the trigger here, which drops the text selection.
                 event.preventDefault();
@@ -183,78 +184,80 @@ export function CalloutElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuGroup className="flex flex-wrap gap-1">
-                {CALLOUT_ICONS.map((choice) => {
-                  const selected = choice === icon;
-                  // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
-                  let applied = false;
-                  const apply = (): void => {
-                    if (applied) {
+              <MenuScrollArea>
+                <DropdownMenuGroup className="flex flex-wrap gap-1">
+                  {CALLOUT_ICONS.map((choice) => {
+                    const selected = choice === icon;
+                    // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
+                    let applied = false;
+                    const apply = (): void => {
+                      if (applied) {
+                        return;
+                      }
+
+                      applied = true;
+                      runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
+                    };
+
+                    return (
+                      <DropdownMenuItem asChild key={choice} onSelect={apply}>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label={CALLOUT_ICON_GLYPH[choice].label}
+                          aria-pressed={selected}
+                          data-state={selected ? "on" : "off"}
+                          className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
+                          onMouseDown={keepEditorSelection}
+                          onClick={apply}
+                        >
+                          <CalloutIconGlyph icon={choice} />
+                        </Button>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup
+                  value={tone}
+                  onValueChange={(value) => {
+                    if (!isToneChoice(value)) {
                       return;
                     }
 
-                    applied = true;
-                    runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
-                  };
-
-                  return (
-                    <DropdownMenuItem asChild key={choice} onSelect={apply}>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={CALLOUT_ICON_GLYPH[choice].label}
-                        aria-pressed={selected}
-                        data-state={selected ? "on" : "off"}
-                        className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
-                        onMouseDown={keepEditorSelection}
-                        onClick={apply}
-                      >
-                        <CalloutIconGlyph icon={choice} />
-                      </Button>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={tone}
-                onValueChange={(value) => {
-                  if (!isToneChoice(value)) {
-                    return;
-                  }
-
-                  runEditorCommand(editor, setCalloutTone, {
-                    value: value === "default" ? null : value,
-                    at: path,
-                  });
-                }}
-              >
-                {TONE_CHOICES.map((choice) => (
-                  <DropdownMenuRadioItem
-                    key={choice}
-                    value={choice}
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepEditorSelection}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
-                    />
-                    {TONE_LABEL[choice]}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onMouseDown={keepEditorSelection}
-                onSelect={() => {
-                  resetCallout(editor, path);
-                }}
-              >
-                <RotateCcw aria-hidden="true" />
-                Reset
-              </DropdownMenuItem>
+                    runEditorCommand(editor, setCalloutTone, {
+                      value: value === "default" ? null : value,
+                      at: path,
+                    });
+                  }}
+                >
+                  {TONE_CHOICES.map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={choice}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepEditorSelection}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
+                      />
+                      {TONE_LABEL[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onMouseDown={keepEditorSelection}
+                  onSelect={() => {
+                    resetCallout(editor, path);
+                  }}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  Reset
+                </DropdownMenuItem>
+              </MenuScrollArea>
             </DropdownMenuContent>
           </DropdownMenu>
         )}

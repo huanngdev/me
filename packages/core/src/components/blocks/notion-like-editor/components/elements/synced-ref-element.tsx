@@ -36,6 +36,7 @@ import {
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
 import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic
@@ -269,12 +270,13 @@ export function SyncedRefElement(props: PlateElementProps) {
           </p>
         )}
         {view.status === "live" && view.node ? (
-          <div
+          <ScrollFadeArea
             data-synced-preview
-            className="pointer-events-none max-w-full min-w-0 overflow-x-auto"
+            orientation="horizontal"
+            className="pointer-events-none max-w-full min-w-0"
           >
             <SyncedPreview node={view.node} />
-          </div>
+          </ScrollFadeArea>
         ) : (
           <p className="text-muted-foreground text-sm">
             {view.status === "missing" ? SYNCED_MISSING_PLACEHOLDER : SYNCED_INVALID_PLACEHOLDER}

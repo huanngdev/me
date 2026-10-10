@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type RefObject,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -23,15 +15,15 @@ import { GripVertical, Plus } from "lucide-react";
 import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
-import { runEditorCommand, turnBlockInto } from "../../lib/commands/editor-commands";
 import {
+  blockPickerAddItems,
   insertPickedBlock,
   type BlockPickerItem,
-  type BlockPickerMode,
 } from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
@@ -42,7 +34,8 @@ import {
   type BlockDragHandlers,
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
-import { BlockPicker, type PickerAnchor } from "./block-picker";
+import { BlockPickerGroups } from "./block-picker";
+import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 const ADD_LABEL = "Add block below";
@@ -54,24 +47,6 @@ type BlockHandleProps = {
 function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
-
-function rectOf(left: number, top: number, width: number, height: number): DOMRect {
-  return {
-    x: left,
-    y: top,
-    left,
-    top,
-    width,
-    height,
-    right: left + width,
-    bottom: top + height,
-    toJSON() {
-      return {};
-    },
-  } as DOMRect;
-}
-
-type PickerState = { mode: BlockPickerMode; target: BlockHandleHit };
 
 // renderToString throws on a portal. The menu stays mounted on the client even
 // when the grip is not painted, so a shortcut can open it.
@@ -137,10 +112,9 @@ function BlockHandleContent({
   const editor = useEditorRef();
   const handle = useBlockHandle({ onInsertedBelow });
   const { paint, setMeasuredSize, shown, suppressed, onHandleFocus, onHandleBlur } = handle;
-  const [picker, setPicker] = useState<PickerState | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
-  const anchorRef = useRef<PickerAnchor>({ getBoundingClientRect: () => rectOf(0, 0, 0, 0) });
+  const savedSelection = useRef(editor.selection);
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
   const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
@@ -165,51 +139,31 @@ function BlockHandleContent({
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
-  // The picker anchors to the handle row (or the grip) without a visible trigger.
-  useEffect(() => {
-    anchorRef.current.getBoundingClientRect = () => {
-      const grip = gripRef.current?.getBoundingClientRect();
-      if (grip && grip.width > 0) {
-        return grip;
-      }
-      return paint ? rectOf(paint.left, paint.top, paint.width, paint.height) : rectOf(0, 0, 0, 0);
-    };
-  });
-
-  const choose = useCallback(
+  const chooseAdd = useCallback(
     (item: BlockPickerItem) => {
-      const active = picker;
-      setPicker(null);
-      if (!active) {
+      const path = paint?.target.path;
+      if (!path) {
         return;
       }
-      if (active.mode === "add") {
-        const insertedId = insertPickedBlock(editor, active.target.path, item);
-        if (insertedId !== null) {
-          onInsertedBelow?.(insertedId);
-        }
-        return;
-      }
-      if (item.kind !== undefined) {
-        runEditorCommand(editor, turnBlockInto, { path: [...active.target.path], kind: item.kind });
+      const insertedId = insertPickedBlock(editor, path, item);
+      if (insertedId !== null) {
+        onInsertedBelow?.(insertedId);
       }
     },
-    [editor, onInsertedBelow, picker],
+    [editor, onInsertedBelow, paint],
   );
 
   if (suppressed) {
     return null;
   }
 
+  const addItems = paint ? blockPickerAddItems(editor, paint.target.path) : [];
   const menu = (
     <BlockMenu
       gripRef={gripRef}
       holdMenu={handle.holdMenu}
       bindOpener={bindOpener}
       bindCloser={bindCloser}
-      onTurnInto={(target) => {
-        setPicker({ mode: "turn-into", target });
-      }}
     />
   );
   // Stop at the block edge. A pixel inside the box covers a control that sits
@@ -238,27 +192,58 @@ function BlockHandleContent({
           }}
         >
           <div ref={rowRef} className="flex items-center gap-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={ADD_LABEL}
-                  data-block-handle-add=""
-                  onMouseDown={keepEditorSelection}
-                  onPointerDown={keepEditorSelection}
-                  onClick={() => {
-                    if (paint) {
-                      setPicker({ mode: "add", target: paint.target });
-                    }
-                  }}
-                >
-                  <Plus aria-hidden="true" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
-            </Tooltip>
+            <DropdownMenu
+              modal={false}
+              onOpenChange={(open) => {
+                if (open) {
+                  savedSelection.current = editor.selection;
+                }
+              }}
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={ADD_LABEL}
+                      data-block-handle-add=""
+                      onMouseDown={keepEditorSelection}
+                    >
+                      <Plus aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent
+                data-block-add-menu=""
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                collisionPadding={8}
+                hideWhenDetached
+                className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  const selection = savedSelection.current;
+                  retainScroll(() => {
+                    editor.tf.withoutSaving(() => {
+                      editor.tf.focus();
+                      if (selection) {
+                        editor.tf.deselect();
+                        editor.tf.select(selection);
+                      }
+                    });
+                  });
+                }}
+              >
+                <MenuScrollArea>
+                  <BlockPickerGroups items={addItems} onChoose={chooseAdd} />
+                </MenuScrollArea>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -302,26 +287,6 @@ function BlockHandleContent({
           block is simply at its new position (no fly-back to the old slot). */}
       <DragOverlay dropAnimation={null}>{drag.overlay}</DragOverlay>
       {menu}
-      {picker ? (
-        <BlockPicker
-          open
-          mode={picker.mode}
-          editor={editor}
-          path={[...picker.target.path]}
-          anchorRef={anchorRef}
-          onOpenChange={(next) => {
-            if (!next) {
-              setPicker(null);
-            }
-          }}
-          restoreFocus={() => {
-            retainScroll(() => {
-              editor.tf.focus();
-            });
-          }}
-          onChoose={choose}
-        />
-      ) : null}
     </>
   );
 }

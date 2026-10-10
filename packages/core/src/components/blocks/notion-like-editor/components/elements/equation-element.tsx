@@ -37,6 +37,7 @@ import {
   focusEditorWithoutScroll,
   retainScroll,
 } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import "katex/dist/katex.min.css";
 
@@ -86,9 +87,13 @@ function EquationView({
   // block so that span stays inside the scrollport instead of widening the page.
   // min-w-full centers a short expression; w-max lets a longer one scroll.
   return (
-    <div data-equation-scroll className="relative max-w-full min-w-0 overflow-x-auto">
+    <ScrollFadeArea
+      data-equation-scroll
+      orientation="horizontal"
+      className="relative max-w-full min-w-0"
+    >
       <div className="flex w-max min-w-full justify-center">{body}</div>
-    </div>
+    </ScrollFadeArea>
   );
 }
 
@@ -96,9 +101,9 @@ function EquationError({ expression, message }: { expression: string; message: s
   return (
     <div data-equation-error className="max-w-full min-w-0">
       <p className="text-destructive/70 text-sm">{message}</p>
-      <pre className="mt-1 max-w-full overflow-x-auto font-mono text-sm whitespace-pre">
-        {expression}
-      </pre>
+      <ScrollFadeArea orientation="horizontal" className="mt-1 max-w-full">
+        <pre className="font-mono text-sm whitespace-pre">{expression}</pre>
+      </ScrollFadeArea>
     </div>
   );
 }
@@ -255,7 +260,11 @@ export function EquationElement(props: PlateElementProps) {
             }}
             onKeyDown={onTextKeyDown}
           />
-          <div data-equation-preview className="relative max-w-full min-w-0 overflow-x-auto">
+          <ScrollFadeArea
+            data-equation-preview
+            orientation="horizontal"
+            className="relative max-w-full min-w-0"
+          >
             {draft.length === 0 ? (
               <p className="text-muted-foreground text-sm">{EQUATION_EMPTY_PLACEHOLDER}</p>
             ) : preview === undefined ? (
@@ -268,7 +277,7 @@ export function EquationElement(props: PlateElementProps) {
             ) : (
               <EquationError expression={draft} message={preview.message} />
             )}
-          </div>
+          </ScrollFadeArea>
           <div className="flex flex-wrap justify-end gap-2">
             <EditorTextButton
               variant="outline"

@@ -31,6 +31,7 @@ import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active"
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
 import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -41,8 +42,7 @@ import {
 const CODE_BLOCK_CLASS_NAME =
   "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
 
-const CODE_SCROLL_CLASS_NAME =
-  "block overflow-x-auto px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
+const CODE_SCROLL_CLASS_NAME = "block px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1.5 right-1.5 z-10 flex items-center gap-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -161,7 +161,7 @@ export function CodeBlockElement(props: PlateElementProps) {
               align="end"
               collisionPadding={8}
               hideWhenDetached
-              className="max-h-80 w-44 overflow-y-auto"
+              className="w-44 overflow-hidden"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 const selection = savedSelection.current;
@@ -175,31 +175,33 @@ export function CodeBlockElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuRadioGroup
-                value={lang ?? "plaintext"}
-                onValueChange={(value) => {
-                  const next = CODE_LANGS.find((entry) => entry === value) ?? null;
-                  runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
-                }}
-              >
-                <DropdownMenuRadioItem
-                  value="plaintext"
-                  className={MENU_ITEM_ACTIVE_CHECKED}
-                  onMouseDown={keepEditorSelection}
+              <ScrollFadeArea orientation="vertical" className="max-h-80">
+                <DropdownMenuRadioGroup
+                  value={lang ?? "plaintext"}
+                  onValueChange={(value) => {
+                    const next = CODE_LANGS.find((entry) => entry === value) ?? null;
+                    runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
+                  }}
                 >
-                  {CODE_LANG_LABELS.plaintext}
-                </DropdownMenuRadioItem>
-                {CODE_LANGS.map((choice) => (
                   <DropdownMenuRadioItem
-                    key={choice}
-                    value={choice}
+                    value="plaintext"
                     className={MENU_ITEM_ACTIVE_CHECKED}
                     onMouseDown={keepEditorSelection}
                   >
-                    {CODE_LANG_LABELS[choice]}
+                    {CODE_LANG_LABELS.plaintext}
                   </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+                  {CODE_LANGS.map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={choice}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepEditorSelection}
+                    >
+                      {CODE_LANG_LABELS[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </ScrollFadeArea>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -218,7 +220,9 @@ export function CodeBlockElement(props: PlateElementProps) {
           }}
         />
       </div>
-      <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
+      <ScrollFadeArea orientation="horizontal" className="w-full">
+        <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
+      </ScrollFadeArea>
     </PlateElement>
   );
 }

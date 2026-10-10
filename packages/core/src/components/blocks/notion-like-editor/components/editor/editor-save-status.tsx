@@ -32,7 +32,13 @@ function statusText(status: AutosaveStatus, message: string | undefined): string
   }
 }
 
+// The healthy states are silent: no "Saved"/"Saving…"/"Unsaved changes" label.
+// Only the failure states are visible, because they are the only way the user
+// learns their text is not being saved. This is a deliberate exception.
 export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusProps) {
+  if (status !== "error" && status !== "conflict") {
+    return null;
+  }
   const isError = status === "error";
 
   return (

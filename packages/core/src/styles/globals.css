@@ -747,9 +747,23 @@
 
 /* Empty-block placeholders: one rule, driven by a data attribute the editor
    sets on an empty editable block. The text is pseudo content, so it is never
-   selected, copied, serialized, or counted, and it does not shift layout. */
+   selected, copied, serialized, or counted, and it does not shift layout.
+   The pseudo is absolutely positioned (out of flow) so the caret sits at the
+   start of the line exactly where typed text begins, under the placeholder,
+   like a native input placeholder. It inherits the block's font, size, weight
+   and line height, and is clipped to one line. */
+.slate-editor [data-block-placeholder] {
+  position: relative;
+}
 .slate-editor [data-block-placeholder]::before {
   content: attr(data-block-placeholder);
+  position: absolute;
+  inset-inline-start: var(--block-placeholder-inset, 0px);
+  top: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--color-muted-foreground);
   pointer-events: none;
   user-select: none;

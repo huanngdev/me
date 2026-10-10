@@ -36,12 +36,17 @@ export function ReadyEditor({
   mentionProvider = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  // The healthy states render nothing, so the row takes no space. Only the
+  // failure notice appears, and it is the only thing above the editor.
+  const showNotice = status === "error" || status === "conflict";
 
   return (
     <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
-      <div className="flex justify-end pt-4">
-        <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
-      </div>
+      {showNotice ? (
+        <div className="flex justify-end pt-4">
+          <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
+        </div>
+      ) : null}
       <EditorSurface
         editor={editor}
         readOnly={readOnly}
@@ -52,7 +57,7 @@ export function ReadyEditor({
         }}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
-        className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
+        className="text-foreground caret-foreground min-h-full w-full min-w-0 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );

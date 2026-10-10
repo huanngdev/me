@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, Globe, RefreshCw, Trash2, Type } from "lucide-react";
+import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -31,8 +31,11 @@ import {
 } from "../ui/block-toolbar";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
+// One rounded card: the preview image fills the left ~27% at the card's full
+// height; the text column fills the rest. Below 26rem of card width the image
+// is hidden and the text takes the full width, so the card never overflows.
 export const BOOKMARK_CARD_CLASS =
-  "border-border bg-background flex h-28 w-full min-w-0 flex-col gap-3 overflow-hidden rounded-md border p-3 sm:flex-row";
+  "@container/card border-border bg-background flex h-[150px] w-full min-w-0 overflow-hidden rounded-xl border";
 
 const LinkPreviewContext = createContext<LinkPreviewAdapter | null>(null);
 
@@ -69,12 +72,10 @@ export function BookmarkElement(props: PlateElementProps) {
   const url = mediaStringAttr(element, "url") ?? "";
   const title = mediaStringAttr(element, "title");
   const description = mediaStringAttr(element, "description");
-  const siteName = mediaStringAttr(element, "siteName");
   const imageUrl = mediaStringAttr(element, "imageUrl");
   const fetchedAt = mediaStringAttr(element, "fetchedAt");
   const domain = bookmarkDomain(url);
   const heading = title ?? domain;
-  const site = siteName ?? domain;
   const storedAt = useRef(fetchedAt);
   const cardRef = useRef<HTMLDivElement>(null);
   const [attempt, setAttempt] = useState(0);
@@ -181,11 +182,9 @@ export function BookmarkElement(props: PlateElementProps) {
   const body = (
     <BookmarkBody
       description={description}
-      domain={domain}
       heading={heading}
       imageUrl={phase === "loading" ? undefined : imageUrl}
       loading={phase === "loading"}
-      site={site}
       unavailable={phase === "unavailable"}
       url={url}
     />
@@ -242,45 +241,35 @@ export function BookmarkElement(props: PlateElementProps) {
 
 function BookmarkBody({
   description,
-  domain,
   heading,
   imageUrl,
   loading,
-  site,
   unavailable,
   url,
 }: {
   description: string | undefined;
-  domain: string;
   heading: string;
   imageUrl: string | undefined;
   loading: boolean;
-  site: string;
   unavailable: boolean;
   url: string;
 }) {
   if (loading) {
-    return <div data-bookmark-skeleton="" className="bg-muted h-28 w-full rounded-md" />;
+    return <div data-bookmark-skeleton="" className="bg-muted h-[150px] w-full rounded-xl" />;
   }
 
   return (
     <>
       <BookmarkThumbnail imageUrl={imageUrl} />
-      {imageUrl === undefined ? (
-        <div className="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-md">
-          <Globe aria-hidden className="size-5" />
-          <span className="sr-only">{domain}</span>
-        </div>
-      ) : null}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="min-w-0 truncate text-sm">{heading}</p>
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <p className="text-foreground min-w-0 truncate text-base font-semibold">{heading}</p>
         {description !== undefined ? (
-          <p className="text-muted-foreground line-clamp-2 min-w-0 text-xs">{description}</p>
+          <p className="text-muted-foreground mt-1 line-clamp-2 min-w-0 text-sm">{description}</p>
         ) : null}
-        <p className="text-muted-foreground min-w-0 truncate text-xs">{site}</p>
-        <p className="text-muted-foreground min-w-0 text-xs [overflow-wrap:anywhere]">{url}</p>
+        {/* The URL always sits at the bottom of the card. */}
+        <p className="text-muted-foreground mt-auto min-w-0 truncate pt-3 text-sm">{url}</p>
         {unavailable ? (
-          <p data-bookmark-unavailable="" className="text-muted-foreground text-xs">
+          <p data-bookmark-unavailable="" className="text-muted-foreground mt-1 text-xs">
             Preview unavailable
           </p>
         ) : null}
@@ -295,10 +284,11 @@ function BookmarkThumbnail({ imageUrl }: { imageUrl: string | undefined }) {
     return null;
   }
 
+  // Flush to the card's left/top/bottom edges; hidden below 26rem of card width.
   return (
     <div
       data-bookmark-thumbnail=""
-      className="bg-muted h-16 w-24 shrink-0 overflow-hidden rounded-md"
+      className="bg-muted hidden h-full w-[27%] shrink-0 overflow-hidden @[26rem]/card:block"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- remote or same-origin preview */}
       <img

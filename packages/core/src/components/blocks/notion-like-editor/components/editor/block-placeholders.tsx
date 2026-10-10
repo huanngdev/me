@@ -3,6 +3,25 @@ import { ElementApi, KEYS, NodeApi, type SlateEditor } from "platejs";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 const PLACEHOLDER_ATTR = "data-block-placeholder";
+const PLACEHOLDER_INSET_VAR = "--block-placeholder-inset";
+
+// The distance from the block's border-box left to where the text starts. A
+// plain block is 0; a list item or to-do is offset by its marker/checkbox
+// indent (the first child `<ul>`/`<ol>` padding).
+function placeholderInset(block: HTMLElement): number {
+  const first = block.firstElementChild;
+  if (!(first instanceof HTMLElement)) {
+    return 0;
+  }
+  const blockLeft = block.getBoundingClientRect().left;
+  const style = getComputedStyle(first);
+  const offset =
+    first.getBoundingClientRect().left -
+    blockLeft +
+    (Number.parseFloat(style.paddingLeft) || 0) +
+    (Number.parseFloat(style.marginLeft) || 0);
+  return offset > 0 ? offset : 0;
+}
 
 // Block types that own an editable text line and can show a placeholder.
 const PLACEHOLDER_TYPES = new Set<string>([KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3, KEYS.codeLine]);
@@ -150,6 +169,9 @@ export function BlockPlaceholders({ placeholder = "Type something…" }: { place
       const dom = editor.api.toDOMNode(node);
       if (dom instanceof HTMLElement) {
         dom.setAttribute(PLACEHOLDER_ATTR, info.text);
+        // A list item's text starts after the marker/checkbox indent, not at the
+        // block's left edge. Tell the ::before where the text begins.
+        dom.style.setProperty(PLACEHOLDER_INSET_VAR, `${String(placeholderInset(dom))}px`);
       }
     }
   }, [editor, opCount, placeholder, readOnly, selectionKey]);

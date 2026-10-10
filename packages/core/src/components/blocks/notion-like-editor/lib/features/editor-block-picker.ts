@@ -33,8 +33,6 @@ import { insertColumnsBelow } from "../commands/editor-columns";
 import { insertEquationBelow } from "./editor-equation";
 import { insertTocBelow } from "./editor-toc";
 
-export type BlockPickerMode = "add" | "turn-into";
-
 export type BlockPickerGroup = "Basic" | "Lists" | "Containers" | "Advanced";
 
 export const BLOCK_PICKER_GROUPS: readonly BlockPickerGroup[] = [
@@ -53,7 +51,6 @@ export type BlockPickerItem = {
   label: string;
   icon: LucideIcon;
   group: BlockPickerGroup;
-  keywords: readonly string[];
   kind?: BlockMenuKind;
   structural?: "divider" | "table" | "columns" | "equation" | "toc";
   disabled: boolean;
@@ -112,7 +109,6 @@ type AddDefinition = {
   structural?: "divider" | "table" | "columns" | "equation" | "toc";
   childType: string;
   asList: boolean;
-  keywords: readonly string[];
 };
 
 // The Add order is the picker order; groups come from GROUPS.
@@ -123,7 +119,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "paragraph",
     childType: KEYS.p,
     asList: false,
-    keywords: ["text", "paragraph", "p", "body"],
   },
   {
     id: "h1",
@@ -131,7 +126,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "h1",
     childType: KEYS.h1,
     asList: false,
-    keywords: ["h1", "heading", "title"],
   },
   {
     id: "h2",
@@ -139,7 +133,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "h2",
     childType: KEYS.h2,
     asList: false,
-    keywords: ["h2", "heading", "subtitle"],
   },
   {
     id: "h3",
@@ -147,7 +140,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "h3",
     childType: KEYS.h3,
     asList: false,
-    keywords: ["h3", "heading"],
   },
   {
     id: "bulleted",
@@ -155,7 +147,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "bulleted",
     childType: KEYS.p,
     asList: true,
-    keywords: ["bullet", "bulleted", "ul", "unordered", "list"],
   },
   {
     id: "numbered",
@@ -163,7 +154,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "numbered",
     childType: KEYS.p,
     asList: true,
-    keywords: ["number", "numbered", "ol", "ordered", "list"],
   },
   {
     id: "todo",
@@ -171,7 +161,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "todo",
     childType: KEYS.p,
     asList: true,
-    keywords: ["todo", "to-do", "check", "task", "checkbox"],
   },
   {
     id: "toggle",
@@ -179,7 +168,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "toggle",
     childType: KEYS.toggle,
     asList: false,
-    keywords: ["toggle", "collapse", "details", "fold"],
   },
   {
     id: "toggle-h1",
@@ -187,7 +175,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "toggle-h1",
     childType: KEYS.toggle,
     asList: false,
-    keywords: ["toggle", "heading", "h1", "collapse"],
   },
   {
     id: "toggle-h2",
@@ -195,7 +182,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "toggle-h2",
     childType: KEYS.toggle,
     asList: false,
-    keywords: ["toggle", "heading", "h2", "collapse"],
   },
   {
     id: "toggle-h3",
@@ -203,7 +189,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "toggle-h3",
     childType: KEYS.toggle,
     asList: false,
-    keywords: ["toggle", "heading", "h3", "collapse"],
   },
   {
     id: "quote",
@@ -211,7 +196,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "quote",
     childType: KEYS.blockquote,
     asList: false,
-    keywords: ["quote", "blockquote", "citation"],
   },
   {
     id: "callout",
@@ -219,7 +203,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "callout",
     childType: KEYS.callout,
     asList: false,
-    keywords: ["callout", "note", "tip", "info", "warning"],
   },
   {
     id: "code",
@@ -227,7 +210,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     kind: "code",
     childType: KEYS.codeBlock,
     asList: false,
-    keywords: ["code", "snippet", "pre", "block"],
   },
   {
     id: "divider",
@@ -235,7 +217,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     structural: "divider",
     childType: KEYS.hr,
     asList: false,
-    keywords: ["divider", "hr", "line", "separator", "rule"],
   },
   {
     id: "equation",
@@ -243,7 +224,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     structural: "equation",
     childType: KEYS.equation,
     asList: false,
-    keywords: ["equation", "math", "formula", "latex", "katex"],
   },
   {
     id: "toc",
@@ -251,7 +231,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     structural: "toc",
     childType: KEYS.toc,
     asList: false,
-    keywords: ["toc", "table of contents", "outline", "contents"],
   },
   {
     id: "table",
@@ -259,7 +238,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     structural: "table",
     childType: KEYS.table,
     asList: false,
-    keywords: ["table", "grid", "rows", "columns"],
   },
   {
     id: "columns",
@@ -267,7 +245,6 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
     structural: "columns",
     childType: KEYS.columnGroup,
     asList: false,
-    keywords: ["columns", "layout", "grid"],
   },
 ];
 
@@ -316,7 +293,6 @@ export function blockPickerAddItems(
       label: definition.label,
       icon: ICONS[definition.id],
       group: GROUPS[definition.id],
-      keywords: definition.keywords,
       kind: definition.kind,
       structural: definition.structural,
       disabled: reason !== undefined,
@@ -345,21 +321,12 @@ export function blockPickerTurnItems(
       label: turn.label,
       icon: ICONS[turn.kind],
       group: GROUPS[turn.kind],
-      keywords: ADD_DEFINITIONS.find((entry) => entry.id === turn.kind)?.keywords ?? [],
       kind: turn.kind,
       disabled: decision === undefined || !decision.allowed,
       reason: decision?.allowed === false ? decision.reason : undefined,
       checked: turn.kind === current,
     };
   });
-}
-
-export function blockPickerItems(
-  editor: SlateEditor,
-  path: readonly number[],
-  mode: BlockPickerMode,
-): BlockPickerItem[] {
-  return mode === "add" ? blockPickerAddItems(editor, path) : blockPickerTurnItems(editor, path);
 }
 
 function idAt(editor: SlateEditor, path: readonly number[]): string | null {

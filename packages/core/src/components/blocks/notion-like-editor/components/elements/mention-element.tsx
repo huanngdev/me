@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
 import { retainScroll } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -255,58 +256,60 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       >
         <div id="mention-results">
           <Command shouldFilter={false}>
-            <CommandList>
-              {status === "loading" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="loading"
-                >
-                  {MENTION_LOADING_LABEL}
-                </div>
-              ) : null}
-              {status === "empty" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="empty"
-                >
-                  {MENTION_EMPTY_LABEL}
-                </div>
-              ) : null}
-              {status === "error" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="error"
-                >
-                  {MENTION_ERROR_LABEL}
-                </div>
-              ) : null}
-              {status === "ready" ? (
-                <CommandGroup>
-                  {results.map((person, index) => (
-                    <CommandItem
-                      key={person.entityId}
-                      value={person.entityId}
-                      data-mention-entity-id={person.entityId}
-                      data-mention-active={index === activeIndex ? "true" : "false"}
-                      className={index === activeIndex ? "bg-muted" : undefined}
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                      }}
-                      onSelect={() => {
-                        commitMention(editor, person);
-                      }}
-                    >
-                      <span className="flex min-w-0 flex-col">
-                        <span>{person.label}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {person.email ?? person.entityId}
+            <ScrollFadeArea orientation="vertical" className="max-h-72">
+              <CommandList className="max-h-none overflow-visible p-0">
+                {status === "loading" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="loading"
+                  >
+                    {MENTION_LOADING_LABEL}
+                  </div>
+                ) : null}
+                {status === "empty" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="empty"
+                  >
+                    {MENTION_EMPTY_LABEL}
+                  </div>
+                ) : null}
+                {status === "error" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="error"
+                  >
+                    {MENTION_ERROR_LABEL}
+                  </div>
+                ) : null}
+                {status === "ready" ? (
+                  <CommandGroup>
+                    {results.map((person, index) => (
+                      <CommandItem
+                        key={person.entityId}
+                        value={person.entityId}
+                        data-mention-entity-id={person.entityId}
+                        data-mention-active={index === activeIndex ? "true" : "false"}
+                        className={index === activeIndex ? "bg-muted" : undefined}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
+                        onSelect={() => {
+                          commitMention(editor, person);
+                        }}
+                      >
+                        <span className="flex min-w-0 flex-col">
+                          <span>{person.label}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {person.email ?? person.entityId}
+                          </span>
                         </span>
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ) : null}
-            </CommandList>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
+              </CommandList>
+            </ScrollFadeArea>
           </Command>
         </div>
       </PopoverContent>

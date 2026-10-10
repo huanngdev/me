@@ -442,8 +442,11 @@ describe("equation render", () => {
     try {
       await flushKatex();
       const scroller = mounted.host.querySelector("[data-equation-scroll]");
-      expect(scroller?.className).toContain("overflow-x-auto");
+      expect(scroller?.getAttribute("data-slot")).toBe("scroll-area");
       expect(scroller?.className).toContain("max-w-full");
+      // The scroll-fade is applied to the viewport through the root's selector.
+      expect(scroller?.className).toContain("scroll-fade-x");
+      expect(scroller?.querySelector("[data-slot='scroll-area-viewport']")).not.toBeNull();
     } finally {
       await mounted.cleanup();
     }

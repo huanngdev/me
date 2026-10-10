@@ -5710,15 +5710,7 @@ export function mediaStringAttr(element: TElement, key: string): string | undefi
 
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 ```tsx
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type RefObject,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -5735,15 +5727,15 @@ import { GripVertical, Plus } from "lucide-react";
 import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 import { useBlockHandle } from "../../hooks/use-block-handle";
-import { runEditorCommand, turnBlockInto } from "../../lib/commands/editor-commands";
 import {
+  blockPickerAddItems,
   insertPickedBlock,
   type BlockPickerItem,
-  type BlockPickerMode,
 } from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
@@ -5754,7 +5746,8 @@ import {
   type BlockDragHandlers,
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
-import { BlockPicker, type PickerAnchor } from "./block-picker";
+import { BlockPickerGroups } from "./block-picker";
+import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 const ADD_LABEL = "Add block below";
@@ -5766,24 +5759,6 @@ type BlockHandleProps = {
 function keepEditorSelection(event: { preventDefault: () => void }): void {
   event.preventDefault();
 }
-
-function rectOf(left: number, top: number, width: number, height: number): DOMRect {
-  return {
-    x: left,
-    y: top,
-    left,
-    top,
-    width,
-    height,
-    right: left + width,
-    bottom: top + height,
-    toJSON() {
-      return {};
-    },
-  } as DOMRect;
-}
-
-type PickerState = { mode: BlockPickerMode; target: BlockHandleHit };
 
 // renderToString throws on a portal. The menu stays mounted on the client even
 // when the grip is not painted, so a shortcut can open it.
@@ -5849,10 +5824,9 @@ function BlockHandleContent({
   const editor = useEditorRef();
   const handle = useBlockHandle({ onInsertedBelow });
   const { paint, setMeasuredSize, shown, suppressed, onHandleFocus, onHandleBlur } = handle;
-  const [picker, setPicker] = useState<PickerState | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
-  const anchorRef = useRef<PickerAnchor>({ getBoundingClientRect: () => rectOf(0, 0, 0, 0) });
+  const savedSelection = useRef(editor.selection);
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
   const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
@@ -5877,51 +5851,31 @@ function BlockHandleContent({
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
-  // The picker anchors to the handle row (or the grip) without a visible trigger.
-  useEffect(() => {
-    anchorRef.current.getBoundingClientRect = () => {
-      const grip = gripRef.current?.getBoundingClientRect();
-      if (grip && grip.width > 0) {
-        return grip;
-      }
-      return paint ? rectOf(paint.left, paint.top, paint.width, paint.height) : rectOf(0, 0, 0, 0);
-    };
-  });
-
-  const choose = useCallback(
+  const chooseAdd = useCallback(
     (item: BlockPickerItem) => {
-      const active = picker;
-      setPicker(null);
-      if (!active) {
+      const path = paint?.target.path;
+      if (!path) {
         return;
       }
-      if (active.mode === "add") {
-        const insertedId = insertPickedBlock(editor, active.target.path, item);
-        if (insertedId !== null) {
-          onInsertedBelow?.(insertedId);
-        }
-        return;
-      }
-      if (item.kind !== undefined) {
-        runEditorCommand(editor, turnBlockInto, { path: [...active.target.path], kind: item.kind });
+      const insertedId = insertPickedBlock(editor, path, item);
+      if (insertedId !== null) {
+        onInsertedBelow?.(insertedId);
       }
     },
-    [editor, onInsertedBelow, picker],
+    [editor, onInsertedBelow, paint],
   );
 
   if (suppressed) {
     return null;
   }
 
+  const addItems = paint ? blockPickerAddItems(editor, paint.target.path) : [];
   const menu = (
     <BlockMenu
       gripRef={gripRef}
       holdMenu={handle.holdMenu}
       bindOpener={bindOpener}
       bindCloser={bindCloser}
-      onTurnInto={(target) => {
-        setPicker({ mode: "turn-into", target });
-      }}
     />
   );
   // Stop at the block edge. A pixel inside the box covers a control that sits
@@ -5950,27 +5904,58 @@ function BlockHandleContent({
           }}
         >
           <div ref={rowRef} className="flex items-center gap-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={ADD_LABEL}
-                  data-block-handle-add=""
-                  onMouseDown={keepEditorSelection}
-                  onPointerDown={keepEditorSelection}
-                  onClick={() => {
-                    if (paint) {
-                      setPicker({ mode: "add", target: paint.target });
-                    }
-                  }}
-                >
-                  <Plus aria-hidden="true" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
-            </Tooltip>
+            <DropdownMenu
+              modal={false}
+              onOpenChange={(open) => {
+                if (open) {
+                  savedSelection.current = editor.selection;
+                }
+              }}
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={ADD_LABEL}
+                      data-block-handle-add=""
+                      onMouseDown={keepEditorSelection}
+                    >
+                      <Plus aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent
+                data-block-add-menu=""
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                collisionPadding={8}
+                hideWhenDetached
+                className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  const selection = savedSelection.current;
+                  retainScroll(() => {
+                    editor.tf.withoutSaving(() => {
+                      editor.tf.focus();
+                      if (selection) {
+                        editor.tf.deselect();
+                        editor.tf.select(selection);
+                      }
+                    });
+                  });
+                }}
+              >
+                <MenuScrollArea>
+                  <BlockPickerGroups items={addItems} onChoose={chooseAdd} />
+                </MenuScrollArea>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -6014,26 +5999,6 @@ function BlockHandleContent({
           block is simply at its new position (no fly-back to the old slot). */}
       <DragOverlay dropAnimation={null}>{drag.overlay}</DragOverlay>
       {menu}
-      {picker ? (
-        <BlockPicker
-          open
-          mode={picker.mode}
-          editor={editor}
-          path={[...picker.target.path]}
-          anchorRef={anchorRef}
-          onOpenChange={(next) => {
-            if (!next) {
-              setPicker(null);
-            }
-          }}
-          restoreFocus={() => {
-            retainScroll(() => {
-              editor.tf.focus();
-            });
-          }}
-          onChoose={choose}
-        />
-      ) : null}
     </>
   );
 }
@@ -6053,6 +6018,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 
@@ -6061,7 +6029,9 @@ import {
   duplicateBlock,
   moveBlock,
   runEditorCommand,
+  turnBlockInto,
 } from "../../lib/commands/editor-commands";
+import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
 import {
   settleMovedBlock,
   siblingMove,
@@ -6079,6 +6049,8 @@ import {
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
+import { BlockPickerGroups } from "./block-picker";
+import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 type AnchorBox = {
@@ -6185,18 +6157,20 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
-function BlockMenuItems({
-  target,
-  onActed,
-  onTurnInto,
-}: {
-  target: BlockHandleHit;
-  onActed: () => void;
-  onTurnInto: (target: BlockHandleHit) => void;
-}) {
+function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
   const editor = useEditorRef();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
+  const turnItems = path === undefined ? [] : blockPickerTurnItems(editor, path);
+  const currentTurn = turnItems.find((item) => item.checked)?.id ?? "";
+
+  function turn(item: BlockPickerItem): void {
+    if (!path || item.kind === undefined) {
+      return;
+    }
+    onActed();
+    runEditorCommand(editor, turnBlockInto, { path: [...path], kind: item.kind });
+  }
 
   function duplicate(): void {
     if (!path) {
@@ -6235,10 +6209,22 @@ function BlockMenuItems({
 
   return (
     <>
-      <DropdownMenuItem data-block-menu-turn-into="" onSelect={() => onTurnInto(target)}>
-        <ArrowRightLeft aria-hidden="true" />
-        Turn into
-      </DropdownMenuItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger data-block-menu-turn-into="">
+          <ArrowRightLeft aria-hidden="true" />
+          Turn into
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent
+          data-block-turn-into-menu=""
+          collisionPadding={8}
+          hideWhenDetached
+          className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+        >
+          <MenuScrollArea>
+            <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+          </MenuScrollArea>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -6296,19 +6282,16 @@ export function BlockMenu({
   holdMenu,
   bindOpener,
   bindCloser,
-  onTurnInto,
 }: {
   gripRef: RefObject<HTMLButtonElement | null>;
   holdMenu: (id: string | null) => void;
   bindOpener: (open: (target: BlockHandleHit) => void) => void;
   bindCloser: (close: () => void) => void;
-  onTurnInto: (target: BlockHandleHit) => void;
 }) {
   const editor = useEditorRef();
   const [session, setSession] = useState<MenuSession | null>(null);
   const savedSelection = useRef(editor.selection);
   const acted = useRef(false);
-  const skipRestore = useRef(false);
   const sessionRef = useRef<MenuSession | null>(null);
   const pending = useRef<BlockHandleHit | null>(null);
   const frame = useRef(0);
@@ -6521,12 +6504,6 @@ export function BlockMenu({
         className="w-64"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          // Turn into opens the picker, which owns focus. Restoring the editor
-          // here would move focus out and dismiss the picker at once.
-          if (skipRestore.current) {
-            skipRestore.current = false;
-            return;
-          }
           const selection = cloneRange(acted.current ? editor.selection : savedSelection.current);
           // Chrome places the caret under the pointer when focus returns from a click.
           // Deselect first so the saved range is written, then again after that placement.
@@ -6550,11 +6527,6 @@ export function BlockMenu({
           target={session.target}
           onActed={() => {
             acted.current = true;
-          }}
-          onTurnInto={(target) => {
-            acted.current = true;
-            skipRestore.current = true;
-            onTurnInto(target);
           }}
         />
       </DropdownMenuContent>
@@ -10096,6 +10068,7 @@ import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
+import { MenuScrollArea } from "../ui/editor-scroll";
 import {
   resetCallout,
   runEditorCommand,
@@ -10228,7 +10201,7 @@ export function CalloutElement(props: PlateElementProps) {
               align="start"
               collisionPadding={8}
               hideWhenDetached
-              className="w-64"
+              className="w-64 overflow-hidden"
               onCloseAutoFocus={(event) => {
                 // Radix would focus the trigger here, which drops the text selection.
                 event.preventDefault();
@@ -10243,78 +10216,80 @@ export function CalloutElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuGroup className="flex flex-wrap gap-1">
-                {CALLOUT_ICONS.map((choice) => {
-                  const selected = choice === icon;
-                  // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
-                  let applied = false;
-                  const apply = (): void => {
-                    if (applied) {
+              <MenuScrollArea>
+                <DropdownMenuGroup className="flex flex-wrap gap-1">
+                  {CALLOUT_ICONS.map((choice) => {
+                    const selected = choice === icon;
+                    // Click runs onClick. Keyboard runs onSelect. Both can fire for one click.
+                    let applied = false;
+                    const apply = (): void => {
+                      if (applied) {
+                        return;
+                      }
+
+                      applied = true;
+                      runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
+                    };
+
+                    return (
+                      <DropdownMenuItem asChild key={choice} onSelect={apply}>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label={CALLOUT_ICON_GLYPH[choice].label}
+                          aria-pressed={selected}
+                          data-state={selected ? "on" : "off"}
+                          className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
+                          onMouseDown={keepEditorSelection}
+                          onClick={apply}
+                        >
+                          <CalloutIconGlyph icon={choice} />
+                        </Button>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup
+                  value={tone}
+                  onValueChange={(value) => {
+                    if (!isToneChoice(value)) {
                       return;
                     }
 
-                    applied = true;
-                    runEditorCommand(editor, setCalloutIcon, { value: choice, at: path });
-                  };
-
-                  return (
-                    <DropdownMenuItem asChild key={choice} onSelect={apply}>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={CALLOUT_ICON_GLYPH[choice].label}
-                        aria-pressed={selected}
-                        data-state={selected ? "on" : "off"}
-                        className={cn("justify-center", selected && MENU_ITEM_ACTIVE)}
-                        onMouseDown={keepEditorSelection}
-                        onClick={apply}
-                      >
-                        <CalloutIconGlyph icon={choice} />
-                      </Button>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={tone}
-                onValueChange={(value) => {
-                  if (!isToneChoice(value)) {
-                    return;
-                  }
-
-                  runEditorCommand(editor, setCalloutTone, {
-                    value: value === "default" ? null : value,
-                    at: path,
-                  });
-                }}
-              >
-                {TONE_CHOICES.map((choice) => (
-                  <DropdownMenuRadioItem
-                    key={choice}
-                    value={choice}
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepEditorSelection}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
-                    />
-                    {TONE_LABEL[choice]}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onMouseDown={keepEditorSelection}
-                onSelect={() => {
-                  resetCallout(editor, path);
-                }}
-              >
-                <RotateCcw aria-hidden="true" />
-                Reset
-              </DropdownMenuItem>
+                    runEditorCommand(editor, setCalloutTone, {
+                      value: value === "default" ? null : value,
+                      at: path,
+                    });
+                  }}
+                >
+                  {TONE_CHOICES.map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={choice}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepEditorSelection}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn("size-3 rounded-sm border", CALLOUT_TONE_CLASS_NAME[choice])}
+                      />
+                      {TONE_LABEL[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onMouseDown={keepEditorSelection}
+                  onSelect={() => {
+                    resetCallout(editor, path);
+                  }}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  Reset
+                </DropdownMenuItem>
+              </MenuScrollArea>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -10521,6 +10496,7 @@ import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active"
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
 import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -10531,8 +10507,7 @@ import {
 const CODE_BLOCK_CLASS_NAME =
   "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
 
-const CODE_SCROLL_CLASS_NAME =
-  "block overflow-x-auto px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
+const CODE_SCROLL_CLASS_NAME = "block px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1.5 right-1.5 z-10 flex items-center gap-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -10651,7 +10626,7 @@ export function CodeBlockElement(props: PlateElementProps) {
               align="end"
               collisionPadding={8}
               hideWhenDetached
-              className="max-h-80 w-44 overflow-y-auto"
+              className="w-44 overflow-hidden"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 const selection = savedSelection.current;
@@ -10665,31 +10640,33 @@ export function CodeBlockElement(props: PlateElementProps) {
                 });
               }}
             >
-              <DropdownMenuRadioGroup
-                value={lang ?? "plaintext"}
-                onValueChange={(value) => {
-                  const next = CODE_LANGS.find((entry) => entry === value) ?? null;
-                  runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
-                }}
-              >
-                <DropdownMenuRadioItem
-                  value="plaintext"
-                  className={MENU_ITEM_ACTIVE_CHECKED}
-                  onMouseDown={keepEditorSelection}
+              <ScrollFadeArea orientation="vertical" className="max-h-80">
+                <DropdownMenuRadioGroup
+                  value={lang ?? "plaintext"}
+                  onValueChange={(value) => {
+                    const next = CODE_LANGS.find((entry) => entry === value) ?? null;
+                    runEditorCommand(editor, setCodeLanguage, { lang: next, at: path });
+                  }}
                 >
-                  {CODE_LANG_LABELS.plaintext}
-                </DropdownMenuRadioItem>
-                {CODE_LANGS.map((choice) => (
                   <DropdownMenuRadioItem
-                    key={choice}
-                    value={choice}
+                    value="plaintext"
                     className={MENU_ITEM_ACTIVE_CHECKED}
                     onMouseDown={keepEditorSelection}
                   >
-                    {CODE_LANG_LABELS[choice]}
+                    {CODE_LANG_LABELS.plaintext}
                   </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+                  {CODE_LANGS.map((choice) => (
+                    <DropdownMenuRadioItem
+                      key={choice}
+                      value={choice}
+                      className={MENU_ITEM_ACTIVE_CHECKED}
+                      onMouseDown={keepEditorSelection}
+                    >
+                      {CODE_LANG_LABELS[choice]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </ScrollFadeArea>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -10708,7 +10685,9 @@ export function CodeBlockElement(props: PlateElementProps) {
           }}
         />
       </div>
-      <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
+      <ScrollFadeArea orientation="horizontal" className="w-full">
+        <code className={cn(CODE_SCROLL_CLASS_NAME)}>{props.children}</code>
+      </ScrollFadeArea>
     </PlateElement>
   );
 }
@@ -15025,7 +15004,7 @@ function writableBookmark(editor: SlateEditor, id: string): [TElement, number[]]
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, Globe, RefreshCw, Trash2, Type } from "lucide-react";
+import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -15057,8 +15036,11 @@ import {
 } from "../ui/block-toolbar";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
+// One rounded card: the preview image fills the left ~27% at the card's full
+// height; the text column fills the rest. Below 26rem of card width the image
+// is hidden and the text takes the full width, so the card never overflows.
 export const BOOKMARK_CARD_CLASS =
-  "border-border bg-background flex h-28 w-full min-w-0 flex-col gap-3 overflow-hidden rounded-md border p-3 sm:flex-row";
+  "@container/card border-border bg-background flex h-[150px] w-full min-w-0 overflow-hidden rounded-xl border";
 
 const LinkPreviewContext = createContext<LinkPreviewAdapter | null>(null);
 
@@ -15095,12 +15077,10 @@ export function BookmarkElement(props: PlateElementProps) {
   const url = mediaStringAttr(element, "url") ?? "";
   const title = mediaStringAttr(element, "title");
   const description = mediaStringAttr(element, "description");
-  const siteName = mediaStringAttr(element, "siteName");
   const imageUrl = mediaStringAttr(element, "imageUrl");
   const fetchedAt = mediaStringAttr(element, "fetchedAt");
   const domain = bookmarkDomain(url);
   const heading = title ?? domain;
-  const site = siteName ?? domain;
   const storedAt = useRef(fetchedAt);
   const cardRef = useRef<HTMLDivElement>(null);
   const [attempt, setAttempt] = useState(0);
@@ -15207,11 +15187,9 @@ export function BookmarkElement(props: PlateElementProps) {
   const body = (
     <BookmarkBody
       description={description}
-      domain={domain}
       heading={heading}
       imageUrl={phase === "loading" ? undefined : imageUrl}
       loading={phase === "loading"}
-      site={site}
       unavailable={phase === "unavailable"}
       url={url}
     />
@@ -15268,45 +15246,35 @@ export function BookmarkElement(props: PlateElementProps) {
 
 function BookmarkBody({
   description,
-  domain,
   heading,
   imageUrl,
   loading,
-  site,
   unavailable,
   url,
 }: {
   description: string | undefined;
-  domain: string;
   heading: string;
   imageUrl: string | undefined;
   loading: boolean;
-  site: string;
   unavailable: boolean;
   url: string;
 }) {
   if (loading) {
-    return <div data-bookmark-skeleton="" className="bg-muted h-28 w-full rounded-md" />;
+    return <div data-bookmark-skeleton="" className="bg-muted h-[150px] w-full rounded-xl" />;
   }
 
   return (
     <>
       <BookmarkThumbnail imageUrl={imageUrl} />
-      {imageUrl === undefined ? (
-        <div className="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-md">
-          <Globe aria-hidden className="size-5" />
-          <span className="sr-only">{domain}</span>
-        </div>
-      ) : null}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="min-w-0 truncate text-sm">{heading}</p>
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <p className="text-foreground min-w-0 truncate text-base font-semibold">{heading}</p>
         {description !== undefined ? (
-          <p className="text-muted-foreground line-clamp-2 min-w-0 text-xs">{description}</p>
+          <p className="text-muted-foreground mt-1 line-clamp-2 min-w-0 text-sm">{description}</p>
         ) : null}
-        <p className="text-muted-foreground min-w-0 truncate text-xs">{site}</p>
-        <p className="text-muted-foreground min-w-0 text-xs [overflow-wrap:anywhere]">{url}</p>
+        {/* The URL always sits at the bottom of the card. */}
+        <p className="text-muted-foreground mt-auto min-w-0 truncate pt-3 text-sm">{url}</p>
         {unavailable ? (
-          <p data-bookmark-unavailable="" className="text-muted-foreground text-xs">
+          <p data-bookmark-unavailable="" className="text-muted-foreground mt-1 text-xs">
             Preview unavailable
           </p>
         ) : null}
@@ -15321,10 +15289,11 @@ function BookmarkThumbnail({ imageUrl }: { imageUrl: string | undefined }) {
     return null;
   }
 
+  // Flush to the card's left/top/bottom edges; hidden below 26rem of card width.
   return (
     <div
       data-bookmark-thumbnail=""
-      className="bg-muted h-16 w-24 shrink-0 overflow-hidden rounded-md"
+      className="bg-muted hidden h-full w-[27%] shrink-0 overflow-hidden @[26rem]/card:block"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- remote or same-origin preview */}
       <img
@@ -17599,6 +17568,7 @@ import {
   focusEditorWithoutScroll,
   retainScroll,
 } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import "katex/dist/katex.min.css";
 
@@ -17648,9 +17618,13 @@ function EquationView({
   // block so that span stays inside the scrollport instead of widening the page.
   // min-w-full centers a short expression; w-max lets a longer one scroll.
   return (
-    <div data-equation-scroll className="relative max-w-full min-w-0 overflow-x-auto">
+    <ScrollFadeArea
+      data-equation-scroll
+      orientation="horizontal"
+      className="relative max-w-full min-w-0"
+    >
       <div className="flex w-max min-w-full justify-center">{body}</div>
-    </div>
+    </ScrollFadeArea>
   );
 }
 
@@ -17658,9 +17632,9 @@ function EquationError({ expression, message }: { expression: string; message: s
   return (
     <div data-equation-error className="max-w-full min-w-0">
       <p className="text-destructive/70 text-sm">{message}</p>
-      <pre className="mt-1 max-w-full overflow-x-auto font-mono text-sm whitespace-pre">
-        {expression}
-      </pre>
+      <ScrollFadeArea orientation="horizontal" className="mt-1 max-w-full">
+        <pre className="font-mono text-sm whitespace-pre">{expression}</pre>
+      </ScrollFadeArea>
     </div>
   );
 }
@@ -17817,7 +17791,11 @@ export function EquationElement(props: PlateElementProps) {
             }}
             onKeyDown={onTextKeyDown}
           />
-          <div data-equation-preview className="relative max-w-full min-w-0 overflow-x-auto">
+          <ScrollFadeArea
+            data-equation-preview
+            orientation="horizontal"
+            className="relative max-w-full min-w-0"
+          >
             {draft.length === 0 ? (
               <p className="text-muted-foreground text-sm">{EQUATION_EMPTY_PLACEHOLDER}</p>
             ) : preview === undefined ? (
@@ -17830,7 +17808,7 @@ export function EquationElement(props: PlateElementProps) {
             ) : (
               <EquationError expression={draft} message={preview.message} />
             )}
-          </div>
+          </ScrollFadeArea>
           <div className="flex flex-wrap justify-end gap-2">
             <EditorTextButton
               variant="outline"
@@ -18451,6 +18429,7 @@ import {
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
 import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
 // cannot render a target inside the live editor. pluginRenderElementStatic
@@ -18684,12 +18663,13 @@ export function SyncedRefElement(props: PlateElementProps) {
           </p>
         )}
         {view.status === "live" && view.node ? (
-          <div
+          <ScrollFadeArea
             data-synced-preview
-            className="pointer-events-none max-w-full min-w-0 overflow-x-auto"
+            orientation="horizontal"
+            className="pointer-events-none max-w-full min-w-0"
           >
             <SyncedPreview node={view.node} />
-          </div>
+          </ScrollFadeArea>
         ) : (
           <p className="text-muted-foreground text-sm">
             {view.status === "missing" ? SYNCED_MISSING_PLACEHOLDER : SYNCED_INVALID_PLACEHOLDER}
@@ -20821,6 +20801,7 @@ import { cn } from "@/lib/utils";
 
 import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
 import { retainScroll } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -21062,58 +21043,60 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       >
         <div id="mention-results">
           <Command shouldFilter={false}>
-            <CommandList>
-              {status === "loading" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="loading"
-                >
-                  {MENTION_LOADING_LABEL}
-                </div>
-              ) : null}
-              {status === "empty" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="empty"
-                >
-                  {MENTION_EMPTY_LABEL}
-                </div>
-              ) : null}
-              {status === "error" ? (
-                <div
-                  className="text-muted-foreground px-2 py-3 text-sm"
-                  data-mention-status="error"
-                >
-                  {MENTION_ERROR_LABEL}
-                </div>
-              ) : null}
-              {status === "ready" ? (
-                <CommandGroup>
-                  {results.map((person, index) => (
-                    <CommandItem
-                      key={person.entityId}
-                      value={person.entityId}
-                      data-mention-entity-id={person.entityId}
-                      data-mention-active={index === activeIndex ? "true" : "false"}
-                      className={index === activeIndex ? "bg-muted" : undefined}
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                      }}
-                      onSelect={() => {
-                        commitMention(editor, person);
-                      }}
-                    >
-                      <span className="flex min-w-0 flex-col">
-                        <span>{person.label}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {person.email ?? person.entityId}
+            <ScrollFadeArea orientation="vertical" className="max-h-72">
+              <CommandList className="max-h-none overflow-visible p-0">
+                {status === "loading" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="loading"
+                  >
+                    {MENTION_LOADING_LABEL}
+                  </div>
+                ) : null}
+                {status === "empty" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="empty"
+                  >
+                    {MENTION_EMPTY_LABEL}
+                  </div>
+                ) : null}
+                {status === "error" ? (
+                  <div
+                    className="text-muted-foreground px-2 py-3 text-sm"
+                    data-mention-status="error"
+                  >
+                    {MENTION_ERROR_LABEL}
+                  </div>
+                ) : null}
+                {status === "ready" ? (
+                  <CommandGroup>
+                    {results.map((person, index) => (
+                      <CommandItem
+                        key={person.entityId}
+                        value={person.entityId}
+                        data-mention-entity-id={person.entityId}
+                        data-mention-active={index === activeIndex ? "true" : "false"}
+                        className={index === activeIndex ? "bg-muted" : undefined}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
+                        onSelect={() => {
+                          commitMention(editor, person);
+                        }}
+                      >
+                        <span className="flex min-w-0 flex-col">
+                          <span>{person.label}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {person.email ?? person.entityId}
+                          </span>
                         </span>
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ) : null}
-            </CommandList>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
+              </CommandList>
+            </ScrollFadeArea>
           </Command>
         </div>
       </PopoverContent>
@@ -26572,7 +26555,13 @@ function statusText(status: AutosaveStatus, message: string | undefined): string
   }
 }
 
+// The healthy states are silent: no "Saved"/"Saving…"/"Unsaved changes" label.
+// Only the failure states are visible, because they are the only way the user
+// learns their text is not being saved. This is a deliberate exception.
 export function EditorSaveStatus({ status, message, onRetry }: EditorSaveStatusProps) {
+  if (status !== "error" && status !== "conflict") {
+    return null;
+  }
   const isError = status === "error";
 
   return (
@@ -26608,6 +26597,7 @@ import { CopyButton } from "@/components/copy-button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
 import { EditorTextButton } from "../ui/block-toolbar";
+import { ScrollFadeArea } from "../ui/editor-scroll";
 
 import { EDITOR_SCHEMA_VERSION } from "../../lib/document/editor-document";
 import type { EditorRecoveryResult } from "../../hooks/use-editor-document";
@@ -26684,13 +26674,18 @@ export function EditorRecoveryNotice({
           ) : null}
           {extra > 0 ? <p className="mt-2">{`${String(extra)} more.`}</p> : null}
         </AlertDescription>
-        <pre
-          tabIndex={0}
-          aria-label="Document JSON"
-          className="border-border bg-muted text-foreground mt-3 max-h-60 w-full max-w-full min-w-0 overflow-auto rounded-md border p-3 font-mono text-sm"
+        <ScrollFadeArea
+          orientation="vertical"
+          className="border-border bg-muted text-foreground mt-3 max-h-60 w-full max-w-full min-w-0 rounded-md border"
         >
-          {text}
-        </pre>
+          <pre
+            tabIndex={0}
+            aria-label="Document JSON"
+            className="w-full p-3 font-mono text-sm [overflow-wrap:anywhere] whitespace-pre-wrap"
+          >
+            {text}
+          </pre>
+        </ScrollFadeArea>
         {error ? (
           <p role="alert" className="text-destructive mt-3 text-sm text-pretty">
             {error}
@@ -26796,12 +26791,17 @@ export function ReadyEditor({
   mentionProvider = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  // The healthy states render nothing, so the row takes no space. Only the
+  // failure notice appears, and it is the only thing above the editor.
+  const showNotice = status === "error" || status === "conflict";
 
   return (
     <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
-      <div className="flex justify-end pt-4">
-        <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
-      </div>
+      {showNotice ? (
+        <div className="flex justify-end pt-4">
+          <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
+        </div>
+      ) : null}
       <EditorSurface
         editor={editor}
         readOnly={readOnly}
@@ -26812,7 +26812,7 @@ export function ReadyEditor({
         }}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
-        className="text-foreground caret-foreground min-h-full w-full min-w-0 pt-3 pb-8 text-base leading-relaxed wrap-break-word outline-none sm:pb-12"
+        className="text-foreground caret-foreground min-h-full w-full min-w-0 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );
