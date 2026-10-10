@@ -11,7 +11,12 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -23,14 +28,14 @@ import {
 } from "../../lib/commands/editor-columns";
 import {
   MEDIA_TOOLBAR_CLASS,
+  EditorMenuTrigger,
   EditorTextButton,
-  editorControlLabel,
   keepMediaSelection,
 } from "../ui/block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
-export const COLUMN_GROUP_OUTLINE_CLASS = "rounded-md ring-1 ring-border";
+export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
 export const COLUMN_REMOVE_CONFIRM = "Remove columns and content?";
 
 const RESIZE_STEP = 5;
@@ -216,8 +221,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
       {...props}
       className={cn(
         "group group/columns relative my-2",
-        !readOnly && "hover:ring-border hover:ring-1",
-        !readOnly && selected && COLUMN_GROUP_OUTLINE_CLASS,
+        !readOnly && selected && COLUMN_GROUP_SELECTED_CLASS,
       )}
     >
       <div
@@ -265,27 +269,45 @@ export function ColumnGroupElement(props: PlateElementProps) {
             data-column-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <ToggleGroup
-              type="single"
-              size="sm"
-              variant="outline"
-              value={columns.length === 3 ? "3" : "2"}
-              onValueChange={(next) => {
-                if (next !== "2" && next !== "3") {
-                  return;
+            <DropdownMenu modal={false}>
+              <EditorMenuTrigger
+                label="Columns"
+                text="Columns"
+                icon={
+                  columns.length === 3 ? (
+                    <Columns3 aria-hidden="true" />
+                  ) : (
+                    <Columns2 aria-hidden="true" />
+                  )
                 }
-                runOnGroup(() => {
-                  setColumnCount(editor, next === "3" ? 3 : 2);
-                });
-              }}
-            >
-              <ToggleGroupItem value="2" aria-label="2 columns" onMouseDown={keepMediaSelection}>
-                {editorControlLabel(<Columns2 aria-hidden="true" />, "2 columns")}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="3" aria-label="3 columns" onMouseDown={keepMediaSelection}>
-                {editorControlLabel(<Columns3 aria-hidden="true" />, "3 columns")}
-              </ToggleGroupItem>
-            </ToggleGroup>
+                onMouseDown={keepMediaSelection}
+              />
+              <DropdownMenuContent
+                align="start"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                }}
+              >
+                <DropdownMenuRadioGroup
+                  value={columns.length === 3 ? "3" : "2"}
+                  onValueChange={(next) => {
+                    if (next !== "2" && next !== "3") {
+                      return;
+                    }
+                    runOnGroup(() => {
+                      setColumnCount(editor, next === "3" ? 3 : 2);
+                    });
+                  }}
+                >
+                  <DropdownMenuRadioItem value="2" onMouseDown={keepMediaSelection}>
+                    2 columns
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="3" onMouseDown={keepMediaSelection}>
+                    3 columns
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <EditorTextButton
               label="Turn into blocks"
               icon={<Ungroup aria-hidden="true" />}

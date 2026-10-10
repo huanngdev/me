@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import {
   PlateElement,
   useEditorRef,
@@ -9,7 +15,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { Check, Copy, Pencil, Trash2, X } from "lucide-react";
+import { Check, Copy, Trash2, X } from "lucide-react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { Textarea } from "@/components/textarea";
@@ -25,7 +31,12 @@ import {
   renderEquation,
   type EquationRender,
 } from "../../lib/features/editor-equation";
-import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  focusEditorWithoutScroll,
+  retainScroll,
+} from "../ui/block-toolbar";
 
 import "katex/dist/katex.min.css";
 
@@ -44,35 +55,39 @@ function EquationView({
   katex: KatexModule | undefined;
   empty: "placeholder" | "blank";
 }) {
+  let body: ReactNode = null;
   if (expression.length === 0) {
-    if (empty === "blank") {
-      return null;
-    }
-    return (
-      <p data-equation-empty className="text-muted-foreground text-sm">
-        {EQUATION_EMPTY_PLACEHOLDER}
-      </p>
+    body =
+      empty === "blank" ? null : (
+        <p data-equation-empty className="text-muted-foreground text-center text-sm">
+          {EQUATION_EMPTY_PLACEHOLDER}
+        </p>
+      );
+  } else if (!katex) {
+    body = <div data-equation-loading className="bg-background h-8 w-full max-w-xs rounded-md" />;
+  } else {
+    const rendered = renderEquation(katex, expression);
+    body = rendered.ok ? (
+      <div
+        data-equation-math
+        className="text-foreground"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    ) : (
+      <EquationError expression={expression} message={rendered.message} />
     );
   }
 
-  if (!katex) {
-    return <div data-equation-loading className="bg-muted h-8 max-w-xs rounded-md" />;
-  }
-
-  const rendered = renderEquation(katex, expression);
-  if (!rendered.ok) {
-    return <EquationError expression={expression} message={rendered.message} />;
+  if (body === null) {
+    return null;
   }
 
   // KaTeX positions .katex-mathml absolutely. This scroller is the containing
   // block so that span stays inside the scrollport instead of widening the page.
+  // min-w-full centers a short expression; w-max lets a longer one scroll.
   return (
     <div data-equation-scroll className="relative max-w-full min-w-0 overflow-x-auto">
-      <div
-        data-equation-math
-        className="text-foreground w-max"
-        dangerouslySetInnerHTML={{ __html: rendered.html }}
-      />
+      <div className="flex w-max min-w-full justify-center">{body}</div>
     </div>
   );
 }
@@ -120,7 +135,7 @@ export function EquationElement(props: PlateElementProps) {
     wasOpen.current = open;
     if (opening) {
       setDraft(expression);
-      textarea.current?.focus();
+      textarea.current?.focus({ preventScroll: true });
     }
     if (!closing) {
       return;
@@ -130,16 +145,16 @@ export function EquationElement(props: PlateElementProps) {
       return;
     }
     const start = editor.api.start(path);
-    editor.tf.withoutSaving(() => {
-      if (start) {
-        editor.tf.select(start);
-      }
-    });
     const node = editor.api.toDOMNode(props.element);
-    const editable = node?.closest("[data-slate-editor]");
-    if (editable instanceof HTMLElement) {
-      editable.focus();
-    }
+    const editable = node?.closest("[data-slate-editor]") ?? null;
+    retainScroll(() => {
+      editor.tf.withoutSaving(() => {
+        if (start) {
+          editor.tf.select(start);
+        }
+      });
+      focusEditorWithoutScroll(editable);
+    });
   }, [editor, expression, open, props.element]);
 
   function finish(commitDraft: boolean): void {
@@ -173,9 +188,9 @@ export function EquationElement(props: PlateElementProps) {
     }
   }
 
-  async function copySource(): Promise<void> {
+  async function copySource(source: string): Promise<void> {
     try {
-      await navigator.clipboard.writeText(expression);
+      await navigator.clipboard.writeText(source);
     } catch {
       // A denied clipboard leaves the source in the block.
     }
@@ -199,8 +214,8 @@ export function EquationElement(props: PlateElementProps) {
     <PlateElement
       {...props}
       className={cn(
-        "group relative my-2 max-w-full min-w-0",
-        selected && focused && !readOnly && "ring-ring rounded-md ring-2",
+        "group bg-muted relative my-2 max-w-full min-w-0 rounded-md px-3 py-2",
+        selected && focused && !readOnly && "bg-muted",
       )}
     >
       <Popover
@@ -220,41 +235,6 @@ export function EquationElement(props: PlateElementProps) {
               katex={katex}
               empty={readOnly ? "blank" : "placeholder"}
             />
-            {elementId.length === 0 ? null : (
-              <div
-                data-equation-toolbar
-                className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-              >
-                {readOnly ? null : (
-                  <EditorTextButton
-                    label="Edit"
-                    icon={<Pencil aria-hidden="true" />}
-                    onMouseDown={keepMediaSelection}
-                    onClick={openEditor}
-                  />
-                )}
-                <EditorTextButton
-                  label="Copy source"
-                  icon={<Copy aria-hidden="true" />}
-                  onMouseDown={keepMediaSelection}
-                  onClick={() => {
-                    void copySource();
-                  }}
-                />
-                {readOnly ? null : (
-                  <EditorTextButton
-                    variant="destructive"
-                    label="Remove"
-                    icon={<Trash2 aria-hidden="true" />}
-                    onMouseDown={keepMediaSelection}
-                    onClick={remove}
-                  />
-                )}
-              </div>
-            )}
           </div>
         </PopoverAnchor>
         <PopoverContent
@@ -287,7 +267,21 @@ export function EquationElement(props: PlateElementProps) {
               <EquationError expression={draft} message={preview.message} />
             )}
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <EditorTextButton
+              variant="outline"
+              label="Copy source"
+              icon={<Copy aria-hidden="true" />}
+              onClick={() => {
+                void copySource(draft);
+              }}
+            />
+            <EditorTextButton
+              variant="destructive"
+              label="Remove"
+              icon={<Trash2 aria-hidden="true" />}
+              onClick={remove}
+            />
             <EditorTextButton
               variant="outline"
               label="Cancel"
@@ -303,6 +297,17 @@ export function EquationElement(props: PlateElementProps) {
           </div>
         </PopoverContent>
       </Popover>
+      {readOnly && expression.length > 0 ? (
+        <div className="mt-1 flex justify-end" contentEditable={false}>
+          <EditorIconButton
+            label="Copy source"
+            icon={<Copy aria-hidden="true" />}
+            onClick={() => {
+              void copySource(expression);
+            }}
+          />
+        </div>
+      ) : null}
       {props.children}
     </PlateElement>
   );

@@ -11,6 +11,7 @@ import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
+  useEditorSelector,
   useElement,
   useReadOnly,
   type PlateElementProps,
@@ -32,9 +33,9 @@ import { TableControls } from "../ui/table-controls";
 // The slate table node stays a PlateElement div. Table renders the real table
 // plus its scroll container, so the node attributes cannot sit on the table.
 // Cell borders are the editor grid. TableHead has no background of its own.
-const CELL_BORDER_CLASS = "min-w-12 border border-[var(--editor-table-border)]";
+const CELL_BORDER_CLASS = "min-w-12 border border-border";
 
-const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
+const CELL_SELECTED_CLASS = "shadow-[inset_0_0_0_2px_var(--ring)]";
 
 type TableResizeContextValue = {
   readOnly: boolean;
@@ -183,8 +184,12 @@ export function TableElement(props: PlateElementProps) {
       <TableResizeContext.Provider value={{ readOnly, startWidth, commitWidth, setPreview }}>
         <Table
           ref={tableRef}
-          className="border-collapse"
-          style={tableWidth === undefined ? undefined : { width: tableWidth }}
+          className="mb-px border-separate border-spacing-0"
+          style={
+            tableWidth === undefined
+              ? undefined
+              : { width: tableWidth + 2, minWidth: tableWidth + 2, borderCollapse: "separate" }
+          }
         >
           <colgroup>
             {displayed.map((width, index) => (
@@ -257,7 +262,7 @@ function ColumnResizeHandle({ column }: { column: number }) {
       tabIndex={0}
       contentEditable={false}
       data-column={column}
-      className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize"
+      className="absolute inset-y-0 right-0 z-10 w-2 cursor-col-resize"
       onPointerDown={(event) => {
         if (event.button !== 0) {
           return;
@@ -319,7 +324,13 @@ function ColumnResizeHandle({ column }: { column: number }) {
 export function TableRowElement({ attributes, children }: PlateElementProps) {
   const { className, ...slateProps } = attributes;
   return (
-    <TableRow {...slateProps} className={className}>
+    <TableRow
+      {...slateProps}
+      className={cn(
+        className,
+        "border-0 bg-transparent hover:bg-transparent data-[state=selected]:bg-transparent",
+      )}
+    >
       {children}
     </TableRow>
   );
@@ -329,6 +340,23 @@ export function TableCellElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useIsCellSelected(props.element);
+  const cellId = typeof props.element.id === "string" ? props.element.id : "";
+  const editing = useEditorSelector(
+    (instance) => {
+      const selection = instance.selection;
+      if (!selection || cellId.length === 0) {
+        return false;
+      }
+
+      const match = instance.api.above({
+        at: selection,
+        match: (node) => ElementApi.isElement(node) && node.id === cellId,
+      });
+      return match !== undefined;
+    },
+    [cellId],
+  );
+  const active = selected || editing;
   const header = props.element.type === KEYS.th;
   const colSpan = spanAttribute(props.element.colSpan);
   const rowSpan = spanAttribute(props.element.rowSpan);
@@ -337,14 +365,20 @@ export function TableCellElement(props: PlateElementProps) {
   const cellClass = cn(
     className,
     CELL_BORDER_CLASS,
-    selected && SELECTED_CLASS,
+    active && CELL_SELECTED_CLASS,
     column !== undefined && "relative",
   );
   const handle = column === undefined ? null : <ColumnResizeHandle column={column} />;
 
   if (header) {
     return (
-      <TableHead {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+      <TableHead
+        {...slateProps}
+        colSpan={colSpan}
+        rowSpan={rowSpan}
+        className={cellClass}
+        data-cell-selected={active ? "true" : undefined}
+      >
         {props.children}
         {handle}
       </TableHead>
@@ -352,7 +386,13 @@ export function TableCellElement(props: PlateElementProps) {
   }
 
   return (
-    <TableCell {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+    <TableCell
+      {...slateProps}
+      colSpan={colSpan}
+      rowSpan={rowSpan}
+      className={cellClass}
+      data-cell-selected={active ? "true" : undefined}
+    >
       {props.children}
       {handle}
     </TableCell>

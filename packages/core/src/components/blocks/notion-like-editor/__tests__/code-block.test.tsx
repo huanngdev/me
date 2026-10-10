@@ -699,6 +699,10 @@ describe("code block render", () => {
     expect(html).toMatch(/contenteditable="false"/i);
     expect(html).toContain("Change code language");
     expect(html).toContain("TypeScript");
+    expect(html).toContain("bg-muted");
+    expect(html).not.toContain("border-l-2");
+    expect(html).not.toContain("var(--editor-code-border)");
+    expect(html).not.toContain("var(--editor-code-bg)");
   });
 
   test("read-only shows the language as text and still offers copy", () => {

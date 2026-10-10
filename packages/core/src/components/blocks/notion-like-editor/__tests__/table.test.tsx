@@ -1111,7 +1111,10 @@ describe("table render", () => {
     expect(html).toContain("<td");
     expect(html).toContain("overflow-x-auto");
     expect(html).toContain("min-w-12");
-    expect(html).toContain("var(--editor-table-border)");
+    expect(html).toContain("border-border");
+    expect(html).not.toContain("var(--editor-table-border)");
+    expect(html).not.toContain("var(--editor-table-selected)");
+    expect(html).toContain("border-separate");
     expect(html).toContain("caption-bottom");
     expect(html).toContain('data-slot="table-body"');
     expect(html).not.toContain("var(--editor-table-header-bg)");
@@ -1140,9 +1143,14 @@ describe("table render", () => {
         await Promise.resolve();
       });
 
-      expect(mounted.host.querySelectorAll(".editor-table-cell-selected").length).toBeGreaterThan(
-        1,
-      );
+      const selected = mounted.host.querySelectorAll("[data-cell-selected='true']");
+      expect(selected.length).toBeGreaterThan(1);
+      for (const cell of selected) {
+        expect(cell.className).not.toContain("editor-table-cell-selected");
+        expect(cell.className).not.toContain("bg-[var(--editor-table-selected)]");
+        expect(cell.className).not.toMatch(/(?:^|\s)bg-/);
+        expect(cell.className).toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
+      }
     } finally {
       await mounted.cleanup();
     }

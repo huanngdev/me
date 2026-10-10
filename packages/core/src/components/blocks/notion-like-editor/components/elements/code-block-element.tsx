@@ -23,7 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/component
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
-import { EditorIconButton, EditorMenuTrigger } from "../ui/block-toolbar";
+import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -32,7 +32,7 @@ import {
 } from "../../lib/document/editor-document-schema";
 
 const CODE_BLOCK_CLASS_NAME =
-  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border border-l-2 border-l-[var(--editor-code-border)] bg-[var(--editor-code-bg)] text-[var(--editor-code-fg)] [font-family:var(--editor-font-mono)] [tab-size:2]";
+  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
 
 const CODE_SCROLL_CLASS_NAME =
   "block overflow-x-auto px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
@@ -156,11 +156,13 @@ export function CodeBlockElement(props: PlateElementProps) {
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 const selection = savedSelection.current;
-                editor.tf.withoutSaving(() => {
-                  editor.tf.focus();
-                  if (selection) {
-                    editor.tf.select(selection);
-                  }
+                retainScroll(() => {
+                  editor.tf.withoutSaving(() => {
+                    editor.tf.focus();
+                    if (selection) {
+                      editor.tf.select(selection);
+                    }
+                  });
                 });
               }}
             >

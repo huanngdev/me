@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import { EditorMenuTrigger } from "../ui/block-toolbar";
+import { EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
 import {
   resetCallout,
   runEditorCommand,
@@ -142,7 +142,10 @@ export function CalloutElement(props: PlateElementProps) {
         CALLOUT_TONE_CLASS_NAME[tone],
       )}
     >
-      <div className="shrink-0 select-none" contentEditable={false}>
+      <div
+        className="flex h-[1lh] min-h-0 w-8 shrink-0 items-center justify-center overflow-visible select-none"
+        contentEditable={false}
+      >
         {readOnly || !path ? (
           <span
             aria-hidden="true"
@@ -167,11 +170,13 @@ export function CalloutElement(props: PlateElementProps) {
                 // Radix would focus the trigger here, which drops the text selection.
                 event.preventDefault();
                 const selection = savedSelection.current;
-                editor.tf.withoutSaving(() => {
-                  editor.tf.focus();
-                  if (selection) {
-                    editor.tf.select(selection);
-                  }
+                retainScroll(() => {
+                  editor.tf.withoutSaving(() => {
+                    editor.tf.focus();
+                    if (selection) {
+                      editor.tf.select(selection);
+                    }
+                  });
                 });
               }}
             >

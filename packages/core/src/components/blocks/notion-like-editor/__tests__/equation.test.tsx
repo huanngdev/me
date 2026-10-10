@@ -165,6 +165,16 @@ async function mountEquation(value: EditorValue, readOnly = false) {
   };
 }
 
+function openEquation(host: ParentNode): void {
+  const target = host.querySelector(
+    "[data-equation-empty], [data-equation-math], [data-equation-error], [data-equation-loading]",
+  );
+  if (!(target instanceof HTMLElement)) {
+    throw new Error("Missing the equation.");
+  }
+  target.click();
+}
+
 function button(host: ParentNode, label: string): HTMLButtonElement {
   const node = host.querySelector(`[aria-label="${label}"]`);
   if (!(node instanceof HTMLButtonElement)) {
@@ -447,7 +457,7 @@ describe("equation editing", () => {
       await flushKatex();
       const undos = mounted.editor.history.undos.length;
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       const area = sourceField();
       const selection = JSON.stringify(mounted.editor.selection);
@@ -466,7 +476,7 @@ describe("equation editing", () => {
       expect(equationEditingId(mounted.editor)).toBe("");
 
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       await act(async () => {
         typeInto(sourceField(), "a+c");
@@ -476,7 +486,7 @@ describe("equation editing", () => {
       expect(mounted.editor.history.undos.length).toBe(undos);
 
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       await act(async () => {
         typeInto(sourceField(), "\\frac{1}{2}");
@@ -493,7 +503,7 @@ describe("equation editing", () => {
 
       const afterDone = mounted.editor.history.undos.length;
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       await act(async () => {
         button(document.body, "Done").click();
@@ -508,7 +518,7 @@ describe("equation editing", () => {
     const mounted = await mountEquation([equation("eq-1", "a")]);
     try {
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       const area = sourceField();
       await act(async () => {
@@ -519,7 +529,7 @@ describe("equation editing", () => {
       expect(field(mounted.editor.children[0], "texExpression")).toBe("b+c");
 
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       const again = sourceField();
       const newline = await act(async () => pressKey(again, "Enter", false));
@@ -539,7 +549,7 @@ describe("equation editing", () => {
     try {
       const undos = mounted.editor.history.undos.length;
       await act(async () => {
-        button(mounted.host, "Edit").click();
+        openEquation(mounted.host);
       });
       // Radix attaches the outside listener on a timer, then waits for click
       // after a left-button pointerdown (deferPointerDownOutside).
@@ -612,12 +622,75 @@ describe("equation editing", () => {
       expect(writes).toEqual([QUADRATIC]);
       expect(mounted.host.querySelector('[aria-label="Edit"]')).toBeNull();
       expect(mounted.host.querySelector('[aria-label="Remove"]')).toBeNull();
+      expect(mounted.host.querySelector("[data-equation-toolbar]")).toBeNull();
     } finally {
       if (previous) {
         Object.defineProperty(navigator, "clipboard", previous);
       } else {
         Reflect.deleteProperty(navigator, "clipboard");
       }
+      await mounted.cleanup();
+    }
+  });
+
+  test("the click popover holds Copy and Remove and there is no hover toolbar or Edit button", async () => {
+    const mounted = await mountEquation([equation("eq-1", "a")]);
+    try {
+      await flushKatex();
+      expect(mounted.host.querySelector("[data-equation-toolbar]")).toBeNull();
+      expect(mounted.host.querySelector('[aria-label="Edit"]')).toBeNull();
+      expect(mounted.host.querySelector('[aria-label="Copy source"]')).toBeNull();
+      await act(async () => {
+        openEquation(mounted.host);
+      });
+      expect(document.querySelector("[data-equation-toolbar]")).toBeNull();
+      expect(document.querySelector('[aria-label="Edit"]')).toBeNull();
+      expect(button(document.body, "Copy source").getAttribute("data-variant")).not.toBe(
+        "destructive",
+      );
+      expect(button(document.body, "Remove").getAttribute("data-variant")).toBe("destructive");
+      expect(button(document.body, "Cancel")).toBeTruthy();
+      expect(button(document.body, "Done")).toBeTruthy();
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("Cancel does not call a scrolling focus", async () => {
+    const mounted = await mountEquation([paragraph("Before", "p1"), equation("eq-1", "a")]);
+    const focusCalls: Array<FocusOptions | undefined> = [];
+    const scrolls: unknown[] = [];
+    const originalFocus = HTMLElement.prototype.focus;
+    const originalScroll = Element.prototype.scrollIntoView;
+    HTMLElement.prototype.focus = function focusSpy(this: HTMLElement, options?: FocusOptions) {
+      focusCalls.push(options);
+      return originalFocus.call(this, options);
+    };
+    Element.prototype.scrollIntoView = function scrollSpy(
+      this: Element,
+      options?: boolean | ScrollIntoViewOptions,
+    ) {
+      scrolls.push(options);
+    };
+    try {
+      await flushKatex();
+      await act(async () => {
+        openEquation(mounted.host);
+      });
+      focusCalls.length = 0;
+      scrolls.length = 0;
+      await act(async () => {
+        button(document.body, "Cancel").click();
+      });
+      expect(scrolls).toEqual([]);
+      expect(focusCalls.length).toBeGreaterThan(0);
+      for (const options of focusCalls) {
+        expect(options?.preventScroll).toBe(true);
+      }
+      expect(equationEditingId(mounted.editor)).toBe("");
+    } finally {
+      HTMLElement.prototype.focus = originalFocus;
+      Element.prototype.scrollIntoView = originalScroll;
       await mounted.cleanup();
     }
   });

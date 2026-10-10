@@ -7,6 +7,7 @@ import {
   PlateElement,
   useEditorRef,
   useEditorSelector,
+  useFocused,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -33,6 +34,7 @@ import {
   type SyncedTargetStatus,
 } from "../../lib/features/editor-synced-block";
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
+import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
@@ -206,6 +208,7 @@ export function SyncedRefElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
+  const focused = useFocused();
   const storedTargetId = targetId(props.element);
   const view = useEditorSelector((): PreviewView => {
     const refPath = editor.api.findPath(props.element);
@@ -249,7 +252,10 @@ export function SyncedRefElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className="group border-border relative my-2 max-w-full min-w-0 border-s ps-3"
+      className={cn(
+        "group border-border relative my-2 max-w-full min-w-0 rounded-md border-s ps-3",
+        selected && focused && !readOnly && BLOCK_SELECTED_CLASS,
+      )}
     >
       <div
         contentEditable={false}

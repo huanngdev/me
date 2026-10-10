@@ -205,7 +205,11 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-card=""
             data-bookmark-status={phase}
             data-bookmark-url={url}
-            className={cn(BOOKMARK_CARD_CLASS, "text-foreground no-underline")}
+            className={cn(
+              BOOKMARK_CARD_CLASS,
+              "text-foreground no-underline",
+              hrElementClassName(selected, focused, readOnly),
+            )}
           >
             {body}
           </a>
@@ -215,7 +219,7 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-card=""
             data-bookmark-status={phase}
             data-bookmark-url={url}
-            className={BOOKMARK_CARD_CLASS}
+            className={cn(BOOKMARK_CARD_CLASS, hrElementClassName(selected, focused, readOnly))}
           >
             {body}
           </div>

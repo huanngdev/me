@@ -138,6 +138,72 @@ export function keepMediaSelection(event: { preventDefault: () => void }): void 
   event.preventDefault();
 }
 
+type ScrollPoint = {
+  node: HTMLElement;
+  top: number;
+  left: number;
+};
+
+function scrollableNodes(): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+  const add = (node: Element | null): void => {
+    if (!(node instanceof HTMLElement) || seen.has(node)) {
+      return;
+    }
+    seen.add(node);
+    found.push(node);
+  };
+
+  add(document.querySelector("[data-block-viewport]"));
+  const editor = document.querySelector("[data-slate-editor]");
+  let parent = editor instanceof HTMLElement ? editor.parentElement : null;
+  while (parent) {
+    const style = getComputedStyle(parent);
+    const overflows =
+      parent.scrollHeight > parent.clientHeight + 1 || parent.scrollWidth > parent.clientWidth + 1;
+    if (overflows && /(auto|scroll|overlay)/.test(`${style.overflowX}${style.overflowY}`)) {
+      add(parent);
+    }
+    parent = parent.parentElement;
+  }
+
+  return found;
+}
+
+// Menus and popovers restore the caret with focus() and select(). A bare focus
+// scrolls the editor element to the top of the viewport. Capture the scroll
+// ports first, then put them back after Slate's selection effect.
+export function retainScroll(run: () => void): void {
+  const points: ScrollPoint[] = scrollableNodes().map((node) => ({
+    node,
+    top: node.scrollTop,
+    left: node.scrollLeft,
+  }));
+  const x = window.scrollX;
+  const y = window.scrollY;
+  run();
+  const apply = (): void => {
+    for (const point of points) {
+      point.node.scrollTop = point.top;
+      point.node.scrollLeft = point.left;
+    }
+    window.scrollTo(x, y);
+  };
+  apply();
+  queueMicrotask(apply);
+  requestAnimationFrame(() => {
+    apply();
+    requestAnimationFrame(apply);
+  });
+}
+
+export function focusEditorWithoutScroll(editorRoot: Element | null): void {
+  if (editorRoot instanceof HTMLElement) {
+    editorRoot.focus({ preventScroll: true });
+  }
+}
+
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;

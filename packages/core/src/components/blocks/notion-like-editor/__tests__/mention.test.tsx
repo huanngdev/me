@@ -873,9 +873,23 @@ describe("mention render", () => {
     expect(chip.textContent).toContain("@Alex Kim");
     expect(chip.dataset.mentionState).toBe("unknown");
     expect(chip.title).toBe(MENTION_UNKNOWN_LABEL);
-    expect(chip.className).toContain("bg-muted");
+    expect(chip.className).toContain("font-medium");
+    expect(chip.className).toContain("text-muted-foreground");
+    expect(chip.className).not.toContain("bg-muted");
+    expect(chip.className).not.toContain("px-1");
     expect(searches).toBe(0);
     expect(resolves).toBe(1);
+
+    await act(async () => {
+      editor.tf.select([0, 1]);
+    });
+    const selectedChip = host.querySelector("[data-mention-entity-id='person-alex-kim']");
+    expect(selectedChip instanceof HTMLElement).toBe(true);
+    if (!(selectedChip instanceof HTMLElement)) {
+      throw new Error("Missing the selected mention.");
+    }
+    expect(selectedChip.className).toContain("bg-muted");
+    expect(selectedChip.className).toContain("font-medium");
 
     await act(async () => {
       root?.unmount();

@@ -858,4 +858,49 @@ describe("column rendering", () => {
     expect(paragraphs(mounted.editor)).toContain("Gone");
     await mounted.cleanup();
   });
+
+  test("the columns menu checks the current count and changes it in one undo", async () => {
+    const mounted = await mountColumns([
+      group("g", [
+        column("a", "50%", [paragraph("Left", "left")]),
+        column("b", "50%", [paragraph("Right", "right")]),
+      ]),
+    ]);
+    try {
+      const trigger = mounted.host.querySelector("[aria-label='Columns']");
+      if (!(trigger instanceof HTMLElement)) {
+        throw new Error("Missing the columns menu.");
+      }
+      const view = trigger.ownerDocument.defaultView;
+      if (!view) {
+        throw new Error("Missing window.");
+      }
+      await act(async () => {
+        trigger.dispatchEvent(
+          new view.PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
+        );
+      });
+      const checked = document.querySelector("[role='menuitemradio'][aria-checked='true']");
+      const three = [...document.querySelectorAll("[role='menuitemradio']")].find((item) =>
+        item.textContent?.includes("3 columns"),
+      );
+      expect(checked?.textContent).toContain("2 columns");
+      expect(three instanceof HTMLElement).toBe(true);
+      if (!(three instanceof HTMLElement)) {
+        return;
+      }
+      const undos = mounted.editor.history.undos.length;
+      await act(async () => {
+        three.dispatchEvent(new view.MouseEvent("click", { bubbles: true, cancelable: true }));
+      });
+      expect(mounted.editor.children[0]?.children).toHaveLength(3);
+      expect(mounted.editor.history.undos.length).toBe(undos + 1);
+      await act(async () => {
+        mounted.editor.tf.undo();
+      });
+      expect(mounted.editor.children[0]?.children).toHaveLength(2);
+    } finally {
+      await mounted.cleanup();
+    }
+  });
 });

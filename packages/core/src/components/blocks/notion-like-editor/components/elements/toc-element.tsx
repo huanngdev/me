@@ -3,6 +3,7 @@ import {
   PlateElement,
   useEditorRef,
   useEditorSelector,
+  useFocused,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -26,6 +27,7 @@ import {
   tocEntries,
   type TocEntry,
 } from "../../lib/features/editor-toc";
+import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -55,6 +57,7 @@ export function TocElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
+  const focused = useFocused();
   const depth = storedTocDepth(props.element);
   const entries = useEditorSelector(() => tocEntries(editor, depth), [depth]);
   const shallowest = shallowestDepth(entries);
@@ -87,7 +90,13 @@ export function TocElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement {...props} className="group relative my-2">
+    <PlateElement
+      {...props}
+      className={cn(
+        "group relative my-2 rounded-md",
+        selected && focused && !readOnly && BLOCK_SELECTED_CLASS,
+      )}
+    >
       <div contentEditable={false}>
         {entries.length === 0 ? (
           readOnly ? null : (
@@ -143,7 +152,12 @@ export function TocElement(props: PlateElementProps) {
                 icon={<ChevronDown aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
               />
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent
+                align="end"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                }}
+              >
                 {([1, 2, 3] as const).map((choice) => (
                   <DropdownMenuItem
                     key={choice}

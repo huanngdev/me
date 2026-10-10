@@ -8,12 +8,12 @@ import {
 
 import { cn } from "@/lib/utils";
 
-// AGENTS.md line 29 keeps the accent for active states. The selected ring uses
-// the focus ring token, which is the violet accent under the site palette.
+// A selected void uses the muted surface. The focus ring stays on real buttons.
 // Plate wraps an <hr> the same way (react/index.js FastIntrinsicElement): a div,
 // <hr contentEditable={false}>, then the Slate children. There is no click handler.
 export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
-export const HR_SELECTED_CLASS_NAME = "ring-2 ring-ring";
+export const BLOCK_SELECTED_CLASS = "bg-muted";
+export const HR_SELECTED_CLASS_NAME = BLOCK_SELECTED_CLASS;
 
 export function hrElementClassName(
   selected: boolean,

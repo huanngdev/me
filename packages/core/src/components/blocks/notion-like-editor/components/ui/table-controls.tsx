@@ -40,7 +40,7 @@ import {
   toggleTableHeaderRow,
 } from "../../lib/commands/editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "../../lib/features/editor-table";
-import { EditorMenuTrigger } from "./block-toolbar";
+import { EditorMenuTrigger, retainScroll } from "./block-toolbar";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -112,11 +112,13 @@ export function TableControls({ element }: { element: TElement }) {
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             const selection = savedSelection.current;
-            editor.tf.withoutSaving(() => {
-              editor.tf.focus();
-              if (selection) {
-                editor.tf.select(selection);
-              }
+            retainScroll(() => {
+              editor.tf.withoutSaving(() => {
+                editor.tf.focus();
+                if (selection) {
+                  editor.tf.select(selection);
+                }
+              });
             });
           }}
         >

@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
+import {
+  useEditorRef,
+  usePluginOption,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
 import { Input } from "@/components/input";
@@ -7,6 +13,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { cn } from "@/lib/utils";
 
 import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
+import { retainScroll } from "../ui/block-toolbar";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -84,6 +91,7 @@ function MentionChip({
   label: string;
   resolve: MentionProvider["resolve"];
 }) {
+  const selected = useSelected();
   const [state, setState] = useState<MentionState>(resolve === undefined ? "known" : "pending");
 
   useEffect(() => {
@@ -124,8 +132,9 @@ function MentionChip({
       contentEditable={false}
       className={cn(
         slateClass,
-        "inline-flex items-baseline rounded-md px-1 align-baseline",
-        unknown ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground",
+        "inline align-baseline font-medium",
+        unknown ? "text-muted-foreground" : "text-foreground",
+        selected && "bg-muted rounded-sm",
       )}
       data-mention-entity-type={entityType}
       data-mention-entity-id={entityId}
@@ -158,7 +167,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       return;
     }
 
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     setMentionQuery(editor, editor.getOption(mentionUiPlugin, "query"));
   }, [editor, readOnly]);
 
@@ -215,6 +224,12 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
           }}
           onKeyDown={(event) => {
             event.stopPropagation();
+            if (event.key === "Escape" || event.key === "Enter" || event.key === "Tab") {
+              retainScroll(() => {
+                onMentionInputKeyDown(editor, event);
+              });
+              return;
+            }
             onMentionInputKeyDown(editor, event);
           }}
         />

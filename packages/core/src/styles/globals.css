@@ -161,9 +161,6 @@
   --editor-callout-warning-border: oklch(0.86 0.06 95);
   --editor-callout-danger-bg: oklch(0.955 0.025 25);
   --editor-callout-danger-border: oklch(0.86 0.04 25);
-  --editor-code-bg: oklch(0.955 0.004 300);
-  --editor-code-border: oklch(0.48 0.16 292);
-  --editor-code-fg: oklch(0.28 0.02 300);
   --editor-code-comment: oklch(0.42 0.03 260);
   --editor-code-keyword: oklch(0.4 0.16 292);
   --editor-code-string: oklch(0.4 0.11 155);
@@ -176,10 +173,6 @@
   --editor-code-addition: oklch(0.38 0.12 150);
   --editor-code-deletion: oklch(0.42 0.15 25);
   --editor-code-punctuation: oklch(0.38 0.02 300);
-  --editor-table-border: oklch(0.86 0.01 300);
-  --editor-table-header-bg: oklch(0.94 0.012 300);
-  --editor-table-header-fg: oklch(0.25 0.02 300);
-  --editor-table-selected: oklch(0.55 0.14 292 / 18%);
 }
 
 .dark {
@@ -245,9 +238,6 @@
   --editor-callout-warning-border: oklch(0.48 0.07 95);
   --editor-callout-danger-bg: oklch(0.32 0.05 25);
   --editor-callout-danger-border: oklch(0.45 0.07 25);
-  --editor-code-bg: oklch(0.13 0.008 300);
-  --editor-code-border: oklch(0.72 0.12 292);
-  --editor-code-fg: oklch(0.92 0.01 300);
   --editor-code-comment: oklch(0.78 0.03 260);
   --editor-code-keyword: oklch(0.8 0.12 292);
   --editor-code-string: oklch(0.86 0.12 155);
@@ -260,10 +250,6 @@
   --editor-code-addition: oklch(0.86 0.13 150);
   --editor-code-deletion: oklch(0.8 0.14 25);
   --editor-code-punctuation: oklch(0.84 0.02 300);
-  --editor-table-border: oklch(1 0 0 / 18%);
-  --editor-table-header-bg: oklch(0.32 0.02 300);
-  --editor-table-header-fg: oklch(0.96 0.01 300);
-  --editor-table-selected: oklch(0.72 0.12 292 / 28%);
 }
 
 [data-palette="violet"]:not(.dark) {

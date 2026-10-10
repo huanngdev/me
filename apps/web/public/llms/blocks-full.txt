@@ -5629,6 +5629,72 @@ export function keepMediaSelection(event: { preventDefault: () => void }): void 
   event.preventDefault();
 }
 
+type ScrollPoint = {
+  node: HTMLElement;
+  top: number;
+  left: number;
+};
+
+function scrollableNodes(): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+  const add = (node: Element | null): void => {
+    if (!(node instanceof HTMLElement) || seen.has(node)) {
+      return;
+    }
+    seen.add(node);
+    found.push(node);
+  };
+
+  add(document.querySelector("[data-block-viewport]"));
+  const editor = document.querySelector("[data-slate-editor]");
+  let parent = editor instanceof HTMLElement ? editor.parentElement : null;
+  while (parent) {
+    const style = getComputedStyle(parent);
+    const overflows =
+      parent.scrollHeight > parent.clientHeight + 1 || parent.scrollWidth > parent.clientWidth + 1;
+    if (overflows && /(auto|scroll|overlay)/.test(`${style.overflowX}${style.overflowY}`)) {
+      add(parent);
+    }
+    parent = parent.parentElement;
+  }
+
+  return found;
+}
+
+// Menus and popovers restore the caret with focus() and select(). A bare focus
+// scrolls the editor element to the top of the viewport. Capture the scroll
+// ports first, then put them back after Slate's selection effect.
+export function retainScroll(run: () => void): void {
+  const points: ScrollPoint[] = scrollableNodes().map((node) => ({
+    node,
+    top: node.scrollTop,
+    left: node.scrollLeft,
+  }));
+  const x = window.scrollX;
+  const y = window.scrollY;
+  run();
+  const apply = (): void => {
+    for (const point of points) {
+      point.node.scrollTop = point.top;
+      point.node.scrollLeft = point.left;
+    }
+    window.scrollTo(x, y);
+  };
+  apply();
+  queueMicrotask(apply);
+  requestAnimationFrame(() => {
+    apply();
+    requestAnimationFrame(apply);
+  });
+}
+
+export function focusEditorWithoutScroll(editorRoot: Element | null): void {
+  if (editorRoot instanceof HTMLElement) {
+    editorRoot.focus({ preventScroll: true });
+  }
+}
+
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;
@@ -8440,7 +8506,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
-import { EditorMenuTrigger } from "../ui/block-toolbar";
+import { EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
 import {
   resetCallout,
   runEditorCommand,
@@ -8547,7 +8613,10 @@ export function CalloutElement(props: PlateElementProps) {
         CALLOUT_TONE_CLASS_NAME[tone],
       )}
     >
-      <div className="shrink-0 select-none" contentEditable={false}>
+      <div
+        className="flex h-[1lh] min-h-0 w-8 shrink-0 items-center justify-center overflow-visible select-none"
+        contentEditable={false}
+      >
         {readOnly || !path ? (
           <span
             aria-hidden="true"
@@ -8572,11 +8641,13 @@ export function CalloutElement(props: PlateElementProps) {
                 // Radix would focus the trigger here, which drops the text selection.
                 event.preventDefault();
                 const selection = savedSelection.current;
-                editor.tf.withoutSaving(() => {
-                  editor.tf.focus();
-                  if (selection) {
-                    editor.tf.select(selection);
-                  }
+                retainScroll(() => {
+                  editor.tf.withoutSaving(() => {
+                    editor.tf.focus();
+                    if (selection) {
+                      editor.tf.select(selection);
+                    }
+                  });
                 });
               }}
             >
@@ -8852,7 +8923,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/component
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand, setCodeLanguage } from "../../lib/commands/editor-commands";
-import { EditorIconButton, EditorMenuTrigger } from "../ui/block-toolbar";
+import { EditorIconButton, EditorMenuTrigger, retainScroll } from "../ui/block-toolbar";
 import { ensureCodeLanguage } from "../../lib/features/editor-code";
 import {
   CODE_LANGS,
@@ -8861,7 +8932,7 @@ import {
 } from "../../lib/document/editor-document-schema";
 
 const CODE_BLOCK_CLASS_NAME =
-  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border border-l-2 border-l-[var(--editor-code-border)] bg-[var(--editor-code-bg)] text-[var(--editor-code-fg)] [font-family:var(--editor-font-mono)] [tab-size:2]";
+  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
 
 const CODE_SCROLL_CLASS_NAME =
   "block overflow-x-auto px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
@@ -8985,11 +9056,13 @@ export function CodeBlockElement(props: PlateElementProps) {
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 const selection = savedSelection.current;
-                editor.tf.withoutSaving(() => {
-                  editor.tf.focus();
-                  if (selection) {
-                    editor.tf.select(selection);
-                  }
+                retainScroll(() => {
+                  editor.tf.withoutSaving(() => {
+                    editor.tf.focus();
+                    if (selection) {
+                      editor.tf.select(selection);
+                    }
+                  });
                 });
               }}
             >
@@ -11271,6 +11344,7 @@ import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
+  useEditorSelector,
   useElement,
   useReadOnly,
   type PlateElementProps,
@@ -11292,9 +11366,9 @@ import { TableControls } from "../ui/table-controls";
 // The slate table node stays a PlateElement div. Table renders the real table
 // plus its scroll container, so the node attributes cannot sit on the table.
 // Cell borders are the editor grid. TableHead has no background of its own.
-const CELL_BORDER_CLASS = "min-w-12 border border-[var(--editor-table-border)]";
+const CELL_BORDER_CLASS = "min-w-12 border border-border";
 
-const SELECTED_CLASS = "editor-table-cell-selected bg-[var(--editor-table-selected)]";
+const CELL_SELECTED_CLASS = "shadow-[inset_0_0_0_2px_var(--ring)]";
 
 type TableResizeContextValue = {
   readOnly: boolean;
@@ -11443,8 +11517,12 @@ export function TableElement(props: PlateElementProps) {
       <TableResizeContext.Provider value={{ readOnly, startWidth, commitWidth, setPreview }}>
         <Table
           ref={tableRef}
-          className="border-collapse"
-          style={tableWidth === undefined ? undefined : { width: tableWidth }}
+          className="mb-px border-separate border-spacing-0"
+          style={
+            tableWidth === undefined
+              ? undefined
+              : { width: tableWidth + 2, minWidth: tableWidth + 2, borderCollapse: "separate" }
+          }
         >
           <colgroup>
             {displayed.map((width, index) => (
@@ -11517,7 +11595,7 @@ function ColumnResizeHandle({ column }: { column: number }) {
       tabIndex={0}
       contentEditable={false}
       data-column={column}
-      className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize"
+      className="absolute inset-y-0 right-0 z-10 w-2 cursor-col-resize"
       onPointerDown={(event) => {
         if (event.button !== 0) {
           return;
@@ -11579,7 +11657,13 @@ function ColumnResizeHandle({ column }: { column: number }) {
 export function TableRowElement({ attributes, children }: PlateElementProps) {
   const { className, ...slateProps } = attributes;
   return (
-    <TableRow {...slateProps} className={className}>
+    <TableRow
+      {...slateProps}
+      className={cn(
+        className,
+        "border-0 bg-transparent hover:bg-transparent data-[state=selected]:bg-transparent",
+      )}
+    >
       {children}
     </TableRow>
   );
@@ -11589,6 +11673,23 @@ export function TableCellElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useIsCellSelected(props.element);
+  const cellId = typeof props.element.id === "string" ? props.element.id : "";
+  const editing = useEditorSelector(
+    (instance) => {
+      const selection = instance.selection;
+      if (!selection || cellId.length === 0) {
+        return false;
+      }
+
+      const match = instance.api.above({
+        at: selection,
+        match: (node) => ElementApi.isElement(node) && node.id === cellId,
+      });
+      return match !== undefined;
+    },
+    [cellId],
+  );
+  const active = selected || editing;
   const header = props.element.type === KEYS.th;
   const colSpan = spanAttribute(props.element.colSpan);
   const rowSpan = spanAttribute(props.element.rowSpan);
@@ -11597,14 +11698,20 @@ export function TableCellElement(props: PlateElementProps) {
   const cellClass = cn(
     className,
     CELL_BORDER_CLASS,
-    selected && SELECTED_CLASS,
+    active && CELL_SELECTED_CLASS,
     column !== undefined && "relative",
   );
   const handle = column === undefined ? null : <ColumnResizeHandle column={column} />;
 
   if (header) {
     return (
-      <TableHead {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+      <TableHead
+        {...slateProps}
+        colSpan={colSpan}
+        rowSpan={rowSpan}
+        className={cellClass}
+        data-cell-selected={active ? "true" : undefined}
+      >
         {props.children}
         {handle}
       </TableHead>
@@ -11612,7 +11719,13 @@ export function TableCellElement(props: PlateElementProps) {
   }
 
   return (
-    <TableCell {...slateProps} colSpan={colSpan} rowSpan={rowSpan} className={cellClass}>
+    <TableCell
+      {...slateProps}
+      colSpan={colSpan}
+      rowSpan={rowSpan}
+      className={cellClass}
+      data-cell-selected={active ? "true" : undefined}
+    >
       {props.children}
       {handle}
     </TableCell>
@@ -11664,7 +11777,7 @@ import {
   toggleTableHeaderRow,
 } from "../../lib/commands/editor-table-commands";
 import { columnIsHeader, rowIsHeader } from "../../lib/features/editor-table";
-import { EditorMenuTrigger } from "./block-toolbar";
+import { EditorMenuTrigger, retainScroll } from "./block-toolbar";
 
 const TOOLBAR_CLASS_NAME =
   "absolute top-1 right-1 z-10 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
@@ -11736,11 +11849,13 @@ export function TableControls({ element }: { element: TElement }) {
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             const selection = savedSelection.current;
-            editor.tf.withoutSaving(() => {
-              editor.tf.focus();
-              if (selection) {
-                editor.tf.select(selection);
-              }
+            retainScroll(() => {
+              editor.tf.withoutSaving(() => {
+                editor.tf.focus();
+                if (selection) {
+                  editor.tf.select(selection);
+                }
+              });
             });
           }}
         >
@@ -12022,12 +12137,12 @@ import {
 
 import { cn } from "@/lib/utils";
 
-// AGENTS.md line 29 keeps the accent for active states. The selected ring uses
-// the focus ring token, which is the violet accent under the site palette.
+// A selected void uses the muted surface. The focus ring stays on real buttons.
 // Plate wraps an <hr> the same way (react/index.js FastIntrinsicElement): a div,
 // <hr contentEditable={false}>, then the Slate children. There is no click handler.
 export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
-export const HR_SELECTED_CLASS_NAME = "ring-2 ring-ring";
+export const BLOCK_SELECTED_CLASS = "bg-muted";
+export const HR_SELECTED_CLASS_NAME = BLOCK_SELECTED_CLASS;
 
 export function hrElementClassName(
   selected: boolean,
@@ -13110,7 +13225,11 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-card=""
             data-bookmark-status={phase}
             data-bookmark-url={url}
-            className={cn(BOOKMARK_CARD_CLASS, "text-foreground no-underline")}
+            className={cn(
+              BOOKMARK_CARD_CLASS,
+              "text-foreground no-underline",
+              hrElementClassName(selected, focused, readOnly),
+            )}
           >
             {body}
           </a>
@@ -13120,7 +13239,7 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-card=""
             data-bookmark-status={phase}
             data-bookmark-url={url}
-            className={BOOKMARK_CARD_CLASS}
+            className={cn(BOOKMARK_CARD_CLASS, hrElementClassName(selected, focused, readOnly))}
           >
             {body}
           </div>
@@ -14331,7 +14450,12 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import {
@@ -14343,14 +14467,14 @@ import {
 } from "../../lib/commands/editor-columns";
 import {
   MEDIA_TOOLBAR_CLASS,
+  EditorMenuTrigger,
   EditorTextButton,
-  editorControlLabel,
   keepMediaSelection,
 } from "../ui/block-toolbar";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
-export const COLUMN_GROUP_OUTLINE_CLASS = "rounded-md ring-1 ring-border";
+export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
 export const COLUMN_REMOVE_CONFIRM = "Remove columns and content?";
 
 const RESIZE_STEP = 5;
@@ -14536,8 +14660,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
       {...props}
       className={cn(
         "group group/columns relative my-2",
-        !readOnly && "hover:ring-border hover:ring-1",
-        !readOnly && selected && COLUMN_GROUP_OUTLINE_CLASS,
+        !readOnly && selected && COLUMN_GROUP_SELECTED_CLASS,
       )}
     >
       <div
@@ -14585,27 +14708,45 @@ export function ColumnGroupElement(props: PlateElementProps) {
             data-column-toolbar
             className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
           >
-            <ToggleGroup
-              type="single"
-              size="sm"
-              variant="outline"
-              value={columns.length === 3 ? "3" : "2"}
-              onValueChange={(next) => {
-                if (next !== "2" && next !== "3") {
-                  return;
+            <DropdownMenu modal={false}>
+              <EditorMenuTrigger
+                label="Columns"
+                text="Columns"
+                icon={
+                  columns.length === 3 ? (
+                    <Columns3 aria-hidden="true" />
+                  ) : (
+                    <Columns2 aria-hidden="true" />
+                  )
                 }
-                runOnGroup(() => {
-                  setColumnCount(editor, next === "3" ? 3 : 2);
-                });
-              }}
-            >
-              <ToggleGroupItem value="2" aria-label="2 columns" onMouseDown={keepMediaSelection}>
-                {editorControlLabel(<Columns2 aria-hidden="true" />, "2 columns")}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="3" aria-label="3 columns" onMouseDown={keepMediaSelection}>
-                {editorControlLabel(<Columns3 aria-hidden="true" />, "3 columns")}
-              </ToggleGroupItem>
-            </ToggleGroup>
+                onMouseDown={keepMediaSelection}
+              />
+              <DropdownMenuContent
+                align="start"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                }}
+              >
+                <DropdownMenuRadioGroup
+                  value={columns.length === 3 ? "3" : "2"}
+                  onValueChange={(next) => {
+                    if (next !== "2" && next !== "3") {
+                      return;
+                    }
+                    runOnGroup(() => {
+                      setColumnCount(editor, next === "3" ? 3 : 2);
+                    });
+                  }}
+                >
+                  <DropdownMenuRadioItem value="2" onMouseDown={keepMediaSelection}>
+                    2 columns
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="3" onMouseDown={keepMediaSelection}>
+                    3 columns
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <EditorTextButton
               label="Turn into blocks"
               icon={<Ungroup aria-hidden="true" />}
@@ -14939,6 +15080,7 @@ import {
   PlateElement,
   useEditorRef,
   useEditorSelector,
+  useFocused,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -14962,6 +15104,7 @@ import {
   tocEntries,
   type TocEntry,
 } from "../../lib/features/editor-toc";
+import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import {
   MEDIA_TOOLBAR_CLASS,
   EditorMenuTrigger,
@@ -14991,6 +15134,7 @@ export function TocElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
+  const focused = useFocused();
   const depth = storedTocDepth(props.element);
   const entries = useEditorSelector(() => tocEntries(editor, depth), [depth]);
   const shallowest = shallowestDepth(entries);
@@ -15023,7 +15167,13 @@ export function TocElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement {...props} className="group relative my-2">
+    <PlateElement
+      {...props}
+      className={cn(
+        "group relative my-2 rounded-md",
+        selected && focused && !readOnly && BLOCK_SELECTED_CLASS,
+      )}
+    >
       <div contentEditable={false}>
         {entries.length === 0 ? (
           readOnly ? null : (
@@ -15079,7 +15229,12 @@ export function TocElement(props: PlateElementProps) {
                 icon={<ChevronDown aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
               />
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent
+                align="end"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                }}
+              >
                 {([1, 2, 3] as const).map((choice) => (
                   <DropdownMenuItem
                     key={choice}
@@ -15324,7 +15479,13 @@ export const removeEquationCommand: EditorCommand = {
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
 ```tsx
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import {
   PlateElement,
   useEditorRef,
@@ -15335,7 +15496,7 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { Check, Copy, Pencil, Trash2, X } from "lucide-react";
+import { Check, Copy, Trash2, X } from "lucide-react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { Textarea } from "@/components/textarea";
@@ -15351,7 +15512,12 @@ import {
   renderEquation,
   type EquationRender,
 } from "../../lib/features/editor-equation";
-import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  focusEditorWithoutScroll,
+  retainScroll,
+} from "../ui/block-toolbar";
 
 import "katex/dist/katex.min.css";
 
@@ -15370,35 +15536,39 @@ function EquationView({
   katex: KatexModule | undefined;
   empty: "placeholder" | "blank";
 }) {
+  let body: ReactNode = null;
   if (expression.length === 0) {
-    if (empty === "blank") {
-      return null;
-    }
-    return (
-      <p data-equation-empty className="text-muted-foreground text-sm">
-        {EQUATION_EMPTY_PLACEHOLDER}
-      </p>
+    body =
+      empty === "blank" ? null : (
+        <p data-equation-empty className="text-muted-foreground text-center text-sm">
+          {EQUATION_EMPTY_PLACEHOLDER}
+        </p>
+      );
+  } else if (!katex) {
+    body = <div data-equation-loading className="bg-background h-8 w-full max-w-xs rounded-md" />;
+  } else {
+    const rendered = renderEquation(katex, expression);
+    body = rendered.ok ? (
+      <div
+        data-equation-math
+        className="text-foreground"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    ) : (
+      <EquationError expression={expression} message={rendered.message} />
     );
   }
 
-  if (!katex) {
-    return <div data-equation-loading className="bg-muted h-8 max-w-xs rounded-md" />;
-  }
-
-  const rendered = renderEquation(katex, expression);
-  if (!rendered.ok) {
-    return <EquationError expression={expression} message={rendered.message} />;
+  if (body === null) {
+    return null;
   }
 
   // KaTeX positions .katex-mathml absolutely. This scroller is the containing
   // block so that span stays inside the scrollport instead of widening the page.
+  // min-w-full centers a short expression; w-max lets a longer one scroll.
   return (
     <div data-equation-scroll className="relative max-w-full min-w-0 overflow-x-auto">
-      <div
-        data-equation-math
-        className="text-foreground w-max"
-        dangerouslySetInnerHTML={{ __html: rendered.html }}
-      />
+      <div className="flex w-max min-w-full justify-center">{body}</div>
     </div>
   );
 }
@@ -15446,7 +15616,7 @@ export function EquationElement(props: PlateElementProps) {
     wasOpen.current = open;
     if (opening) {
       setDraft(expression);
-      textarea.current?.focus();
+      textarea.current?.focus({ preventScroll: true });
     }
     if (!closing) {
       return;
@@ -15456,16 +15626,16 @@ export function EquationElement(props: PlateElementProps) {
       return;
     }
     const start = editor.api.start(path);
-    editor.tf.withoutSaving(() => {
-      if (start) {
-        editor.tf.select(start);
-      }
-    });
     const node = editor.api.toDOMNode(props.element);
-    const editable = node?.closest("[data-slate-editor]");
-    if (editable instanceof HTMLElement) {
-      editable.focus();
-    }
+    const editable = node?.closest("[data-slate-editor]") ?? null;
+    retainScroll(() => {
+      editor.tf.withoutSaving(() => {
+        if (start) {
+          editor.tf.select(start);
+        }
+      });
+      focusEditorWithoutScroll(editable);
+    });
   }, [editor, expression, open, props.element]);
 
   function finish(commitDraft: boolean): void {
@@ -15499,9 +15669,9 @@ export function EquationElement(props: PlateElementProps) {
     }
   }
 
-  async function copySource(): Promise<void> {
+  async function copySource(source: string): Promise<void> {
     try {
-      await navigator.clipboard.writeText(expression);
+      await navigator.clipboard.writeText(source);
     } catch {
       // A denied clipboard leaves the source in the block.
     }
@@ -15525,8 +15695,8 @@ export function EquationElement(props: PlateElementProps) {
     <PlateElement
       {...props}
       className={cn(
-        "group relative my-2 max-w-full min-w-0",
-        selected && focused && !readOnly && "ring-ring rounded-md ring-2",
+        "group bg-muted relative my-2 max-w-full min-w-0 rounded-md px-3 py-2",
+        selected && focused && !readOnly && "bg-muted",
       )}
     >
       <Popover
@@ -15546,41 +15716,6 @@ export function EquationElement(props: PlateElementProps) {
               katex={katex}
               empty={readOnly ? "blank" : "placeholder"}
             />
-            {elementId.length === 0 ? null : (
-              <div
-                data-equation-toolbar
-                className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-              >
-                {readOnly ? null : (
-                  <EditorTextButton
-                    label="Edit"
-                    icon={<Pencil aria-hidden="true" />}
-                    onMouseDown={keepMediaSelection}
-                    onClick={openEditor}
-                  />
-                )}
-                <EditorTextButton
-                  label="Copy source"
-                  icon={<Copy aria-hidden="true" />}
-                  onMouseDown={keepMediaSelection}
-                  onClick={() => {
-                    void copySource();
-                  }}
-                />
-                {readOnly ? null : (
-                  <EditorTextButton
-                    variant="destructive"
-                    label="Remove"
-                    icon={<Trash2 aria-hidden="true" />}
-                    onMouseDown={keepMediaSelection}
-                    onClick={remove}
-                  />
-                )}
-              </div>
-            )}
           </div>
         </PopoverAnchor>
         <PopoverContent
@@ -15613,7 +15748,21 @@ export function EquationElement(props: PlateElementProps) {
               <EquationError expression={draft} message={preview.message} />
             )}
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <EditorTextButton
+              variant="outline"
+              label="Copy source"
+              icon={<Copy aria-hidden="true" />}
+              onClick={() => {
+                void copySource(draft);
+              }}
+            />
+            <EditorTextButton
+              variant="destructive"
+              label="Remove"
+              icon={<Trash2 aria-hidden="true" />}
+              onClick={remove}
+            />
             <EditorTextButton
               variant="outline"
               label="Cancel"
@@ -15629,6 +15778,17 @@ export function EquationElement(props: PlateElementProps) {
           </div>
         </PopoverContent>
       </Popover>
+      {readOnly && expression.length > 0 ? (
+        <div className="mt-1 flex justify-end" contentEditable={false}>
+          <EditorIconButton
+            label="Copy source"
+            icon={<Copy aria-hidden="true" />}
+            onClick={() => {
+              void copySource(expression);
+            }}
+          />
+        </div>
+      ) : null}
       {props.children}
     </PlateElement>
   );
@@ -16179,6 +16339,7 @@ import {
   PlateElement,
   useEditorRef,
   useEditorSelector,
+  useFocused,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -16205,6 +16366,7 @@ import {
   type SyncedTargetStatus,
 } from "../../lib/features/editor-synced-block";
 import { isStoredSyncedTargetId } from "../../lib/document/editor-document-schema";
+import { BLOCK_SELECTED_CLASS } from "./hr-element";
 import { MEDIA_TOOLBAR_CLASS, EditorTextButton, keepMediaSelection } from "../ui/block-toolbar";
 
 // PlateStatic (static-CTmHK15f.js:599) assigns `editor.children = value`, so it
@@ -16378,6 +16540,7 @@ export function SyncedRefElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
+  const focused = useFocused();
   const storedTargetId = targetId(props.element);
   const view = useEditorSelector((): PreviewView => {
     const refPath = editor.api.findPath(props.element);
@@ -16421,7 +16584,10 @@ export function SyncedRefElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className="group border-border relative my-2 max-w-full min-w-0 border-s ps-3"
+      className={cn(
+        "group border-border relative my-2 max-w-full min-w-0 rounded-md border-s ps-3",
+        selected && focused && !readOnly && BLOCK_SELECTED_CLASS,
+      )}
     >
       <div
         contentEditable={false}
@@ -18555,7 +18721,13 @@ export const insertMention: EditorCommand = {
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useEditorRef, usePluginOption, useReadOnly, type PlateElementProps } from "platejs/react";
+import {
+  useEditorRef,
+  usePluginOption,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
 import { Input } from "@/components/input";
@@ -18563,6 +18735,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { cn } from "@/lib/utils";
 
 import { anchorContext, elementRect, virtualAnchor } from "../ui/anchor-rect";
+import { retainScroll } from "../ui/block-toolbar";
 
 import {
   MENTION_EMPTY_LABEL,
@@ -18640,6 +18813,7 @@ function MentionChip({
   label: string;
   resolve: MentionProvider["resolve"];
 }) {
+  const selected = useSelected();
   const [state, setState] = useState<MentionState>(resolve === undefined ? "known" : "pending");
 
   useEffect(() => {
@@ -18680,8 +18854,9 @@ function MentionChip({
       contentEditable={false}
       className={cn(
         slateClass,
-        "inline-flex items-baseline rounded-md px-1 align-baseline",
-        unknown ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground",
+        "inline align-baseline font-medium",
+        unknown ? "text-muted-foreground" : "text-foreground",
+        selected && "bg-muted rounded-sm",
       )}
       data-mention-entity-type={entityType}
       data-mention-entity-id={entityId}
@@ -18714,7 +18889,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       return;
     }
 
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     setMentionQuery(editor, editor.getOption(mentionUiPlugin, "query"));
   }, [editor, readOnly]);
 
@@ -18771,6 +18946,12 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
           }}
           onKeyDown={(event) => {
             event.stopPropagation();
+            if (event.key === "Escape" || event.key === "Enter" || event.key === "Tab") {
+              retainScroll(() => {
+                onMentionInputKeyDown(editor, event);
+              });
+              return;
+            }
             onMentionInputKeyDown(editor, event);
           }}
         />
