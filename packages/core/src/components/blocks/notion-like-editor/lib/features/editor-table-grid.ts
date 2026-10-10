@@ -736,6 +736,61 @@ export function columnSliceIsClean(node: Record<string, unknown>, column: number
   );
 }
 
+// One-shot "fit to width". Proportions come from the current widths.
+// A non-positive or non-finite width stands in for a column that has no stored size.
+// When the minimums cannot fit, every column becomes the minimum and the caller scrolls.
+export function fitColumnWidths(
+  widths: readonly number[],
+  available: number,
+  min = TABLE_MIN_COLUMN_WIDTH,
+  max = TABLE_MAX_COLUMN_WIDTH,
+): number[] {
+  const count = widths.length;
+  if (count === 0 || !Number.isFinite(available)) {
+    return [];
+  }
+
+  const target = Math.round(available);
+  if (count * min >= target) {
+    return Array.from({ length: count }, () => min);
+  }
+  if (count * max <= target) {
+    return Array.from({ length: count }, () => max);
+  }
+
+  const basis = widths.map((width) => (Number.isFinite(width) && width > 0 ? width : min));
+  const total = basis.reduce((sum, width) => sum + width, 0);
+  const ideal = basis.map((width) => (width / total) * target);
+  const next = ideal.map((width) => Math.min(max, Math.max(min, Math.round(width))));
+  let drift = target - next.reduce((sum, width) => sum + width, 0);
+
+  while (drift !== 0) {
+    const grow = drift > 0;
+    let best = -1;
+    let bestGap = grow ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+    for (let index = 0; index < count; index += 1) {
+      const width = next[index] ?? 0;
+      if (grow ? width >= max : width <= min) {
+        continue;
+      }
+
+      const gap = (ideal[index] ?? 0) - width;
+      if (grow ? gap > bestGap : gap < bestGap) {
+        bestGap = gap;
+        best = index;
+      }
+    }
+    if (best < 0) {
+      break;
+    }
+
+    next[best] = (next[best] ?? 0) + (grow ? 1 : -1);
+    drift += grow ? -1 : 1;
+  }
+
+  return next;
+}
+
 export function boundaryIsClean(
   node: Record<string, unknown>,
   axis: "row" | "column",

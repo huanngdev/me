@@ -7,6 +7,7 @@ import {
   CopyPlus,
   Merge,
   Split,
+  StretchHorizontal,
   Table2,
   Trash2,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import {
   deleteTableRow,
   duplicateTableColumn,
   duplicateTableRow,
+  fitTableToWidth,
   insertTableColumn,
   insertTableRow,
   mergeTableCells,
@@ -82,7 +84,13 @@ function CommandMenuItem<Payload>({
   );
 }
 
-export function TableControls({ element }: { element: TElement }) {
+export function TableControls({
+  element,
+  measureFit,
+}: {
+  element: TElement;
+  measureFit: () => { tablePath: number[]; available: number; widths: number[] } | undefined;
+}) {
   const editor = useEditorRef();
   useEditorSelector((instance) => instance.selection, []);
   const savedSelection = useRef(editor.selection);
@@ -207,6 +215,20 @@ export function TableControls({ element }: { element: TElement }) {
             icon={<ArrowRight aria-hidden="true" />}
             onApply={apply}
           />
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              const measured = measureFit();
+              if (!measured) {
+                return;
+              }
+
+              apply(fitTableToWidth, measured);
+            }}
+          >
+            <StretchHorizontal aria-hidden="true" />
+            {fitTableToWidth.label}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"

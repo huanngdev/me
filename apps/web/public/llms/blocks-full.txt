@@ -10485,6 +10485,61 @@ export function columnSliceIsClean(node: Record<string, unknown>, column: number
   );
 }
 
+// One-shot "fit to width". Proportions come from the current widths.
+// A non-positive or non-finite width stands in for a column that has no stored size.
+// When the minimums cannot fit, every column becomes the minimum and the caller scrolls.
+export function fitColumnWidths(
+  widths: readonly number[],
+  available: number,
+  min = TABLE_MIN_COLUMN_WIDTH,
+  max = TABLE_MAX_COLUMN_WIDTH,
+): number[] {
+  const count = widths.length;
+  if (count === 0 || !Number.isFinite(available)) {
+    return [];
+  }
+
+  const target = Math.round(available);
+  if (count * min >= target) {
+    return Array.from({ length: count }, () => min);
+  }
+  if (count * max <= target) {
+    return Array.from({ length: count }, () => max);
+  }
+
+  const basis = widths.map((width) => (Number.isFinite(width) && width > 0 ? width : min));
+  const total = basis.reduce((sum, width) => sum + width, 0);
+  const ideal = basis.map((width) => (width / total) * target);
+  const next = ideal.map((width) => Math.min(max, Math.max(min, Math.round(width))));
+  let drift = target - next.reduce((sum, width) => sum + width, 0);
+
+  while (drift !== 0) {
+    const grow = drift > 0;
+    let best = -1;
+    let bestGap = grow ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+    for (let index = 0; index < count; index += 1) {
+      const width = next[index] ?? 0;
+      if (grow ? width >= max : width <= min) {
+        continue;
+      }
+
+      const gap = (ideal[index] ?? 0) - width;
+      if (grow ? gap > bestGap : gap < bestGap) {
+        bestGap = gap;
+        best = index;
+      }
+    }
+    if (best < 0) {
+      break;
+    }
+
+    next[best] = (next[best] ?? 0) + (grow ? 1 : -1);
+    drift += grow ? -1 : 1;
+  }
+
+  return next;
+}
+
 export function boundaryIsClean(
   node: Record<string, unknown>,
   axis: "row" | "column",
@@ -10539,6 +10594,7 @@ import {
 } from "../features/editor-table";
 import {
   boundaryIsClean,
+  fitColumnWidths,
   rowSliceIsClean,
   tableCoverage,
   TABLE_MAX_COLUMN_WIDTH,
@@ -11327,6 +11383,38 @@ export const setTableColumnWidth: EditorCommand<{
     editor.tf.setNodes({ colSizes: next }, { at: payload.tablePath });
   },
 };
+
+// The menu measures the editor column and the live column widths, then this
+// command writes one colSizes array. It is not a stored fit mode.
+export const fitTableToWidth: EditorCommand<{
+  tablePath: number[];
+  available: number;
+  widths: readonly number[];
+}> = {
+  id: "block.table.fit-width",
+  label: "Fit to width",
+  group: "format",
+  disabledReason: (editor) => (editorIsReadOnly(editor) ? "Table is read-only" : undefined),
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const node = editor.api.node(payload.tablePath)?.[0];
+    if (!ElementApi.isElement(node) || node.type !== KEYS.table) {
+      return;
+    }
+
+    const coverage = tableCoverage(nodeRecord(node), tableMaxColumns());
+    if (payload.widths.length !== coverage.columnCount) {
+      return;
+    }
+
+    const next = fitColumnWidths(payload.widths, payload.available);
+    if (next.length !== coverage.columnCount) {
+      return;
+    }
+
+    editor.tf.setNodes({ colSizes: next }, { at: payload.tablePath });
+  },
+};
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
@@ -11365,16 +11453,20 @@ import { TableControls } from "../ui/table-controls";
 
 // The slate table node stays a PlateElement div. Table renders the real table
 // plus its scroll container, so the node attributes cannot sit on the table.
-// Cell borders are the editor grid. TableHead has no background of its own.
-const CELL_BORDER_CLASS = "min-w-12 border border-border";
+// Each grid line is drawn once: the first row and column add the outer top and
+// left, and every cell draws its right and bottom edge. TableHead has no background.
+const CELL_BORDER_CLASS = "min-w-12 border-r border-b border-border";
 
-const CELL_SELECTED_CLASS = "shadow-[inset_0_0_0_2px_var(--ring)]";
+type CellGridEdge = { row: number; column: number };
+
+type SelectionBox = { left: number; top: number; width: number; height: number };
 
 type TableResizeContextValue = {
   readOnly: boolean;
   startWidth: (column: number) => number;
   commitWidth: (column: number, width: number | null) => void;
   setPreview: Dispatch<SetStateAction<ReadonlyMap<number, number>>>;
+  gridEdges: ReadonlyMap<string, CellGridEdge>;
 };
 
 const TableResizeContext = createContext<TableResizeContextValue | null>(null);
@@ -11460,6 +11552,207 @@ function columnRightEdges(table: HTMLTableElement): number[] {
   return edges;
 }
 
+function columnPixelWidths(table: HTMLTableElement): number[] {
+  const edges = columnRightEdges(table);
+  return edges.map((edge, index) => {
+    const previous = index === 0 ? 0 : (edges[index - 1] ?? 0);
+    return edge > previous ? edge - previous : 0;
+  });
+}
+
+function cellGridEdges(element: TElement): ReadonlyMap<string, CellGridEdge> {
+  const map = new Map<string, CellGridEdge>();
+  for (const covered of tableCoverage(nodeRecord(element)).cells) {
+    const rowNode = element.children[covered.rowIndex];
+    if (!ElementApi.isElement(rowNode)) {
+      continue;
+    }
+
+    const cellNode = rowNode.children[covered.cellIndex];
+    if (!ElementApi.isElement(cellNode) || typeof cellNode.id !== "string") {
+      continue;
+    }
+
+    map.set(cellNode.id, { row: covered.row, column: covered.column });
+  }
+
+  return map;
+}
+
+function sameBox(current: SelectionBox | null, next: SelectionBox | null): boolean {
+  if (current === next) {
+    return true;
+  }
+  if (!current || !next) {
+    return false;
+  }
+
+  return (
+    current.left === next.left &&
+    current.top === next.top &&
+    current.width === next.width &&
+    current.height === next.height
+  );
+}
+
+function borderWidth(element: Element, side: "top" | "right" | "bottom" | "left"): number {
+  const parsed = Number.parseFloat(
+    getComputedStyle(element).getPropertyValue(`border-${side}-width`),
+  );
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+// A cell draws its own right and bottom line. The left and top lines belong to
+// the neighbour, unless this cell is in the first column or first row.
+function outsideGridLine(cell: HTMLElement, edge: "left" | "top"): number {
+  if (borderWidth(cell, edge) > 0) {
+    return 0;
+  }
+
+  const rect = cell.getBoundingClientRect();
+  const table = cell.closest("table");
+  if (!table) {
+    return 0;
+  }
+
+  const neighborSide = edge === "left" ? "right" : "bottom";
+  for (const other of table.querySelectorAll<HTMLElement>("td, th")) {
+    if (other === cell) {
+      continue;
+    }
+
+    const otherRect = other.getBoundingClientRect();
+    const touches =
+      edge === "left"
+        ? Math.abs(otherRect.right - rect.left) <= 0.6 &&
+          otherRect.bottom > rect.top + 0.5 &&
+          otherRect.top < rect.bottom - 0.5
+        : Math.abs(otherRect.bottom - rect.top) <= 0.6 &&
+          otherRect.right > rect.left + 0.5 &&
+          otherRect.left < rect.right - 0.5;
+    if (touches) {
+      return borderWidth(other, neighborSide);
+    }
+  }
+
+  return 0;
+}
+
+function selectionBox(plate: HTMLElement): SelectionBox | null {
+  const cells = plate.querySelectorAll<HTMLElement>("[data-cell-selected='true']");
+  if (cells.length === 0) {
+    return null;
+  }
+
+  const plateRect = plate.getBoundingClientRect();
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  for (const cell of cells) {
+    const rect = cell.getBoundingClientRect();
+    left = Math.min(left, rect.left);
+    top = Math.min(top, rect.top);
+    right = Math.max(right, rect.right);
+    bottom = Math.max(bottom, rect.bottom);
+  }
+
+  let extraLeft = 0;
+  let extraTop = 0;
+  for (const cell of cells) {
+    const rect = cell.getBoundingClientRect();
+    if (Math.abs(rect.left - left) <= 0.6) {
+      extraLeft = Math.max(extraLeft, outsideGridLine(cell, "left"));
+    }
+    if (Math.abs(rect.top - top) <= 0.6) {
+      extraTop = Math.max(extraTop, outsideGridLine(cell, "top"));
+    }
+  }
+  left -= extraLeft;
+  top -= extraTop;
+
+  const scroller = plate.querySelector("[data-slot='table-container']");
+  if (scroller instanceof HTMLElement) {
+    const view = scroller.getBoundingClientRect();
+    left = Math.max(left, view.left);
+    top = Math.max(top, view.top);
+    right = Math.min(right, view.left + scroller.clientWidth);
+    bottom = Math.min(bottom, view.top + scroller.clientHeight);
+  }
+
+  const width = right - left;
+  const height = bottom - top;
+  if (!(width > 0) || !(height > 0)) {
+    return null;
+  }
+
+  return { left: left - plateRect.left, top: top - plateRect.top, width, height };
+}
+
+function TableSelectionFrame({ watch }: { watch: unknown }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<SelectionBox | null>(null);
+  const selectionKey = useEditorSelector((instance) => {
+    const range = instance.selection;
+    if (!range) {
+      return "";
+    }
+
+    return `${range.anchor.path.join(".")}:${range.anchor.offset}-${range.focus.path.join(".")}:${range.focus.offset}`;
+  }, []);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const plate = frame?.parentElement;
+    if (!frame || !plate) {
+      return;
+    }
+
+    const place = (): void => {
+      const next = selectionBox(plate);
+      setBox((current) => (sameBox(current, next) ? current : next));
+    };
+    place();
+
+    const scroller = plate.querySelector("[data-slot='table-container']");
+    const table = plate.querySelector("table");
+    const Observer = globalThis.ResizeObserver;
+    const observer = typeof Observer === "function" ? new Observer(place) : undefined;
+    if (observer) {
+      if (table) {
+        observer.observe(table);
+      }
+      if (scroller instanceof HTMLElement) {
+        observer.observe(scroller);
+      }
+    }
+    scroller?.addEventListener("scroll", place, { passive: true });
+    window.addEventListener("resize", place);
+
+    return () => {
+      observer?.disconnect();
+      scroller?.removeEventListener("scroll", place);
+      window.removeEventListener("resize", place);
+    };
+  }, [selectionKey, watch]);
+
+  return (
+    <div
+      ref={frameRef}
+      contentEditable={false}
+      data-table-selection=""
+      aria-hidden="true"
+      hidden={box === null}
+      className="border-primary pointer-events-none absolute box-border border-2 border-solid"
+      style={
+        box === null
+          ? undefined
+          : { left: box.left, top: box.top, width: box.width, height: box.height }
+      }
+    />
+  );
+}
+
 export function TableElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -11486,6 +11779,69 @@ export function TableElement(props: PlateElementProps) {
   const tableWidth = explicit
     ? displayed.reduce<number>((sum, width) => sum + (width ?? 0), 0)
     : undefined;
+  const gridEdges = cellGridEdges(element);
+  const tableId = typeof element.id === "string" ? element.id : "";
+  const multi = useEditorSelector(
+    (instance) => {
+      const selection = instance.selection;
+      if (!selection || instance.api.isCollapsed() || tableId.length === 0) {
+        return false;
+      }
+
+      let count = 0;
+      for (const [node, cellPath] of instance.api.nodes({
+        at: selection,
+        match: (candidate) =>
+          ElementApi.isElement(candidate) &&
+          (candidate.type === KEYS.td || candidate.type === KEYS.th),
+      })) {
+        if (!ElementApi.isElement(node) || cellPath.length < 2) {
+          continue;
+        }
+
+        const tableNode = instance.api.node(cellPath.slice(0, -2))?.[0];
+        if (!ElementApi.isElement(tableNode) || tableNode.id !== tableId) {
+          continue;
+        }
+
+        count += 1;
+        if (count > 1) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [tableId],
+  );
+
+  function measureFit(): { tablePath: number[]; available: number; widths: number[] } | undefined {
+    const table = tableRef.current;
+    if (!table || path === undefined) {
+      return undefined;
+    }
+
+    const container = table.parentElement;
+    if (!(container instanceof HTMLElement)) {
+      return undefined;
+    }
+
+    const live = columnPixelWidths(table);
+    const measured = widths.map((width, index) => {
+      if (typeof width === "number" && Number.isFinite(width) && width > 0) {
+        return width;
+      }
+
+      const pixel = live[index] ?? 0;
+      return pixel > 0 ? Math.round(pixel) : TABLE_MIN_COLUMN_WIDTH;
+    });
+
+    return {
+      tablePath: path,
+      available: container.clientWidth,
+      widths: measured,
+    };
+  }
 
   function commitWidth(column: number, width: number | null): void {
     if (path === undefined) {
@@ -11512,16 +11868,26 @@ export function TableElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement {...props} className="group relative my-2 max-w-full">
-      {readOnly || path === undefined ? null : <TableControls element={element} />}
-      <TableResizeContext.Provider value={{ readOnly, startWidth, commitWidth, setPreview }}>
+    <PlateElement
+      {...props}
+      className={cn(
+        "group [&_[data-slot=table-container]]:scroll-fade-x relative my-2 max-w-full",
+        multi && "[&_*::selection]:bg-transparent [&_*::selection]:text-current",
+      )}
+    >
+      {readOnly || path === undefined ? null : (
+        <TableControls element={element} measureFit={measureFit} />
+      )}
+      <TableResizeContext.Provider
+        value={{ readOnly, startWidth, commitWidth, setPreview, gridEdges }}
+      >
         <Table
           ref={tableRef}
-          className="mb-px border-separate border-spacing-0"
+          className="border-separate border-spacing-0"
           style={
             tableWidth === undefined
               ? undefined
-              : { width: tableWidth + 2, minWidth: tableWidth + 2, borderCollapse: "separate" }
+              : { width: tableWidth, minWidth: tableWidth, borderCollapse: "separate" }
           }
         >
           <colgroup>
@@ -11532,6 +11898,7 @@ export function TableElement(props: PlateElementProps) {
           <TableBody>{props.children}</TableBody>
         </Table>
       </TableResizeContext.Provider>
+      {readOnly ? null : <TableSelectionFrame watch={preview} />}
     </PlateElement>
   );
 }
@@ -11694,11 +12061,13 @@ export function TableCellElement(props: PlateElementProps) {
   const colSpan = spanAttribute(props.element.colSpan);
   const rowSpan = spanAttribute(props.element.rowSpan);
   const column = readOnly ? undefined : columnInFirstRow(editor, props.element);
+  const edge = useContext(TableResizeContext)?.gridEdges.get(cellId);
   const { className, ...slateProps } = props.attributes;
   const cellClass = cn(
     className,
     CELL_BORDER_CLASS,
-    active && CELL_SELECTED_CLASS,
+    edge?.column === 0 && "border-l",
+    edge?.row === 0 && "border-t",
     column !== undefined && "relative",
   );
   const handle = column === undefined ? null : <ColumnResizeHandle column={column} />;
@@ -11744,6 +12113,7 @@ import {
   CopyPlus,
   Merge,
   Split,
+  StretchHorizontal,
   Table2,
   Trash2,
 } from "lucide-react";
@@ -11765,6 +12135,7 @@ import {
   deleteTableRow,
   duplicateTableColumn,
   duplicateTableRow,
+  fitTableToWidth,
   insertTableColumn,
   insertTableRow,
   mergeTableCells,
@@ -11819,7 +12190,13 @@ function CommandMenuItem<Payload>({
   );
 }
 
-export function TableControls({ element }: { element: TElement }) {
+export function TableControls({
+  element,
+  measureFit,
+}: {
+  element: TElement;
+  measureFit: () => { tablePath: number[]; available: number; widths: number[] } | undefined;
+}) {
   const editor = useEditorRef();
   useEditorSelector((instance) => instance.selection, []);
   const savedSelection = useRef(editor.selection);
@@ -11944,6 +12321,20 @@ export function TableControls({ element }: { element: TElement }) {
             icon={<ArrowRight aria-hidden="true" />}
             onApply={apply}
           />
+          <DropdownMenuItem
+            onMouseDown={keepEditorSelection}
+            onSelect={() => {
+              const measured = measureFit();
+              if (!measured) {
+                return;
+              }
+
+              apply(fitTableToWidth, measured);
+            }}
+          >
+            <StretchHorizontal aria-hidden="true" />
+            {fitTableToWidth.label}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"

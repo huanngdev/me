@@ -33,6 +33,7 @@ import {
 } from "../features/editor-table";
 import {
   boundaryIsClean,
+  fitColumnWidths,
   rowSliceIsClean,
   tableCoverage,
   TABLE_MAX_COLUMN_WIDTH,
@@ -815,6 +816,38 @@ export const setTableColumnWidth: EditorCommand<{
           );
     if (next.every((width) => width === null)) {
       editor.tf.unsetNodes("colSizes", { at: payload.tablePath });
+      return;
+    }
+
+    editor.tf.setNodes({ colSizes: next }, { at: payload.tablePath });
+  },
+};
+
+// The menu measures the editor column and the live column widths, then this
+// command writes one colSizes array. It is not a stored fit mode.
+export const fitTableToWidth: EditorCommand<{
+  tablePath: number[];
+  available: number;
+  widths: readonly number[];
+}> = {
+  id: "block.table.fit-width",
+  label: "Fit to width",
+  group: "format",
+  disabledReason: (editor) => (editorIsReadOnly(editor) ? "Table is read-only" : undefined),
+  isEnabled: (editor) => !editorIsReadOnly(editor),
+  run: (editor, payload) => {
+    const node = editor.api.node(payload.tablePath)?.[0];
+    if (!ElementApi.isElement(node) || node.type !== KEYS.table) {
+      return;
+    }
+
+    const coverage = tableCoverage(nodeRecord(node), tableMaxColumns());
+    if (payload.widths.length !== coverage.columnCount) {
+      return;
+    }
+
+    const next = fitColumnWidths(payload.widths, payload.available);
+    if (next.length !== coverage.columnCount) {
       return;
     }
 

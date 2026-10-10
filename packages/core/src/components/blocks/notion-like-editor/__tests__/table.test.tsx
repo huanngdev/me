@@ -10,6 +10,7 @@ import {
   deleteTable,
   deleteTableColumn,
   deleteTableRow,
+  fitTableToWidth,
   insertTable,
   insertTableColumn,
   insertTableRow,
@@ -27,6 +28,7 @@ import { pasteRepairsOf } from "../lib/paste/editor-paste";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { EditorSurface } from "../components/editor/editor-surface";
 import { createTableNode, pastedTableTruncationMessage } from "../lib/features/editor-table";
+import { fitColumnWidths } from "../lib/features/editor-table-grid";
 import type { EditorValue } from "../lib/document/editor-value";
 import {
   caret,
@@ -1110,10 +1112,15 @@ describe("table render", () => {
     expect(html).toContain("<th");
     expect(html).toContain("<td");
     expect(html).toContain("overflow-x-auto");
+    expect(html).toContain("scroll-fade-x");
     expect(html).toContain("min-w-12");
+    expect(html).toContain("border-r");
+    expect(html).toContain("border-b");
     expect(html).toContain("border-border");
     expect(html).not.toContain("var(--editor-table-border)");
     expect(html).not.toContain("var(--editor-table-selected)");
+    expect(html).not.toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
+    expect(html).toContain("data-table-selection");
     expect(html).toContain("border-separate");
     expect(html).toContain("caption-bottom");
     expect(html).toContain('data-slot="table-body"');
@@ -1125,6 +1132,7 @@ describe("table render", () => {
     expect(readOnly).toContain("<th");
     expect(readOnly).not.toContain("Table options");
     expect(readOnly).not.toContain('role="separator"');
+    expect(readOnly).not.toContain("data-table-selection");
   });
 
   test("a multi-cell selection marks the selected cells", async () => {
@@ -1149,11 +1157,152 @@ describe("table render", () => {
         expect(cell.className).not.toContain("editor-table-cell-selected");
         expect(cell.className).not.toContain("bg-[var(--editor-table-selected)]");
         expect(cell.className).not.toMatch(/(?:^|\s)bg-/);
-        expect(cell.className).toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
+        expect(cell.className).not.toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
+        expect(classTokens(cell.className)).not.toContain("border");
       }
+      expect(mounted.host.querySelectorAll("[data-table-selection]")).toHaveLength(1);
+      expect(mounted.host.querySelector("[data-table-selection]")?.className ?? "").toContain(
+        "border-primary",
+      );
+      const multi = selected[0]?.closest("[data-slate-node='element'].group");
+      expect(multi?.className ?? "").toContain("[&_*::selection]:bg-transparent");
+      expect(multi?.className ?? "").toContain("[&_*::selection]:text-current");
     } finally {
       await mounted.cleanup();
     }
+  });
+
+  test("a single active cell uses the same outline, and read-only draws none", async () => {
+    const mounted = await mountTable([gridTable(2, 2)]);
+
+    try {
+      await act(async () => {
+        mounted.editor.tf.select({
+          anchor: { path: [0, 0, 0, 0, 0], offset: 0 },
+          focus: { path: [0, 0, 0, 0, 0], offset: 0 },
+        });
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(mounted.host.querySelectorAll("[data-cell-selected='true']")).toHaveLength(1);
+      expect(mounted.host.querySelectorAll("[data-table-selection]")).toHaveLength(1);
+      expect(mounted.host.innerHTML).not.toContain("shadow-[inset_0_0_0_2px_var(--ring)]");
+      const single = mounted.host.querySelector("[data-cell-selected='true']")?.closest(".group");
+      expect(single?.className ?? "").not.toContain("::selection]:bg-transparent");
+    } finally {
+      await mounted.cleanup();
+    }
+
+    const readOnly = await mountTable([gridTable(2, 2, "read-only-table")], true);
+    try {
+      await act(async () => {
+        readOnly.editor.tf.select({
+          anchor: { path: [0, 0, 0, 0, 0], offset: 0 },
+          focus: { path: [0, 0, 0, 0, 0], offset: 0 },
+        });
+      });
+      expect(readOnly.host.querySelector("[data-table-selection]")).toBeNull();
+    } finally {
+      await readOnly.cleanup();
+    }
+  });
+
+  test("grid lines are one side each, including a cell covered by a rowspan", async () => {
+    const mounted = await mountTable([
+      tableNode("spans", [
+        row("r0", [{ ...cell("th", "span", "Plan"), colSpan: 2 }, cell("th", "status", "Status")]),
+        row("r1", [
+          { ...cell("td", "editor", "Editor"), rowSpan: 2 },
+          cell("td", "merge", "Merge"),
+          cell("td", "now", "Now"),
+        ]),
+        row("r2", [cell("td", "split", "Split"), cell("td", "next", "Next")]),
+      ]),
+    ]);
+
+    try {
+      const cells = Array.from(mounted.host.querySelectorAll("th, td"));
+      expect(cells).toHaveLength(7);
+      for (const item of cells) {
+        const tokens = classTokens(item.className);
+        expect(tokens).not.toContain("border");
+        expect(tokens).toContain("border-r");
+        expect(tokens).toContain("border-b");
+      }
+
+      const [plan, status, editorCell, , , split] = cells;
+      expect(classTokens(plan?.className).has("border-l")).toBe(true);
+      expect(classTokens(plan?.className).has("border-t")).toBe(true);
+      expect(classTokens(status?.className).has("border-l")).toBe(false);
+      expect(classTokens(editorCell?.className).has("border-l")).toBe(true);
+      expect(classTokens(editorCell?.className).has("border-t")).toBe(false);
+      expect(classTokens(split?.className).has("border-l")).toBe(false);
+      expect(classTokens(split?.className).has("border-t")).toBe(false);
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+});
+
+function classTokens(className: string | null | undefined): Set<string> {
+  return new Set((className ?? "").split(/\s+/).filter((token) => token.length > 0));
+}
+
+describe("fit table to width", () => {
+  test("scales in proportion, clamps, and falls back when a width is missing", () => {
+    expect(fitColumnWidths([100, 200], 300)).toEqual([100, 200]);
+    expect(fitColumnWidths([100, 100], 251)).toEqual([125, 126]);
+    expect(fitColumnWidths([10, 1000], 200)).toEqual([48, 152]);
+    expect(fitColumnWidths([100, 100], 5000)).toEqual([1200, 1200]);
+    expect(fitColumnWidths([100, 300, 80], 100)).toEqual([48, 48, 48]);
+    expect(fitColumnWidths([0, 100], 200)).toEqual([65, 135]);
+    expect(fitColumnWidths([Number.NaN, 80], 160)).toEqual([60, 100]);
+    expect(fitColumnWidths([], 400)).toEqual([]);
+    expect(fitColumnWidths([100, 100], Number.NaN)).toEqual([]);
+  });
+
+  test("fitTableToWidth writes colSizes in one undo, including the all-minimum case", () => {
+    const editor = createEditor([
+      { ...gridTable(1, 2, "fit"), colSizes: [80, 160] },
+      paragraph("after", "after"),
+    ]);
+    const undos = editor.history.undos.length;
+
+    expect(
+      runEditorCommand(editor, fitTableToWidth, {
+        tablePath: [0],
+        available: 300,
+        widths: [80, 160],
+      }),
+    ).toBe(true);
+    expect(editor.history.undos.length - undos).toBe(1);
+    expect(field(editor.children[0], "colSizes")).toEqual([100, 200]);
+    expect(fitTableToWidth.label).toBe("Fit to width");
+    expect(fitTableToWidth.disabledReason?.(editor)).toBeUndefined();
+
+    editor.tf.undo();
+    expect(field(editor.children[0], "colSizes")).toEqual([80, 160]);
+
+    const mismatched = editor.history.undos.length;
+    runEditorCommand(editor, fitTableToWidth, {
+      tablePath: [0],
+      available: 300,
+      widths: [80],
+    });
+    expect(field(editor.children[0], "colSizes")).toEqual([80, 160]);
+    expect(editor.history.undos.length).toBe(mismatched);
+
+    runEditorCommand(editor, fitTableToWidth, {
+      tablePath: [0],
+      available: 40,
+      widths: [80, 160],
+    });
+    expect(field(editor.children[0], "colSizes")).toEqual([48, 48]);
+    expect(editor.history.undos.length - mismatched).toBe(1);
+    editor.tf.undo();
+    expect(field(editor.children[0], "colSizes")).toEqual([80, 160]);
   });
 });
 
