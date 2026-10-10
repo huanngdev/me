@@ -318,6 +318,9 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       if (event.pointerType === "touch" || isBlockDragArmed()) {
         return;
       }
+      // Keep the last pointer position even while a menu owns the handle, so
+      // that closing the menu can re-resolve from where the pointer is now.
+      pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
       // The open menu keeps its target. A pointer move must not retarget or dismiss it.
       if (menuLockRef.current) {
         return;
@@ -327,7 +330,6 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       // the left all agree, so the handle cannot flicker between a container
       // and its child. Only the handle's own controls keep the current target.
       const inside = insideEditorArea(editor, event.clientX, event.clientY);
-      pointerRef.current = { x: event.clientX, y: event.clientY, present: true };
       const known = inside
         ? pointerBlockId(bandsRef.current, event.clientY, visibleIdRef.current)
         : null;

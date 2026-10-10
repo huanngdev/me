@@ -1,4 +1,11 @@
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -111,10 +118,23 @@ function BlockHandleContent({
 }) {
   const editor = useEditorRef();
   const handle = useBlockHandle({ onInsertedBelow });
-  const { paint, setMeasuredSize, shown, suppressed, onHandleFocus, onHandleBlur } = handle;
+  const {
+    paint,
+    setMeasuredSize,
+    shown,
+    suppressed,
+    onHandleFocus,
+    onHandleBlur,
+    holdMenu,
+    rehover,
+  } = handle;
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLButtonElement>(null);
   const savedSelection = useRef(editor.selection);
+  const [addOpen, setAddOpen] = useState(false);
+  // The block the Add menu was opened for. The insert must land below it even
+  // when the pointer sits over another row as the item is chosen.
+  const addTarget = useRef<BlockHandleHit | null>(null);
   const openMenu = useRef<(target: BlockHandleHit) => void>(() => undefined);
   const closeMenu = useRef<() => void>(() => undefined);
   const bindOpener = useCallback((open: (target: BlockHandleHit) => void) => {
@@ -139,9 +159,40 @@ function BlockHandleContent({
     setMeasuredSize(row.offsetWidth, row.offsetHeight);
   }, [paint, setMeasuredSize]);
 
+  // The Add menu owns the handle while it is open, through the same lock the
+  // block menu uses. The target is frozen at open so the pointer cannot move
+  // the handle (and its anchored menu) as it sweeps the rows the menu covers.
+  const openAddMenu = useCallback(() => {
+    const target = paint?.target ?? null;
+    addTarget.current = target;
+    savedSelection.current = editor.selection;
+    if (target) {
+      holdMenu(target.id);
+    }
+    setAddOpen(true);
+  }, [editor, holdMenu, paint]);
+
+  const closeAddMenu = useCallback(() => {
+    setAddOpen(false);
+    holdMenu(null);
+    // Resolve the handle from where the pointer is now, by the normal hover
+    // rule. A block below may have moved, so a cached paint would be stale.
+    rehover();
+  }, [holdMenu, rehover]);
+
+  // Closing the menu releases the lock. If its block leaves the frame the
+  // handle unmounts first; the lock has to drop with it so the two hide
+  // together instead of the handle staying locked with no anchor to follow.
+  useLayoutEffect(() => {
+    if (addOpen && !paint) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- detach teardown, not a render loop
+      closeAddMenu();
+    }
+  }, [addOpen, closeAddMenu, paint]);
+
   const chooseAdd = useCallback(
     (item: BlockPickerItem) => {
-      const path = paint?.target.path;
+      const path = addTarget.current?.path;
       if (!path) {
         return;
       }
@@ -150,7 +201,7 @@ function BlockHandleContent({
         onInsertedBelow?.(insertedId);
       }
     },
-    [editor, onInsertedBelow, paint],
+    [editor, onInsertedBelow],
   );
 
   if (suppressed) {
@@ -193,10 +244,13 @@ function BlockHandleContent({
         >
           <div ref={rowRef} className="flex items-center gap-0">
             <DropdownMenu
+              open={addOpen}
               modal={false}
               onOpenChange={(open) => {
                 if (open) {
-                  savedSelection.current = editor.selection;
+                  openAddMenu();
+                } else {
+                  closeAddMenu();
                 }
               }}
             >
