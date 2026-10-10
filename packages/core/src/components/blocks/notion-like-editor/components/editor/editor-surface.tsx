@@ -15,6 +15,7 @@ import { repairMentionInputs, type MentionProvider } from "../../lib/features/ed
 import { LinkToolbar } from "../elements/link-element";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
+import { BlockHandle } from "../ui/block-handle";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 
@@ -26,6 +27,7 @@ type EditorSurfaceProps = {
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  onInsertedBelow?: (blockId: string) => void;
 };
 
 export function EditorSurface({
@@ -36,6 +38,7 @@ export function EditorSurface({
   className,
   linkPreview = null,
   mentionProvider = null,
+  onInsertedBelow,
 }: EditorSurfaceProps) {
   return (
     <TooltipProvider>
@@ -69,6 +72,7 @@ export function EditorSurface({
                 </span>
               )}
             />
+            <BlockHandle onInsertedBelow={onInsertedBelow} />
           </LinkPreviewProvider>
         </MentionScope>
       </Plate>

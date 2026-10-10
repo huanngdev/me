@@ -1257,6 +1257,29 @@ export const insertDivider: EditorCommand = {
   },
 };
 
+export const insertParagraphBelow: EditorCommand<{ path: number[] }> = {
+  id: "block.insert.paragraph-below",
+  label: "Add below",
+  group: "insert",
+  run: (editor, payload) => {
+    const entry = editor.api.node(payload.path);
+    if (!entry || !ElementApi.isElement(entry[0])) {
+      return;
+    }
+
+    const at = PathApi.next(payload.path);
+    if (!at) {
+      return;
+    }
+
+    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at, select: true });
+    const start = editor.api.start(at);
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
   label: "Clear formatting",

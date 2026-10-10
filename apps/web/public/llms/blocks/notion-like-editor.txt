@@ -18,62 +18,65 @@
 8. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts
 9. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
 10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
-11. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
-12. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-13. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-14. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-15. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-16. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-17. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-18. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-19. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-22. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-23. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-24. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-25. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-26. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-27. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-28. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-29. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-30. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-31. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-32. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-33. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-34. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-35. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-36. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-37. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-38. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-39. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-40. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-41. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-42. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-43. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-44. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-45. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-46. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-48. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-49. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-51. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-52. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-53. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-54. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-55. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-56. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-57. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-58. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-59. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-60. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-61. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-62. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-63. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-64. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-65. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-66. apps/web/src/app/blocks/notion-like-editor/page.tsx
+11. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
+12. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+13. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+14. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+15. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+16. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+17. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+18. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+19. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+20. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+22. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+23. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+24. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+25. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+26. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+27. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+28. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+29. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+30. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+31. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+32. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+33. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+35. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+37. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+39. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+41. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+42. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+43. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+44. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+45. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+46. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+47. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+51. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+52. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+53. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+56. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+57. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+58. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+59. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+60. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+61. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+62. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+63. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+64. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+65. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+66. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+67. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+69. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -3314,6 +3317,120 @@ export function focusEditorWithoutScroll(editorRoot: Element | null): void {
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
+```tsx
+import { useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { GripVertical, Plus } from "lucide-react";
+
+import { Button } from "@/components/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import { cn } from "@/lib/utils";
+
+import { useBlockHandle } from "../../hooks/use-block-handle";
+
+const ADD_LABEL = "Click to add below";
+const GRIP_LABEL = "Drag to move";
+
+type BlockHandleProps = {
+  onInsertedBelow?: (blockId: string) => void;
+};
+
+function keepEditorSelection(event: { preventDefault: () => void }): void {
+  event.preventDefault();
+}
+
+export function BlockHandle({ onInsertedBelow }: BlockHandleProps) {
+  const handle = useBlockHandle({ onInsertedBelow });
+  const { paint, setMeasuredSize, shown, suppressed, addBelow, onHandleFocus, onHandleBlur } =
+    handle;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const gripRef = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) {
+      return;
+    }
+    setMeasuredSize(row.offsetWidth, row.offsetHeight);
+  }, [paint, setMeasuredSize]);
+
+  if (suppressed || !paint) {
+    return null;
+  }
+  // Stop at the block edge. A pixel inside the box covers a control that sits
+  // on that edge, such as the toggle chevron.
+  const gutterWidth = Math.max(0, paint.blockLeft - (paint.left + paint.width));
+  const gutterTop = paint.blockTop - paint.top;
+  const gutterHeight = Math.max(paint.height, paint.blockBottom - paint.blockTop);
+
+  const handleNode = (
+    <div
+      data-block-handle=""
+      data-block-handle-for={paint.target.id}
+      data-visible={shown ? "true" : "false"}
+      className={cn(
+        "fixed z-20 transition-opacity duration-150 ease-out motion-reduce:transition-none",
+        shown ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        "[@media(hover:none)]:hidden",
+      )}
+      style={{ top: paint.top, left: paint.left }}
+      onFocus={onHandleFocus}
+      onBlur={(event) => {
+        onHandleBlur(event.relatedTarget);
+      }}
+    >
+      <div ref={rowRef} className="flex items-center gap-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={ADD_LABEL}
+              data-block-handle-add=""
+              onMouseDown={keepEditorSelection}
+              onPointerDown={keepEditorSelection}
+              onClick={addBelow}
+            >
+              <Plus aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              ref={gripRef}
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={GRIP_LABEL}
+              data-block-handle-grip=""
+              onMouseDown={keepEditorSelection}
+              onPointerDown={keepEditorSelection}
+            >
+              <GripVertical aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent data-block-handle-tooltip="">{GRIP_LABEL}</TooltipContent>
+        </Tooltip>
+      </div>
+      <div
+        data-block-handle-gutter=""
+        aria-hidden="true"
+        className="absolute"
+        style={{ left: "100%", top: gutterTop, width: gutterWidth, height: gutterHeight }}
+      />
+    </div>
+  );
+
+  // The preview frame uses a drop-shadow filter, which would trap a fixed
+  // overlay and clip it. The body portal keeps the gutter on the viewport.
+  return createPortal(handleNode, document.body);
 }
 ```
 
@@ -17202,6 +17319,384 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+```ts
+import { ElementApi, KEYS, type SlateEditor } from "platejs";
+
+import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
+
+export const BLOCK_HANDLE_GAP = 4;
+export const BLOCK_HANDLE_PAD = 8;
+export const BLOCK_HANDLE_WIDTH = 66;
+export const BLOCK_HANDLE_HEIGHT = 32;
+
+const ELIGIBLE = new Set<string>([
+  KEYS.p,
+  KEYS.h1,
+  KEYS.h2,
+  KEYS.h3,
+  KEYS.blockquote,
+  KEYS.callout,
+  KEYS.toggle,
+  KEYS.hr,
+  BOOKMARK_KEY,
+  KEYS.toc,
+  KEYS.equation,
+  SYNCED_REF_KEY,
+  KEYS.codeBlock,
+  KEYS.table,
+  KEYS.columnGroup,
+]);
+
+export type HandleChainNode = {
+  type: string;
+  id: string;
+  index: number;
+  parentType: string | null;
+};
+
+export type BlockHandleTarget = {
+  id: string;
+  type: string;
+};
+
+export type BlockHandleHit = BlockHandleTarget & {
+  path: number[];
+};
+
+export type BlockHandlePaint = {
+  target: BlockHandleHit;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  blockLeft: number;
+  blockTop: number;
+  blockBottom: number;
+};
+
+const SUMMARY_ROW_PARENTS = new Set<string>([KEYS.toggle, KEYS.callout]);
+
+function isSummaryRow(node: HandleChainNode): boolean {
+  return node.index === 0 && node.parentType !== null && SUMMARY_ROW_PARENTS.has(node.parentType);
+}
+
+// Innermost eligible block under the pointer.
+// Top-level blocks qualify. So do blocks inside containers: list items, toggle
+// content, callout content, quote content, and column content.
+// A toggle's first child is its summary row, so that row targets the toggle.
+// A callout's first child shares the icon's line, so that row targets the callout.
+// Later children target themselves. A later child inside a callout uses the
+// callout's left edge for the gutter, so the handle stays outside the icon column.
+// Hovering a container's own chrome (icon, chevron, padding, column gap) targets
+// that block.
+// The handle and its pointer bridge stay clear of document controls: the callout
+// icon, the toggle chevron, a to-do checkbox, and block toolbars.
+// A table cell or row targets the table. A code line targets the code block.
+// A column is structural; hovering it targets the column group.
+// The caller drops synced-block preview copies before building the chain.
+export function blockHandleTarget(chain: readonly HandleChainNode[]): BlockHandleTarget | null {
+  const table = chain.find((node) => node.type === KEYS.table);
+  if (table) {
+    return { id: table.id, type: table.type };
+  }
+
+  const code = chain.find((node) => node.type === KEYS.codeBlock);
+  if (code) {
+    return { id: code.id, type: code.type };
+  }
+
+  for (const node of chain) {
+    if (isSummaryRow(node)) {
+      continue;
+    }
+    if (!ELIGIBLE.has(node.type)) {
+      continue;
+    }
+    return { id: node.id, type: node.type };
+  }
+
+  return null;
+}
+
+// Horizontal anchor for the gutter. The handle controls `targetId`; when that
+// block sits inside a callout, the anchor is the callout so the buttons stay
+// outside its box.
+export function blockHandleGutterId(chain: readonly HandleChainNode[], targetId: string): string {
+  const callout = chain.find((node) => node.type === KEYS.callout);
+  if (callout && callout.id !== targetId) {
+    return callout.id;
+  }
+  return targetId;
+}
+
+export function chainAtPath(editor: SlateEditor, path: number[]): HandleChainNode[] {
+  const chain: HandleChainNode[] = [];
+  let depth = path.length;
+  const located = editor.api.node(path);
+  if (!located || !ElementApi.isElement(located[0])) {
+    depth -= 1;
+  }
+
+  for (; depth >= 1; depth -= 1) {
+    const at = path.slice(0, depth);
+    const entry = editor.api.node(at);
+    if (!entry || !ElementApi.isElement(entry[0])) {
+      continue;
+    }
+
+    const node = entry[0];
+    if (typeof node.type !== "string" || typeof node.id !== "string" || node.id.length === 0) {
+      continue;
+    }
+
+    const parentPath = at.slice(0, -1);
+    let parentType: string | null = null;
+    if (parentPath.length > 0) {
+      const parent = editor.api.node(parentPath);
+      if (parent && ElementApi.isElement(parent[0]) && typeof parent[0].type === "string") {
+        parentType = parent[0].type;
+      }
+    }
+
+    chain.push({
+      type: node.type,
+      id: node.id,
+      index: at[at.length - 1] ?? 0,
+      parentType,
+    });
+  }
+
+  return chain;
+}
+
+export function targetBlockAtPath(editor: SlateEditor, path: number[]): BlockHandleHit | null {
+  const target = blockHandleTarget(chainAtPath(editor, path));
+  if (!target) {
+    return null;
+  }
+
+  const entry = findBlockById(editor, target.id);
+  if (!entry) {
+    return null;
+  }
+
+  return { id: target.id, type: target.type, path: entry[1] };
+}
+
+function inPreview(element: Element): boolean {
+  return element.closest("[data-preview-path]") !== null;
+}
+
+export function chainFromDom(editor: SlateEditor, start: Element): HandleChainNode[] {
+  const chain: HandleChainNode[] = [];
+  let current: Element | null = start;
+  while (current) {
+    if (current.hasAttribute("data-block-id") && !inPreview(current)) {
+      const id = current.getAttribute("data-block-id");
+      const entry = id === null || id.length === 0 ? undefined : findBlockById(editor, id);
+      if (entry && typeof entry[0].type === "string" && typeof entry[0].id === "string") {
+        const path = entry[1];
+        const parentPath = path.slice(0, -1);
+        let parentType: string | null = null;
+        if (parentPath.length > 0) {
+          const parent = editor.api.node(parentPath);
+          if (parent && ElementApi.isElement(parent[0]) && typeof parent[0].type === "string") {
+            parentType = parent[0].type;
+          }
+        }
+        chain.push({
+          type: entry[0].type,
+          id: entry[0].id,
+          index: path[path.length - 1] ?? 0,
+          parentType,
+        });
+      }
+    }
+    current = current.parentElement;
+  }
+
+  return chain;
+}
+
+const TEXT_EDIT_KEYS = new Set(["Backspace", "Delete", "Enter"]);
+
+export function isTypingKey(event: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  isComposing?: boolean;
+}): boolean {
+  if (event.isComposing === true) {
+    return true;
+  }
+  if (event.metaKey || event.ctrlKey || event.altKey) {
+    return false;
+  }
+  if (TEXT_EDIT_KEYS.has(event.key)) {
+    return true;
+  }
+  return event.key.length === 1;
+}
+
+export type HandleLineBox = {
+  lineTop: number;
+  lineHeight: number;
+  blockLeft: number;
+};
+
+export type HandleFrame = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
+export type HandleViewport = {
+  width: number;
+  height: number;
+};
+
+export type HandleSize = {
+  width: number;
+  height: number;
+};
+
+export type PlacedHandle = {
+  top: number;
+  left: number;
+};
+
+export function placeBlockHandle(
+  line: HandleLineBox,
+  handle: HandleSize,
+  viewport: HandleViewport,
+  frame: HandleFrame | null,
+): PlacedHandle | null {
+  const top = line.lineTop + line.lineHeight / 2 - handle.height / 2;
+  const left = line.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const right = left + handle.width;
+  const bottom = top + handle.height;
+
+  if (left < BLOCK_HANDLE_PAD || top < BLOCK_HANDLE_PAD) {
+    return null;
+  }
+  if (right > viewport.width - BLOCK_HANDLE_PAD || bottom > viewport.height - BLOCK_HANDLE_PAD) {
+    return null;
+  }
+  if (right > line.blockLeft - 1) {
+    return null;
+  }
+
+  if (frame) {
+    const lineBottom = line.lineTop + line.lineHeight;
+    const lineVisible = lineBottom > frame.top && line.lineTop < frame.bottom;
+    if (!lineVisible) {
+      return null;
+    }
+    if (top < frame.top || bottom > frame.bottom || left < frame.left || right > frame.right) {
+      return null;
+    }
+  }
+
+  return { top, left };
+}
+
+export function handleCoversForeignBlock(
+  hitId: string | null,
+  chainIds: readonly string[],
+): boolean {
+  if (hitId === null || hitId.length === 0) {
+    return false;
+  }
+  return !chainIds.includes(hitId);
+}
+
+export type HandleUiState = {
+  typing: boolean;
+  pointerId: string | null;
+  caretId: string | null;
+  engagedId: string | null;
+  readOnly: boolean;
+  hoverNone: boolean;
+};
+
+export type HandleUiEvent =
+  | { type: "pointer-move"; id: string | null; engagedId: string | null }
+  | { type: "caret"; id: string | null }
+  | { type: "typing"; typing: boolean }
+  | { type: "engage"; id: string | null }
+  | { type: "read-only"; value: boolean }
+  | { type: "hover-none"; value: boolean };
+
+export function initialHandleUi(readOnly = false, hoverNone = false): HandleUiState {
+  return {
+    typing: false,
+    pointerId: null,
+    caretId: null,
+    engagedId: null,
+    readOnly,
+    hoverNone,
+  };
+}
+
+export function reduceHandleUi(state: HandleUiState, event: HandleUiEvent): HandleUiState {
+  switch (event.type) {
+    case "pointer-move":
+      if (
+        state.pointerId === event.id &&
+        state.engagedId === event.engagedId &&
+        state.typing === false
+      ) {
+        return state;
+      }
+      return { ...state, typing: false, pointerId: event.id, engagedId: event.engagedId };
+    case "caret":
+      if (state.caretId === event.id) {
+        return state;
+      }
+      return { ...state, caretId: event.id };
+    case "typing":
+      if (state.typing === event.typing) {
+        return state;
+      }
+      return { ...state, typing: event.typing };
+    case "engage":
+      if (state.engagedId === event.id) {
+        return state;
+      }
+      return { ...state, engagedId: event.id };
+    case "read-only":
+      if (state.readOnly === event.value) {
+        return state;
+      }
+      return { ...state, readOnly: event.value };
+    case "hover-none":
+      if (state.hoverNone === event.value) {
+        return state;
+      }
+      return { ...state, hoverNone: event.value };
+    default:
+      return state;
+  }
+}
+
+export function visibleHandleId(state: HandleUiState): string | null {
+  if (state.readOnly || state.hoverNone) {
+    return null;
+  }
+  if (state.engagedId) {
+    return state.engagedId;
+  }
+  if (state.typing) {
+    return null;
+  }
+  return state.pointerId ?? state.caretId;
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
@@ -18463,6 +18958,29 @@ export const insertDivider: EditorCommand = {
   },
 };
 
+export const insertParagraphBelow: EditorCommand<{ path: number[] }> = {
+  id: "block.insert.paragraph-below",
+  label: "Add below",
+  group: "insert",
+  run: (editor, payload) => {
+    const entry = editor.api.node(payload.path);
+    if (!entry || !ElementApi.isElement(entry[0])) {
+      return;
+    }
+
+    const at = PathApi.next(payload.path);
+    if (!at) {
+      return;
+    }
+
+    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at, select: true });
+    const start = editor.api.start(at);
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
 export const clearFormatting: EditorCommand = {
   id: "format.clear",
   label: "Clear formatting",
@@ -18549,6 +19067,482 @@ export function useNotionLikeEditor({
   );
 
   return { editor };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+```ts
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ElementApi, PathApi, type SlateEditor } from "platejs";
+import { useEditorRef, useEditorSelector, useReadOnly } from "platejs/react";
+
+import { focusEditorWithoutScroll, retainScroll } from "../components/ui/block-toolbar";
+import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-commands";
+import {
+  BLOCK_HANDLE_HEIGHT,
+  BLOCK_HANDLE_WIDTH,
+  blockHandleGutterId,
+  blockHandleTarget,
+  chainAtPath,
+  chainFromDom,
+  handleCoversForeignBlock,
+  initialHandleUi,
+  isTypingKey,
+  placeBlockHandle,
+  reduceHandleUi,
+  targetBlockAtPath,
+  visibleHandleId,
+  type BlockHandlePaint,
+  type HandleFrame,
+  type HandleUiState,
+} from "../lib/features/editor-block-handle";
+import { findBlockById } from "../lib/features/editor-synced-block";
+
+export type { BlockHandlePaint };
+
+type HandleOptions = {
+  onInsertedBelow?: (blockId: string) => void;
+};
+
+type LineMeasure = {
+  lineTop: number;
+  lineHeight: number;
+  blockLeft: number;
+  blockTop: number;
+  blockBottom: number;
+};
+
+export type BlockHandleController = {
+  paint: BlockHandlePaint | null;
+  shown: boolean;
+  setMeasuredSize: (width: number, height: number) => void;
+  addBelow: () => void;
+  onHandleFocus: () => void;
+  onHandleBlur: (related?: EventTarget | null) => void;
+  suppressed: boolean;
+};
+
+const HANDLE_FADE_MS = 150;
+
+function hoverNoneNow(): boolean {
+  if (typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(hover: none)").matches;
+}
+
+function reducedMotion(): boolean {
+  if (typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function editableOf(editor: SlateEditor): HTMLElement | null {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(first);
+  const editable = dom?.closest("[data-slate-editor]");
+  return editable instanceof HTMLElement ? editable : null;
+}
+
+function textValue(node: Node): string {
+  return node.nodeType === Node.TEXT_NODE ? (node.nodeValue ?? "") : "";
+}
+
+function textWithContent(node: Element): Node | null {
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  while (current) {
+    if (textValue(current).trim().length > 0) {
+      return current;
+    }
+    current = walker.nextNode();
+  }
+  return null;
+}
+
+function firstLineText(element: HTMLElement): Node | null {
+  const strings = element.querySelectorAll("[data-slate-string='true']");
+  for (const stringNode of strings) {
+    if (!(stringNode instanceof HTMLElement) || stringNode.closest("[data-preview-path]")) {
+      continue;
+    }
+    const text = textWithContent(stringNode);
+    if (text) {
+      return text;
+    }
+  }
+
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  while (current) {
+    if (textValue(current).trim().length > 0) {
+      const parent = current.parentElement;
+      if (!parent?.closest("button, [data-slot='button'], [role='button']")) {
+        return current;
+      }
+    }
+    current = walker.nextNode();
+  }
+  return null;
+}
+
+function firstLineBox(element: HTMLElement): LineMeasure | null {
+  const block = element.getBoundingClientRect();
+  const text = firstLineText(element);
+  const value = text ? textValue(text) : "";
+  if (text && value.length > 0) {
+    try {
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      const rect = range.getClientRects()[0];
+      if (rect && rect.height > 0) {
+        return {
+          lineTop: rect.top,
+          lineHeight: rect.height,
+          blockLeft: block.left,
+          blockTop: block.top,
+          blockBottom: block.bottom,
+        };
+      }
+    } catch {
+      // An unmeasured range falls through to the element box.
+    }
+  }
+
+  if (block.height <= 0 || block.width <= 0) {
+    return null;
+  }
+
+  return {
+    lineTop: block.top,
+    lineHeight: block.height,
+    blockLeft: block.left,
+    blockTop: block.top,
+    blockBottom: block.bottom,
+  };
+}
+
+function frameOf(element: HTMLElement): HandleFrame | null {
+  const viewport = element.closest("[data-block-viewport]");
+  if (!(viewport instanceof HTMLElement)) {
+    return null;
+  }
+  const rect = viewport.getBoundingClientRect();
+  return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+}
+
+function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean {
+  if (typeof document.elementFromPoint !== "function") {
+    return false;
+  }
+  const hit = document.elementFromPoint(x, y);
+  if (!(hit instanceof Element)) {
+    return false;
+  }
+  if (hit.closest("[data-block-handle], [data-block-handle-tooltip]")) {
+    return false;
+  }
+  const block = hit.closest("[data-block-id]");
+  if (!(block instanceof Element) || block.closest("[data-preview-path]")) {
+    return false;
+  }
+  return handleCoversForeignBlock(block.getAttribute("data-block-id"), chainIds);
+}
+
+function isHandleLayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest("[data-block-handle], [data-block-handle-tooltip]") !== null
+  );
+}
+
+function measurePaint(
+  editor: SlateEditor,
+  id: string,
+  size: { width: number; height: number },
+): BlockHandlePaint | null {
+  const entry = findBlockById(editor, id);
+  if (!entry || typeof entry[0].type !== "string") {
+    return null;
+  }
+  const dom = editor.api.toDOMNode(entry[0]);
+  if (!(dom instanceof HTMLElement)) {
+    return null;
+  }
+  const line = firstLineBox(dom);
+  if (!line) {
+    return null;
+  }
+  const chain = chainAtPath(editor, entry[1]);
+  const gutterId = blockHandleGutterId(chain, id);
+  let gutterLeft = line.blockLeft;
+  if (gutterId !== id) {
+    const anchor = findBlockById(editor, gutterId);
+    const anchorDom = anchor ? editor.api.toDOMNode(anchor[0]) : null;
+    if (anchorDom instanceof HTMLElement) {
+      const anchorBox = anchorDom.getBoundingClientRect();
+      if (anchorBox.width > 0) {
+        gutterLeft = anchorBox.left;
+      }
+    }
+  }
+  const placed = placeBlockHandle(
+    { lineTop: line.lineTop, lineHeight: line.lineHeight, blockLeft: gutterLeft },
+    size,
+    { width: window.innerWidth, height: window.innerHeight },
+    frameOf(dom),
+  );
+  if (!placed) {
+    return null;
+  }
+  const chainIds = chain.map((node) => node.id);
+  if (foreignHit(placed.left + size.width / 2, placed.top + size.height / 2, chainIds)) {
+    return null;
+  }
+  return {
+    target: { id, type: entry[0].type, path: entry[1] },
+    top: placed.top,
+    left: placed.left,
+    width: size.width,
+    height: size.height,
+    blockLeft: line.blockLeft,
+    blockTop: line.blockTop,
+    blockBottom: line.blockBottom,
+  };
+}
+
+function samePaint(current: BlockHandlePaint | null, next: BlockHandlePaint | null): boolean {
+  if (current === next) {
+    return true;
+  }
+  if (!current || !next) {
+    return false;
+  }
+  return (
+    current.target.id === next.target.id &&
+    current.target.path.join(".") === next.target.path.join(".") &&
+    current.top === next.top &&
+    current.left === next.left &&
+    current.width === next.width &&
+    current.height === next.height &&
+    current.blockLeft === next.blockLeft &&
+    current.blockTop === next.blockTop &&
+    current.blockBottom === next.blockBottom
+  );
+}
+
+export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHandleController {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const opCount = useEditorSelector((instance) => instance.operations.length, []);
+  const caretId = useEditorSelector((instance) => {
+    const selection = instance.selection;
+    if (!selection) {
+      return null;
+    }
+    return targetBlockAtPath(instance, selection.anchor.path)?.id ?? null;
+  }, []);
+  const [hoverNone, setHoverNone] = useState(hoverNoneNow);
+  const [ui, setUi] = useState<HandleUiState>(() => initialHandleUi());
+  const [size, setSize] = useState({ width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT });
+  const [paint, setPaint] = useState<BlockHandlePaint | null>(null);
+  const [shown, setShown] = useState(false);
+  const pathRef = useRef<number[] | null>(null);
+  const shownRef = useRef(false);
+  const hideTimer = useRef(0);
+  const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      return;
+    }
+    const query = window.matchMedia("(hover: none)");
+    const onChange = (): void => {
+      setHoverNone(query.matches);
+    };
+    if (typeof query.addEventListener !== "function") {
+      return;
+    }
+    query.addEventListener("change", onChange);
+    return () => {
+      query.removeEventListener("change", onChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onPointerMove = (event: PointerEvent): void => {
+      if (event.pointerType === "touch") {
+        return;
+      }
+      if (isHandleLayer(event.target)) {
+        setUi((state) => {
+          const held = state.pointerId ?? state.engagedId ?? caretId;
+          return reduceHandleUi(state, {
+            type: "pointer-move",
+            id: state.pointerId ?? held,
+            engagedId: held,
+          });
+        });
+        return;
+      }
+      const element =
+        event.target instanceof Element
+          ? event.target
+          : event.target instanceof Node
+            ? event.target.parentElement
+            : null;
+      const picked = element ? blockHandleTarget(chainFromDom(editor, element)) : null;
+      const known = picked && findBlockById(editor, picked.id) ? picked.id : null;
+      setUi((state) => reduceHandleUi(state, { type: "pointer-move", id: known, engagedId: null }));
+    };
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (isHandleLayer(event.target)) {
+        return;
+      }
+      setUi((state) =>
+        reduceHandleUi(state, { type: "typing", typing: isTypingKey(event) || event.isComposing }),
+      );
+    };
+    const onComposition = (): void => {
+      setUi((state) => reduceHandleUi(state, { type: "typing", typing: true }));
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    const editable = editableOf(editor);
+    editable?.addEventListener("keydown", onKeyDown, true);
+    editable?.addEventListener("compositionstart", onComposition, true);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      editable?.removeEventListener("keydown", onKeyDown, true);
+      editable?.removeEventListener("compositionstart", onComposition, true);
+    };
+  }, [caretId, editor]);
+
+  useLayoutEffect(() => {
+    let frame = 0;
+    const publish = (next: BlockHandlePaint | null): void => {
+      if (next) {
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = 0;
+        pathRef.current = next.target.path;
+        if (!shownRef.current) {
+          shownRef.current = true;
+          setShown(true);
+        }
+        setPaint((current) => (samePaint(current, next) ? current : next));
+        return;
+      }
+      if (!shownRef.current) {
+        return;
+      }
+      shownRef.current = false;
+      setShown(false);
+      hideTimer.current = window.setTimeout(
+        () => {
+          hideTimer.current = 0;
+          pathRef.current = null;
+          setPaint(null);
+        },
+        reducedMotion() ? 0 : HANDLE_FADE_MS,
+      );
+    };
+    const measure = (): void => {
+      const next =
+        visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
+      publish(next);
+    };
+    measure();
+    const editable = editableOf(editor);
+    const viewport = editable?.closest("[data-block-viewport]");
+    const onScroll = (): void => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    viewport?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    const Observer = window.ResizeObserver;
+    const observer = typeof Observer === "function" ? new Observer(onScroll) : null;
+    if (editable) {
+      observer?.observe(editable);
+    }
+    if (viewport instanceof HTMLElement) {
+      observer?.observe(viewport);
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+      observer?.disconnect();
+    };
+  }, [editor, hoverNone, opCount, readOnly, size, visibleId]);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(hideTimer.current);
+    };
+  }, []);
+
+  const setMeasuredSize = useCallback((width: number, height: number) => {
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    setSize((current) =>
+      current.width === width && current.height === height ? current : { width, height },
+    );
+  }, []);
+
+  const addBelow = useCallback(() => {
+    const path = pathRef.current;
+    if (!path || readOnly) {
+      return;
+    }
+    const ran = runEditorCommand(editor, insertParagraphBelow, { path }, { readOnly });
+    if (!ran) {
+      return;
+    }
+    const at = PathApi.next(path);
+    const inserted = at === undefined ? undefined : editor.api.node(at)?.[0];
+    if (inserted && ElementApi.isElement(inserted) && typeof inserted.id === "string") {
+      onInsertedBelow?.(inserted.id);
+    }
+    retainScroll(() => {
+      focusEditorWithoutScroll(editableOf(editor));
+    });
+  }, [editor, onInsertedBelow, readOnly]);
+
+  const onHandleFocus = useCallback(() => {
+    setUi((state) =>
+      reduceHandleUi(state, {
+        type: "engage",
+        id: state.pointerId ?? state.engagedId ?? caretId,
+      }),
+    );
+  }, [caretId]);
+
+  const onHandleBlur = useCallback((related?: EventTarget | null) => {
+    if (isHandleLayer(related ?? null)) {
+      return;
+    }
+    setUi((state) => reduceHandleUi(state, { type: "engage", id: null }));
+  }, []);
+
+  return {
+    paint,
+    shown,
+    setMeasuredSize,
+    addBelow,
+    onHandleFocus,
+    onHandleBlur,
+    suppressed: readOnly || hoverNone,
+  };
 }
 ```
 
@@ -19411,6 +20405,7 @@ import { repairMentionInputs, type MentionProvider } from "../../lib/features/ed
 import { LinkToolbar } from "../elements/link-element";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
+import { BlockHandle } from "../ui/block-handle";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 
@@ -19422,6 +20417,7 @@ type EditorSurfaceProps = {
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  onInsertedBelow?: (blockId: string) => void;
 };
 
 export function EditorSurface({
@@ -19432,6 +20428,7 @@ export function EditorSurface({
   className,
   linkPreview = null,
   mentionProvider = null,
+  onInsertedBelow,
 }: EditorSurfaceProps) {
   return (
     <TooltipProvider>
@@ -19465,6 +20462,7 @@ export function EditorSurface({
                 </span>
               )}
             />
+            <BlockHandle onInsertedBelow={onInsertedBelow} />
           </LinkPreviewProvider>
         </MentionScope>
       </Plate>
@@ -21309,6 +22307,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-toolbar.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/block-handle.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-handle.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
     code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
@@ -21457,12 +22459,20 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/lib/features/editor-selection.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/lib/features/editor-block-handle.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-block-handle.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",
     code: readSource(`${BLOCK_DIR}/lib/commands/editor-commands.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts",
     code: readSource(`${BLOCK_DIR}/hooks/use-notion-like-editor.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/hooks/use-block-handle.ts",
+    code: readSource(`${BLOCK_DIR}/hooks/use-block-handle.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/document/editor-persistence.ts",

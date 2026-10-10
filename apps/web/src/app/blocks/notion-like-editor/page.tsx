@@ -60,6 +60,10 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/components/ui/block-toolbar.tsx`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/ui/block-handle.tsx",
+    code: readSource(`${BLOCK_DIR}/components/ui/block-handle.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/components/ui/anchor-rect.ts",
     code: readSource(`${BLOCK_DIR}/components/ui/anchor-rect.ts`),
   },
@@ -208,12 +212,20 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/lib/features/editor-selection.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/lib/features/editor-block-handle.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-block-handle.ts`),
+  },
+  {
     path: "components/blocks/notion-like-editor/lib/commands/editor-commands.ts",
     code: readSource(`${BLOCK_DIR}/lib/commands/editor-commands.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts",
     code: readSource(`${BLOCK_DIR}/hooks/use-notion-like-editor.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/hooks/use-block-handle.ts",
+    code: readSource(`${BLOCK_DIR}/hooks/use-block-handle.ts`),
   },
   {
     path: "components/blocks/notion-like-editor/lib/document/editor-persistence.ts",
