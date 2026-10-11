@@ -20,6 +20,7 @@ import { BlockHandle } from "../ui/block-handle";
 import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
+import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 
 type EditorSurfaceProps = {
@@ -61,6 +62,7 @@ export function EditorSurface({
             <LinkToolbar />
             <LinkPopover />
             <BookmarkUrlPopover />
+            <SelectionToolbar />
             <PlateContent
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

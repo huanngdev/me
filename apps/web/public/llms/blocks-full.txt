@@ -18992,13 +18992,12 @@ export const linkUiPlugin = createSlatePlugin({
     draftLabel: "",
     error: "",
     hoverId: "",
+    hold: null as TRange | null,
   },
   decorate: ({ editor, entry }) => {
-    if (editor.getOption(linkUiPlugin, "mode") === "closed") {
-      return undefined;
-    }
-
-    const anchor = savedSelections.get(editor);
+    const mode = editor.getOption(linkUiPlugin, "mode");
+    const anchor =
+      mode === "closed" ? editor.getOption(linkUiPlugin, "hold") : savedSelections.get(editor);
     const node = entry[0];
     const path = entry[1];
     if (!anchor || !TextApi.isText(node)) {
@@ -19160,6 +19159,19 @@ export function openLinkPopover(editor: SlateEditor): void {
   editor.setOption(linkUiPlugin, "mode", editor.api.isCollapsed() ? "label" : "insert");
   editor.setOption(linkUiPlugin, "draftUrl", "");
   editor.setOption(linkUiPlugin, "draftLabel", "");
+  editor.api.redecorate();
+}
+
+export function holdSelectionHighlight(editor: SlateEditor, range: TRange | null): void {
+  const current = editor.getOption(linkUiPlugin, "hold");
+  if (current === range) {
+    return;
+  }
+  if (current && range && JSON.stringify(current) === JSON.stringify(range)) {
+    return;
+  }
+
+  editor.setOption(linkUiPlugin, "hold", range);
   editor.api.redecorate();
 }
 
@@ -26523,6 +26535,7 @@ import { BlockHandle } from "../ui/block-handle";
 import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
+import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 
 type EditorSurfaceProps = {
@@ -26564,6 +26577,7 @@ export function EditorSurface({
             <LinkToolbar />
             <LinkPopover />
             <BookmarkUrlPopover />
+            <SelectionToolbar />
             <PlateContent
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

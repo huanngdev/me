@@ -85,13 +85,12 @@ export const linkUiPlugin = createSlatePlugin({
     draftLabel: "",
     error: "",
     hoverId: "",
+    hold: null as TRange | null,
   },
   decorate: ({ editor, entry }) => {
-    if (editor.getOption(linkUiPlugin, "mode") === "closed") {
-      return undefined;
-    }
-
-    const anchor = savedSelections.get(editor);
+    const mode = editor.getOption(linkUiPlugin, "mode");
+    const anchor =
+      mode === "closed" ? editor.getOption(linkUiPlugin, "hold") : savedSelections.get(editor);
     const node = entry[0];
     const path = entry[1];
     if (!anchor || !TextApi.isText(node)) {
@@ -253,6 +252,19 @@ export function openLinkPopover(editor: SlateEditor): void {
   editor.setOption(linkUiPlugin, "mode", editor.api.isCollapsed() ? "label" : "insert");
   editor.setOption(linkUiPlugin, "draftUrl", "");
   editor.setOption(linkUiPlugin, "draftLabel", "");
+  editor.api.redecorate();
+}
+
+export function holdSelectionHighlight(editor: SlateEditor, range: TRange | null): void {
+  const current = editor.getOption(linkUiPlugin, "hold");
+  if (current === range) {
+    return;
+  }
+  if (current && range && JSON.stringify(current) === JSON.stringify(range)) {
+    return;
+  }
+
+  editor.setOption(linkUiPlugin, "hold", range);
   editor.api.redecorate();
 }
 
