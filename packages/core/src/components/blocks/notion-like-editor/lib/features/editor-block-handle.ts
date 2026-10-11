@@ -26,10 +26,10 @@ const ELIGIBLE = new Set<string>([
   KEYS.columnGroup,
 ]);
 
-// The handle is top-aligned to the target block's border box: the handle's top
-// edge and the block's top edge are flush, for every block type. There is no
-// first-text-line mode and no per-type list; a child that has its own handle
-// uses its own border box. `placeBlockHandle` is the one pure placement rule.
+// The handle's top edge is flush with the top of the block's visible content.
+// A block that pads around that content marks it with `data-block-handle-anchor`;
+// placement reads that marker and otherwise uses the block element. There is no
+// per-type list. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
 // keeps a target in the gaps between blocks, where no element is hit. `depth`
@@ -322,9 +322,28 @@ export function isTypingKey(event: {
   return event.key.length === 1;
 }
 
-// The target block's border box, in viewport coordinates. `blockTop` is the
-// handle's top; `blockLeft` is the horizontal anchor (the gutter anchor for a
-// nested block). `blockBottom` is only used for the visibility test.
+export const BLOCK_HANDLE_ANCHOR = "data-block-handle-anchor";
+
+// Visible-content top. A marked child wins; otherwise the block element's top.
+export function blockHandleContentTop(block: HTMLElement): number {
+  const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
+  if (anchor instanceof HTMLElement) {
+    const rect = anchor.getBoundingClientRect();
+    if (rect.height > 0) {
+      // "center" puts the handle's midline on the anchor (the divider rule).
+      if (anchor.getAttribute(BLOCK_HANDLE_ANCHOR) === "center") {
+        return rect.top + rect.height / 2 - BLOCK_HANDLE_HEIGHT / 2;
+      }
+      return rect.top;
+    }
+  }
+
+  return block.getBoundingClientRect().top;
+}
+
+// The target block's box, in viewport coordinates. `blockTop` is the handle's
+// top (the visible content); `blockLeft` is the horizontal anchor (the gutter
+// anchor for a nested block). `blockBottom` is only used for the visibility test.
 export type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;

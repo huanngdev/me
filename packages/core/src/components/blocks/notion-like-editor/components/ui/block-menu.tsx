@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { ArrowDown, ArrowRightLeft, ArrowUp, Copy, Trash2, Type } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRightLeft,
+  ArrowUp,
+  Columns2,
+  Copy,
+  Trash2,
+  Type,
+  Ungroup,
+} from "lucide-react";
 import { ElementApi, KEYS, RangeApi, type SlateEditor } from "platejs";
 import { useEditorRef } from "platejs/react";
 
@@ -8,6 +17,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -16,6 +28,7 @@ import {
 } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 
+import { setColumnCountCommand, unwrapColumnsCommand } from "../../lib/commands/editor-columns";
 import {
   deleteBlock,
   duplicateBlock,
@@ -35,9 +48,12 @@ import {
   targetBlockAtPath,
   type BlockHandleHit,
 } from "../../lib/features/editor-block-handle";
+import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
+  columnGroupMenu,
   isBlockMenuShortcut,
   keepNativeContextMenu,
+  menuBlockView,
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
@@ -58,7 +74,7 @@ type MenuSession = {
 };
 
 const CONTROL_SELECTOR =
-  "button, input, textarea, select, [role='menu'], [role='menuitem'], [data-block-handle], [data-block-menu]";
+  "button, input, textarea, select, [role='menu'], [role='menuitem'], [data-block-handle], [data-block-menu], [data-block-menu-portal]";
 
 const PAGE_CONTROL_SELECTOR =
   "a, button, input, textarea, select, summary, [role='tab'], [role='button']";
@@ -198,6 +214,36 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
 
   const up = path === undefined ? null : siblingMove(editor.children, path, "up");
   const down = path === undefined ? null : siblingMove(editor.children, path, "down");
+  const view = path === undefined ? null : menuBlockView(editor, path);
+  const columns = view ? columnGroupMenu(view) : null;
+
+  function selectGroup(): void {
+    if (!path) {
+      return;
+    }
+    const start = editor.api.start([...path, 0, 0]);
+    if (start) {
+      editor.tf.select(start);
+    }
+  }
+
+  function setCount(count: 2 | 3): void {
+    if (!path) {
+      return;
+    }
+    onActed();
+    selectGroup();
+    runEditorCommand(editor, setColumnCountCommand, count);
+  }
+
+  function unwrap(): void {
+    if (!path) {
+      return;
+    }
+    onActed();
+    selectGroup();
+    runEditorCommand(editor, unwrapColumnsCommand, undefined);
+  }
 
   return (
     <>
@@ -206,17 +252,70 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
           <ArrowRightLeft aria-hidden="true" />
           Turn into
         </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent
-          data-block-turn-into-menu=""
-          collisionPadding={8}
-          hideWhenDetached
-          className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
-        >
-          <MenuScrollArea>
-            <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
-          </MenuScrollArea>
-        </DropdownMenuSubContent>
+        <DropdownMenuPortal>
+          <DropdownMenuSubContent
+            data-block-menu-portal=""
+            data-block-turn-into-menu=""
+            collisionPadding={8}
+            hideWhenDetached
+            className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+          >
+            <MenuScrollArea>
+              <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+            </MenuScrollArea>
+          </DropdownMenuSubContent>
+        </DropdownMenuPortal>
       </DropdownMenuSub>
+      {columns ? (
+        <>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger data-block-menu-columns="">
+              <Columns2 aria-hidden="true" />
+              Columns
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent
+                data-block-menu-portal=""
+                data-block-columns-menu=""
+                collisionPadding={8}
+                hideWhenDetached
+              >
+                <DropdownMenuRadioGroup value={String(columns.count)}>
+                  <DropdownMenuRadioItem
+                    value="2"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    data-column-count="2"
+                    onSelect={() => {
+                      setCount(2);
+                    }}
+                  >
+                    2 columns
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem
+                    value="3"
+                    className={MENU_ITEM_ACTIVE_CHECKED}
+                    data-column-count="3"
+                    onSelect={() => {
+                      setCount(3);
+                    }}
+                  >
+                    3 columns
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuItem
+            data-block-menu-unwrap=""
+            onSelect={() => {
+              unwrap();
+            }}
+          >
+            <Ungroup aria-hidden="true" />
+            Turn into blocks
+          </DropdownMenuItem>
+        </>
+      ) : null}
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -377,7 +476,11 @@ export function BlockMenu({
         return;
       }
       const eventTarget = event.target instanceof Element ? event.target : null;
-      if (eventTarget?.closest("input, textarea, select, [role='menu'], [data-block-menu]")) {
+      if (
+        eventTarget?.closest(
+          "input, textarea, select, [role='menu'], [data-block-menu], [data-block-menu-portal]",
+        )
+      ) {
         return;
       }
       const selection = editor.selection;
@@ -431,7 +534,9 @@ export function BlockMenu({
       const target = event.target instanceof Element ? event.target : null;
       if (
         !target ||
-        target.closest("[data-block-menu], [data-block-menu-anchor], [data-block-handle]")
+        target.closest(
+          "[data-block-menu], [data-block-menu-portal], [data-block-menu-anchor], [data-block-handle]",
+        )
       ) {
         return;
       }

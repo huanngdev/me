@@ -394,8 +394,168 @@ describe("selection toolbar controls", () => {
       await press("Color");
       const pressed = document.querySelector("[data-color-kind='text'][aria-pressed='true']");
       expect(pressed).toBeNull();
+      expect(control("Color").getAttribute("data-color-summary")).toBe("Color: mixed");
     } finally {
       await mixed.cleanup();
+    }
+  });
+
+  test("the color button and swatches show the current value, including after undo", async () => {
+    document.documentElement.style.setProperty("--editor-text-red", "rgb(180, 0, 0)");
+    document.documentElement.style.setProperty("--editor-bg-yellow", "rgb(255, 240, 0)");
+    const mounted = await showToolbar([paragraph("Hello")]);
+    try {
+      const button = control("Color");
+      expect(button.getAttribute("data-color-summary")).toBe("Color: Default");
+      expect(button.style.color).toBe("");
+      expect(button.style.backgroundColor).toBe("");
+      await press("Color");
+      const textDefault = document.querySelector(
+        "[data-color-kind='text'][data-color-token='default']",
+      );
+      const highlightDefault = document.querySelector(
+        "[data-color-kind='highlight'][data-color-token='default']",
+      );
+      expect(textDefault?.getAttribute("aria-pressed")).toBe("true");
+      expect(textDefault?.querySelector("[data-color-check]")).not.toBeNull();
+      expect(highlightDefault?.getAttribute("aria-pressed")).toBe("true");
+      expect(highlightDefault?.className).toContain("border");
+
+      const red = document.querySelector("[data-color-kind='text'][data-color-token='red']");
+      await act(async () => {
+        if (red instanceof HTMLElement) {
+          red.click();
+        }
+      });
+      expect(red?.getAttribute("aria-pressed")).toBe("true");
+      expect(red?.className).toContain("ring-2");
+      expect(control("Color").style.color).toContain("--editor-text-red");
+      expect(control("Color").getAttribute("data-color-summary")).toBe("Color: Red text");
+      const selected = mounted.host.querySelector("[data-slate-leaf]");
+      if (selected instanceof HTMLElement) {
+        expect(selected.style.color).toContain("--editor-text-red");
+        expect(control("Color").style.color).toBe(selected.style.color);
+      }
+
+      const yellow = document.querySelector(
+        "[data-color-kind='highlight'][data-color-token='yellow']",
+      );
+      await act(async () => {
+        if (yellow instanceof HTMLElement) {
+          yellow.click();
+        }
+      });
+      expect(yellow?.getAttribute("aria-pressed")).toBe("true");
+      expect(control("Color").style.backgroundColor).toContain("--editor-bg-yellow");
+      expect(control("Color").getAttribute("data-color-summary")).toBe(
+        "Color: Red text, Yellow highlight",
+      );
+
+      await act(async () => {
+        mounted.editor.tf.undo();
+      });
+      expect(getHighlight(mounted.editor)).toBeNull();
+      expect(control("Color").style.backgroundColor).toBe("");
+      expect(control("Color").getAttribute("data-color-summary")).toBe("Color: Red text");
+    } finally {
+      await mounted.cleanup();
+      document.documentElement.style.removeProperty("--editor-text-red");
+      document.documentElement.style.removeProperty("--editor-bg-yellow");
+    }
+  });
+
+  test("toolbar controls are direct children of one button group", async () => {
+    const mounted = await showToolbar();
+    try {
+      const bar = toolbar();
+      if (!(bar instanceof HTMLElement)) {
+        throw new Error("Missing toolbar.");
+      }
+      expect(bar.querySelectorAll("[data-slot='button-group']")).toHaveLength(0);
+      expect(bar.getAttribute("data-slot")).toBe("button-group");
+      const controls = [...bar.querySelectorAll("[data-toolbar-control]")];
+      expect(controls.map((node) => node.getAttribute("aria-label"))).toEqual([
+        "Turn into",
+        "Bold",
+        "Italic",
+        "Underline",
+        "Strikethrough",
+        "Code",
+        "Link",
+        "Align",
+        "Color",
+        "More",
+      ]);
+      for (const node of controls) {
+        expect(node.parentElement).toBe(bar);
+      }
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first || !last) {
+        throw new Error("Missing toolbar controls.");
+      }
+      expect(bar.firstElementChild).toBe(first);
+      expect(bar.lastElementChild).toBe(last);
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("align, turn into, and color keep the selection and editor focus", async () => {
+    const mounted = await showToolbar([paragraph("Hello world")]);
+    const editable = mounted.host.querySelector("[data-slate-editor]");
+    const before = JSON.parse(JSON.stringify(mounted.editor.selection));
+    try {
+      for (const align of ["center", "right", "justify", "left"] as const) {
+        const previous = getTextAlign(mounted.editor);
+        await press("Align");
+        const choice = document.querySelector(`[data-align-choice='${align}']`);
+        await act(async () => {
+          if (choice instanceof HTMLElement) {
+            choice.click();
+          }
+        });
+        expect(getTextAlign(mounted.editor)).toBe(align);
+        expect(mounted.editor.selection).toEqual(before);
+        expect(document.activeElement).toBe(editable);
+        await act(async () => {
+          mounted.editor.tf.undo();
+        });
+        expect(getTextAlign(mounted.editor)).toBe(previous);
+        expect(mounted.editor.selection).toEqual(before);
+      }
+
+      await press("Turn into");
+      const heading = document.querySelector("[data-block-picker-item='h2']");
+      await act(async () => {
+        if (heading instanceof HTMLElement) {
+          heading.click();
+        }
+      });
+      expect(mounted.editor.children[0]?.type).toBe("h2");
+      expect(document.activeElement).toBe(editable);
+      expect(mounted.editor.selection?.anchor.offset).toBe(before.anchor.offset);
+      expect(mounted.editor.selection?.focus.offset).toBe(before.focus.offset);
+      await act(async () => {
+        mounted.editor.tf.undo();
+      });
+      expect(mounted.editor.children[0]?.type).toBe("p");
+      expect(mounted.editor.selection).toEqual(before);
+
+      await press("Color");
+      expect(document.querySelector("[data-selection-color-menu]")).not.toBeNull();
+      const swatch = document.querySelector("[data-color-swatch]");
+      await act(async () => {
+        if (swatch instanceof HTMLElement) {
+          swatch.focus();
+        }
+        swatch?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      expect(document.querySelector("[data-selection-color-menu]")).toBeNull();
+      expect(mounted.editor.selection).toEqual(before);
+      expect(document.activeElement).toBe(editable);
+    } finally {
+      await mounted.cleanup();
     }
   });
 
@@ -411,19 +571,27 @@ describe("selection toolbar controls", () => {
       });
       expect(leaf(mounted.editor, [0, 0]).superscript).toBe(true);
 
-      await press("More");
-      await openMoreSubmenu("Align");
-      const center = document.querySelector("[data-more-choice='align-center']");
+      await press("Align");
+      const center = document.querySelector("[data-align-choice='center']");
       expect(center).not.toBeNull();
+      expect(center?.getAttribute("aria-checked")).toBe("false");
       await act(async () => {
         if (center instanceof HTMLElement) {
           center.click();
         }
       });
       expect(getTextAlign(mounted.editor)).toBe("center");
+      expect(control("Align").getAttribute("data-align-current")).toBe("center");
 
       await press("More");
+      expect(document.querySelector("[data-selection-more]")?.textContent).not.toContain("Align");
       await openMoreSubmenu("Font size");
+      const fontSizeMenu = document.querySelector("[data-slot='dropdown-menu-sub-content']");
+      const moreViewport = document.querySelector(
+        "[data-selection-more] [data-slot='scroll-area-viewport']",
+      );
+      expect(fontSizeMenu).not.toBeNull();
+      expect(moreViewport?.contains(fontSizeMenu ?? null)).toBe(false);
       const size = document.querySelector("[data-more-choice='font-size-18px']");
       await act(async () => {
         if (size instanceof HTMLElement) {
@@ -506,6 +674,9 @@ describe("selection toolbar controls", () => {
     await act(async () => {});
     try {
       expect(document.querySelector("[aria-label='Turn into']")).toBeNull();
+      expect(toolbar()?.querySelector("[data-toolbar-control]")?.getAttribute("aria-label")).toBe(
+        "Bold",
+      );
       expect(toolbar()).not.toBeNull();
     } finally {
       await many.cleanup();

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Baseline } from "lucide-react";
+import { useState, type CSSProperties } from "react";
+import { Baseline, Check } from "lucide-react";
 
 import { Button } from "@/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
@@ -8,12 +8,47 @@ import { cn } from "@/lib/utils";
 
 import { PALETTE_TOKENS, type PaletteToken } from "../../lib/document/editor-document-schema";
 import type { HighlightState, TextColorState } from "../../lib/commands/editor-commands";
-import { MENU_ITEM_ACTIVE } from "../../lib/features/editor-menu-active";
-
 const COLUMNS = 5;
 
 function tokenLabel(token: string): string {
   return token.charAt(0).toUpperCase() + token.slice(1);
+}
+
+export function colorControlLabel(
+  textColor: PaletteToken | null | "mixed",
+  highlight: PaletteToken | null | "mixed",
+): string {
+  if (textColor === "mixed" || highlight === "mixed") {
+    return "Color: mixed";
+  }
+  if (textColor === null && highlight === null) {
+    return "Color: Default";
+  }
+
+  const parts: string[] = [];
+  if (textColor) {
+    parts.push(`${tokenLabel(textColor)} text`);
+  }
+  if (highlight) {
+    parts.push(`${tokenLabel(highlight)} highlight`);
+  }
+
+  return `Color: ${parts.join(", ")}`;
+}
+
+function colorControlStyle(
+  textColor: PaletteToken | null | "mixed",
+  highlight: PaletteToken | null | "mixed",
+): CSSProperties {
+  const style: CSSProperties = {};
+  if (textColor && textColor !== "mixed") {
+    style.color = `var(--editor-text-${textColor})`;
+  }
+  if (highlight && highlight !== "mixed") {
+    style.backgroundColor = `var(--editor-bg-${highlight})`;
+  }
+
+  return style;
 }
 
 function keepSelection(event: { preventDefault: () => void }): void {
@@ -25,19 +60,24 @@ export function SelectionColorMenu({
   highlight,
   disabled,
   reason,
+  tabIndex,
   onTextColor,
   onHighlight,
   onOpenChange,
+  onRestore,
 }: {
   textColor: TextColorState;
   highlight: HighlightState;
   disabled: boolean;
   reason?: string;
+  tabIndex?: number;
   onTextColor: (token: PaletteToken | null) => void;
   onHighlight: (token: PaletteToken | null) => void;
   onOpenChange: (open: boolean) => void;
+  onRestore?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const summary = colorControlLabel(textColor, highlight);
 
   function setOpenState(next: boolean): void {
     setOpen(next);
@@ -48,23 +88,25 @@ export function SelectionColorMenu({
     <Popover open={open} onOpenChange={setOpenState} modal={false}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex">
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label="Color"
-                disabled={disabled}
-                data-toolbar-control="color"
-                onMouseDown={keepSelection}
-              >
-                <Baseline aria-hidden="true" />
-              </Button>
-            </PopoverTrigger>
-          </span>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label="Color"
+              disabled={disabled}
+              tabIndex={tabIndex}
+              data-toolbar-control="color"
+              data-color-summary={summary}
+              className="disabled:pointer-events-auto"
+              style={colorControlStyle(textColor, highlight)}
+              onMouseDown={keepSelection}
+            >
+              <Baseline aria-hidden="true" />
+            </Button>
+          </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>{disabled && reason ? reason : "Color"}</TooltipContent>
+        <TooltipContent>{disabled && reason ? reason : summary}</TooltipContent>
       </Tooltip>
       <PopoverContent
         data-selection-toolbar-portal=""
@@ -87,6 +129,7 @@ export function SelectionColorMenu({
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
+          onRestore?.();
         }}
         onKeyDown={moveSwatchFocus}
         className="w-auto gap-2 p-2"
@@ -167,7 +210,11 @@ function Swatch({
             data-color-swatch=""
             data-color-kind={kind}
             data-color-token={token ?? "default"}
-            className={cn(pressed && MENU_ITEM_ACTIVE)}
+            className={cn(
+              "relative",
+              kind === "highlight" && token === null && "border-border border bg-transparent",
+              pressed && "ring-ring ring-offset-popover ring-2 ring-offset-2",
+            )}
             style={kind === "text" ? { color } : { backgroundColor: background }}
             onMouseDown={keepSelection}
             onClick={() => {
@@ -175,6 +222,13 @@ function Swatch({
             }}
           >
             A
+            {pressed ? (
+              <Check
+                aria-hidden="true"
+                data-color-check=""
+                className="absolute top-0.5 right-0.5 size-2.5"
+              />
+            ) : null}
           </Button>
         </span>
       </TooltipTrigger>

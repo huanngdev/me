@@ -172,6 +172,20 @@ export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null 
   return currentKind(view);
 }
 
+export type ColumnGroupMenu = {
+  count: 2 | 3;
+};
+
+// The column hover bar is gone. These two actions live on the block menu when
+// the target is a column group, and nowhere else.
+export function columnGroupMenu(view: MenuBlockView): ColumnGroupMenu | null {
+  if (view.type !== KEYS.columnGroup) {
+    return null;
+  }
+
+  return { count: view.children.length === 3 ? 3 : 2 };
+}
+
 export function menuBlockView(editor: SlateEditor, path: number[]): MenuBlockView | null {
   const entry = editor.api.node(path);
   const node = entry?.[0];

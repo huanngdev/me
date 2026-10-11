@@ -22,11 +22,13 @@ import {
 import { RangeApi, type SlateEditor, type TRange } from "platejs";
 
 import { Button } from "@/components/button";
+import { ButtonGroup } from "@/components/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
+  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
@@ -37,7 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
-import { Separator } from "@/components/separator";
 import { Toggle } from "@/components/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
@@ -168,9 +169,7 @@ function ControlTip({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex">{children}</span>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent>{tip(label, shortcut, reason, disabled)}</TooltipContent>
     </Tooltip>
   );
@@ -353,6 +352,9 @@ export function SelectionToolbar() {
       onAlign={(value) => {
         run(setTextAlign, value);
       }}
+      onRestore={() => {
+        returnToEditor(editor, range());
+      }}
       onFontSize={(value) => {
         run(setFontSize, value);
       }}
@@ -371,16 +373,12 @@ export function SelectionToolbar() {
   if (placement === "docked") {
     return (
       <div
-        role="toolbar"
-        aria-label="Text formatting"
-        data-selection-toolbar=""
-        data-placement="docked"
-        className="border-border bg-popover sticky top-0 z-30 w-full rounded-md border"
+        className="sticky top-0 z-30 w-full"
         onMouseDown={keepSelection}
         onKeyDown={onToolbarKeyDown}
       >
         <ScrollFadeArea orientation="horizontal" className="w-full">
-          <div className="flex w-max items-center gap-0.5 p-1">{controls}</div>
+          <ToolbarRoot placement="docked">{controls}</ToolbarRoot>
         </ScrollFadeArea>
       </div>
     );
@@ -391,10 +389,6 @@ export function SelectionToolbar() {
     <Popover open modal={false}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
-        role="toolbar"
-        aria-label="Text formatting"
-        data-selection-toolbar=""
-        data-placement="floating"
         data-collision-boundary={frame ? "frame" : undefined}
         side="top"
         align="center"
@@ -409,13 +403,38 @@ export function SelectionToolbar() {
         onPointerDownOutside={keepNested}
         onMouseDown={keepSelection}
         onKeyDown={onToolbarKeyDown}
-        className="border-border bg-popover w-auto max-w-[calc(100vw-16px)] rounded-md border p-0 shadow-md ring-0"
+        className="w-auto max-w-[calc(100vw-16px)] border-0 bg-transparent p-0 shadow-none ring-0"
       >
         <ScrollFadeArea orientation="horizontal" className="w-full">
-          <div className="flex w-max items-center gap-0.5 p-1">{controls}</div>
+          <ToolbarRoot placement="floating" collisionBoundary={frame ? "frame" : undefined}>
+            {controls}
+          </ToolbarRoot>
         </ScrollFadeArea>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function ToolbarRoot({
+  placement,
+  collisionBoundary,
+  children,
+}: {
+  placement: "floating" | "docked";
+  collisionBoundary?: string;
+  children: ReactNode;
+}) {
+  return (
+    <ButtonGroup
+      role="toolbar"
+      aria-label="Text formatting"
+      data-selection-toolbar=""
+      data-placement={placement}
+      data-collision-boundary={collisionBoundary}
+      className="bg-background shadow-sm"
+    >
+      {children}
+    </ButtonGroup>
   );
 }
 
@@ -444,6 +463,7 @@ function ToolbarControls({
   onFontFamily,
   onLineHeight,
   onClear,
+  onRestore,
 }: {
   editor: SlateEditor;
   onMenu: (open: boolean) => void;
@@ -455,6 +475,7 @@ function ToolbarControls({
   onSuperscript: () => void;
   onSubscript: () => void;
   onAlign: (value: TextAlign | null) => void;
+  onRestore: () => void;
   onFontSize: (value: FontSize | null) => void;
   onFontFamily: (value: FontFamily | null) => void;
   onLineHeight: (value: LineHeight | null) => void;
@@ -466,6 +487,9 @@ function ToolbarControls({
   const TurnIcon = currentTurn?.icon ?? Type;
   const firstEnabled = firstControlId(model.turnInto !== null, model);
 
+  const alignIconKey = model.align === "mixed" || model.align === null ? "left" : model.align;
+  const AlignIcon = ALIGN_ICON[alignIconKey];
+
   return (
     <>
       {model.turnInto ? (
@@ -475,10 +499,11 @@ function ToolbarControls({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
+                variant="outline"
                 aria-label="Turn into"
                 data-toolbar-control="turn-into"
                 tabIndex={tabOf("turn-into", false, firstEnabled)}
+                className="h-8"
                 onMouseDown={(event) => {
                   keepSelection(event);
                 }}
@@ -493,7 +518,10 @@ function ToolbarControls({
             collisionPadding={8}
             hideWhenDetached
             className="w-64 overflow-hidden"
-            onCloseAutoFocus={keepSelection}
+            onCloseAutoFocus={(event) => {
+              keepSelection(event);
+              onRestore();
+            }}
           >
             <MenuScrollArea>
               <BlockPickerGroups
@@ -506,7 +534,6 @@ function ToolbarControls({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-      {model.turnInto ? <BarSeparator /> : null}
       {model.marks.map((mark) => {
         const Icon = MARK_ICONS[mark.id as SelectionToolbarMarkId];
         return (
@@ -519,6 +546,7 @@ function ToolbarControls({
           >
             <Toggle
               size="sm"
+              variant="outline"
               pressed={mark.pressed}
               aria-pressed={mark.mixed ? "mixed" : mark.pressed}
               aria-label={mark.label}
@@ -526,7 +554,7 @@ function ToolbarControls({
               data-toolbar-control={mark.id}
               data-state-mixed={mark.mixed ? "" : undefined}
               tabIndex={tabOf(mark.id, mark.disabled, firstEnabled)}
-              className="size-8 px-0"
+              className="size-8 px-0 disabled:pointer-events-auto"
               onMouseDown={keepSelection}
               onPressedChange={() => {
                 onMark(mark.id as SelectionToolbarMarkId);
@@ -537,7 +565,6 @@ function ToolbarControls({
           </ControlTip>
         );
       })}
-      <BarSeparator />
       <ControlTip
         label="Link"
         shortcut={model.link.shortcut}
@@ -547,37 +574,44 @@ function ToolbarControls({
         <Button
           type="button"
           size="icon"
-          variant="ghost"
+          variant="outline"
           aria-label="Link"
           aria-pressed={model.link.pressed}
           disabled={model.link.disabled}
           data-toolbar-control="link"
           data-state={model.link.pressed ? "on" : "off"}
           tabIndex={tabOf("link", model.link.disabled, firstEnabled)}
-          className={cn(model.link.pressed && "bg-muted")}
+          className={cn("disabled:pointer-events-auto", model.link.pressed && "bg-muted")}
           onMouseDown={keepSelection}
           onClick={onLink}
         >
           <Link aria-hidden="true" />
         </Button>
       </ControlTip>
-      <BarSeparator />
+      <AlignMenu
+        model={model}
+        icon={<AlignIcon aria-hidden="true" />}
+        firstEnabled={firstEnabled}
+        onOpenChange={onMenu}
+        onAlign={onAlign}
+        onRestore={onRestore}
+      />
       <SelectionColorMenu
         textColor={model.textColor}
         highlight={model.highlight}
         disabled={model.colorDisabled}
+        tabIndex={tabOf("color", model.colorDisabled, firstEnabled)}
         onTextColor={onTextColor}
         onHighlight={onHighlight}
         onOpenChange={onMenu}
+        onRestore={onRestore}
       />
-      <BarSeparator />
       <MoreMenu
         model={model}
         firstEnabled={firstEnabled}
         onOpenChange={onMenu}
         onSuperscript={onSuperscript}
         onSubscript={onSubscript}
-        onAlign={onAlign}
         onFontSize={onFontSize}
         onFontFamily={onFontFamily}
         onLineHeight={onLineHeight}
@@ -587,13 +621,80 @@ function ToolbarControls({
   );
 }
 
+function AlignMenu({
+  model,
+  icon,
+  firstEnabled,
+  onOpenChange,
+  onAlign,
+  onRestore,
+}: {
+  model: ReturnType<typeof selectionToolbarModel>;
+  icon: ReactNode;
+  firstEnabled: string;
+  onOpenChange: (open: boolean) => void;
+  onAlign: (value: TextAlign | null) => void;
+  onRestore: () => void;
+}) {
+  const alignValue = model.align === "mixed" ? "" : (model.align ?? "left");
+
+  return (
+    <DropdownMenu modal={false} onOpenChange={onOpenChange}>
+      <ControlTip label="Align" reason={model.alignReason} disabled={model.alignDisabled}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label="Align"
+            disabled={model.alignDisabled}
+            data-toolbar-control="align"
+            data-align-current={alignIconName(model.align)}
+            tabIndex={tabOf("align", model.alignDisabled, firstEnabled)}
+            className="disabled:pointer-events-auto"
+            onMouseDown={keepSelection}
+          >
+            {icon}
+          </Button>
+        </DropdownMenuTrigger>
+      </ControlTip>
+      <DropdownMenuContent
+        data-selection-toolbar-portal=""
+        data-selection-align=""
+        collisionPadding={8}
+        hideWhenDetached
+        onCloseAutoFocus={(event) => {
+          keepSelection(event);
+          onRestore();
+        }}
+      >
+        <DropdownMenuRadioGroup value={alignValue}>
+          {TEXT_ALIGNS.map((align) => (
+            <DropdownMenuRadioItem
+              key={align}
+              value={align}
+              className={MENU_ITEM_ACTIVE_CHECKED}
+              data-align-choice={align}
+              onSelect={() => {
+                onAlign(align);
+              }}
+            >
+              {alignIcon(align)}
+              {ALIGN_LABEL[align]}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function MoreMenu({
   model,
   firstEnabled,
   onOpenChange,
   onSuperscript,
   onSubscript,
-  onAlign,
   onFontSize,
   onFontFamily,
   onLineHeight,
@@ -604,14 +705,11 @@ function MoreMenu({
   onOpenChange: (open: boolean) => void;
   onSuperscript: () => void;
   onSubscript: () => void;
-  onAlign: (value: TextAlign | null) => void;
   onFontSize: (value: FontSize | null) => void;
   onFontFamily: (value: FontFamily | null) => void;
   onLineHeight: (value: LineHeight | null) => void;
   onClear: () => void;
 }) {
-  const alignValue = model.align === "mixed" ? "" : (model.align ?? "left");
-
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
       <ControlTip label="More">
@@ -619,7 +717,7 @@ function MoreMenu({
           <Button
             type="button"
             size="icon"
-            variant="ghost"
+            variant="outline"
             aria-label="More"
             data-toolbar-control="more"
             tabIndex={tabOf("more", false, firstEnabled)}
@@ -648,22 +746,6 @@ function MoreMenu({
             icon={<Subscript aria-hidden="true" />}
             onToggle={onSubscript}
           />
-          <ChoiceMenu label="Align" icon={<AlignLeft aria-hidden="true" />} value={alignValue}>
-            {TEXT_ALIGNS.map((align) => (
-              <DropdownMenuRadioItem
-                key={align}
-                value={align}
-                className={MENU_ITEM_ACTIVE_CHECKED}
-                data-more-choice={`align-${align}`}
-                onSelect={() => {
-                  onAlign(align);
-                }}
-              >
-                {alignIcon(align)}
-                {ALIGN_LABEL[align]}
-              </DropdownMenuRadioItem>
-            ))}
-          </ChoiceMenu>
           <ChoiceMenu
             label="Font size"
             icon={<CaseSensitive aria-hidden="true" />}
@@ -792,16 +874,18 @@ function ChoiceMenu({
         {icon}
         {label}
       </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent
-        data-selection-toolbar-portal=""
-        collisionPadding={8}
-        hideWhenDetached
-        className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-hidden"
-      >
-        <MenuScrollArea>
-          <DropdownMenuRadioGroup value={value}>{children}</DropdownMenuRadioGroup>
-        </MenuScrollArea>
-      </DropdownMenuSubContent>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent
+          data-selection-toolbar-portal=""
+          collisionPadding={8}
+          hideWhenDetached
+          className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-hidden"
+        >
+          <MenuScrollArea>
+            <DropdownMenuRadioGroup value={value}>{children}</DropdownMenuRadioGroup>
+          </MenuScrollArea>
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
     </DropdownMenuSub>
   );
 }
@@ -822,6 +906,14 @@ function DefaultRadio({ onSelect }: { onSelect: () => void }) {
 function alignIcon(align: TextAlign): ReactNode {
   const Icon = ALIGN_ICON[align];
   return <Icon aria-hidden="true" />;
+}
+
+function alignIconName(align: TextAlign | "mixed" | null): TextAlign {
+  if (align === "mixed" || align === null) {
+    return "left";
+  }
+
+  return align;
 }
 
 function choiceValue(value: string | number | null | "mixed"): string {
@@ -849,8 +941,4 @@ function tabOf(id: string, disabled: boolean, firstEnabled: string): number {
   }
 
   return id === firstEnabled ? 0 : -1;
-}
-
-function BarSeparator() {
-  return <Separator orientation="vertical" className="mx-0.5 h-5" />;
 }

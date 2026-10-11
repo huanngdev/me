@@ -11,6 +11,7 @@ import {
   BLOCK_HANDLE_GAP,
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  blockHandleContentTop,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
@@ -505,6 +506,70 @@ describe("block handle placement", () => {
   const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
   const viewport = { width: 1280, height: 800 };
   const block = { blockTop: 100, blockBottom: 124, blockLeft: 300 };
+
+  test("a marked visible child supplies the handle top", () => {
+    const blockEl = document.createElement("div");
+    const card = document.createElement("div");
+    card.setAttribute("data-block-handle-anchor", "");
+    blockEl.append(card);
+    document.body.append(blockEl);
+    blockEl.getBoundingClientRect = () =>
+      ({
+        top: 10,
+        bottom: 50,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 40,
+        x: 0,
+        y: 10,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    card.getBoundingClientRect = () =>
+      ({
+        top: 14,
+        bottom: 46,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 32,
+        x: 0,
+        y: 14,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    expect(blockHandleContentTop(blockEl)).toBe(14);
+    card.remove();
+    expect(blockHandleContentTop(blockEl)).toBe(10);
+    blockEl.remove();
+  });
+
+  test("a center anchor places the handle midline on the anchor", () => {
+    const blockEl = document.createElement("div");
+    const rule = document.createElement("hr");
+    rule.setAttribute("data-block-handle-anchor", "center");
+    blockEl.append(rule);
+    document.body.append(blockEl);
+    rule.getBoundingClientRect = () =>
+      ({
+        top: 20,
+        bottom: 21,
+        left: 0,
+        right: 40,
+        width: 40,
+        height: 1,
+        x: 0,
+        y: 20,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    expect(blockHandleContentTop(blockEl)).toBe(20.5 - BLOCK_HANDLE_HEIGHT / 2);
+    blockEl.remove();
+  });
 
   test("places the handle top at the block's top edge with a gap before the block", () => {
     const placed = placeBlockHandle(block, handle, viewport, null);

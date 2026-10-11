@@ -27,7 +27,6 @@ const floatingSources = [
   "components/ui/table-controls.tsx",
   "components/elements/callout-element.tsx",
   "components/elements/toc-element.tsx",
-  "components/elements/column-element.tsx",
   "components/elements/code-block-element.tsx",
   "components/ui/block-menu.tsx",
   "components/ui/selection-toolbar.tsx",

@@ -32,7 +32,11 @@ export function HrElement(props: PlateElementProps) {
 
   return (
     <PlateElement {...props} className={cn("py-2", className)}>
-      <hr contentEditable={false} className={HR_RULE_CLASS_NAME} />
+      <hr
+        contentEditable={false}
+        className={HR_RULE_CLASS_NAME}
+        data-block-handle-anchor="center"
+      />
       {props.children}
     </PlateElement>
   );

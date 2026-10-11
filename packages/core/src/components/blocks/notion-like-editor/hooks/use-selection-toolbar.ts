@@ -77,7 +77,7 @@ export function useSelectionToolbar() {
       return "";
     }
 
-    return `${instance.operations.length}:${JSON.stringify(selection)}`;
+    return `${instance.operations.length}:${instance.history.undos.length}:${instance.history.redos.length}:${JSON.stringify(selection)}`;
   }, []);
   const [pointerHeld, setPointerHeld] = useState(false);
   const [keyboardSelecting, setKeyboardSelecting] = useState(false);

@@ -23,6 +23,7 @@ import {
   getLineHeight,
   getTextAlign,
   getTextColor,
+  setTextAlign,
   runEditorCommand,
   turnBlockInto,
   type EditorCommand,
@@ -108,6 +109,8 @@ export type SelectionToolbarModel = {
   superscript: SelectionToolbarMarkState;
   subscript: SelectionToolbarMarkState;
   align: TextAlignState;
+  alignDisabled: boolean;
+  alignReason?: string;
   fontSize: FontSizeState;
   fontFamily: FontFamilyState;
   lineHeight: LineHeightState;
@@ -224,6 +227,8 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     superscript: markState(editor, "superscript", "Superscript", formatSuperscript, "superscript"),
     subscript: markState(editor, "subscript", "Subscript", formatSubscript, "subscript"),
     align: getTextAlign(editor),
+    alignDisabled: commandFlags(editor, setTextAlign).disabled,
+    alignReason: commandFlags(editor, setTextAlign).reason,
     fontSize: getFontSize(editor),
     fontFamily: getFontFamily(editor),
     lineHeight: getLineHeight(editor),
@@ -366,9 +371,9 @@ function markState(
   };
 }
 
-function commandFlags(
+function commandFlags<Payload>(
   editor: SlateEditor,
-  command: EditorCommand,
+  command: EditorCommand<Payload>,
 ): { disabled: boolean; reason?: string } {
   const disabled = command.isEnabled?.(editor) === false;
   const reason = disabled ? command.disabledReason?.(editor) : undefined;

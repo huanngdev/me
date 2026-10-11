@@ -1,43 +1,17 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Columns2, Columns3, Trash2, Ungroup } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
-  useEditorSelector,
   useElement,
   useReadOnly,
-  useSelected,
   type PlateElementProps,
 } from "platejs/react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/dropdown-menu";
-import { cn } from "@/lib/utils";
-
-import {
-  clampAndNormalizeWidths,
-  removeColumnGroup,
-  setColumnCount,
-  setColumnWidths,
-  unwrapColumns,
-} from "../../lib/commands/editor-columns";
-import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  EditorMenuTrigger,
-  EditorTextButton,
-  keepMediaSelection,
-} from "../ui/block-toolbar";
+import { clampAndNormalizeWidths, setColumnWidths } from "../../lib/commands/editor-columns";
 
 export const COLUMN_GROUP_LAYOUT_CLASS =
   "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
-export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
-export const COLUMN_REMOVE_CONFIRM = "Delete columns and content?";
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
@@ -88,18 +62,14 @@ export function ColumnGroupElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const readOnly = useReadOnly();
-  const selected = useSelected();
   const columns = columnNodes(element);
   const saved = storedWidths(columns);
   const [preview, setPreview] = useState<string[] | null>(null);
-  const [confirmKey, setConfirmKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ index: number; startX: number; width: number; start: number[] } | null>(
     null,
   );
   const shown = preview ?? saved;
-  const selectionKey = useEditorSelector((instance) => JSON.stringify(instance.selection), []);
-  const confirmRemove = confirmKey !== null && confirmKey === selectionKey;
 
   function commitWidths(numbers: readonly number[]): void {
     const path = editor.api.findPath(element);
@@ -205,26 +175,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
     }
   }
 
-  function runOnGroup(run: () => void): void {
-    const path = editor.api.findPath(element);
-    const start = path ? editor.api.start(path.concat([0, 0])) : undefined;
-    editor.tf.withNewBatch(() => {
-      if (start) {
-        editor.tf.select(start);
-      }
-      run();
-    });
-    editor.tf.setSplittingOnce(true);
-  }
-
   return (
-    <PlateElement
-      {...props}
-      className={cn(
-        "group group/columns relative my-2",
-        !readOnly && selected && COLUMN_GROUP_SELECTED_CLASS,
-      )}
-    >
+    <PlateElement {...props} className="relative my-2">
       <div
         ref={gridRef}
         data-column-layout="stack"
@@ -266,85 +218,6 @@ export function ColumnGroupElement(props: PlateElementProps) {
               />
             );
           })}
-          <div
-            data-column-toolbar
-            className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-          >
-            <DropdownMenu modal={false}>
-              <EditorMenuTrigger
-                label="Columns"
-                text="Columns"
-                icon={
-                  columns.length === 3 ? (
-                    <Columns3 aria-hidden="true" />
-                  ) : (
-                    <Columns2 aria-hidden="true" />
-                  )
-                }
-                onMouseDown={keepMediaSelection}
-              />
-              <DropdownMenuContent
-                align="start"
-                collisionPadding={8}
-                hideWhenDetached
-                onCloseAutoFocus={(event) => {
-                  event.preventDefault();
-                }}
-              >
-                <DropdownMenuRadioGroup
-                  value={columns.length === 3 ? "3" : "2"}
-                  onValueChange={(next) => {
-                    if (next !== "2" && next !== "3") {
-                      return;
-                    }
-                    runOnGroup(() => {
-                      setColumnCount(editor, next === "3" ? 3 : 2);
-                    });
-                  }}
-                >
-                  <DropdownMenuRadioItem
-                    value="2"
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepMediaSelection}
-                  >
-                    2 columns
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem
-                    value="3"
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepMediaSelection}
-                  >
-                    3 columns
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <EditorTextButton
-              label="Turn into blocks"
-              icon={<Ungroup aria-hidden="true" />}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                runOnGroup(() => {
-                  unwrapColumns(editor);
-                });
-              }}
-            />
-            <EditorTextButton
-              variant="destructive"
-              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Delete"}
-              icon={<Trash2 aria-hidden="true" />}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                if (!confirmRemove) {
-                  setConfirmKey(selectionKey);
-                  return;
-                }
-                runOnGroup(() => {
-                  removeColumnGroup(editor);
-                });
-              }}
-            />
-          </div>
         </>
       )}
     </PlateElement>

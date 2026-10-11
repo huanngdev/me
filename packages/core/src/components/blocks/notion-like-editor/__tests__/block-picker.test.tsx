@@ -322,8 +322,9 @@ describe("active menu item state", () => {
       "components/ui/block-picker.tsx",
       "components/elements/callout-element.tsx",
       "components/elements/toc-element.tsx",
-      "components/elements/column-element.tsx",
       "components/elements/code-block-element.tsx",
+      "components/ui/block-menu.tsx",
+      "components/ui/selection-toolbar.tsx",
       "components/ui/table-controls.tsx",
     ];
     for (const file of files) {

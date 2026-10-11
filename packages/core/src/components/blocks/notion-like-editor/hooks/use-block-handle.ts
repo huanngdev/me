@@ -15,6 +15,7 @@ import {
   isBlockDragArmed,
   isTypingKey,
   pickHandleBandAtY,
+  blockHandleContentTop,
   placeBlockHandle,
   reduceHandleUi,
   sortHandleBands,
@@ -139,7 +140,7 @@ function isControlLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
     target.closest(
-      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu]",
+      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
     ) !== null
   );
 }
@@ -173,7 +174,11 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
   if (!(hit instanceof Element)) {
     return false;
   }
-  if (hit.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]")) {
+  if (
+    hit.closest(
+      "[data-block-handle], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
+    )
+  ) {
     return false;
   }
   const block = hit.closest("[data-block-id]");
@@ -186,7 +191,9 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
 function isHandleLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]") !== null
+    target.closest(
+      "[data-block-handle], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
+    ) !== null
   );
 }
 
@@ -221,7 +228,7 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { blockTop: box.top, blockBottom: box.bottom, blockLeft: gutterLeft },
+    { blockTop: blockHandleContentTop(dom), blockBottom: box.bottom, blockLeft: gutterLeft },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),

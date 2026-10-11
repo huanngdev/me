@@ -195,7 +195,7 @@ export function BookmarkElement(props: PlateElementProps) {
       {...props}
       className={cn("group relative py-1", hrElementClassName(selected, focused, readOnly))}
     >
-      <div className="relative" contentEditable={false}>
+      <div className="relative" contentEditable={false} data-block-handle-anchor="">
         {readOnly ? (
           <a
             href={url}
