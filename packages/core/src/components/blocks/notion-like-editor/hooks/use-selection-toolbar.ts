@@ -6,6 +6,7 @@ import { bookmarkUrlPlugin } from "../lib/plugins/editor-bookmark-popover";
 import { editorIsComposing } from "../lib/plugins/editor-mention";
 import { holdSelectionHighlight, linkUiPlugin } from "../lib/plugins/editor-link";
 import { slashUiPlugin } from "../lib/plugins/editor-slash";
+import { blockSelectionPlugin } from "../lib/plugins/editor-block-selection";
 import {
   SELECTION_TOOLBAR_MEDIA,
   editorSurfaceFlags,
@@ -70,6 +71,7 @@ export function useSelectionToolbar() {
   const readOnly = useReadOnly();
   const linkMode = usePluginOption(linkUiPlugin, "mode");
   const slashOpen = usePluginOption(slashUiPlugin, "open");
+  const blockSelectionCount = usePluginOption(blockSelectionPlugin, "ids").length;
   const bookmarkOpen = usePluginOption(bookmarkUrlPlugin, "open");
   const expandedKey = useEditorSelector((instance) => {
     const selection = instance.selection;
@@ -245,7 +247,9 @@ export function useSelectionToolbar() {
     addMenuOpen: domFlags.addMenuOpen,
     dragging: domFlags.dragging,
   };
-  const visible = menuOpen || (expandedKey.length > 0 && selectionToolbarVisible(editor, snapshot));
+  const visible =
+    blockSelectionCount === 0 &&
+    (menuOpen || (expandedKey.length > 0 && selectionToolbarVisible(editor, snapshot)));
 
   useEffect(() => {
     if (!menuOpen || !saved.current || RangeApi.isCollapsed(saved.current)) {

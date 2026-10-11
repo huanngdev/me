@@ -79,6 +79,11 @@ import { MentionElement, MentionInputElement } from "../../components/elements/m
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
+import {
+  blockSelectionEnterPlugin,
+  blockSelectionPlugin,
+  blockSelectionWatchPlugin,
+} from "./editor-block-selection";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
   backspaceToggleLabel,
@@ -1825,6 +1830,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     syncedRefPlugin,
     columnPlugin,
     blockMovePlugin,
+    blockSelectionPlugin,
+    blockSelectionEnterPlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
@@ -1842,5 +1849,6 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     columnNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
+    blockSelectionWatchPlugin,
   ];
 }

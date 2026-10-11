@@ -5745,6 +5745,7 @@ import {
   type BlockPickerItem,
 } from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
+import { blockSelectionIds, setBlockSelection } from "../../lib/plugins/editor-block-selection";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
 import {
   BlockDropIndicator,
@@ -6025,13 +6026,26 @@ function BlockHandleContent({
                   {...drag.attributes}
                   {...drag.listeners}
                   onMouseDown={keepEditorSelection}
-                  onClick={() => {
+                  onClick={(event) => {
                     if (drag.consumeClick()) {
                       return;
                     }
-                    if (paint) {
-                      openMenu.current(paint.target);
+                    if (!paint) {
+                      return;
                     }
+                    const selected = blockSelectionIds(editor);
+                    if (event.shiftKey && selected.length > 0) {
+                      const anchor = selected[0] ?? paint.target.id;
+                      setBlockSelection(editor, [anchor, paint.target.id], {
+                        anchorId: anchor,
+                        focusId: paint.target.id,
+                      });
+                      return;
+                    }
+                    if (!selected.includes(paint.target.id) || selected.length < 2) {
+                      setBlockSelection(editor, [paint.target.id]);
+                    }
+                    openMenu.current(paint.target);
                   }}
                 >
                   <GripVertical aria-hidden="true" />
@@ -6079,6 +6093,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -6104,6 +6119,14 @@ import {
   siblingMove,
   captureEditorScroll,
 } from "../../lib/features/editor-block-drop";
+import { blockRun, runMoveTarget } from "../../lib/features/editor-block-selection";
+import {
+  blockSelectionIds,
+  deleteSelectedBlocks,
+  duplicateSelectedBlocks,
+  moveSelectedBlocks,
+  setBlockSelection,
+} from "../../lib/plugins/editor-block-selection";
 import {
   blockHandleTarget,
   chainFromDom,
@@ -6243,6 +6266,11 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function duplicate(): void {
+    if (multi) {
+      onActed();
+      duplicateSelectedBlocks(editor);
+      return;
+    }
     if (!path) {
       return;
     }
@@ -6251,6 +6279,11 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function remove(): void {
+    if (multi) {
+      onActed();
+      deleteSelectedBlocks(editor);
+      return;
+    }
     if (!path) {
       return;
     }
@@ -6259,6 +6292,13 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function move(direction: "up" | "down"): void {
+    if (multi) {
+      onActed();
+      const scroll = captureEditorScroll();
+      moveSelectedBlocks(editor, direction);
+      settleMovedBlock(editor, scroll);
+      return;
+    }
     const located = findBlockById(editor, target.id);
     const at = located?.[1];
     if (!at) {
@@ -6274,8 +6314,21 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     settleMovedBlock(editor, scroll);
   }
 
-  const up = path === undefined ? null : siblingMove(editor.children, path, "up");
-  const down = path === undefined ? null : siblingMove(editor.children, path, "down");
+  const selectedIds = blockSelectionIds(editor);
+  const multi =
+    path !== undefined && selectedIds.length > 1 && selectedIds.includes(target.id)
+      ? blockRun(editor, selectedIds)
+      : null;
+  const up = multi
+    ? runMoveTarget(editor, multi, "up")
+    : path === undefined
+      ? null
+      : siblingMove(editor.children, path, "up");
+  const down = multi
+    ? runMoveTarget(editor, multi, "down")
+    : path === undefined
+      ? null
+      : siblingMove(editor.children, path, "down");
   const view = path === undefined ? null : menuBlockView(editor, path);
   const columns = view ? columnGroupMenu(view) : null;
 
@@ -6305,6 +6358,62 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     onActed();
     selectGroup();
     runEditorCommand(editor, unwrapColumnsCommand, undefined);
+  }
+
+  if (multi) {
+    return (
+      <>
+        <DropdownMenuLabel data-block-menu-count="">{`${multi.ids.length} blocks`}</DropdownMenuLabel>
+        <DropdownMenuItem
+          onSelect={() => {
+            duplicate();
+          }}
+        >
+          <Copy aria-hidden="true" />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={up === null || !up.ok}
+          data-block-menu-move="up"
+          onSelect={() => {
+            move("up");
+          }}
+        >
+          <ArrowUp aria-hidden="true" />
+          <span className="flex min-w-0 flex-col items-start">
+            <span>Move up</span>
+            {up !== null && !up.ok ? (
+              <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
+            ) : null}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={down === null || !down.ok}
+          data-block-menu-move="down"
+          onSelect={() => {
+            move("down");
+          }}
+        >
+          <ArrowDown aria-hidden="true" />
+          <span className="flex min-w-0 flex-col items-start">
+            <span>Move down</span>
+            {down !== null && !down.ok ? (
+              <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
+            ) : null}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => {
+            remove();
+          }}
+        >
+          <Trash2 aria-hidden="true" />
+          Delete
+        </DropdownMenuItem>
+      </>
+    );
   }
 
   return (
@@ -6527,6 +6636,10 @@ export function BlockMenu({
         return;
       }
       event.preventDefault();
+      const selected = blockSelectionIds(editor);
+      if (!(selected.length > 1 && selected.includes(picked.id))) {
+        setBlockSelection(editor, [picked.id]);
+      }
       openAt(
         { id: picked.id, type: picked.type, path: [...entry[1]] },
         { top: event.clientY, left: event.clientX, width: 0, height: 0 },
@@ -6545,11 +6658,16 @@ export function BlockMenu({
       ) {
         return;
       }
+      const selected = blockSelectionIds(editor);
       const selection = editor.selection;
-      if (!selection) {
-        return;
-      }
-      const hit = targetBlockAtPath(editor, selection.anchor.path);
+      const hit = selected[0]
+        ? (() => {
+            const located = findBlockById(editor, selected[0]);
+            return located ? { id: selected[0], type: "", path: [...located[1]] } : null;
+          })()
+        : selection
+          ? targetBlockAtPath(editor, selection.anchor.path)
+          : null;
       if (!hit) {
         return;
       }
@@ -6717,6 +6835,12 @@ import { useEditorRef } from "platejs/react";
 
 import { moveBlock, runEditorCommand } from "../../lib/commands/editor-commands";
 import {
+  blockSelectionIds,
+  clearBlockSelection,
+  moveBlocks,
+  selectedRunDrop,
+} from "../../lib/plugins/editor-block-selection";
+import {
   captureEditorScroll,
   listItemUnit,
   resolveDropIndicator,
@@ -6724,6 +6848,7 @@ import {
   type DropRect,
 } from "../../lib/features/editor-block-drop";
 import { setBlockDragArmed, type BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { stripPreviewChrome } from "../../lib/features/editor-block-selection";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
@@ -6745,6 +6870,8 @@ type SavedSelection = SlateEditor["selection"];
 type DragSession = {
   path: number[];
   id: string;
+  span?: readonly [number, number];
+  blockMode: boolean;
   startX: number;
   startY: number;
   pointerX: number;
@@ -6762,6 +6889,7 @@ type PreviewData = {
   cap: number;
   offsetX: number;
   offsetY: number;
+  extra: number;
 };
 
 function cloneSelection(selection: SavedSelection): SavedSelection {
@@ -6794,7 +6922,11 @@ function elementIdOf(node: Descendant | undefined): string {
   return typeof id === "string" ? id : "";
 }
 
-function movingBlockIds(editor: SlateEditor, path: readonly number[]): string[] {
+function movingBlockIds(
+  editor: SlateEditor,
+  path: readonly number[],
+  span?: readonly [number, number],
+): string[] {
   const index = path[path.length - 1];
   if (index === undefined) {
     return [];
@@ -6813,7 +6945,7 @@ function movingBlockIds(editor: SlateEditor, path: readonly number[]): string[] 
   if (!siblings) {
     return [];
   }
-  const [start, end] = listItemUnit(siblings, index);
+  const [start, end] = span ?? listItemUnit(siblings, index);
   const ids: string[] = [];
   for (let cursor = start; cursor < end; cursor += 1) {
     const id = elementIdOf(siblings[cursor]);
@@ -6984,6 +7116,7 @@ function sourceNodes(id: string): HTMLElement[] {
 // editor queries on the document is stripped so the copy stays invisible to it.
 function sanitizeClone(source: HTMLElement): HTMLElement {
   const clone = source.cloneNode(true) as HTMLElement;
+  stripPreviewChrome(clone);
   for (const node of [clone, ...clone.querySelectorAll("*")]) {
     if (!(node instanceof HTMLElement)) {
       continue;
@@ -6991,6 +7124,7 @@ function sanitizeClone(source: HTMLElement): HTMLElement {
     // The source block is dimmed before the copy is taken; the copy must not
     // carry that dim class or the overlay's own opacity multiplies it.
     node.classList.remove(SOURCE_DIM);
+    node.removeAttribute("data-block-selected");
     node.removeAttribute("data-block-id");
     node.removeAttribute("data-cell-selected");
     node.removeAttribute("id");
@@ -7030,12 +7164,14 @@ function buildPreview(
     width = Math.max(width, source.getBoundingClientRect().width);
   }
   const rect = first.getBoundingClientRect();
+  const shown = sources.slice(0, 3);
   return {
-    nodes: sources.map((source) => sanitizeClone(source)),
+    nodes: shown.map((source) => sanitizeClone(source)),
     width,
     cap: Math.max(120, Math.round(window.innerHeight * PREVIEW_MAX_VIEWPORT_RATIO)),
     offsetX: activeRect ? rect.left - activeRect.left : 0,
     offsetY: activeRect ? rect.top - activeRect.top : 0,
+    extra: sources.length - shown.length,
   };
 }
 
@@ -7069,20 +7205,35 @@ function DragPreview({ preview }: { preview: PreviewData | null }) {
   }
   return (
     <div
+      className="relative"
       data-block-drag-overlay=""
-      ref={hostRef}
       aria-hidden="true"
       inert
       contentEditable={false}
-      className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
-      style={{
-        width: preview.width,
-        maxHeight: preview.cap,
-        overflow: "hidden",
-        opacity: PREVIEW_OPACITY,
-        transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
-      }}
-    />
+    >
+      <div
+        ref={hostRef}
+        aria-hidden="true"
+        inert
+        contentEditable={false}
+        className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
+        style={{
+          width: preview.width,
+          maxHeight: preview.cap,
+          overflow: "hidden",
+          opacity: PREVIEW_OPACITY,
+          transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
+        }}
+      />
+      {preview.extra > 0 ? (
+        <span
+          data-block-drag-more=""
+          className="bg-primary text-primary-foreground absolute right-2 bottom-2 rounded-md px-1.5 py-0.5 text-xs"
+        >
+          {`+${preview.extra}`}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -7144,6 +7295,14 @@ export function useBlockDrag({
   const userSelectRef = useRef("");
   const suppressClickRef = useRef(false);
   const caretTimerRef = useRef(0);
+  const endDragRef = useRef<() => void>(() => undefined);
+  const cancelDragOnEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape") {
+      return;
+    }
+    event.preventDefault();
+    endDragRef.current();
+  };
 
   useEffect(() => {
     closeRef.current = closeMenu;
@@ -7194,6 +7353,7 @@ export function useBlockDrag({
       session.path,
       rectsRef.current,
       session.pointerY,
+      session.span,
     );
     document.documentElement.style.cursor = line ? "grabbing" : "not-allowed";
     setLine(line);
@@ -7219,6 +7379,7 @@ export function useBlockDrag({
       setOverlay(null);
       window.removeEventListener("scroll", refreshRects, true);
       window.removeEventListener("resize", refreshRects);
+      window.removeEventListener("keydown", cancelDragOnEscape, true);
       if (!restoreSelection || !session) {
         return;
       }
@@ -7253,20 +7414,40 @@ export function useBlockDrag({
     clearPointerRef.current();
     const live = editorRef.current;
     const movedId = session.id;
+    const keepBlocks = session.blockMode;
+    const span = session.span;
     const snap = captureEditorScroll();
     retainScroll(() => {
-      runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
+      if (span) {
+        runEditorCommand(live, moveBlocks, {
+          from: [...session.path],
+          to: line.to,
+          span,
+        });
+      } else {
+        runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
+      }
     });
     requestAnimationFrame(() => {
       restoreEditorScroll(snap);
       rehoverRef.current(session.pointerX, session.pointerY);
       clearCaretTimer();
+      if (keepBlocks) {
+        return;
+      }
       caretTimerRef.current = window.setTimeout(() => {
         caretTimerRef.current = 0;
         placeMovedCaret(editorRef.current, movedId);
       }, CARET_DELAY_MS);
     });
   }, [clearCaretTimer, stop]);
+
+  useEffect(() => {
+    endDragRef.current = () => {
+      suppressClickRef.current = true;
+      stop(true);
+    };
+  }, [stop]);
 
   const onDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -7282,9 +7463,17 @@ export function useBlockDrag({
       suppressClickRef.current = true;
       setBlockDragArmed(true);
       const live = editorRef.current;
+      const selected = blockSelectionIds(live);
+      const inSelection = selected.includes(data.id);
+      if (selected.length > 0 && !inSelection) {
+        clearBlockSelection(live, false);
+      }
+      const dragged = inSelection && selected.length > 1 ? selectedRunDrop(live, data.path) : null;
       sessionRef.current = {
-        path: [...data.path],
+        path: dragged ? [...dragged.from] : [...data.path],
         id: data.id,
+        span: dragged?.span,
+        blockMode: inSelection && selected.length > 0,
         startX,
         startY,
         pointerX: startX,
@@ -7296,7 +7485,7 @@ export function useBlockDrag({
       document.body.style.userSelect = "none";
       document.body.setAttribute("data-block-dragging", "");
       document.documentElement.style.cursor = "grabbing";
-      const ids = movingBlockIds(live, data.path);
+      const ids = movingBlockIds(live, sessionRef.current.path, sessionRef.current.span);
       for (const id of ids) {
         for (const node of sourceNodes(id)) {
           node.classList.add(SOURCE_DIM);
@@ -7321,6 +7510,7 @@ export function useBlockDrag({
       bandRef.current = buildBand(live, rectsRef.current);
       window.addEventListener("scroll", refreshRects, true);
       window.addEventListener("resize", refreshRects);
+      window.addEventListener("keydown", cancelDragOnEscape, true);
       updateIndicator();
     },
     [clearCaretTimer, refreshRects, updateIndicator],
@@ -7597,6 +7787,11 @@ import { MentionElement, MentionInputElement } from "../../components/elements/m
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
+import {
+  blockSelectionEnterPlugin,
+  blockSelectionPlugin,
+  blockSelectionWatchPlugin,
+} from "./editor-block-selection";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
   backspaceToggleLabel,
@@ -9343,6 +9538,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     syncedRefPlugin,
     columnPlugin,
     blockMovePlugin,
+    blockSelectionPlugin,
+    blockSelectionEnterPlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
@@ -9360,6 +9557,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     columnNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
+    blockSelectionWatchPlugin,
   ];
 }
 ````
@@ -22866,7 +23064,7 @@ function selectStart(editor: SlateEditor, path: number[]): void {
   }
 }
 
-function collectIds(editor: SlateEditor): Set<string> {
+export function collectIds(editor: SlateEditor): Set<string> {
   const seen = new Set<string>();
   const visit = (node: Descendant): void => {
     if (!ElementApi.isElement(node)) {
@@ -22884,6 +23082,12 @@ function collectIds(editor: SlateEditor): Set<string> {
     visit(child);
   }
   return seen;
+}
+
+export function cloneWithFreshIds(node: TElement, seen: Set<string>): TElement {
+  const copy = structuredClone(node);
+  assignNewIds(copy, seen);
+  return copy;
 }
 
 function assignNewIds(node: TElement, seen: Set<string>): void {
@@ -23198,6 +23402,7 @@ export function blockDropDecision(
   from: readonly number[],
   toParent: readonly number[],
   toIndex: number,
+  span?: readonly [number, number],
 ): BlockDropDecision {
   if (from.length === 0 || !Number.isInteger(toIndex) || toIndex < 0) {
     return refuse("This block cannot be moved.");
@@ -23213,10 +23418,26 @@ export function blockDropDecision(
 
   const fromParentType =
     fromParent.length === 0 ? null : (elementAt(roots, fromParent)?.type ?? null);
-  const unit = listItemUnit(siblings, fromIndex);
-  const blocked = sourceRefusal(source, fromIndex, fromParentType);
-  if (blocked !== undefined) {
-    return refuse(blocked, unit);
+  const unit = span ?? listItemUnit(siblings, fromIndex);
+  if (
+    span !== undefined &&
+    (span[0] < 0 || span[1] > siblings.length || span[1] <= span[0] || span[0] !== fromIndex)
+  ) {
+    return refuse("This block cannot be moved.", unit);
+  }
+  const refusalIndexes =
+    span === undefined
+      ? [fromIndex]
+      : Array.from({ length: span[1] - span[0] }, (_, offset) => span[0] + offset);
+  for (const index of refusalIndexes) {
+    const node = siblings[index];
+    if (!node || !ElementApi.isElement(node)) {
+      return refuse("This block cannot be moved.", unit);
+    }
+    const blocked = sourceRefusal(node, index, fromParentType);
+    if (blocked !== undefined) {
+      return refuse(blocked, unit);
+    }
   }
 
   const destination = childrenAt(roots, toParent);
@@ -23398,13 +23619,14 @@ export function resolveDropIndicator(
   from: readonly number[],
   rects: readonly DropRect[],
   pointerY: number,
+  span?: readonly [number, number],
 ): DropIndicator | null {
   for (const rect of orderCandidates(rects, pointerY)) {
     const index = rect.path[rect.path.length - 1] ?? 0;
     const parent = rect.path.slice(0, -1);
     const above = pointerY < rect.top + (rect.bottom - rect.top) / 2;
     const toIndex = above ? index : index + 1;
-    const decision = blockDropDecision(roots, from, parent, toIndex);
+    const decision = blockDropDecision(roots, from, parent, toIndex, span);
     if (decision.allowed) {
       const slot = indicatorSlot(rects, [...parent, toIndex], decision.noop);
       if (slot) {
@@ -23419,7 +23641,7 @@ export function resolveDropIndicator(
       if (first && last) {
         const boundaryAbove = pointerY < (first.top + last.bottom) / 2;
         const boundaryIndex = boundaryAbove ? start : end;
-        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
+        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex, span);
         if (boundary.allowed) {
           const slot = indicatorSlot(rects, [...fromParent, boundaryIndex], boundary.noop);
           if (slot) {
@@ -23524,13 +23746,18 @@ function selectMoved(editor: SlateEditor, id: string): void {
   }
 }
 
-export function moveBlockAt(editor: SlateEditor, from: number[], to: number[]): boolean {
+export function moveBlockAt(
+  editor: SlateEditor,
+  from: number[],
+  to: number[],
+  span?: readonly [number, number],
+): boolean {
   const toParent = to.slice(0, -1);
   const toIndex = to[to.length - 1];
   if (toIndex === undefined) {
     return false;
   }
-  const decision = blockDropDecision(editor.children, from, toParent, toIndex);
+  const decision = blockDropDecision(editor.children, from, toParent, toIndex, span);
   if (!decision.allowed || decision.noop) {
     return false;
   }
@@ -26554,6 +26781,7 @@ import { BookmarkUrlPopover } from "../ui/bookmark-url-popover";
 import { LinkPopover } from "../ui/link-popover";
 import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
+import { BlockSelection } from "../ui/block-selection";
 import { BlockPlaceholders } from "./block-placeholders";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
@@ -26617,6 +26845,7 @@ export function EditorSurface({
               )}
             />
             <BlockPlaceholders placeholder={placeholder} />
+            <BlockSelection />
             <BlockHandle onInsertedBelow={onInsertedBelow} />
           </LinkPreviewProvider>
         </MentionScope>

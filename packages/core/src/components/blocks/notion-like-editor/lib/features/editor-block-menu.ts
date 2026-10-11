@@ -1005,7 +1005,7 @@ function selectStart(editor: SlateEditor, path: number[]): void {
   }
 }
 
-function collectIds(editor: SlateEditor): Set<string> {
+export function collectIds(editor: SlateEditor): Set<string> {
   const seen = new Set<string>();
   const visit = (node: Descendant): void => {
     if (!ElementApi.isElement(node)) {
@@ -1023,6 +1023,12 @@ function collectIds(editor: SlateEditor): Set<string> {
     visit(child);
   }
   return seen;
+}
+
+export function cloneWithFreshIds(node: TElement, seen: Set<string>): TElement {
+  const copy = structuredClone(node);
+  assignNewIds(copy, seen);
+  return copy;
 }
 
 function assignNewIds(node: TElement, seen: Set<string>): void {

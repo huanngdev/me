@@ -255,6 +255,7 @@ export function blockDropDecision(
   from: readonly number[],
   toParent: readonly number[],
   toIndex: number,
+  span?: readonly [number, number],
 ): BlockDropDecision {
   if (from.length === 0 || !Number.isInteger(toIndex) || toIndex < 0) {
     return refuse("This block cannot be moved.");
@@ -270,10 +271,26 @@ export function blockDropDecision(
 
   const fromParentType =
     fromParent.length === 0 ? null : (elementAt(roots, fromParent)?.type ?? null);
-  const unit = listItemUnit(siblings, fromIndex);
-  const blocked = sourceRefusal(source, fromIndex, fromParentType);
-  if (blocked !== undefined) {
-    return refuse(blocked, unit);
+  const unit = span ?? listItemUnit(siblings, fromIndex);
+  if (
+    span !== undefined &&
+    (span[0] < 0 || span[1] > siblings.length || span[1] <= span[0] || span[0] !== fromIndex)
+  ) {
+    return refuse("This block cannot be moved.", unit);
+  }
+  const refusalIndexes =
+    span === undefined
+      ? [fromIndex]
+      : Array.from({ length: span[1] - span[0] }, (_, offset) => span[0] + offset);
+  for (const index of refusalIndexes) {
+    const node = siblings[index];
+    if (!node || !ElementApi.isElement(node)) {
+      return refuse("This block cannot be moved.", unit);
+    }
+    const blocked = sourceRefusal(node, index, fromParentType);
+    if (blocked !== undefined) {
+      return refuse(blocked, unit);
+    }
   }
 
   const destination = childrenAt(roots, toParent);
@@ -455,13 +472,14 @@ export function resolveDropIndicator(
   from: readonly number[],
   rects: readonly DropRect[],
   pointerY: number,
+  span?: readonly [number, number],
 ): DropIndicator | null {
   for (const rect of orderCandidates(rects, pointerY)) {
     const index = rect.path[rect.path.length - 1] ?? 0;
     const parent = rect.path.slice(0, -1);
     const above = pointerY < rect.top + (rect.bottom - rect.top) / 2;
     const toIndex = above ? index : index + 1;
-    const decision = blockDropDecision(roots, from, parent, toIndex);
+    const decision = blockDropDecision(roots, from, parent, toIndex, span);
     if (decision.allowed) {
       const slot = indicatorSlot(rects, [...parent, toIndex], decision.noop);
       if (slot) {
@@ -476,7 +494,7 @@ export function resolveDropIndicator(
       if (first && last) {
         const boundaryAbove = pointerY < (first.top + last.bottom) / 2;
         const boundaryIndex = boundaryAbove ? start : end;
-        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex);
+        const boundary = blockDropDecision(roots, from, fromParent, boundaryIndex, span);
         if (boundary.allowed) {
           const slot = indicatorSlot(rects, [...fromParent, boundaryIndex], boundary.noop);
           if (slot) {
@@ -581,13 +599,18 @@ function selectMoved(editor: SlateEditor, id: string): void {
   }
 }
 
-export function moveBlockAt(editor: SlateEditor, from: number[], to: number[]): boolean {
+export function moveBlockAt(
+  editor: SlateEditor,
+  from: number[],
+  to: number[],
+  span?: readonly [number, number],
+): boolean {
   const toParent = to.slice(0, -1);
   const toIndex = to[to.length - 1];
   if (toIndex === undefined) {
     return false;
   }
-  const decision = blockDropDecision(editor.children, from, toParent, toIndex);
+  const decision = blockDropDecision(editor.children, from, toParent, toIndex, span);
   if (!decision.allowed || decision.noop) {
     return false;
   }

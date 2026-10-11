@@ -17,6 +17,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -42,6 +43,14 @@ import {
   siblingMove,
   captureEditorScroll,
 } from "../../lib/features/editor-block-drop";
+import { blockRun, runMoveTarget } from "../../lib/features/editor-block-selection";
+import {
+  blockSelectionIds,
+  deleteSelectedBlocks,
+  duplicateSelectedBlocks,
+  moveSelectedBlocks,
+  setBlockSelection,
+} from "../../lib/plugins/editor-block-selection";
 import {
   blockHandleTarget,
   chainFromDom,
@@ -181,6 +190,11 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function duplicate(): void {
+    if (multi) {
+      onActed();
+      duplicateSelectedBlocks(editor);
+      return;
+    }
     if (!path) {
       return;
     }
@@ -189,6 +203,11 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function remove(): void {
+    if (multi) {
+      onActed();
+      deleteSelectedBlocks(editor);
+      return;
+    }
     if (!path) {
       return;
     }
@@ -197,6 +216,13 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   function move(direction: "up" | "down"): void {
+    if (multi) {
+      onActed();
+      const scroll = captureEditorScroll();
+      moveSelectedBlocks(editor, direction);
+      settleMovedBlock(editor, scroll);
+      return;
+    }
     const located = findBlockById(editor, target.id);
     const at = located?.[1];
     if (!at) {
@@ -212,8 +238,21 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     settleMovedBlock(editor, scroll);
   }
 
-  const up = path === undefined ? null : siblingMove(editor.children, path, "up");
-  const down = path === undefined ? null : siblingMove(editor.children, path, "down");
+  const selectedIds = blockSelectionIds(editor);
+  const multi =
+    path !== undefined && selectedIds.length > 1 && selectedIds.includes(target.id)
+      ? blockRun(editor, selectedIds)
+      : null;
+  const up = multi
+    ? runMoveTarget(editor, multi, "up")
+    : path === undefined
+      ? null
+      : siblingMove(editor.children, path, "up");
+  const down = multi
+    ? runMoveTarget(editor, multi, "down")
+    : path === undefined
+      ? null
+      : siblingMove(editor.children, path, "down");
   const view = path === undefined ? null : menuBlockView(editor, path);
   const columns = view ? columnGroupMenu(view) : null;
 
@@ -243,6 +282,62 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     onActed();
     selectGroup();
     runEditorCommand(editor, unwrapColumnsCommand, undefined);
+  }
+
+  if (multi) {
+    return (
+      <>
+        <DropdownMenuLabel data-block-menu-count="">{`${multi.ids.length} blocks`}</DropdownMenuLabel>
+        <DropdownMenuItem
+          onSelect={() => {
+            duplicate();
+          }}
+        >
+          <Copy aria-hidden="true" />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={up === null || !up.ok}
+          data-block-menu-move="up"
+          onSelect={() => {
+            move("up");
+          }}
+        >
+          <ArrowUp aria-hidden="true" />
+          <span className="flex min-w-0 flex-col items-start">
+            <span>Move up</span>
+            {up !== null && !up.ok ? (
+              <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
+            ) : null}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={down === null || !down.ok}
+          data-block-menu-move="down"
+          onSelect={() => {
+            move("down");
+          }}
+        >
+          <ArrowDown aria-hidden="true" />
+          <span className="flex min-w-0 flex-col items-start">
+            <span>Move down</span>
+            {down !== null && !down.ok ? (
+              <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
+            ) : null}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => {
+            remove();
+          }}
+        >
+          <Trash2 aria-hidden="true" />
+          Delete
+        </DropdownMenuItem>
+      </>
+    );
   }
 
   return (
@@ -465,6 +560,10 @@ export function BlockMenu({
         return;
       }
       event.preventDefault();
+      const selected = blockSelectionIds(editor);
+      if (!(selected.length > 1 && selected.includes(picked.id))) {
+        setBlockSelection(editor, [picked.id]);
+      }
       openAt(
         { id: picked.id, type: picked.type, path: [...entry[1]] },
         { top: event.clientY, left: event.clientX, width: 0, height: 0 },
@@ -483,11 +582,16 @@ export function BlockMenu({
       ) {
         return;
       }
+      const selected = blockSelectionIds(editor);
       const selection = editor.selection;
-      if (!selection) {
-        return;
-      }
-      const hit = targetBlockAtPath(editor, selection.anchor.path);
+      const hit = selected[0]
+        ? (() => {
+            const located = findBlockById(editor, selected[0]);
+            return located ? { id: selected[0], type: "", path: [...located[1]] } : null;
+          })()
+        : selection
+          ? targetBlockAtPath(editor, selection.anchor.path)
+          : null;
       if (!hit) {
         return;
       }
