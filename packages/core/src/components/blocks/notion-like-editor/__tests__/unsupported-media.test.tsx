@@ -181,7 +181,7 @@ describe("file and html media paste", () => {
     expect(documentText(editor)).toBe("Stay");
   });
 
-  test("html img, video, audio, and iframe nodes are dropped with one repair", () => {
+  test("html img, video, audio, and iframe nodes are dropped with one repair, and alt text is kept", () => {
     const editor = createEditor([paragraph("")]);
     editor.tf.select(caret([0, 0], 0));
     pasteHtml(
@@ -194,14 +194,14 @@ describe("file and html media paste", () => {
     expect(stored).not.toContain("audio");
     expect(stored).not.toContain("media_embed");
     expect(stored).not.toContain("unsupported_media");
-    expect(stored).not.toContain("world");
+    expect(stored).toContain("world");
     expect(stored).not.toContain("youtube.com");
     expect(documentText(editor)).toContain("Hello");
     expect(documentText(editor)).toContain("there");
     expect(pasteRepairsOf(editor)).toEqual([{ path: [], message: MEDIA_NOT_SUPPORTED }]);
   });
 
-  test("a pasted editor image fragment inserts nothing", () => {
+  test("a pasted editor image fragment keeps the alt text and reports the drop", () => {
     const editor = createEditor([paragraph("Stay")]);
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertFragment([
@@ -213,9 +213,9 @@ describe("file and html media paste", () => {
         children: [{ text: "" }],
       },
     ]);
-    expect(editor.children.map((block) => block.type)).toEqual(["p"]);
-    expect(documentText(editor)).toBe("Stay");
-    expect(JSON.stringify(editor.children)).not.toContain("Hill");
+    expect(documentText(editor)).toContain("Stay");
+    expect(documentText(editor)).toContain("Hill");
+    expect(JSON.stringify(editor.children)).not.toContain("images.example");
     expect(pasteRepairsOf(editor)).toEqual([{ path: [], message: MEDIA_NOT_SUPPORTED }]);
   });
 });

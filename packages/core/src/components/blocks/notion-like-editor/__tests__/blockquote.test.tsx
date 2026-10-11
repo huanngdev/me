@@ -598,15 +598,13 @@ describe("blockquote keyboard", () => {
     expect(nodeText(plain.children[0])).toBe("Hello");
   });
 
-  test("typing > does not turn a paragraph into a quote", () => {
+  test("typing > space turns a paragraph into a quote", () => {
     const editor = createEditor([paragraph("Hello", "para-1")]);
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertText("> ");
-    editor.tf.select(caret([0, 0], 4));
-    editor.tf.insertText(">");
 
-    expect(typesOf(editor)).toEqual(["p"]);
-    expect(texts(editor)).toEqual(["> He>llo"]);
+    expect(typesOf(editor)).toEqual(["blockquote"]);
+    expect(nodeText(editor.children[0])).toBe("Hello");
     expect(editor.meta.shortcuts["blockquote.toggle"]).toBeUndefined();
   });
 });

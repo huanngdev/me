@@ -11,6 +11,7 @@ import {
 
 import type { EditorCommand } from "../commands/editor-commands";
 import { selectionInCodeBlock } from "../features/editor-code";
+import { clipboardWithinHtmlLimit } from "./editor-paste";
 
 export type PasteUrlOffer = {
   url: string;
@@ -58,7 +59,7 @@ export const pasteUrlPlugin = createSlatePlugin({
     transforms: {
       insertData(data: DataTransfer) {
         clearPasteUrlOffer(editor);
-        const prepared = dataWithoutScripts(data);
+        const prepared = clipboardWithinHtmlLimit(dataWithoutUnsafeElements(data));
         const plain = prepared.getData("text/plain");
         const html = prepared.getData("text/html");
         const collapsed =
@@ -351,9 +352,9 @@ function linkPathForOffer(editor: SlateEditor, offer: PasteUrlOffer): number[] |
   return undefined;
 }
 
-function dataWithoutScripts(data: DataTransfer): DataTransfer {
+function dataWithoutUnsafeElements(data: DataTransfer): DataTransfer {
   const html = data.getData("text/html");
-  if (html.length === 0 || !/<\s*script\b/i.test(html)) {
+  if (html.length === 0 || !/<\s*(script|style)\b/i.test(html)) {
     return data;
   }
 
@@ -363,7 +364,7 @@ function dataWithoutScripts(data: DataTransfer): DataTransfer {
     next.setData("text/plain", plain);
   }
 
-  const cleaned = htmlWithoutScripts(html);
+  const cleaned = htmlWithoutUnsafeElements(html);
   if (cleaned.length > 0) {
     next.setData("text/html", cleaned);
   }
@@ -379,9 +380,12 @@ function dataWithoutScripts(data: DataTransfer): DataTransfer {
   return next;
 }
 
-function htmlWithoutScripts(html: string): string {
+// Script and style elements never reach the document. A <style> inside the body
+// would otherwise deserialize to a paragraph of raw CSS. Head styles are already
+// outside the body the deserializer walks.
+function htmlWithoutUnsafeElements(html: string): string {
   const document = new DOMParser().parseFromString(html, "text/html");
-  for (const node of Array.from(document.querySelectorAll("script"))) {
+  for (const node of Array.from(document.querySelectorAll("script, style"))) {
     node.remove();
   }
 

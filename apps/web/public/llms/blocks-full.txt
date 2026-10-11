@@ -2481,7 +2481,7 @@ export const EMPTY_EDITOR_VALUE = [
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-schema.ts
-````ts
+```ts
 import { KEYS } from "platejs";
 
 import { formatBlockLabel } from "./editor-document";
@@ -2958,7 +2958,6 @@ export const EDITOR_ELEMENT_RULES = [
     childTypes: [KEYS.p],
   },
   // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
-  // No shortcut. The "> " trigger is DEV-126.
   {
     type: KEYS.toggle,
     attrs: ["id"],
@@ -2986,7 +2985,6 @@ export const EDITOR_ELEMENT_RULES = [
     },
   },
   // Plate's code block. lang is absent for plaintext. Tokens are decorations, not children.
-  // The ``` trigger is DEV-126, so this block has no markdown rule.
   {
     type: KEYS.codeBlock,
     attrs: ["id", "lang"],
@@ -3399,7 +3397,7 @@ export function isAllowedValue<T extends string | number | boolean>(
 export function isPaletteToken(value: unknown): value is PaletteToken {
   return isAllowedValue(value, PALETTE_TOKENS);
 }
-````
+```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document.ts
 ```ts
@@ -4221,7 +4219,9 @@ export function parseEditorDocument(raw: unknown): ParseResult {
 ## packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste.ts
 ```ts
 import {
+  ElementApi,
   KEYS,
+  TextApi,
   createSlatePlugin,
   isHtmlBlockElement,
   nanoid,
@@ -4277,6 +4277,39 @@ import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
+export const PASTE_HTML_CHAR_LIMIT = 2_000_000;
+export const PASTE_BLOCK_LIMIT = 2_000;
+export const PASTE_TEXT_CHAR_LIMIT = 1_000_000;
+
+export function pasteTooLargeMessage(kind: "blocks" | "characters"): string {
+  if (kind === "blocks") {
+    return "The paste was too large. Only the first 2,000 blocks were inserted.";
+  }
+
+  return "The paste was too large. Only the first 1,000,000 characters were inserted.";
+}
+
+export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
+  const html = data.getData("text/html");
+  if (html.length <= PASTE_HTML_CHAR_LIMIT) {
+    return data;
+  }
+
+  const next = new DataTransfer();
+  for (const type of data.types) {
+    if (type === "text/html") {
+      continue;
+    }
+
+    const value = data.getData(type);
+    if (value.length > 0) {
+      next.setData(type, value);
+    }
+  }
+
+  return next;
+}
+
 export { pasteRepairsOf, setPasteRepairs };
 
 export type PasteSanitizeOptions = {
@@ -4291,6 +4324,17 @@ let activePasteRepairs: Repair[] | undefined;
 // The table override sanitizes the fragment again. A repair from the first pass
 // is gone on the second, so those repairs are kept until the outer insert finishes.
 let pendingImageRepairs: Repair[] = [];
+let pendingLimitRepairs: Repair[] = [];
+
+function rememberLimitRepair(repair: Repair): void {
+  if (!pendingLimitRepairs.some((item) => item.message === repair.message)) {
+    pendingLimitRepairs.push(repair);
+  }
+}
+
+function clearPendingLimitRepairs(): void {
+  pendingLimitRepairs = [];
+}
 let pendingMentionInputRepairs: Repair[] = [];
 
 function rememberImageRepair(repair: Repair): void {
@@ -4464,6 +4508,38 @@ function isDroppedMediaType(type: string): boolean {
     type === "pdf" ||
     type === "unsupported_media"
   );
+}
+
+// A dropped image, file, or embed keeps its readable text (alt, caption, name)
+// so the paste is never silently emptied. The media itself is not stored.
+function droppedMediaLabel(node: Record<string, unknown>): string | undefined {
+  for (const key of ["alt", "caption", "name"]) {
+    const value = node[key];
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const text = stripControlCharacters(value).trim();
+    if (text.length > 0) {
+      return text;
+    }
+  }
+
+  return undefined;
+}
+
+function stripControlCharacters(value: string): string {
+  let text = "";
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code < 0x20 || code === 0x7f) {
+      continue;
+    }
+
+    text += character;
+  }
+
+  return text;
 }
 
 function noteDroppedMedia(): void {
@@ -5024,7 +5100,8 @@ function expandBlock(
 ): TElement[] {
   if (isDroppedMediaType(node.type)) {
     noteDroppedMedia();
-    return [];
+    const label = droppedMediaLabel(node);
+    return label === undefined ? [] : [paragraph([{ text: label }])];
   }
 
   if (node.type === KEYS.mentionInput) {
@@ -5101,6 +5178,10 @@ function expandBlock(
     if (isRecord(child) && typeof child.type === "string" && isDroppedMediaType(child.type)) {
       noteDroppedMedia();
       sawDroppedMedia = true;
+      const label = droppedMediaLabel(child);
+      if (label !== undefined) {
+        inlines.push({ text: label });
+      }
       continue;
     }
 
@@ -5150,7 +5231,8 @@ function inlineNodes(
 ): Descendant[] {
   if (isDroppedMediaType(node.type)) {
     noteDroppedMedia();
-    return [];
+    const label = droppedMediaLabel(node);
+    return label === undefined ? [] : [{ text: label }];
   }
 
   if (node.type === KEYS.mentionInput) {
@@ -5319,8 +5401,149 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  const limited = limitPastedValue(value, repairs);
+  for (const repair of pendingLimitRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
-  return value;
+  return limited;
+}
+
+function fitPasteForCell(editor: SlateEditor, value: EditorValue): EditorValue {
+  const cell = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && (node.type === KEYS.td || node.type === KEYS.th),
+  });
+  if (cell === undefined) {
+    return value;
+  }
+
+  return value.map((node) => {
+    if (node.type === KEYS.p) {
+      return node;
+    }
+
+    return { type: KEYS.p, children: [{ text: nodeText(node) }] };
+  });
+}
+
+function nodeText(node: TElement): string {
+  let text = "";
+  const visit = (child: Descendant): void => {
+    if (TextApi.isText(child)) {
+      text += child.text;
+      return;
+    }
+
+    if (ElementApi.isElement(child)) {
+      child.children.forEach(visit);
+    }
+  };
+
+  node.children.forEach(visit);
+  return text;
+}
+
+function isInlinePasteType(type: string): boolean {
+  return type === KEYS.link || type === KEYS.mention || type === "a";
+}
+
+function countPasteBlocks(nodes: readonly unknown[]): number {
+  let count = 0;
+  for (const node of nodes) {
+    if (isRecord(node) && isElementNode(node) && !isInlinePasteType(node.type)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function countPasteText(nodes: readonly unknown[]): number {
+  let count = 0;
+  const visit = (node: unknown): void => {
+    if (!isRecord(node)) {
+      return;
+    }
+
+    if (isTextNode(node) && typeof node.text === "string") {
+      count += node.text.length;
+      return;
+    }
+
+    if (!Array.isArray(node.children)) {
+      return;
+    }
+
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return count;
+}
+
+function takeBlocks(nodes: EditorValue, budget: { left: number }): EditorValue {
+  const kept: EditorValue = [];
+  for (const node of nodes) {
+    if (!isElementNode(node) || isInlinePasteType(node.type)) {
+      kept.push(node);
+      continue;
+    }
+
+    if (budget.left <= 0) {
+      break;
+    }
+
+    budget.left -= 1;
+    kept.push(node);
+  }
+
+  return kept;
+}
+
+function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
+  const kept: Descendant[] = [];
+  for (const node of nodes) {
+    if (budget.left <= 0) {
+      break;
+    }
+
+    if (TextApi.isText(node)) {
+      const text = node.text.slice(0, budget.left);
+      budget.left -= text.length;
+      kept.push({ ...node, text });
+      continue;
+    }
+
+    if (!ElementApi.isElement(node)) {
+      continue;
+    }
+
+    kept.push({ ...node, children: takeText(node.children, budget) });
+  }
+
+  return kept;
+}
+
+export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+  let next = value;
+  if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
+    next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });
+    rememberLimitRepair({ path: [], message: pasteTooLargeMessage("blocks") });
+  }
+
+  if (countPasteText(next) > PASTE_TEXT_CHAR_LIMIT) {
+    next = takeText(next, { left: PASTE_TEXT_CHAR_LIMIT }) as EditorValue;
+    rememberLimitRepair({ path: [], message: pasteTooLargeMessage("characters") });
+  }
+
+  return next;
 }
 
 export const PasteFallbackPlugin = createSlatePlugin({
@@ -5343,10 +5566,11 @@ export const PasteFallbackPlugin = createSlatePlugin({
       // table override sanitizes that path too. This still covers every other fragment.
       // Repairs are remembered across the table override's second sanitize.
       try {
-        insertFragment(preparePastedFragment(editor, fragment), options);
+        insertFragment(fitPasteForCell(editor, preparePastedFragment(editor, fragment)), options);
       } finally {
         clearPendingImageRepairs();
         clearPendingMentionInputRepairs();
+        clearPendingLimitRepairs();
         clearUnsafePastedLinkRepairs();
       }
     },
@@ -5393,7 +5617,20 @@ export const unsupportedMediaPlugin = createSlatePlugin({
           { validNodeName: "AUDIO" },
           { validNodeName: "IFRAME" },
         ],
-        parse: () => ({ type: "unsupported_media", children: [{ text: "" }] }),
+        parse: ({ element }) => {
+          // Carry the readable text so the sanitizer can keep it and report the drop.
+          const alt = element.getAttribute("alt") ?? element.getAttribute("title") ?? "";
+          const label = alt.trim();
+          const node: Record<string, unknown> = {
+            type: "unsupported_media",
+            children: [{ text: "" }],
+          };
+          if (label.length > 0) {
+            node.alt = label;
+          }
+
+          return node;
+        },
       },
     },
   },
@@ -7705,7 +7942,7 @@ export function virtualAnchor(
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-````ts
+```ts
 import {
   BlockquotePlugin,
   BoldPlugin,
@@ -7786,6 +8023,8 @@ import {
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
+import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
+import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import {
   blockSelectionEnterPlugin,
@@ -7844,9 +8083,11 @@ import {
   unsatisfiedDependentAttrs,
 } from "../document/editor-document-schema";
 import {
+  caretInCodeMark,
   codeBlockHtmlDeserializer,
   codeClipboardText,
   codeLowlight,
+  htmlToPlainText,
   insertCodeText,
   selectionInCodeBlock,
 } from "../features/editor-code";
@@ -8616,6 +8857,34 @@ function storedListStyle(style: string | undefined): "disc" | "decimal" | undefi
   return undefined;
 }
 
+// The table paste path deserializes HTML itself, so Plate's list transformData
+// does not run. Mark each li the same way that transform does.
+function annotatePastedLists(body: HTMLElement): void {
+  for (const element of Array.from(body.querySelectorAll("li"))) {
+    let indent = 0;
+    let parent = element.parentElement;
+    while (parent && parent !== body) {
+      if (parent.tagName === "UL" || parent.tagName === "OL") {
+        indent += 1;
+      }
+      parent = parent.parentElement;
+    }
+
+    if (indent > 0 && element.dataset.indent === undefined) {
+      element.dataset.indent = String(indent);
+    }
+
+    if (element.dataset.listStyleType === undefined) {
+      const listParent = element.closest("ul, ol");
+      if (listParent?.tagName === "UL") {
+        element.dataset.listStyleType = "disc";
+      } else if (listParent?.tagName === "OL") {
+        element.dataset.listStyleType = "decimal";
+      }
+    }
+  }
+}
+
 // Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
 // The input has no text, and the HTML deserializer drops it, so this only reads.
 export function pastedTodoChecked(element: HTMLElement): boolean | undefined {
@@ -8652,7 +8921,6 @@ function listRestartFromStart(element: HTMLElement): number | undefined {
   return start;
 }
 
-// The "1. " markdown trigger is deferred to DEV-126. OrderedListRules stays unregistered.
 const listPlugin = ListPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p],
@@ -9179,7 +9447,6 @@ const breakAbovePlugin = createSlatePlugin({
   },
 }));
 
-// The ``` trigger is DEV-126. CodeBlockRules stays unregistered, so ``` inside a block is text.
 // Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
 // Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
 // Tab inside code returns before the list handler, and Tab outside still reaches it.
@@ -9209,12 +9476,20 @@ const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
         insertSoftBreak();
       },
       insertData(data: DataTransfer) {
-        if (!selectionInCodeBlock(editor)) {
-          insertData(data);
+        if (selectionInCodeBlock(editor)) {
+          insertCodeText(editor, codeClipboardText(data));
           return;
         }
 
-        insertCodeText(editor, codeClipboardText(data));
+        if (caretInCodeMark(editor)) {
+          const plain = data.getData("text/plain");
+          editor.tf.insertText(
+            plain.length > 0 ? plain : htmlToPlainText(data.getData("text/html")),
+          );
+          return;
+        }
+
+        insertData(data);
       },
     },
   }));
@@ -9227,6 +9502,16 @@ const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: BookmarkElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Enter on the selected bookmark opens its action popover.
+const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onBookmarkToolbarKeyDown(editor, event);
+    },
+  },
 });
 
 const tocPlugin = TocPlugin.configure({
@@ -9461,6 +9746,7 @@ const tablePlugin = TablePlugin.configure({
             rememberHtmlTableWidths(html);
             try {
               const body = new DOMParser().parseFromString(html, "text/html").body;
+              annotatePastedLists(body);
               // happy-dom hoists a bare <col> out of the table. Widths are already
               // recorded; leaving the column in the body pastes an empty paragraph.
               for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
@@ -9522,7 +9808,6 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     blockquotePlugin,
     calloutPlugin,
     togglePlugin,
-    // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,
     lineHeightPlugin,
@@ -9558,9 +9843,11 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     voidPropsPlugin,
     toggleRevealPlugin,
     blockSelectionWatchPlugin,
+    editorInputRulesPlugin,
+    bookmarkToolbarPlatePlugin,
   ];
 }
-````
+```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
 ```ts
@@ -9578,7 +9865,6 @@ import {
 import { allowsFirstChild } from "../document/editor-document-schema";
 
 // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
-// No shortcut. The "> " trigger is DEV-126.
 export const togglePlugin = createSlatePlugin({
   key: KEYS.toggle,
   node: { isElement: true },
@@ -10667,7 +10953,7 @@ export function CalloutElement(props: PlateElementProps) {
 import type { LanguageFn } from "highlight.js";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import { createLowlight } from "lowlight";
-import { KEYS, type SlateEditor, type TElement } from "platejs";
+import { KEYS, TextApi, type SlateEditor, type TElement } from "platejs";
 
 import { CODE_LANGS, codeLangFromToken, type CodeLang } from "../document/editor-document-schema";
 
@@ -10820,6 +11106,25 @@ export function insertCodeText(editor: SlateEditor, text: string): void {
 
 export function selectionInCodeBlock(editor: SlateEditor): boolean {
   return editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } }) !== undefined;
+}
+
+export function caretInCodeMark(editor: SlateEditor): boolean {
+  const selection = editor.selection;
+  if (!selection || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  const entry = editor.api.node(selection.anchor.path);
+  return entry !== undefined && TextApi.isText(entry[0]) && entry[0][KEYS.code] === true;
+}
+
+export function htmlToPlainText(html: string): string {
+  if (html.length === 0) {
+    return "";
+  }
+
+  const body = new DOMParser().parseFromString(html, "text/html").body;
+  return body.textContent ?? "";
 }
 ```
 
@@ -14534,6 +14839,7 @@ import {
 
 import type { EditorCommand } from "../commands/editor-commands";
 import { selectionInCodeBlock } from "../features/editor-code";
+import { clipboardWithinHtmlLimit } from "./editor-paste";
 
 export type PasteUrlOffer = {
   url: string;
@@ -14581,7 +14887,7 @@ export const pasteUrlPlugin = createSlatePlugin({
     transforms: {
       insertData(data: DataTransfer) {
         clearPasteUrlOffer(editor);
-        const prepared = dataWithoutScripts(data);
+        const prepared = clipboardWithinHtmlLimit(dataWithoutUnsafeElements(data));
         const plain = prepared.getData("text/plain");
         const html = prepared.getData("text/html");
         const collapsed =
@@ -14874,9 +15180,9 @@ function linkPathForOffer(editor: SlateEditor, offer: PasteUrlOffer): number[] |
   return undefined;
 }
 
-function dataWithoutScripts(data: DataTransfer): DataTransfer {
+function dataWithoutUnsafeElements(data: DataTransfer): DataTransfer {
   const html = data.getData("text/html");
-  if (html.length === 0 || !/<\s*script\b/i.test(html)) {
+  if (html.length === 0 || !/<\s*(script|style)\b/i.test(html)) {
     return data;
   }
 
@@ -14886,7 +15192,7 @@ function dataWithoutScripts(data: DataTransfer): DataTransfer {
     next.setData("text/plain", plain);
   }
 
-  const cleaned = htmlWithoutScripts(html);
+  const cleaned = htmlWithoutUnsafeElements(html);
   if (cleaned.length > 0) {
     next.setData("text/html", cleaned);
   }
@@ -14902,9 +15208,12 @@ function dataWithoutScripts(data: DataTransfer): DataTransfer {
   return next;
 }
 
-function htmlWithoutScripts(html: string): string {
+// Script and style elements never reach the document. A <style> inside the body
+// would otherwise deserialize to a paragraph of raw CSS. Head styles are already
+// outside the body the deserializer walks.
+function htmlWithoutUnsafeElements(html: string): string {
   const document = new DOMParser().parseFromString(html, "text/html");
-  for (const node of Array.from(document.querySelectorAll("script"))) {
+  for (const node of Array.from(document.querySelectorAll("script, style"))) {
     node.remove();
   }
 
@@ -15370,7 +15679,6 @@ function writableBookmark(editor: SlateEditor, id: string): [TElement, number[]]
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
 ```tsx
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -15381,25 +15689,15 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 
-import {
-  applyBookmarkPreview,
-  convertBookmarkToText,
-  removeBookmark,
-} from "../../lib/features/editor-bookmark";
+import { applyBookmarkPreview } from "../../lib/features/editor-bookmark";
 import { bookmarkDomain, type LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
-import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { openBookmarkToolbar } from "../../lib/plugins/editor-bookmark-toolbar";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import { hrElementClassName } from "./hr-element";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  EditorIconButton,
-  EditorTextButton,
-  editorControlLabel,
-  mediaStringAttr,
-  keepMediaSelection,
-} from "../ui/block-toolbar";
+import { mediaStringAttr } from "../ui/block-toolbar";
+import { BookmarkToolbarPopover } from "../ui/bookmark-toolbar-popover";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
 // One rounded card: the preview image fills the left ~27% at the card's full
@@ -15564,7 +15862,7 @@ export function BookmarkElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className={cn("group relative py-1", hrElementClassName(selected, focused, readOnly))}
+      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
     >
       <div className="relative" contentEditable={false} data-block-handle-anchor="">
         {readOnly ? (
@@ -15590,15 +15888,32 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-status={phase}
             data-bookmark-url={url}
             className={cn(BOOKMARK_CARD_CLASS, hrElementClassName(selected, focused, readOnly))}
+            onClick={(event) => {
+              if (event.metaKey || event.ctrlKey) {
+                event.preventDefault();
+                window.open(url, "_blank", "noopener,noreferrer");
+                return;
+              }
+
+              if (blockSelectionActive(editor)) {
+                return;
+              }
+
+              const path = editor.api.findPath(element);
+              if (path) {
+                editor.tf.select(path);
+              }
+              openBookmarkToolbar(editor, id);
+            }}
           >
             {body}
           </div>
         )}
         {readOnly ? null : (
-          <BookmarkToolbar
+          <BookmarkToolbarPopover
             id={id}
-            showRefresh={adapter !== null}
             url={url}
+            showRefresh={adapter !== null}
             onRefresh={() => {
               setAttempt((current) => current + 1);
             }}
@@ -15670,64 +15985,6 @@ function BookmarkThumbnail({ imageUrl }: { imageUrl: string | undefined }) {
         className="size-full object-cover"
         onError={() => {
           setBroken(true);
-        }}
-      />
-    </div>
-  );
-}
-
-function BookmarkToolbar({
-  id,
-  onRefresh,
-  showRefresh,
-  url,
-}: {
-  id: string;
-  onRefresh: () => void;
-  showRefresh: boolean;
-  url: string;
-}) {
-  const editor = useEditorRef();
-  const selected = useSelected();
-
-  return (
-    <div
-      data-bookmark-toolbar=""
-      className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-    >
-      <Button asChild variant="ghost" size="sm">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          aria-label="Open"
-          onMouseDown={keepMediaSelection}
-        >
-          {editorControlLabel(<ExternalLink aria-hidden="true" />, "Open")}
-        </a>
-      </Button>
-      {showRefresh ? (
-        <EditorTextButton
-          label="Refresh preview"
-          icon={<RefreshCw aria-hidden="true" />}
-          onClick={() => {
-            onRefresh();
-          }}
-        />
-      ) : null}
-      <EditorTextButton
-        label="Convert to text"
-        icon={<Type aria-hidden="true" />}
-        onClick={() => {
-          runEditorCommand(editor, convertBookmarkToText, id);
-        }}
-      />
-      <EditorIconButton
-        variant="destructive"
-        label="Delete"
-        icon={<Trash2 aria-hidden="true" />}
-        onClick={() => {
-          runEditorCommand(editor, removeBookmark, id);
         }}
       />
     </div>
@@ -25114,7 +25371,6 @@ function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
   editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
 }
 
-// No shortcut. Notion and Google Docs have none. The --- trigger is DEV-126.
 export const insertDivider: EditorCommand = {
   id: "block.insert.divider",
   label: "Divider",

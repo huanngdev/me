@@ -596,14 +596,14 @@ describe("numbered list behavior", () => {
     expect(renderedStarts(renderList(editor.children))).toEqual([3, 4]);
   });
 
-  test("typing 1. space does not start a numbered list", () => {
+  test("typing 1. space starts a numbered list", () => {
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
     editor.tf.select(caret([0, 0], 0));
 
     editor.tf.insertText("1. ");
 
-    expect(texts(editor)).toEqual(["1. "]);
-    expect(field(editor.children[0], "listStyleType")).toBeUndefined();
+    expect(texts(editor)).toEqual([""]);
+    expect(field(editor.children[0], "listStyleType")).toBe("decimal");
   });
 });
 

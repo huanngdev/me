@@ -749,14 +749,14 @@ describe("divider keyboard", () => {
     expect(editor.api.start([])?.path[0]).toBe(0);
   });
 
-  test("plain text --- stays text", () => {
+  test("typing --- replaces the paragraph with a divider", () => {
     const editor = createEditor();
     editor.tf.select(caret([0, 0], 0));
 
     editor.tf.insertText("---");
 
-    expect(typesOf(editor)).toEqual(["p"]);
-    expect(texts(editor)).toEqual(["---"]);
+    expect(typesOf(editor)[0]).toBe("hr");
+    expect(typesOf(editor)[1]).toBe("p");
   });
 });
 

@@ -1,5 +1,7 @@
 import {
+  ElementApi,
   KEYS,
+  TextApi,
   createSlatePlugin,
   isHtmlBlockElement,
   nanoid,
@@ -55,6 +57,39 @@ import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
+export const PASTE_HTML_CHAR_LIMIT = 2_000_000;
+export const PASTE_BLOCK_LIMIT = 2_000;
+export const PASTE_TEXT_CHAR_LIMIT = 1_000_000;
+
+export function pasteTooLargeMessage(kind: "blocks" | "characters"): string {
+  if (kind === "blocks") {
+    return "The paste was too large. Only the first 2,000 blocks were inserted.";
+  }
+
+  return "The paste was too large. Only the first 1,000,000 characters were inserted.";
+}
+
+export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
+  const html = data.getData("text/html");
+  if (html.length <= PASTE_HTML_CHAR_LIMIT) {
+    return data;
+  }
+
+  const next = new DataTransfer();
+  for (const type of data.types) {
+    if (type === "text/html") {
+      continue;
+    }
+
+    const value = data.getData(type);
+    if (value.length > 0) {
+      next.setData(type, value);
+    }
+  }
+
+  return next;
+}
+
 export { pasteRepairsOf, setPasteRepairs };
 
 export type PasteSanitizeOptions = {
@@ -69,6 +104,17 @@ let activePasteRepairs: Repair[] | undefined;
 // The table override sanitizes the fragment again. A repair from the first pass
 // is gone on the second, so those repairs are kept until the outer insert finishes.
 let pendingImageRepairs: Repair[] = [];
+let pendingLimitRepairs: Repair[] = [];
+
+function rememberLimitRepair(repair: Repair): void {
+  if (!pendingLimitRepairs.some((item) => item.message === repair.message)) {
+    pendingLimitRepairs.push(repair);
+  }
+}
+
+function clearPendingLimitRepairs(): void {
+  pendingLimitRepairs = [];
+}
 let pendingMentionInputRepairs: Repair[] = [];
 
 function rememberImageRepair(repair: Repair): void {
@@ -242,6 +288,38 @@ function isDroppedMediaType(type: string): boolean {
     type === "pdf" ||
     type === "unsupported_media"
   );
+}
+
+// A dropped image, file, or embed keeps its readable text (alt, caption, name)
+// so the paste is never silently emptied. The media itself is not stored.
+function droppedMediaLabel(node: Record<string, unknown>): string | undefined {
+  for (const key of ["alt", "caption", "name"]) {
+    const value = node[key];
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const text = stripControlCharacters(value).trim();
+    if (text.length > 0) {
+      return text;
+    }
+  }
+
+  return undefined;
+}
+
+function stripControlCharacters(value: string): string {
+  let text = "";
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code < 0x20 || code === 0x7f) {
+      continue;
+    }
+
+    text += character;
+  }
+
+  return text;
 }
 
 function noteDroppedMedia(): void {
@@ -802,7 +880,8 @@ function expandBlock(
 ): TElement[] {
   if (isDroppedMediaType(node.type)) {
     noteDroppedMedia();
-    return [];
+    const label = droppedMediaLabel(node);
+    return label === undefined ? [] : [paragraph([{ text: label }])];
   }
 
   if (node.type === KEYS.mentionInput) {
@@ -879,6 +958,10 @@ function expandBlock(
     if (isRecord(child) && typeof child.type === "string" && isDroppedMediaType(child.type)) {
       noteDroppedMedia();
       sawDroppedMedia = true;
+      const label = droppedMediaLabel(child);
+      if (label !== undefined) {
+        inlines.push({ text: label });
+      }
       continue;
     }
 
@@ -928,7 +1011,8 @@ function inlineNodes(
 ): Descendant[] {
   if (isDroppedMediaType(node.type)) {
     noteDroppedMedia();
-    return [];
+    const label = droppedMediaLabel(node);
+    return label === undefined ? [] : [{ text: label }];
   }
 
   if (node.type === KEYS.mentionInput) {
@@ -1097,8 +1181,149 @@ export function preparePastedFragment(
       repairs.push(repair);
     }
   }
+  const limited = limitPastedValue(value, repairs);
+  for (const repair of pendingLimitRepairs) {
+    if (!repairs.some((item) => item.message === repair.message)) {
+      repairs.push(repair);
+    }
+  }
   setPasteRepairs(editor, repairs);
-  return value;
+  return limited;
+}
+
+function fitPasteForCell(editor: SlateEditor, value: EditorValue): EditorValue {
+  const cell = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && (node.type === KEYS.td || node.type === KEYS.th),
+  });
+  if (cell === undefined) {
+    return value;
+  }
+
+  return value.map((node) => {
+    if (node.type === KEYS.p) {
+      return node;
+    }
+
+    return { type: KEYS.p, children: [{ text: nodeText(node) }] };
+  });
+}
+
+function nodeText(node: TElement): string {
+  let text = "";
+  const visit = (child: Descendant): void => {
+    if (TextApi.isText(child)) {
+      text += child.text;
+      return;
+    }
+
+    if (ElementApi.isElement(child)) {
+      child.children.forEach(visit);
+    }
+  };
+
+  node.children.forEach(visit);
+  return text;
+}
+
+function isInlinePasteType(type: string): boolean {
+  return type === KEYS.link || type === KEYS.mention || type === "a";
+}
+
+function countPasteBlocks(nodes: readonly unknown[]): number {
+  let count = 0;
+  for (const node of nodes) {
+    if (isRecord(node) && isElementNode(node) && !isInlinePasteType(node.type)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function countPasteText(nodes: readonly unknown[]): number {
+  let count = 0;
+  const visit = (node: unknown): void => {
+    if (!isRecord(node)) {
+      return;
+    }
+
+    if (isTextNode(node) && typeof node.text === "string") {
+      count += node.text.length;
+      return;
+    }
+
+    if (!Array.isArray(node.children)) {
+      return;
+    }
+
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return count;
+}
+
+function takeBlocks(nodes: EditorValue, budget: { left: number }): EditorValue {
+  const kept: EditorValue = [];
+  for (const node of nodes) {
+    if (!isElementNode(node) || isInlinePasteType(node.type)) {
+      kept.push(node);
+      continue;
+    }
+
+    if (budget.left <= 0) {
+      break;
+    }
+
+    budget.left -= 1;
+    kept.push(node);
+  }
+
+  return kept;
+}
+
+function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
+  const kept: Descendant[] = [];
+  for (const node of nodes) {
+    if (budget.left <= 0) {
+      break;
+    }
+
+    if (TextApi.isText(node)) {
+      const text = node.text.slice(0, budget.left);
+      budget.left -= text.length;
+      kept.push({ ...node, text });
+      continue;
+    }
+
+    if (!ElementApi.isElement(node)) {
+      continue;
+    }
+
+    kept.push({ ...node, children: takeText(node.children, budget) });
+  }
+
+  return kept;
+}
+
+export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+  let next = value;
+  if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
+    next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });
+    rememberLimitRepair({ path: [], message: pasteTooLargeMessage("blocks") });
+  }
+
+  if (countPasteText(next) > PASTE_TEXT_CHAR_LIMIT) {
+    next = takeText(next, { left: PASTE_TEXT_CHAR_LIMIT }) as EditorValue;
+    rememberLimitRepair({ path: [], message: pasteTooLargeMessage("characters") });
+  }
+
+  return next;
 }
 
 export const PasteFallbackPlugin = createSlatePlugin({
@@ -1121,10 +1346,11 @@ export const PasteFallbackPlugin = createSlatePlugin({
       // table override sanitizes that path too. This still covers every other fragment.
       // Repairs are remembered across the table override's second sanitize.
       try {
-        insertFragment(preparePastedFragment(editor, fragment), options);
+        insertFragment(fitPasteForCell(editor, preparePastedFragment(editor, fragment)), options);
       } finally {
         clearPendingImageRepairs();
         clearPendingMentionInputRepairs();
+        clearPendingLimitRepairs();
         clearUnsafePastedLinkRepairs();
       }
     },
@@ -1171,7 +1397,20 @@ export const unsupportedMediaPlugin = createSlatePlugin({
           { validNodeName: "AUDIO" },
           { validNodeName: "IFRAME" },
         ],
-        parse: () => ({ type: "unsupported_media", children: [{ text: "" }] }),
+        parse: ({ element }) => {
+          // Carry the readable text so the sanitizer can keep it and report the drop.
+          const alt = element.getAttribute("alt") ?? element.getAttribute("title") ?? "";
+          const label = alt.trim();
+          const node: Record<string, unknown> = {
+            type: "unsupported_media",
+            children: [{ text: "" }],
+          };
+          if (label.length > 0) {
+            node.alt = label;
+          }
+
+          return node;
+        },
       },
     },
   },

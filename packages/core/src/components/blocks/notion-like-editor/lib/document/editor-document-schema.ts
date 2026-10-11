@@ -474,7 +474,6 @@ export const EDITOR_ELEMENT_RULES = [
     childTypes: [KEYS.p],
   },
   // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
-  // No shortcut. The "> " trigger is DEV-126.
   {
     type: KEYS.toggle,
     attrs: ["id"],
@@ -502,7 +501,6 @@ export const EDITOR_ELEMENT_RULES = [
     },
   },
   // Plate's code block. lang is absent for plaintext. Tokens are decorations, not children.
-  // The ``` trigger is DEV-126, so this block has no markdown rule.
   {
     type: KEYS.codeBlock,
     attrs: ["id", "lang"],

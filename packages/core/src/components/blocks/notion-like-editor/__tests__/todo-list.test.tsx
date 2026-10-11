@@ -806,16 +806,16 @@ describe("to-do list keyboard", () => {
     expect(field(nested.children[2], "listStart")).toBe(2);
   });
 
-  test("typing a markdown checkbox does not start a to-do", () => {
+  test("typing a markdown checkbox starts a to-do", () => {
     for (const typed of ["[] ", "[ ] ", "[x] "]) {
       const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
       editor.tf.select(caret([0, 0], 0));
 
       editor.tf.insertText(typed);
 
-      expect(texts(editor)).toEqual([typed]);
-      expect(field(editor.children[0], "listStyleType")).toBeUndefined();
-      expect(field(editor.children[0], "checked")).toBeUndefined();
+      expect(texts(editor)).toEqual([""]);
+      expect(field(editor.children[0], "listStyleType")).toBe("todo");
+      expect(field(editor.children[0], "checked")).toBe(typed === "[x] ");
     }
   });
 });

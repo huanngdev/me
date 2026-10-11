@@ -610,6 +610,35 @@ export function onBlockSelectionCopy(
   return writeBlockFragment(editor, event.clipboardData);
 }
 
+export function onBlockSelectionPaste(
+  editor: SlateEditor,
+  event: { preventDefault: () => void; clipboardData: DataTransfer | null },
+): boolean {
+  if (!blockSelectionActive(editor) || event.clipboardData === null) {
+    return false;
+  }
+
+  const run = runOf(editor);
+  if (!run) {
+    return false;
+  }
+
+  event.preventDefault();
+  const data = event.clipboardData;
+  suspendPrune += 1;
+  try {
+    editor.tf.withNewBatch(() => {
+      fragmentRange(editor, run);
+      clearBlockSelection(editor, false);
+      editor.tf.insertData(data);
+    });
+  } finally {
+    suspendPrune -= 1;
+  }
+
+  return true;
+}
+
 export function onBlockSelectionCut(
   editor: SlateEditor,
   event: { preventDefault: () => void; clipboardData: DataTransfer | null },
@@ -682,6 +711,7 @@ export const blockSelectionPlugin = toPlatePlugin(selectionBase, {
     onKeyDown: ({ editor, event }) => onBlockSelectionKeyDown(editor, event),
     onCopy: ({ editor, event }) => onBlockSelectionCopy(editor, event),
     onCut: ({ editor, event }) => onBlockSelectionCut(editor, event),
+    onPaste: ({ editor, event }) => onBlockSelectionPaste(editor, event),
     onBeforeInput: ({ editor, event }) => {
       if (!blockSelectionActive(editor)) {
         return false;

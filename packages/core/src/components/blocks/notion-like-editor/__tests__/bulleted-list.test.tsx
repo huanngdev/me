@@ -527,15 +527,15 @@ describe("bulleted list keyboard", () => {
     expect(editor.children[1]?.children[0]).toEqual({ text: "Keep", bold: true });
   });
 
-  test("typing dash space does not start a bullet", () => {
+  test("typing dash space starts a bullet", () => {
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
     editor.tf.select(caret([0, 0], 0));
 
     editor.tf.insertText("- ");
 
-    expect(texts(editor)).toEqual(["- "]);
-    expect(field(editor.children[0], "listStyleType")).toBeUndefined();
-    expect(field(editor.children[0], "indent")).toBeUndefined();
+    expect(texts(editor)).toEqual([""]);
+    expect(field(editor.children[0], "listStyleType")).toBe("disc");
+    expect(field(editor.children[0], "indent")).toBe(1);
   });
 
   test("list and indent plugins target paragraphs and cap indent at 6", () => {

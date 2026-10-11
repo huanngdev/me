@@ -1231,7 +1231,6 @@ function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
   editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
 }
 
-// No shortcut. Notion and Google Docs have none. The --- trigger is DEV-126.
 export const insertDivider: EditorCommand = {
   id: "block.insert.divider",
   label: "Divider",

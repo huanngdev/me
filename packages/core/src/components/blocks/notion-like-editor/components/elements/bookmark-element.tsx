@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -10,25 +9,15 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 
-import {
-  applyBookmarkPreview,
-  convertBookmarkToText,
-  removeBookmark,
-} from "../../lib/features/editor-bookmark";
+import { applyBookmarkPreview } from "../../lib/features/editor-bookmark";
 import { bookmarkDomain, type LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
-import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { openBookmarkToolbar } from "../../lib/plugins/editor-bookmark-toolbar";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import { hrElementClassName } from "./hr-element";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  EditorIconButton,
-  EditorTextButton,
-  editorControlLabel,
-  mediaStringAttr,
-  keepMediaSelection,
-} from "../ui/block-toolbar";
+import { mediaStringAttr } from "../ui/block-toolbar";
+import { BookmarkToolbarPopover } from "../ui/bookmark-toolbar-popover";
 
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
 // One rounded card: the preview image fills the left ~27% at the card's full
@@ -193,7 +182,7 @@ export function BookmarkElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className={cn("group relative py-1", hrElementClassName(selected, focused, readOnly))}
+      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
     >
       <div className="relative" contentEditable={false} data-block-handle-anchor="">
         {readOnly ? (
@@ -219,15 +208,32 @@ export function BookmarkElement(props: PlateElementProps) {
             data-bookmark-status={phase}
             data-bookmark-url={url}
             className={cn(BOOKMARK_CARD_CLASS, hrElementClassName(selected, focused, readOnly))}
+            onClick={(event) => {
+              if (event.metaKey || event.ctrlKey) {
+                event.preventDefault();
+                window.open(url, "_blank", "noopener,noreferrer");
+                return;
+              }
+
+              if (blockSelectionActive(editor)) {
+                return;
+              }
+
+              const path = editor.api.findPath(element);
+              if (path) {
+                editor.tf.select(path);
+              }
+              openBookmarkToolbar(editor, id);
+            }}
           >
             {body}
           </div>
         )}
         {readOnly ? null : (
-          <BookmarkToolbar
+          <BookmarkToolbarPopover
             id={id}
-            showRefresh={adapter !== null}
             url={url}
+            showRefresh={adapter !== null}
             onRefresh={() => {
               setAttempt((current) => current + 1);
             }}
@@ -299,64 +305,6 @@ function BookmarkThumbnail({ imageUrl }: { imageUrl: string | undefined }) {
         className="size-full object-cover"
         onError={() => {
           setBroken(true);
-        }}
-      />
-    </div>
-  );
-}
-
-function BookmarkToolbar({
-  id,
-  onRefresh,
-  showRefresh,
-  url,
-}: {
-  id: string;
-  onRefresh: () => void;
-  showRefresh: boolean;
-  url: string;
-}) {
-  const editor = useEditorRef();
-  const selected = useSelected();
-
-  return (
-    <div
-      data-bookmark-toolbar=""
-      className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-    >
-      <Button asChild variant="ghost" size="sm">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          aria-label="Open"
-          onMouseDown={keepMediaSelection}
-        >
-          {editorControlLabel(<ExternalLink aria-hidden="true" />, "Open")}
-        </a>
-      </Button>
-      {showRefresh ? (
-        <EditorTextButton
-          label="Refresh preview"
-          icon={<RefreshCw aria-hidden="true" />}
-          onClick={() => {
-            onRefresh();
-          }}
-        />
-      ) : null}
-      <EditorTextButton
-        label="Convert to text"
-        icon={<Type aria-hidden="true" />}
-        onClick={() => {
-          runEditorCommand(editor, convertBookmarkToText, id);
-        }}
-      />
-      <EditorIconButton
-        variant="destructive"
-        label="Delete"
-        icon={<Trash2 aria-hidden="true" />}
-        onClick={() => {
-          runEditorCommand(editor, removeBookmark, id);
         }}
       />
     </div>

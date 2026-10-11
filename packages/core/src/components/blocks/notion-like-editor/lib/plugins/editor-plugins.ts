@@ -78,6 +78,8 @@ import {
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
+import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
+import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import {
   blockSelectionEnterPlugin,
@@ -136,9 +138,11 @@ import {
   unsatisfiedDependentAttrs,
 } from "../document/editor-document-schema";
 import {
+  caretInCodeMark,
   codeBlockHtmlDeserializer,
   codeClipboardText,
   codeLowlight,
+  htmlToPlainText,
   insertCodeText,
   selectionInCodeBlock,
 } from "../features/editor-code";
@@ -908,6 +912,34 @@ function storedListStyle(style: string | undefined): "disc" | "decimal" | undefi
   return undefined;
 }
 
+// The table paste path deserializes HTML itself, so Plate's list transformData
+// does not run. Mark each li the same way that transform does.
+function annotatePastedLists(body: HTMLElement): void {
+  for (const element of Array.from(body.querySelectorAll("li"))) {
+    let indent = 0;
+    let parent = element.parentElement;
+    while (parent && parent !== body) {
+      if (parent.tagName === "UL" || parent.tagName === "OL") {
+        indent += 1;
+      }
+      parent = parent.parentElement;
+    }
+
+    if (indent > 0 && element.dataset.indent === undefined) {
+      element.dataset.indent = String(indent);
+    }
+
+    if (element.dataset.listStyleType === undefined) {
+      const listParent = element.closest("ul, ol");
+      if (listParent?.tagName === "UL") {
+        element.dataset.listStyleType = "disc";
+      } else if (listParent?.tagName === "OL") {
+        element.dataset.listStyleType = "decimal";
+      }
+    }
+  }
+}
+
 // Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
 // The input has no text, and the HTML deserializer drops it, so this only reads.
 export function pastedTodoChecked(element: HTMLElement): boolean | undefined {
@@ -944,7 +976,6 @@ function listRestartFromStart(element: HTMLElement): number | undefined {
   return start;
 }
 
-// The "1. " markdown trigger is deferred to DEV-126. OrderedListRules stays unregistered.
 const listPlugin = ListPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p],
@@ -1471,7 +1502,6 @@ const breakAbovePlugin = createSlatePlugin({
   },
 }));
 
-// The ``` trigger is DEV-126. CodeBlockRules stays unregistered, so ``` inside a block is text.
 // Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
 // Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
 // Tab inside code returns before the list handler, and Tab outside still reaches it.
@@ -1501,12 +1531,20 @@ const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
         insertSoftBreak();
       },
       insertData(data: DataTransfer) {
-        if (!selectionInCodeBlock(editor)) {
-          insertData(data);
+        if (selectionInCodeBlock(editor)) {
+          insertCodeText(editor, codeClipboardText(data));
           return;
         }
 
-        insertCodeText(editor, codeClipboardText(data));
+        if (caretInCodeMark(editor)) {
+          const plain = data.getData("text/plain");
+          editor.tf.insertText(
+            plain.length > 0 ? plain : htmlToPlainText(data.getData("text/html")),
+          );
+          return;
+        }
+
+        insertData(data);
       },
     },
   }));
@@ -1519,6 +1557,16 @@ const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: BookmarkElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Enter on the selected bookmark opens its action popover.
+const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onBookmarkToolbarKeyDown(editor, event);
+    },
+  },
 });
 
 const tocPlugin = TocPlugin.configure({
@@ -1753,6 +1801,7 @@ const tablePlugin = TablePlugin.configure({
             rememberHtmlTableWidths(html);
             try {
               const body = new DOMParser().parseFromString(html, "text/html").body;
+              annotatePastedLists(body);
               // happy-dom hoists a bare <col> out of the table. Widths are already
               // recorded; leaving the column in the body pastes an empty paragraph.
               for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
@@ -1814,7 +1863,6 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     blockquotePlugin,
     calloutPlugin,
     togglePlugin,
-    // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,
     lineHeightPlugin,
@@ -1850,5 +1898,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     voidPropsPlugin,
     toggleRevealPlugin,
     blockSelectionWatchPlugin,
+    editorInputRulesPlugin,
+    bookmarkToolbarPlatePlugin,
   ];
 }
