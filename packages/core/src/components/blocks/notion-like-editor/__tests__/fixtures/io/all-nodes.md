@@ -4,7 +4,7 @@
 
 ### Heading 3
 
-plain **bold** _italic_ under ~~strike~~ `code` sub sup red yellow 12px serif and [a link](https://example.com) plus @Ada\
+plain **bold** *italic* under ~~strike~~ `code` sub sup red yellow 12px serif and [a link](https://example.com) plus @Ada\
 next line
 
 - Bullet
@@ -36,7 +36,6 @@ Hidden
 <summary>
 
 ## Section
-
 </summary>
 
 Inside
@@ -48,14 +47,14 @@ const n = 1;
 n;
 ```
 
-| Name |     |
-| ---- | --- |
-| Ada  | One |
-|      | Two |
+| Name |  |
+| --- | --- |
+| Ada | One |
+|  | Two |
 
-| Side | Wide |      |
-| ---- | ---- | ---- |
-|      | Next | Last |
+| Side | Wide |  |
+| --- | --- | --- |
+|  | Next | Last |
 
 Left
 

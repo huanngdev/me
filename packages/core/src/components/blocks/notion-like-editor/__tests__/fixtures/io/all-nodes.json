@@ -397,7 +397,10 @@
           ]
         }
       ],
-      "colSizes": [120, null]
+      "colSizes": [
+        120,
+        null
+      ]
     },
     {
       "type": "table",
