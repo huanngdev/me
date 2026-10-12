@@ -175,6 +175,11 @@ function sanitizeText(node: Record<string, unknown>, allowMarks: boolean): TText
     next[key] = node[key];
   }
 
+  // Inline code and kbd are mutually exclusive. Code wins, as it does when typed.
+  if (next[KEYS.code] === true) {
+    delete next[KEYS.kbd];
+  }
+
   return next;
 }
 

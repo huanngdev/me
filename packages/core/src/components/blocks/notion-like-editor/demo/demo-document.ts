@@ -149,6 +149,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-kbd",
+    children: [
+      { text: "Press " },
+      { text: "⌘K", kbd: true },
+      { text: " to open a menu. Select text and choose Keyboard in the More menu." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-superscript",
     children: [
       { text: "This is superscript: x" },

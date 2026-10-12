@@ -12,6 +12,7 @@ import {
   IndentDecrease,
   IndentIncrease,
   Italic,
+  Keyboard,
   Link,
   RemoveFormatting,
   Sigma,
@@ -357,6 +358,9 @@ export function SelectionToolbar() {
       onSubscript={() => {
         run(markCommand("subscript"), undefined);
       }}
+      onKeyboard={() => {
+        run(markCommand("keyboard"), undefined);
+      }}
       onAlign={(value) => {
         run(setTextAlign, value);
       }}
@@ -486,6 +490,7 @@ function ToolbarControls({
   onTurn,
   onSuperscript,
   onSubscript,
+  onKeyboard,
   onAlign,
   onFontSize,
   onFontFamily,
@@ -505,6 +510,7 @@ function ToolbarControls({
   onTurn: (item: BlockPickerItem) => void;
   onSuperscript: () => void;
   onSubscript: () => void;
+  onKeyboard: () => void;
   onAlign: (value: TextAlign | null) => void;
   onRestore: () => void;
   onFontSize: (value: FontSize | null) => void;
@@ -671,6 +677,7 @@ function ToolbarControls({
         onOpenChange={onMenu}
         onSuperscript={onSuperscript}
         onSubscript={onSubscript}
+        onKeyboard={onKeyboard}
         onFontSize={onFontSize}
         onFontFamily={onFontFamily}
         onLineHeight={onLineHeight}
@@ -756,6 +763,7 @@ function MoreMenu({
   onOpenChange,
   onSuperscript,
   onSubscript,
+  onKeyboard,
   onFontSize,
   onFontFamily,
   onLineHeight,
@@ -768,6 +776,7 @@ function MoreMenu({
   onOpenChange: (open: boolean) => void;
   onSuperscript: () => void;
   onSubscript: () => void;
+  onKeyboard: () => void;
   onFontSize: (value: FontSize | null) => void;
   onFontFamily: (value: FontFamily | null) => void;
   onLineHeight: (value: LineHeight | null) => void;
@@ -810,6 +819,11 @@ function MoreMenu({
             mark={model.subscript}
             icon={<Subscript aria-hidden="true" />}
             onToggle={onSubscript}
+          />
+          <CheckItem
+            mark={model.keyboard}
+            icon={<Keyboard aria-hidden="true" />}
+            onToggle={onKeyboard}
           />
           <ChoiceMenu
             label="Font size"

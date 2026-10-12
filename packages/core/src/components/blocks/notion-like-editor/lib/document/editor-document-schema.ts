@@ -618,6 +618,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
+  { type: KEYS.kbd },
   { type: KEYS.color, values: PALETTE_TOKENS },
   { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
   { type: KEYS.fontSize, values: FONT_SIZES },

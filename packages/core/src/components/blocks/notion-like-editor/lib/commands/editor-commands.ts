@@ -181,6 +181,7 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
 export const formatCode: EditorCommand = createMarkCommand({
   key: KEYS.code,
   label: "Inline code",
+  excludes: [KEYS.kbd],
 });
 
 export const formatSuperscript: EditorCommand = createMarkCommand({
@@ -193,6 +194,13 @@ export const formatSubscript: EditorCommand = createMarkCommand({
   key: KEYS.sub,
   label: "Subscript",
   excludes: [KEYS.sup],
+});
+
+// Formatting only. Inline code and kbd exclude each other, so turning either on clears the other.
+export const formatKeyboard: EditorCommand = createMarkCommand({
+  key: KEYS.kbd,
+  label: "Keyboard",
+  excludes: [KEYS.code],
 });
 
 export type TextColorState = TextColorToken | null | "mixed";

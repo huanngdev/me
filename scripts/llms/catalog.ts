@@ -154,6 +154,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts",
       "packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts",
       "packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx",
+      "packages/core/src/components/blocks/notion-like-editor/components/elements/kbd-classes.ts",
       "packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx",
       "packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts",

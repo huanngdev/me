@@ -7,6 +7,7 @@ import {
   BaseH3Plugin,
   BaseHorizontalRulePlugin,
   BaseItalicPlugin,
+  BaseKbdPlugin,
   BaseStrikethroughPlugin,
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
@@ -44,6 +45,7 @@ import {
   CodeSyntaxStatic,
 } from "../../components/static/code-block-static";
 import { codeLowlight } from "../features/editor-code";
+import { KbdStatic } from "../../components/static/kbd-static";
 import { ensureStaticCodeLanguages } from "../../components/static/code-highlight";
 
 ensureStaticCodeLanguages();
@@ -142,6 +144,7 @@ export const editorStaticPlugins = [
   BaseCodePlugin.configure({ node: { props: { className: codeLeafClassName } } }),
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
+  BaseKbdPlugin.configure({ render: { node: KbdStatic } }),
   BaseFontColorPlugin.configure({
     inject: { nodeProps: tokenProps(KEYS.color, "color", "--editor-text", isPaletteToken) },
   }),

@@ -7,6 +7,7 @@ import {
   H3Plugin,
   HorizontalRulePlugin,
   ItalicPlugin,
+  KbdPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
   SuperscriptPlugin,
@@ -115,6 +116,7 @@ import {
   formatBold,
   formatCode,
   formatItalic,
+  formatKeyboard,
   formatStrikethrough,
   formatSubscript,
   formatSuperscript,
@@ -161,6 +163,7 @@ import {
 } from "../features/editor-code";
 import { HeadingElement } from "../../components/elements/heading-element";
 import { codeLeafClassName } from "../static/mark-classes";
+import { KBD_CLASS } from "../../components/elements/kbd-classes";
 import {
   PasteFallbackPlugin,
   clearHtmlTableWidths,
@@ -320,6 +323,8 @@ const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscri
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
+// KbdPlugin ships no shortcut. Toggled from the More menu only.
+const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
 
 type TokenNodePropsOptions = {
   nodeValue?: unknown;
@@ -1926,6 +1931,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codePlugin,
     superscriptPlugin,
     subscriptPlugin,
+    kbdPlugin,
     textColorPlugin,
     highlightPlugin,
     fontSizePlugin,

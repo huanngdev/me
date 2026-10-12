@@ -51,75 +51,76 @@
 41. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
 42. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
 43. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
-44. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
-45. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
-46. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-47. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-49. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-50. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-51. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-52. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-53. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-54. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-55. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
-62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
-63. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-64. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-65. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-67. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-68. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-69. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-73. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-74. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-75. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-76. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-77. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-78. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-79. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-80. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-88. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-89. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-90. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-91. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-92. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-93. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-94. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-110. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-111. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-112. apps/web/src/app/blocks/notion-like-editor/page.tsx
+44. packages/core/src/components/blocks/notion-like-editor/components/elements/kbd-classes.ts
+45. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
+46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
+47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+48. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+51. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+52. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+55. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+56. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+64. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+65. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+66. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+69. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+70. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+74. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+75. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+76. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+77. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+78. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+79. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+80. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+81. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+88. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+89. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+90. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+91. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+92. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+93. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+94. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+95. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+111. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+112. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+113. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -757,6 +758,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
+  { type: KEYS.kbd },
   { type: KEYS.color, values: PALETTE_TOKENS },
   { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
   { type: KEYS.fontSize, values: FONT_SIZES },
@@ -2071,6 +2073,11 @@ function sanitizeText(node: Record<string, unknown>, allowMarks: boolean): TText
     }
 
     next[key] = node[key];
+  }
+
+  // Inline code and kbd are mutually exclusive. Code wins, as it does when typed.
+  if (next[KEYS.code] === true) {
+    delete next[KEYS.kbd];
   }
 
   return next;
@@ -5885,6 +5892,7 @@ import {
   H3Plugin,
   HorizontalRulePlugin,
   ItalicPlugin,
+  KbdPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
   SuperscriptPlugin,
@@ -5993,6 +6001,7 @@ import {
   formatBold,
   formatCode,
   formatItalic,
+  formatKeyboard,
   formatStrikethrough,
   formatSubscript,
   formatSuperscript,
@@ -6039,6 +6048,7 @@ import {
 } from "../features/editor-code";
 import { HeadingElement } from "../../components/elements/heading-element";
 import { codeLeafClassName } from "../static/mark-classes";
+import { KBD_CLASS } from "../../components/elements/kbd-classes";
 import {
   PasteFallbackPlugin,
   clearHtmlTableWidths,
@@ -6198,6 +6208,8 @@ const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscri
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
+// KbdPlugin ships no shortcut. Toggled from the More menu only.
+const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
 
 type TokenNodePropsOptions = {
   nodeValue?: unknown;
@@ -7804,6 +7816,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codePlugin,
     superscriptPlugin,
     subscriptPlugin,
+    kbdPlugin,
     textColorPlugin,
     highlightPlugin,
     fontSizePlugin,
@@ -16084,6 +16097,13 @@ export function InlineEquationElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/components/elements/kbd-classes.ts
+```ts
+// Same visual as the Kbd primitive. Inline, so the paragraph line height does not change.
+export const KBD_CLASS =
+  "border-border bg-muted text-foreground rounded-sm border px-1 font-sans text-[0.85em] align-baseline";
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
 ```tsx
 import { useEffect, useRef } from "react";
@@ -22959,6 +22979,7 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
 export const formatCode: EditorCommand = createMarkCommand({
   key: KEYS.code,
   label: "Inline code",
+  excludes: [KEYS.kbd],
 });
 
 export const formatSuperscript: EditorCommand = createMarkCommand({
@@ -22971,6 +22992,13 @@ export const formatSubscript: EditorCommand = createMarkCommand({
   key: KEYS.sub,
   label: "Subscript",
   excludes: [KEYS.sup],
+});
+
+// Formatting only. Inline code and kbd exclude each other, so turning either on clears the other.
+export const formatKeyboard: EditorCommand = createMarkCommand({
+  key: KEYS.kbd,
+  label: "Keyboard",
+  excludes: [KEYS.code],
 });
 
 export type TextColorState = TextColorToken | null | "mixed";
@@ -26340,6 +26368,15 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "p",
+    id: "demo-kbd",
+    children: [
+      { text: "Press " },
+      { text: "⌘K", kbd: true },
+      { text: " to open a menu. Select text and choose Keyboard in the More menu." },
+    ],
+  },
+  {
+    type: "p",
     id: "demo-superscript",
     children: [
       { text: "This is superscript: x" },
@@ -27855,6 +27892,7 @@ import {
   BaseH3Plugin,
   BaseHorizontalRulePlugin,
   BaseItalicPlugin,
+  BaseKbdPlugin,
   BaseStrikethroughPlugin,
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
@@ -27892,6 +27930,7 @@ import {
   CodeSyntaxStatic,
 } from "../../components/static/code-block-static";
 import { codeLowlight } from "../features/editor-code";
+import { KbdStatic } from "../../components/static/kbd-static";
 import { ensureStaticCodeLanguages } from "../../components/static/code-highlight";
 
 ensureStaticCodeLanguages();
@@ -27990,6 +28029,7 @@ export const editorStaticPlugins = [
   BaseCodePlugin.configure({ node: { props: { className: codeLeafClassName } } }),
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
+  BaseKbdPlugin.configure({ render: { node: KbdStatic } }),
   BaseFontColorPlugin.configure({
     inject: { nodeProps: tokenProps(KEYS.color, "color", "--editor-text", isPaletteToken) },
   }),

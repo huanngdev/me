@@ -13,6 +13,7 @@ import {
   formatBold,
   formatCode,
   formatItalic,
+  formatKeyboard,
   formatStrikethrough,
   formatSubscript,
   formatSuperscript,
@@ -117,6 +118,7 @@ export type SelectionToolbarModel = {
   colorDisabled: boolean;
   superscript: SelectionToolbarMarkState;
   subscript: SelectionToolbarMarkState;
+  keyboard: SelectionToolbarMarkState;
   align: TextAlignState;
   alignDisabled: boolean;
   alignReason?: string;
@@ -244,6 +246,7 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     colorDisabled: false,
     superscript: markState(editor, "superscript", "Superscript", formatSuperscript, "superscript"),
     subscript: markState(editor, "subscript", "Subscript", formatSubscript, "subscript"),
+    keyboard: markState(editor, "keyboard", "Keyboard", formatKeyboard, "kbd"),
     align: getTextAlign(editor),
     alignDisabled: commandFlags(editor, setTextAlign).disabled,
     alignReason: commandFlags(editor, setTextAlign).reason,
@@ -364,10 +367,13 @@ export function formatShortcut(keys: readonly string[]): string {
 }
 
 export function markCommand(
-  id: SelectionToolbarMarkId | "superscript" | "subscript",
+  id: SelectionToolbarMarkId | "superscript" | "subscript" | "keyboard",
 ): EditorCommand {
   if (id === "superscript") {
     return formatSuperscript;
+  }
+  if (id === "keyboard") {
+    return formatKeyboard;
   }
   if (id === "subscript") {
     return formatSubscript;
