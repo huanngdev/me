@@ -92,7 +92,7 @@ export function SelectionColorMenu({
             <Button
               type="button"
               size="icon"
-              variant="outline"
+              variant="ghost"
               aria-label="Color"
               disabled={disabled}
               tabIndex={tabIndex}

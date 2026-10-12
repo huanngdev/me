@@ -23,7 +23,6 @@ import {
 import { RangeApi, type SlateEditor, type TRange } from "platejs";
 
 import { Button } from "@/components/button";
-import { ButtonGroup } from "@/components/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { Separator } from "@/components/separator";
 import { Toggle } from "@/components/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
@@ -408,7 +408,7 @@ export function SelectionToolbar() {
         onPointerDownOutside={keepNested}
         onMouseDown={keepSelection}
         onKeyDown={onToolbarKeyDown}
-        className="w-auto max-w-[calc(100vw-16px)] border-0 bg-transparent p-0 shadow-none ring-0"
+        className="w-auto max-w-[calc(100vw-16px)] p-2"
       >
         <ScrollFadeArea orientation="horizontal" className="w-full">
           <ToolbarRoot placement="floating" collisionBoundary={frame ? "frame" : undefined}>
@@ -430,16 +430,29 @@ function ToolbarRoot({
   children: ReactNode;
 }) {
   return (
-    <ButtonGroup
+    <div
       role="toolbar"
       aria-label="Text formatting"
       data-selection-toolbar=""
       data-placement={placement}
       data-collision-boundary={collisionBoundary}
-      className="bg-background shadow-sm"
+      className={cn(
+        "flex items-center gap-1",
+        placement === "docked" && "bg-background p-2 shadow-sm",
+      )}
     >
       {children}
-    </ButtonGroup>
+    </div>
+  );
+}
+
+function ToolbarSeparator() {
+  return (
+    <Separator
+      orientation="vertical"
+      data-toolbar-separator=""
+      className="h-5 data-vertical:self-center"
+    />
   );
 }
 
@@ -506,7 +519,7 @@ function ToolbarControls({
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 aria-label="Turn into"
                 data-toolbar-control="turn-into"
                 tabIndex={tabOf("turn-into", false, firstEnabled)}
@@ -541,6 +554,7 @@ function ToolbarControls({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
+      {model.turnInto ? <ToolbarSeparator /> : null}
       {model.marks.map((mark) => {
         const Icon = MARK_ICONS[mark.id as SelectionToolbarMarkId];
         return (
@@ -553,7 +567,7 @@ function ToolbarControls({
           >
             <Toggle
               size="sm"
-              variant="outline"
+              variant="default"
               pressed={mark.pressed}
               aria-pressed={mark.mixed ? "mixed" : mark.pressed}
               aria-label={mark.label}
@@ -572,6 +586,7 @@ function ToolbarControls({
           </ControlTip>
         );
       })}
+      <ToolbarSeparator />
       <ControlTip
         label="Link"
         shortcut={model.link.shortcut}
@@ -581,7 +596,7 @@ function ToolbarControls({
         <Button
           type="button"
           size="icon"
-          variant="outline"
+          variant="ghost"
           aria-label="Link"
           aria-pressed={model.link.pressed}
           disabled={model.link.disabled}
@@ -604,7 +619,7 @@ function ToolbarControls({
         <Button
           type="button"
           size="icon"
-          variant="outline"
+          variant="ghost"
           aria-label="Equation"
           disabled={model.equation.disabled}
           data-toolbar-control="equation"
@@ -616,6 +631,7 @@ function ToolbarControls({
           <Sigma aria-hidden="true" />
         </Button>
       </ControlTip>
+      <ToolbarSeparator />
       <AlignMenu
         model={model}
         icon={<AlignIcon aria-hidden="true" />}
@@ -624,6 +640,7 @@ function ToolbarControls({
         onAlign={onAlign}
         onRestore={onRestore}
       />
+      <ToolbarSeparator />
       <SelectionColorMenu
         textColor={model.textColor}
         highlight={model.highlight}
@@ -634,6 +651,7 @@ function ToolbarControls({
         onOpenChange={onMenu}
         onRestore={onRestore}
       />
+      <ToolbarSeparator />
       <MoreMenu
         model={model}
         firstEnabled={firstEnabled}
@@ -673,7 +691,7 @@ function AlignMenu({
           <Button
             type="button"
             size="icon"
-            variant="outline"
+            variant="ghost"
             aria-label="Align"
             disabled={model.alignDisabled}
             data-toolbar-control="align"
@@ -745,7 +763,7 @@ function MoreMenu({
           <Button
             type="button"
             size="icon"
-            variant="outline"
+            variant="ghost"
             aria-label="More"
             data-toolbar-control="more"
             tabIndex={tabOf("more", false, firstEnabled)}

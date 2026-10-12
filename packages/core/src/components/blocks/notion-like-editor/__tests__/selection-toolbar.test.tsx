@@ -24,6 +24,7 @@ import type { EditorValue } from "../lib/document/editor-value";
 import {
   SELECTION_TOOLBAR_MEDIA,
   selectionToolbarFrame,
+  selectionToolbarModel,
   selectionToolbarPlacement,
   selectionToolbarVisible,
   showingToolbarSnapshot,
@@ -464,7 +465,7 @@ describe("selection toolbar controls", () => {
     }
   });
 
-  test("toolbar controls are direct children of one button group", async () => {
+  test("toolbar controls are direct children of a plain toolbar, split into sections", async () => {
     const mounted = await showToolbar();
     try {
       const bar = toolbar();
@@ -472,7 +473,38 @@ describe("selection toolbar controls", () => {
         throw new Error("Missing toolbar.");
       }
       expect(bar.querySelectorAll("[data-slot='button-group']")).toHaveLength(0);
-      expect(bar.getAttribute("data-slot")).toBe("button-group");
+      expect(bar.hasAttribute("data-slot")).toBe(false);
+      expect(bar.getAttribute("role")).toBe("toolbar");
+      const order = [...bar.children].map((node) =>
+        node.hasAttribute("data-toolbar-separator")
+          ? "|"
+          : node.getAttribute("data-toolbar-control"),
+      );
+      expect(order).toEqual([
+        "turn-into",
+        "|",
+        "bold",
+        "italic",
+        "underline",
+        "strikethrough",
+        "code",
+        "|",
+        "link",
+        "equation",
+        "|",
+        "align",
+        "|",
+        "color",
+        "|",
+        "more",
+      ]);
+      for (const node of bar.querySelectorAll("[data-toolbar-separator]")) {
+        expect(node.getAttribute("data-slot")).toBe("separator");
+        expect(node.getAttribute("data-orientation")).toBe("vertical");
+        expect(node.className).toContain("data-vertical:self-center");
+        expect(node.className).not.toContain("data-vertical:self-stretch");
+        expect(node.hasAttribute("tabindex")).toBe(false);
+      }
       const controls = [...bar.querySelectorAll("[data-toolbar-control]")];
       expect(controls.map((node) => node.getAttribute("aria-label"))).toEqual([
         "Turn into",
@@ -906,6 +938,91 @@ describe("selection toolbar controls", () => {
     await act(async () => {});
     try {
       expect(toolbar()).toBeNull();
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+});
+
+describe("selection toolbar keys and state", () => {
+  test("arrow keys rove over enabled controls only, and Home and End jump to the ends", async () => {
+    const mounted = await showToolbar([paragraph("Hello world")]);
+    try {
+      const editable = mounted.host.querySelector("[data-slate-editor]");
+      await act(async () => {
+        editable?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "F10", altKey: true, bubbles: true }),
+        );
+      });
+      const enabled = Array.from(
+        document.querySelectorAll(
+          "[data-selection-toolbar] [data-toolbar-control]:not([disabled])",
+        ),
+      ).map((node) => node.getAttribute("aria-label"));
+      expect(enabled[0]).toBe("Turn into");
+
+      const visited: (string | null)[] = [];
+      for (let step = 0; step < enabled.length; step += 1) {
+        await act(async () => {
+          toolbar()?.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+          );
+        });
+        visited.push(document.activeElement?.getAttribute("aria-label") ?? null);
+      }
+      expect(visited).toEqual([...enabled.slice(1), enabled[0]]);
+
+      await act(async () => {
+        toolbar()?.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+      });
+      expect(document.activeElement?.getAttribute("aria-label")).toBe(enabled[enabled.length - 1]);
+
+      await act(async () => {
+        toolbar()?.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+      });
+      expect(document.activeElement?.getAttribute("aria-label")).toBe(enabled[0]);
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("a pressed mark reports aria-pressed, and a disabled control keeps its reason", async () => {
+    const bold = await showToolbar([paragraph("Hello", "p", { bold: true })]);
+    try {
+      expect(control("Bold").getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      await bold.cleanup();
+    }
+
+    const spanning = await showToolbar([paragraph("Hello"), paragraph("World", "p2")]);
+    try {
+      spanning.editor.tf.select({
+        anchor: { path: [0, 0], offset: 0 },
+        focus: { path: [1, 0], offset: 5 },
+      });
+      await act(async () => {});
+      const equation = control("Equation");
+      expect(equation.hasAttribute("disabled")).toBe(true);
+      expect(equation.className).toContain("disabled:pointer-events-auto");
+      expect(selectionToolbarModel(spanning.editor).equation.reason).toBe(
+        "Equations cannot span blocks.",
+      );
+    } finally {
+      await spanning.cleanup();
+    }
+  });
+
+  test("the floating popover is the visible surface, padded with p-2", async () => {
+    const mounted = await showToolbar();
+    try {
+      const content = toolbar()?.closest("[data-slot='popover-content']");
+      if (!(content instanceof HTMLElement)) {
+        throw new Error("Missing popover content.");
+      }
+      expect(content.classList.contains("p-2")).toBe(true);
+      expect(content.className).not.toContain("bg-transparent");
+      expect(content.classList.contains("p-0")).toBe(false);
+      expect(content.className).not.toContain("shadow-none");
     } finally {
       await mounted.cleanup();
     }
