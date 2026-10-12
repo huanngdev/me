@@ -378,6 +378,94 @@ describe("static renderer", () => {
     expect(markup("garbage" as unknown as EditorValue)).toBe("<div></div>");
   });
 
+  test("mark leaves carry the same classes and styles as the read-only editor", async () => {
+    const combos: Array<Record<string, unknown>> = [
+      { [KEYS.bold]: true },
+      { [KEYS.italic]: true },
+      { [KEYS.underline]: true },
+      { [KEYS.strikethrough]: true },
+      { [KEYS.code]: true },
+      { [KEYS.sup]: true },
+      { [KEYS.sub]: true },
+      { [KEYS.kbd]: true },
+      { [KEYS.color]: "red" },
+      { [KEYS.backgroundColor]: "red" },
+      { [KEYS.fontSize]: "18px" },
+      { [KEYS.fontSize]: "12pt" },
+      { [KEYS.fontFamily]: "serif" },
+      { [KEYS.code]: true, [KEYS.bold]: true, [KEYS.kbd]: true },
+      { [KEYS.code]: true, [KEYS.fontFamily]: "serif" },
+      { [KEYS.code]: true, [KEYS.color]: "red" },
+      { [KEYS.code]: true, [KEYS.backgroundColor]: "red" },
+      { [KEYS.kbd]: true, [KEYS.color]: "red" },
+      { [KEYS.kbd]: true, [KEYS.fontFamily]: "serif" },
+    ];
+    const value = combos.map(
+      (leaf, index) =>
+        ({
+          type: KEYS.p,
+          id: `id-mark-${index}`,
+          children: [{ text: `mark ${index}`, ...leaf }],
+        }) as EditorValue[number],
+    );
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const editor = createPlateEditor({ plugins: createEditorPlugins(), value });
+    const root: Root = createRoot(host);
+    await act(async () => {
+      root.render(
+        <EditorSurface editor={editor} readOnly placeholder="Type something…" className="editor" />,
+      );
+    });
+    const staticHost = document.createElement("div");
+    staticHost.innerHTML = markup(value);
+
+    // Classes and inline styles from the text leaf up to the block, for one text.
+    const leafFrame = (container: Element, text: string) => {
+      const string = [...container.querySelectorAll("[data-slate-string]")].find(
+        (node) => node.textContent === text,
+      );
+      const classes: string[] = [];
+      const styles: string[] = [];
+      for (
+        let node = string?.parentElement ?? null;
+        node !== null && !node.hasAttribute("data-block-id");
+        node = node.parentElement
+      ) {
+        classes.push(...node.classList);
+        for (const declaration of (node.getAttribute("style") ?? "").split(";")) {
+          const normalized = declaration.trim().replace(/\s*:\s*/, ":");
+          if (normalized.length > 0) styles.push(normalized);
+        }
+      }
+      return { classes: classes.sort(), styles: styles.sort() };
+    };
+
+    combos.forEach((_, index) => {
+      const text = `mark ${index}`;
+      const editorBlock = host.querySelector(`[data-block-id="id-mark-${index}"]`);
+      const staticBlock = staticHost.querySelector(`[data-block-id="id-mark-${index}"]`);
+      if (editorBlock === null || staticBlock === null) {
+        throw new Error(`missing block for ${text}`);
+      }
+      const editorLeaf = leafFrame(editorBlock, text);
+      const staticLeaf = leafFrame(staticBlock, text);
+      expect({ text, classes: staticLeaf.classes }).toEqual({
+        text,
+        classes: expect.arrayContaining(editorLeaf.classes),
+      });
+      expect({ text, styles: staticLeaf.styles }).toEqual({
+        text,
+        styles: expect.arrayContaining(editorLeaf.styles),
+      });
+      expect(editorLeaf.styles.length + editorLeaf.classes.length).toBeGreaterThan(0);
+    });
+    await act(async () => {
+      root.unmount();
+    });
+    host.remove();
+  });
+
   test("demo text matches the read-only editor block by block", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);

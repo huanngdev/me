@@ -45,6 +45,7 @@ import {
   CodeSyntaxStatic,
 } from "../../components/static/code-block-static";
 import { codeLowlight } from "../features/editor-code";
+import { CodeLeafStatic } from "../../components/static/code-leaf-static";
 import { KbdStatic } from "../../components/static/kbd-static";
 import { ensureStaticCodeLanguages } from "../../components/static/code-highlight";
 
@@ -90,6 +91,37 @@ function tokenProps(
       return { ...props, style: { [cssProperty]: `var(${variablePrefix}-${String(nodeValue)})` } };
     },
   };
+}
+
+// Same rule as the editor: a code leaf is always mono, and inline style beats the code class.
+function fontFamilyNodeProps() {
+  const fontFamily = tokenProps(KEYS.fontFamily, "fontFamily", "--editor-font", (value) =>
+    isAllowedValue(value, FONT_FAMILIES),
+  );
+
+  return {
+    nodeKey: fontFamily.nodeKey,
+    transformProps: (options: {
+      nodeValue?: unknown;
+      props: Record<string, unknown>;
+      text?: unknown;
+    }) => {
+      if (isAllowedValue(options.nodeValue, FONT_FAMILIES) && hasCodeMark(options.text)) {
+        return { ...options.props, style: { fontFamily: "var(--editor-font-mono)" } };
+      }
+
+      return fontFamily.transformProps(options);
+    },
+  };
+}
+
+function hasCodeMark(text: unknown): boolean {
+  return (
+    typeof text === "object" &&
+    text !== null &&
+    KEYS.code in text &&
+    Reflect.get(text, KEYS.code) === true
+  );
 }
 
 const paragraphPlugin = BaseParagraphPlugin.configure({
@@ -141,7 +173,10 @@ export const editorStaticPlugins = [
   BaseItalicPlugin,
   BaseUnderlinePlugin,
   BaseStrikethroughPlugin,
-  BaseCodePlugin.configure({ node: { props: { className: codeLeafClassName } } }),
+  BaseCodePlugin.configure({
+    node: { props: { className: codeLeafClassName } },
+    render: { node: CodeLeafStatic },
+  }),
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
   BaseKbdPlugin.configure({ render: { node: KbdStatic } }),
@@ -156,9 +191,7 @@ export const editorStaticPlugins = [
   BaseFontSizePlugin,
   BaseFontFamilyPlugin.configure({
     inject: {
-      nodeProps: tokenProps(KEYS.fontFamily, "fontFamily", "--editor-font", (value) =>
-        isAllowedValue(value, FONT_FAMILIES),
-      ),
+      nodeProps: fontFamilyNodeProps(),
     },
   }),
   BaseTextAlignPlugin.configure({
