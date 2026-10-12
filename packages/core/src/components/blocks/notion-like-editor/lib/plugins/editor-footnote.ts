@@ -125,29 +125,108 @@ export function normalizeFootnoteDefinition(
 // becomes a paragraph in place, not a lifted definition. Enter and Backspace rules are here too.
 export const footnoteNormalizePlugin = createSlatePlugin({
   key: "footnoteNormalize",
-}).overrideEditor(({ editor, tf: { normalizeNode, insertBreak, deleteBackward } }) => ({
-  transforms: {
-    normalizeNode(entry) {
-      const [node, path] = entry;
-      if (ElementApi.isElement(node) && normalizeFootnoteDefinition(editor, node, path)) {
-        return;
-      }
+}).overrideEditor(
+  ({ editor, tf: { normalizeNode, insertBreak, deleteBackward, deleteForward } }) => ({
+    transforms: {
+      normalizeNode(entry) {
+        const [node, path] = entry;
+        if (ElementApi.isElement(node) && normalizeFootnoteDefinition(editor, node, path)) {
+          return;
+        }
 
-      normalizeNode(entry);
-    },
-    insertBreak() {
-      if (breakFootnoteDefinition(editor)) {
-        return;
-      }
+        normalizeNode(entry);
+      },
+      insertBreak() {
+        if (breakFootnoteDefinition(editor)) {
+          return;
+        }
 
-      insertBreak();
-    },
-    deleteBackward(unit) {
-      if (backspaceFootnoteDefinition(editor)) {
-        return;
-      }
+        insertBreak();
+      },
+      deleteBackward(unit) {
+        if (backspaceFootnoteDefinition(editor) || backspaceBeforeReference(editor)) {
+          return;
+        }
 
-      deleteBackward(unit);
+        deleteBackward(unit);
+      },
+      deleteForward(unit) {
+        if (deleteForwardIntoReference(editor)) {
+          return;
+        }
+
+        deleteForward(unit);
+      },
     },
-  },
-}));
+  }),
+);
+
+function containsReference(editor: SlateEditor, path: number[]): boolean {
+  return !editor.api
+    .nodes({
+      at: path,
+      voids: true,
+      match: (candidate) => ElementApi.isElement(candidate) && candidate.type === FOOTNOTE_REF_KEY,
+    })
+    .next().done;
+}
+
+// Merging a block that holds a reference into the block above drops the reference. Backspace
+// at the start of such a block after a definition moves the caret to the definition's end.
+function backspaceBeforeReference(editor: SlateEditor): boolean {
+  const block = editor.api.block();
+  if (block === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
+    return false;
+  }
+
+  const [, path] = block;
+  const index = path[0];
+  if (path.length !== 1 || index === undefined || index === 0) {
+    return false;
+  }
+
+  const above = editor.children[index - 1];
+  if (!ElementApi.isElement(above) || above.type !== FOOTNOTE_DEF_KEY) {
+    return false;
+  }
+
+  if (!containsReference(editor, path)) {
+    return false;
+  }
+
+  const end = editor.api.end([index - 1]);
+  if (end === undefined) {
+    return false;
+  }
+  editor.tf.select(end);
+  return true;
+}
+
+// Delete at the end of a definition would merge the next block in. A block with a reference
+// stays where it is, so Delete does nothing.
+function deleteForwardIntoReference(editor: SlateEditor): boolean {
+  const block = editor.api.block();
+  if (
+    block === undefined ||
+    !ElementApi.isElement(block[0]) ||
+    block[0].type !== FOOTNOTE_DEF_KEY
+  ) {
+    return false;
+  }
+  if (!editor.api.isCollapsed() || !editor.api.isAt({ end: true })) {
+    return false;
+  }
+
+  const [, path] = block;
+  const index = path[0];
+  if (path.length !== 1 || index === undefined) {
+    return false;
+  }
+
+  const below = editor.children[index + 1];
+  if (below === undefined || !ElementApi.isElement(below)) {
+    return false;
+  }
+
+  return containsReference(editor, [index + 1]);
+}

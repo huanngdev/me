@@ -19,7 +19,7 @@ import {
 } from "../document/editor-document-schema";
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
-import { footnoteIndex, type FootnoteIndex } from "./editor-footnote-index";
+import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
 
 export {
   footnoteIndex,
@@ -122,26 +122,45 @@ export function selectFootnoteDefinition(editor: SlateEditor, footnoteId: string
   return true;
 }
 
-// Moves the caret right after the first reference. False, and nothing changes, when there is none.
-export function selectFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
-  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
-  if (entry === undefined) {
-    return false;
-  }
-
+// Moves the caret right after the reference at this path.
+export function selectAfterFootnoteReference(editor: SlateEditor, path: number[]): boolean {
   // The point after the node. With no text after it, the caret stays on the node instead of
   // jumping into the next block, so a toggle that holds the reference still opens.
-  const after = editor.api.after(entry[1]);
-  const block = editor.api.block({ at: entry[1] });
+  const after = editor.api.after(path);
+  const block = editor.api.block({ at: path });
   const inBlock =
     after !== undefined && block !== undefined && PathApi.isDescendant(after.path, block[1]);
-  const target = inBlock ? after : editor.api.end(entry[1]);
+  const target = inBlock ? after : editor.api.end(path);
   if (target === undefined) {
     return false;
   }
 
   editor.tf.select(target);
   return true;
+}
+
+// Moves the caret right after the first reference. False, and nothing changes, when there is none.
+export function selectFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
+  return entry !== undefined && selectAfterFootnoteReference(editor, entry[1]);
+}
+
+// The id of the definition at this top-level path, or undefined for any other block.
+export function footnoteDefinitionIdAt(
+  editor: SlateEditor,
+  path: readonly number[],
+): string | undefined {
+  const node = editor.api.node([...path])?.[0];
+  if (!node || !ElementApi.isElement(node) || node.type !== FOOTNOTE_DEF_KEY) {
+    return undefined;
+  }
+
+  return isFootnoteId(node.footnoteId) ? node.footnoteId : undefined;
+}
+
+// Only Turn into and Color are hidden for a definition. Duplicate, Delete and Move stay.
+export function footnoteMenuOffersTurn(type: string): boolean {
+  return type !== FOOTNOTE_DEF_KEY;
 }
 
 function footnotePlainText(
@@ -203,6 +222,31 @@ export function footnoteInsertAllowed(editor: SlateEditor): boolean {
 
 // A reference at the selection end, and a new empty definition at the end of the document.
 // The caret lands in the new definition. One undo removes both.
+// Top-level index for a new definition with this number. It goes into the trailing run of
+// definitions, before the first one with a larger number or with no reference. With no such
+// run, or no such position, it goes last. Existing definitions are never moved.
+export function definitionInsertIndex(editor: SlateEditor, number: number): number {
+  const children = editor.children;
+  const isDefinition = (node: Descendant | undefined): boolean =>
+    node !== undefined && ElementApi.isElement(node) && node.type === FOOTNOTE_DEF_KEY;
+
+  let runStart = children.length;
+  while (runStart > 0 && isDefinition(children[runStart - 1])) {
+    runStart -= 1;
+  }
+  const index = footnoteIndex(editor);
+  for (let position = runStart; position < children.length; position += 1) {
+    const node = children[position];
+    const id = node !== undefined && ElementApi.isElement(node) ? node.footnoteId : undefined;
+    const existing = isFootnoteId(id) ? index.numbers.get(id) : undefined;
+    if (existing === undefined || existing > number) {
+      return position;
+    }
+  }
+
+  return children.length;
+}
+
 export const insertFootnote: EditorCommand = {
   id: "inline.footnote",
   label: "Footnote",
@@ -218,7 +262,8 @@ export const insertFootnote: EditorCommand = {
     editor.tf.select(RangeApi.end(selection));
     editor.tf.insertNodes(footnoteReferenceNode(footnoteId));
 
-    const at = [editor.children.length];
+    const number = footnoteNumber(editor, footnoteId) ?? 0;
+    const at = [definitionInsertIndex(editor, number)];
     editor.tf.insertNodes(footnoteDefinitionNode(footnoteId), { at, select: false });
     const start = editor.api.start(at);
     if (start !== undefined) {
@@ -254,3 +299,7 @@ export const removeFootnote: EditorCommand<{ footnoteId: string }> = {
     }
   },
 };
+
+export function startsFootnoteRunInEditor(editor: SlateEditor, blockId: string): boolean {
+  return startsFootnoteRun(editor.children, blockId);
+}

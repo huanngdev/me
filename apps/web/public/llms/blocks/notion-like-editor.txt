@@ -61,87 +61,89 @@
 51. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-popover.tsx
 52. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-calendar.tsx
 53. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-date-ui.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts
-55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-repair.ts
-56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-index.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote.ts
-59. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-ref-element.tsx
-60. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-def-element.tsx
-61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-62. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-65. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-66. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-67. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-68. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-69. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-70. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
-72. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
-73. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
-74. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
-75. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-76. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-77. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-78. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-79. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-80. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
-81. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
-82. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-83. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-84. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-85. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-86. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-87. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-88. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-89. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-90. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-91. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-92. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-96. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-97. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-98. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-99. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-100. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-101. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-102. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-103. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-104. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-105. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-106. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-107. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-108. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-109. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-110. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-111. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-112. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-113. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-114. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-115. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-116. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-117. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-118. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-119. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-120. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-121. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-122. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-123. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-124. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-125. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-126. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-127. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-128. packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
-129. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-ref-static.tsx
-130. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-def-static.tsx
-131. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-132. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-133. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-134. apps/web/src/app/blocks/notion-like-editor/page.tsx
+54. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-classes.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote-ui.ts
+56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-repair.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-index.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote.ts
+61. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-ref-element.tsx
+62. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-def-element.tsx
+63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+64. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+65. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+67. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+68. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+69. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+70. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+71. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
+74. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
+75. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
+76. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
+77. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+78. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+79. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+80. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+81. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+82. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+83. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+84. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+85. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+86. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+87. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+88. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+89. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+90. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+91. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+92. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+98. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+99. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+100. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+101. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+102. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+103. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+104. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+105. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+106. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+107. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+108. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+109. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+110. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+111. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+112. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+113. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+114. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+115. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+116. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+117. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+118. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+119. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+120. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+121. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+122. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+123. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+124. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+125. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+126. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+127. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+128. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+129. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+130. packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
+131. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-ref-static.tsx
+132. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-def-static.tsx
+133. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+134. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+135. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+136. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -4257,6 +4259,7 @@ import {
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { BlockColorMenu } from "./block-color-menu";
+import { footnoteMenuOffersTurn } from "../../lib/features/editor-footnote";
 import { BlockPickerGroups } from "./block-picker";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
@@ -4532,27 +4535,31 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     );
   }
 
+  // A definition offers no Turn into and no Color. Its other actions stay.
+  const offersTurn = footnoteMenuOffersTurn(target.type);
   return (
     <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger data-block-menu-turn-into="">
-          <ArrowRightLeft aria-hidden="true" />
-          Turn into
-        </DropdownMenuSubTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuSubContent
-            data-block-menu-portal=""
-            data-block-turn-into-menu=""
-            collisionPadding={8}
-            hideWhenDetached
-            className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
-          >
-            <MenuScrollArea>
-              <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
-            </MenuScrollArea>
-          </DropdownMenuSubContent>
-        </DropdownMenuPortal>
-      </DropdownMenuSub>
+      {offersTurn ? (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger data-block-menu-turn-into="">
+            <ArrowRightLeft aria-hidden="true" />
+            Turn into
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent
+              data-block-menu-portal=""
+              data-block-turn-into-menu=""
+              collisionPadding={8}
+              hideWhenDetached
+              className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+            >
+              <MenuScrollArea>
+                <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+              </MenuScrollArea>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+      ) : null}
       {columns ? (
         <>
           <DropdownMenuSub>
@@ -4603,7 +4610,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
           </DropdownMenuItem>
         </>
       ) : null}
-      <BlockColorMenu ids={[target.id]} onActed={onActed} />
+      {offersTurn ? <BlockColorMenu ids={[target.id]} onActed={onActed} /> : null}
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -6105,6 +6112,11 @@ import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../featur
 import { inlineDatePlugin } from "../features/editor-inline-date";
 import { footnoteRefPlugin } from "../features/editor-footnote";
 import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
+import {
+  jumpFromCaretDefinition,
+  onFootnoteDefKeyDown,
+  onFootnoteRefKeyDown,
+} from "./editor-footnote-ui";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
@@ -7102,6 +7114,11 @@ const listPlugin = ListPlugin.configure({
     toggleChecked: {
       keys: [[Key.Mod, "Enter"]],
       handler: ({ editor }) => {
+        // Plate stops the event when a shortcut handler returns, so a definition is handled here:
+        // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
+        if (jumpFromCaretDefinition(editor)) {
+          return;
+        }
         // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
         const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
         runEditorCommand(editor, command, undefined, {
@@ -7734,10 +7751,20 @@ const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
 // Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
 const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
   render: { node: FootnoteRefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteRefKeyDown(editor, event);
+    },
+  },
 });
 
 const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
   render: { node: FootnoteDefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteDefKeyDown(editor, event);
+    },
+  },
 });
 
 // Mod+; inserts today's date, and Enter on a selected inline date opens it.
@@ -17616,6 +17643,240 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-classes.ts
+```ts
+// Shared by the editor elements and the static renderer, so both produce the same markup.
+// The reference is a superscript with line-height 0, so it does not grow the line box.
+export const FOOTNOTE_REF_CLASS =
+  "text-[0.75em] font-medium text-muted-foreground px-0.5 rounded-sm cursor-pointer select-none";
+export const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
+
+export function footnoteRefClassName(selected: boolean): string {
+  return selected ? `${FOOTNOTE_REF_CLASS} ${FOOTNOTE_REF_SELECTED_CLASS}` : FOOTNOTE_REF_CLASS;
+}
+
+export const FOOTNOTE_DEF_CLASS = "flex items-baseline gap-2 text-sm";
+// The first definition of a run gets a thin separator above the footnote list. The line is a
+// pseudo-element 12px above the block, so the block's box starts at its text line. The
+// 36px margin leaves 24px of space above the line, as the old padded box did.
+export const FOOTNOTE_DEF_RUN_CLASS =
+  "relative mt-9 before:absolute before:inset-x-0 before:-top-3 before:border-t before:content-['']";
+export const FOOTNOTE_NUMBER_CLASS =
+  "min-w-5 shrink-0 select-none text-right tabular-nums text-muted-foreground";
+export const FOOTNOTE_NUMBER_LINK_CLASS = "cursor-pointer";
+export const FOOTNOTE_TEXT_CLASS = "min-w-0 flex-1";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote-ui.ts
+```ts
+import { ElementApi, type Point, type SlateEditor } from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-schema";
+import {
+  footnoteDefinitionIdAt,
+  footnoteDefinitionEntry,
+  footnoteInsertAllowed,
+  footnoteReferenceEntries,
+  insertFootnote,
+  selectAfterFootnoteReference,
+  selectFootnoteDefinition,
+  selectFootnoteReference,
+} from "../features/editor-footnote";
+import { blockSelectionActive } from "./editor-block-selection";
+
+// Scrolls the node's DOM into view. Used after a jump, so the target is visible.
+function scrollPathIntoView(editor: SlateEditor, path: readonly number[]): void {
+  const node = editor.api.node([...path])?.[0];
+  const dom = node ? editor.api.toDOMNode(node) : undefined;
+  if (dom instanceof HTMLElement) {
+    dom.scrollIntoView({ block: "nearest" });
+  }
+}
+
+const REVEAL_ATTEMPTS = 20;
+
+function revealDefinitionWhenRendered(editor: SlateEditor, id: string, attempts: number): void {
+  setTimeout(() => {
+    const entry = footnoteDefinitionEntry(editor, id);
+    const node = entry === undefined ? undefined : editor.api.node(entry[1])?.[0];
+    const dom = node === undefined ? undefined : editor.api.toDOMNode(node);
+    if (dom === undefined) {
+      if (attempts > 0) {
+        revealDefinitionWhenRendered(editor, id, attempts - 1);
+      }
+      return;
+    }
+
+    scrollPathIntoView(editor, entry?.[1] ?? []);
+    editor.tf.focus();
+  }, 0);
+}
+
+// Edit mode moves the caret to the end of the definition and keeps focus. Read-only only scrolls.
+export function jumpToFootnoteDefinition(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteDefinitionEntry(editor, footnoteId);
+  if (entry === undefined) {
+    return false;
+  }
+
+  if (editor.dom.readOnly === true) {
+    scrollPathIntoView(editor, entry[1]);
+    return true;
+  }
+
+  if (!selectFootnoteDefinition(editor, footnoteId)) {
+    return false;
+  }
+  scrollPathIntoView(editor, entry[1]);
+  editor.tf.focus();
+  return true;
+}
+
+// Jumps back to the first reference. In edit mode the caret lands right after it.
+export function jumpToFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
+  if (entry === undefined) {
+    return false;
+  }
+
+  if (editor.dom.readOnly === true) {
+    scrollPathIntoView(editor, entry[1]);
+    return true;
+  }
+
+  if (!selectFootnoteReference(editor, footnoteId)) {
+    return false;
+  }
+  scrollPathIntoView(editor, entry[1]);
+  editor.tf.focus();
+  return true;
+}
+
+// A click on a reference whose definition is missing only selects that reference.
+export function selectMissingFootnoteReference(editor: SlateEditor, path: readonly number[]): void {
+  if (editor.dom.readOnly === true) {
+    return;
+  }
+  selectAfterFootnoteReference(editor, [...path]);
+  editor.tf.focus();
+}
+
+export function scrollReferenceIntoView(editor: SlateEditor, path: readonly number[]): void {
+  scrollPathIntoView(editor, path);
+}
+
+type FootnoteKeyEvent = {
+  key: string;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean;
+  preventDefault: () => void;
+};
+
+// Enter on a selected reference jumps to its definition, the same way the date chip opens.
+export function onFootnoteRefKeyDown(editor: SlateEditor, event: FootnoteKeyEvent): void {
+  if (
+    event.defaultPrevented ||
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    editor.dom.readOnly === true ||
+    blockSelectionActive(editor)
+  ) {
+    return;
+  }
+
+  const ref = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === FOOTNOTE_REF_KEY,
+  });
+  if (ref === undefined || !ElementApi.isElement(ref[0]) || typeof ref[0].footnoteId !== "string") {
+    return;
+  }
+
+  event.preventDefault();
+  jumpToFootnoteDefinition(editor, ref[0].footnoteId);
+}
+
+// Runs from the registered Mod+Enter shortcut. True when the caret is in a definition, which
+// consumes the key whether or not a reference exists.
+export function jumpFromCaretDefinition(editor: SlateEditor): boolean {
+  const block = editor.api.block();
+  if (
+    block === undefined ||
+    !ElementApi.isElement(block[0]) ||
+    block[0].type !== FOOTNOTE_DEF_KEY
+  ) {
+    return false;
+  }
+
+  const id = footnoteDefinitionIdAt(editor, block[1]);
+  if (id !== undefined) {
+    jumpToFootnoteReference(editor, id);
+  }
+  return true;
+}
+
+// Mod+Enter inside a definition jumps back to its first reference.
+export function onFootnoteDefKeyDown(editor: SlateEditor, event: FootnoteKeyEvent): void {
+  if (
+    event.defaultPrevented ||
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.altKey ||
+    !(event.metaKey || event.ctrlKey) ||
+    editor.dom.readOnly === true ||
+    blockSelectionActive(editor)
+  ) {
+    return;
+  }
+
+  const block = editor.api.block();
+  if (
+    block === undefined ||
+    !ElementApi.isElement(block[0]) ||
+    block[0].type !== FOOTNOTE_DEF_KEY
+  ) {
+    return;
+  }
+  const id = block[0].footnoteId;
+  if (typeof id !== "string") {
+    return;
+  }
+
+  event.preventDefault();
+  jumpToFootnoteReference(editor, id);
+}
+
+// The slash query goes and the reference and definition arrive as one undo step.
+export const insertSlashFootnote: EditorCommand<{ start: Point; end: Point }> = {
+  id: "inline.footnote.slash",
+  label: "Footnote",
+  group: "insert",
+  isEnabled: (editor) => footnoteInsertAllowed(editor),
+  run: (editor, { start, end }) => {
+    editor.tf.delete({ at: { anchor: start, focus: end } });
+    insertFootnote.run(editor, undefined);
+
+    // The caret is in the new definition. Its DOM node appears on a later render, so the reveal
+    // retries on short timeouts until the node exists, then does the same scroll and focus as a
+    // reference click.
+    const block = editor.api.block();
+    const id =
+      block !== undefined && ElementApi.isElement(block[0]) && block[0].type === FOOTNOTE_DEF_KEY
+        ? footnoteDefinitionIdAt(editor, block[1])
+        : undefined;
+    if (id !== undefined) {
+      revealDefinitionWhenRendered(editor, id, REVEAL_ATTEMPTS);
+    }
+  },
+};
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts
 ```ts
 import { nanoid } from "platejs";
@@ -17884,6 +18145,21 @@ export function footnoteReferenceOrdinal(
 
   return found > 0 ? found : 1;
 }
+
+// True when no definition sits directly above this one. Shared by the editor and the static renderer.
+export function startsFootnoteRun(value: readonly Descendant[], blockId: string): boolean {
+  const index = value.findIndex((node) => ElementApi.isElement(node) && node.id === blockId);
+  if (index < 0) {
+    return false;
+  }
+
+  const previous = value[index - 1];
+  return !(
+    previous !== undefined &&
+    ElementApi.isElement(previous) &&
+    previous.type === FOOTNOTE_DEF_KEY
+  );
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote.ts
@@ -17909,7 +18185,7 @@ import {
 } from "../document/editor-document-schema";
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
-import { footnoteIndex, type FootnoteIndex } from "./editor-footnote-index";
+import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
 
 export {
   footnoteIndex,
@@ -18012,26 +18288,45 @@ export function selectFootnoteDefinition(editor: SlateEditor, footnoteId: string
   return true;
 }
 
-// Moves the caret right after the first reference. False, and nothing changes, when there is none.
-export function selectFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
-  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
-  if (entry === undefined) {
-    return false;
-  }
-
+// Moves the caret right after the reference at this path.
+export function selectAfterFootnoteReference(editor: SlateEditor, path: number[]): boolean {
   // The point after the node. With no text after it, the caret stays on the node instead of
   // jumping into the next block, so a toggle that holds the reference still opens.
-  const after = editor.api.after(entry[1]);
-  const block = editor.api.block({ at: entry[1] });
+  const after = editor.api.after(path);
+  const block = editor.api.block({ at: path });
   const inBlock =
     after !== undefined && block !== undefined && PathApi.isDescendant(after.path, block[1]);
-  const target = inBlock ? after : editor.api.end(entry[1]);
+  const target = inBlock ? after : editor.api.end(path);
   if (target === undefined) {
     return false;
   }
 
   editor.tf.select(target);
   return true;
+}
+
+// Moves the caret right after the first reference. False, and nothing changes, when there is none.
+export function selectFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
+  return entry !== undefined && selectAfterFootnoteReference(editor, entry[1]);
+}
+
+// The id of the definition at this top-level path, or undefined for any other block.
+export function footnoteDefinitionIdAt(
+  editor: SlateEditor,
+  path: readonly number[],
+): string | undefined {
+  const node = editor.api.node([...path])?.[0];
+  if (!node || !ElementApi.isElement(node) || node.type !== FOOTNOTE_DEF_KEY) {
+    return undefined;
+  }
+
+  return isFootnoteId(node.footnoteId) ? node.footnoteId : undefined;
+}
+
+// Only Turn into and Color are hidden for a definition. Duplicate, Delete and Move stay.
+export function footnoteMenuOffersTurn(type: string): boolean {
+  return type !== FOOTNOTE_DEF_KEY;
 }
 
 function footnotePlainText(
@@ -18093,6 +18388,31 @@ export function footnoteInsertAllowed(editor: SlateEditor): boolean {
 
 // A reference at the selection end, and a new empty definition at the end of the document.
 // The caret lands in the new definition. One undo removes both.
+// Top-level index for a new definition with this number. It goes into the trailing run of
+// definitions, before the first one with a larger number or with no reference. With no such
+// run, or no such position, it goes last. Existing definitions are never moved.
+export function definitionInsertIndex(editor: SlateEditor, number: number): number {
+  const children = editor.children;
+  const isDefinition = (node: Descendant | undefined): boolean =>
+    node !== undefined && ElementApi.isElement(node) && node.type === FOOTNOTE_DEF_KEY;
+
+  let runStart = children.length;
+  while (runStart > 0 && isDefinition(children[runStart - 1])) {
+    runStart -= 1;
+  }
+  const index = footnoteIndex(editor);
+  for (let position = runStart; position < children.length; position += 1) {
+    const node = children[position];
+    const id = node !== undefined && ElementApi.isElement(node) ? node.footnoteId : undefined;
+    const existing = isFootnoteId(id) ? index.numbers.get(id) : undefined;
+    if (existing === undefined || existing > number) {
+      return position;
+    }
+  }
+
+  return children.length;
+}
+
 export const insertFootnote: EditorCommand = {
   id: "inline.footnote",
   label: "Footnote",
@@ -18108,7 +18428,8 @@ export const insertFootnote: EditorCommand = {
     editor.tf.select(RangeApi.end(selection));
     editor.tf.insertNodes(footnoteReferenceNode(footnoteId));
 
-    const at = [editor.children.length];
+    const number = footnoteNumber(editor, footnoteId) ?? 0;
+    const at = [definitionInsertIndex(editor, number)];
     editor.tf.insertNodes(footnoteDefinitionNode(footnoteId), { at, select: false });
     const start = editor.api.start(at);
     if (start !== undefined) {
@@ -18144,6 +18465,10 @@ export const removeFootnote: EditorCommand<{ footnoteId: string }> = {
     }
   },
 };
+
+export function startsFootnoteRunInEditor(editor: SlateEditor, blockId: string): boolean {
+  return startsFootnoteRun(editor.children, blockId);
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote.ts
@@ -18275,64 +18600,188 @@ export function normalizeFootnoteDefinition(
 // becomes a paragraph in place, not a lifted definition. Enter and Backspace rules are here too.
 export const footnoteNormalizePlugin = createSlatePlugin({
   key: "footnoteNormalize",
-}).overrideEditor(({ editor, tf: { normalizeNode, insertBreak, deleteBackward } }) => ({
-  transforms: {
-    normalizeNode(entry) {
-      const [node, path] = entry;
-      if (ElementApi.isElement(node) && normalizeFootnoteDefinition(editor, node, path)) {
-        return;
-      }
+}).overrideEditor(
+  ({ editor, tf: { normalizeNode, insertBreak, deleteBackward, deleteForward } }) => ({
+    transforms: {
+      normalizeNode(entry) {
+        const [node, path] = entry;
+        if (ElementApi.isElement(node) && normalizeFootnoteDefinition(editor, node, path)) {
+          return;
+        }
 
-      normalizeNode(entry);
-    },
-    insertBreak() {
-      if (breakFootnoteDefinition(editor)) {
-        return;
-      }
+        normalizeNode(entry);
+      },
+      insertBreak() {
+        if (breakFootnoteDefinition(editor)) {
+          return;
+        }
 
-      insertBreak();
-    },
-    deleteBackward(unit) {
-      if (backspaceFootnoteDefinition(editor)) {
-        return;
-      }
+        insertBreak();
+      },
+      deleteBackward(unit) {
+        if (backspaceFootnoteDefinition(editor) || backspaceBeforeReference(editor)) {
+          return;
+        }
 
-      deleteBackward(unit);
+        deleteBackward(unit);
+      },
+      deleteForward(unit) {
+        if (deleteForwardIntoReference(editor)) {
+          return;
+        }
+
+        deleteForward(unit);
+      },
     },
-  },
-}));
+  }),
+);
+
+function containsReference(editor: SlateEditor, path: number[]): boolean {
+  return !editor.api
+    .nodes({
+      at: path,
+      voids: true,
+      match: (candidate) => ElementApi.isElement(candidate) && candidate.type === FOOTNOTE_REF_KEY,
+    })
+    .next().done;
+}
+
+// Merging a block that holds a reference into the block above drops the reference. Backspace
+// at the start of such a block after a definition moves the caret to the definition's end.
+function backspaceBeforeReference(editor: SlateEditor): boolean {
+  const block = editor.api.block();
+  if (block === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
+    return false;
+  }
+
+  const [, path] = block;
+  const index = path[0];
+  if (path.length !== 1 || index === undefined || index === 0) {
+    return false;
+  }
+
+  const above = editor.children[index - 1];
+  if (!ElementApi.isElement(above) || above.type !== FOOTNOTE_DEF_KEY) {
+    return false;
+  }
+
+  if (!containsReference(editor, path)) {
+    return false;
+  }
+
+  const end = editor.api.end([index - 1]);
+  if (end === undefined) {
+    return false;
+  }
+  editor.tf.select(end);
+  return true;
+}
+
+// Delete at the end of a definition would merge the next block in. A block with a reference
+// stays where it is, so Delete does nothing.
+function deleteForwardIntoReference(editor: SlateEditor): boolean {
+  const block = editor.api.block();
+  if (
+    block === undefined ||
+    !ElementApi.isElement(block[0]) ||
+    block[0].type !== FOOTNOTE_DEF_KEY
+  ) {
+    return false;
+  }
+  if (!editor.api.isCollapsed() || !editor.api.isAt({ end: true })) {
+    return false;
+  }
+
+  const [, path] = block;
+  const index = path[0];
+  if (path.length !== 1 || index === undefined) {
+    return false;
+  }
+
+  const below = editor.children[index + 1];
+  if (below === undefined || !ElementApi.isElement(below)) {
+    return false;
+  }
+
+  return containsReference(editor, [index + 1]);
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-ref-element.tsx
 ```tsx
+import type { MouseEvent } from "react";
 import {
   PlateElement,
   useEditorRef,
   useEditorSelector,
+  useFocused,
+  useReadOnly,
+  useSelected,
   type PlateElementProps,
 } from "platejs/react";
 
 import { footnoteIndex, footnoteNumber } from "../../lib/features/editor-footnote";
+import {
+  jumpToFootnoteDefinition,
+  selectMissingFootnoteReference,
+} from "../../lib/plugins/editor-footnote-ui";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
+import { footnoteRefClassName } from "./footnote-classes";
 
-// Minimal markup only. Styling and interaction come with the footnote UI.
 export function FootnoteRefElement(props: PlateElementProps) {
   const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
   const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
   const number = useEditorSelector(() => footnoteNumber(editor, footnoteId), [editor, footnoteId]);
   const defined = useEditorSelector(
     () => footnoteIndex(editor).definitions.has(footnoteId),
     [editor, footnoteId],
   );
+  const shown = defined && number !== undefined;
+
+  // Plain left clicks only. A modifier or a block selection leaves the click to the browser.
+  function onClick(event: MouseEvent<HTMLElement>): void {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      blockSelectionActive(editor)
+    ) {
+      return;
+    }
+
+    // Editable would place the caret at the clicked node after this handler, so stop it here.
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (!shown) {
+      const path = editor.api.findPath(props.element);
+      if (path !== undefined) {
+        selectMissingFootnoteReference(editor, path);
+      }
+      return;
+    }
+
+    jumpToFootnoteDefinition(editor, footnoteId);
+  }
 
   return (
-    <PlateElement {...props} as="span">
+    <PlateElement {...props} as="span" className="inline align-baseline">
       <sup
         contentEditable={false}
+        role="link"
+        aria-label={shown ? `Footnote ${number}` : "Footnote not found"}
         data-footnote-ref=""
         data-footnote-id={footnoteId}
-        data-footnote-missing={defined ? undefined : ""}
+        data-footnote-missing={shown ? undefined : ""}
+        className={footnoteRefClassName(selected && focused && !readOnly)}
+        onClick={onClick}
       >
-        {defined && number !== undefined ? number : "?"}
+        {shown ? number : "?"}
       </sup>
       {props.children}
     </PlateElement>
@@ -18349,26 +18798,67 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { footnoteNumber } from "../../lib/features/editor-footnote";
+import { cn } from "@/lib/utils";
 
-// Minimal markup only. The number is derived, so it is shown but never stored.
+import { footnoteNumber, startsFootnoteRunInEditor } from "../../lib/features/editor-footnote";
+import { jumpToFootnoteReference } from "../../lib/plugins/editor-footnote-ui";
+import {
+  FOOTNOTE_DEF_CLASS,
+  FOOTNOTE_DEF_RUN_CLASS,
+  FOOTNOTE_NUMBER_CLASS,
+  FOOTNOTE_NUMBER_LINK_CLASS,
+  FOOTNOTE_TEXT_CLASS,
+} from "./footnote-classes";
+
 export function FootnoteDefElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
+  const blockId = typeof props.element.id === "string" ? props.element.id : "";
   const number = useEditorSelector(() => footnoteNumber(editor, footnoteId), [editor, footnoteId]);
+  const startsRun = useEditorSelector(
+    () => startsFootnoteRunInEditor(editor, blockId),
+    [editor, blockId],
+  );
+  const referenced = number !== undefined;
 
-  // PlateElement drops unknown props, so the markers go through the root's attributes.
+  // The markers and the anchor go on the root through its attributes, as PlateElement drops other props.
   const attributes = {
     ...props.attributes,
     "data-footnote-def": "",
     "data-footnote-id": footnoteId,
-    ...(number === undefined ? { "data-footnote-unreferenced": "" } : {}),
+    ...(referenced ? {} : { "data-footnote-unreferenced": "" }),
   };
 
   return (
-    <PlateElement {...props} attributes={attributes}>
-      {number === undefined ? null : <span contentEditable={false}>{number}.</span>}
-      {props.children}
+    <PlateElement
+      {...props}
+      attributes={attributes}
+      className={cn(FOOTNOTE_DEF_CLASS, startsRun && FOOTNOTE_DEF_RUN_CLASS)}
+    >
+      {referenced ? (
+        <span
+          contentEditable={false}
+          data-footnote-number=""
+          className={cn(FOOTNOTE_NUMBER_CLASS, FOOTNOTE_NUMBER_LINK_CLASS)}
+          onClick={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            jumpToFootnoteReference(editor, footnoteId);
+          }}
+        >
+          {number}.
+        </span>
+      ) : (
+        <span
+          contentEditable={false}
+          data-footnote-number=""
+          title="Not referenced"
+          className={FOOTNOTE_NUMBER_CLASS}
+        >
+          –
+        </span>
+      )}
+      <div className={FOOTNOTE_TEXT_CLASS}>{props.children}</div>
     </PlateElement>
   );
 }
@@ -22668,6 +23158,7 @@ export function releaseSelection(ref: RangeRef): TRange | null {
 ```ts
 import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
+import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
@@ -22692,6 +23183,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.codeBlock,
   KEYS.table,
   KEYS.columnGroup,
+  FOOTNOTE_DEF_KEY,
 ]);
 
 // The handle's top edge is flush with the top of the block's visible content.
@@ -25528,6 +26020,7 @@ import {
   siblingMove,
 } from "../features/editor-block-drop";
 import { openAncestorToggle } from "../plugins/editor-toggle";
+import { footnoteDefinitionIdAt, removeFootnote } from "../features/editor-footnote";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -26861,11 +27354,17 @@ export const duplicateBlock: EditorCommand<{ path: number[] }> = {
   },
 };
 
+// A definition goes with its references, in the same undo step. Other blocks delete as before.
 export const deleteBlock: EditorCommand<{ path: number[] }> = {
   id: "block.menu.delete",
   label: "Delete",
   group: "action",
   run: (editor, payload) => {
+    const footnoteId = footnoteDefinitionIdAt(editor, payload.path);
+    if (footnoteId !== undefined) {
+      removeFootnote.run(editor, { footnoteId });
+      return;
+    }
     deleteBlockAt(editor, payload.path);
   },
 };
@@ -27094,7 +27593,7 @@ function editableOf(editor: SlateEditor): HTMLElement | null {
 
 // One band per rendered target, in document order. Gaps between blocks have no
 // hit element, so the handle resolves a target from these bands instead.
-function handleBands(editor: SlateEditor): HandleBand[] {
+export function handleBands(editor: SlateEditor): HandleBand[] {
   const editable = editableOf(editor);
   if (!editable) {
     return [];
@@ -30081,6 +30580,20 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-footnote-line",
+    children: [
+      { text: "Footnotes keep asides out of the sentence." },
+      {
+        type: "footnote_ref",
+        id: "demo-footnote-ref",
+        footnoteId: "demo-footnote",
+        children: [{ text: "" }],
+      },
+      { text: " Type /footnote to add one." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],
@@ -30126,6 +30639,16 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [
       {
         text: "Your changes save in this browser. Reload the page and they are still here. Undo with Cmd+Z or Ctrl+Z.",
+      },
+    ],
+  },
+  {
+    type: "footnote_def",
+    id: "demo-footnote-def",
+    footnoteId: "demo-footnote",
+    children: [
+      {
+        text: "A footnote definition sits at the end of the page. Click its number to jump back.",
       },
     ],
   },
@@ -31814,23 +32337,37 @@ export function InlineDateStatic(props: SlateElementProps) {
 import { SlateElement, type SlateElementProps } from "platejs/static";
 
 import { footnoteIndex, footnoteReferenceOrdinal } from "../../lib/features/editor-footnote-index";
+import { footnoteRefClassName } from "../elements/footnote-classes";
 
 // Static markup only. The number and the ordinal come from the same document the element sits in.
 export function FootnoteRefStatic(props: SlateElementProps) {
   const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
   const index = footnoteIndex(props.editor);
   const number = index.numbers.get(footnoteId);
+  const className = footnoteRefClassName(false);
 
   return (
-    <SlateElement {...props} as="span">
+    <SlateElement {...props} as="span" className="inline align-baseline">
       {index.definitions.has(footnoteId) && number !== undefined ? (
         <sup
+          data-footnote-ref=""
+          data-footnote-id={footnoteId}
           id={`fnref-${footnoteId}-${footnoteReferenceOrdinal(props.editor.children, footnoteId, props.element.id)}`}
+          aria-label={`Footnote ${number}`}
+          className={className}
         >
           <a href={`#fn-${footnoteId}`}>{number}</a>
         </sup>
       ) : (
-        <sup>?</sup>
+        <sup
+          data-footnote-ref=""
+          data-footnote-id={footnoteId}
+          data-footnote-missing=""
+          aria-label="Footnote not found"
+          className={className}
+        >
+          ?
+        </sup>
       )}
       {props.children}
     </SlateElement>
@@ -31842,12 +32379,24 @@ export function FootnoteRefStatic(props: SlateElementProps) {
 ```tsx
 import { SlateElement, type SlateElementProps } from "platejs/static";
 
-import { footnoteIndex } from "../../lib/features/editor-footnote-index";
+import { cn } from "@/lib/utils";
+
+import { footnoteIndex, startsFootnoteRun } from "../../lib/features/editor-footnote-index";
+import {
+  FOOTNOTE_DEF_CLASS,
+  FOOTNOTE_DEF_RUN_CLASS,
+  FOOTNOTE_NUMBER_CLASS,
+  FOOTNOTE_NUMBER_LINK_CLASS,
+  FOOTNOTE_TEXT_CLASS,
+} from "../elements/footnote-classes";
 
 // Static markup only. The back link appears only when some reference points here.
 export function FootnoteDefStatic(props: SlateElementProps) {
   const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
   const number = footnoteIndex(props.editor).numbers.get(footnoteId);
+  const referenced = number !== undefined;
+  const blockId = typeof props.element.id === "string" ? props.element.id : "";
+  const startsRun = startsFootnoteRun(props.editor.children, blockId);
 
   // SlateElement only renders attributes, so the anchor id goes through them.
   const attributes = {
@@ -31855,17 +32404,33 @@ export function FootnoteDefStatic(props: SlateElementProps) {
     id: `fn-${footnoteId}`,
     "data-footnote-def": "",
     "data-footnote-id": footnoteId,
+    ...(referenced ? {} : { "data-footnote-unreferenced": "" }),
   };
 
   return (
-    <SlateElement {...props} attributes={attributes}>
-      {number === undefined ? null : <span>{number}. </span>}
-      {props.children}
-      {number === undefined ? null : (
+    <SlateElement
+      {...props}
+      attributes={attributes}
+      className={cn(FOOTNOTE_DEF_CLASS, startsRun && FOOTNOTE_DEF_RUN_CLASS)}
+    >
+      {referenced ? (
+        <span
+          data-footnote-number=""
+          className={cn(FOOTNOTE_NUMBER_CLASS, FOOTNOTE_NUMBER_LINK_CLASS)}
+        >
+          {number}.
+        </span>
+      ) : (
+        <span data-footnote-number="" title="Not referenced" className={FOOTNOTE_NUMBER_CLASS}>
+          –
+        </span>
+      )}
+      <div className={FOOTNOTE_TEXT_CLASS}>{props.children}</div>
+      {referenced ? (
         <a href={`#fnref-${footnoteId}-1`} aria-label="Back to reference">
           ↩
         </a>
-      )}
+      ) : null}
     </SlateElement>
   );
 }

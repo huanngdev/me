@@ -67,6 +67,7 @@ import {
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { BlockColorMenu } from "./block-color-menu";
+import { footnoteMenuOffersTurn } from "../../lib/features/editor-footnote";
 import { BlockPickerGroups } from "./block-picker";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
@@ -342,27 +343,31 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     );
   }
 
+  // A definition offers no Turn into and no Color. Its other actions stay.
+  const offersTurn = footnoteMenuOffersTurn(target.type);
   return (
     <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger data-block-menu-turn-into="">
-          <ArrowRightLeft aria-hidden="true" />
-          Turn into
-        </DropdownMenuSubTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuSubContent
-            data-block-menu-portal=""
-            data-block-turn-into-menu=""
-            collisionPadding={8}
-            hideWhenDetached
-            className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
-          >
-            <MenuScrollArea>
-              <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
-            </MenuScrollArea>
-          </DropdownMenuSubContent>
-        </DropdownMenuPortal>
-      </DropdownMenuSub>
+      {offersTurn ? (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger data-block-menu-turn-into="">
+            <ArrowRightLeft aria-hidden="true" />
+            Turn into
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent
+              data-block-menu-portal=""
+              data-block-turn-into-menu=""
+              collisionPadding={8}
+              hideWhenDetached
+              className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
+            >
+              <MenuScrollArea>
+                <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+              </MenuScrollArea>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+      ) : null}
       {columns ? (
         <>
           <DropdownMenuSub>
@@ -413,7 +418,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
           </DropdownMenuItem>
         </>
       ) : null}
-      <BlockColorMenu ids={[target.id]} onActed={onActed} />
+      {offersTurn ? <BlockColorMenu ids={[target.id]} onActed={onActed} /> : null}
       <DropdownMenuItem
         onSelect={() => {
           duplicate();

@@ -17,6 +17,7 @@ import {
 } from "../features/editor-slash";
 import { retainScroll } from "../../components/ui/block-toolbar";
 import { openBookmarkUrlPopover } from "./editor-bookmark-popover";
+import { insertSlashFootnote } from "./editor-footnote-ui";
 import { openLinkPopover } from "./editor-link";
 import { editorIsComposing, openMentionInput } from "./editor-mention";
 
@@ -167,6 +168,11 @@ function chooseSlash(editor: SlateEditor, id: string): void {
   const start = pointAtBlockOffset(editor, session.blockPath, session.anchor.offset);
   const end = pointAtBlockOffset(editor, session.blockPath, session.caretOffset);
   if (start === null || end === null) {
+    return;
+  }
+  // One undo step: the query goes and the footnote arrives together.
+  if (item.inline === "footnote") {
+    runEditorCommand(editor, insertSlashFootnote, { start, end });
     return;
   }
   editor.tf.delete({ at: { anchor: start, focus: end } });

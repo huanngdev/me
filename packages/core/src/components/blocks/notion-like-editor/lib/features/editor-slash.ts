@@ -1,4 +1,4 @@
-import { AtSign, Bookmark, Link, type LucideIcon } from "lucide-react";
+import { AtSign, Bookmark, Link, Superscript, type LucideIcon } from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -14,6 +14,7 @@ import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
 import { inlineTriggerBlocked, insertMention } from "../plugins/editor-mention";
+import { footnoteInsertAllowed } from "./editor-footnote";
 
 export const SLASH_QUERY_LIMIT = 40;
 export const SLASH_EMPTY_LABEL = "No results";
@@ -29,7 +30,7 @@ export type SlashItem = {
   icon: LucideIcon;
   group: SlashGroup;
   block?: BlockPickerItem;
-  inline?: "mention" | "link";
+  inline?: "mention" | "link" | "footnote";
   bookmark?: boolean;
 };
 
@@ -66,6 +67,15 @@ const INLINE_ITEMS: readonly Omit<SlashItem, "block">[] = [
     icon: Link,
     group: "Inline",
     inline: "link",
+  },
+  {
+    id: "footnote",
+    label: "Footnote",
+    description: "Add a note at the end",
+    keywords: ["note", "reference", "cite"],
+    icon: Superscript,
+    group: "Inline",
+    inline: "footnote",
   },
 ];
 
@@ -315,6 +325,9 @@ function inlineItemEnabled(editor: SlateEditor, inline: SlashItem["inline"]): bo
   }
   if (inline === "link") {
     return insertInlineLink.isEnabled?.(editor) === true && editor.api.isCollapsed();
+  }
+  if (inline === "footnote") {
+    return footnoteInsertAllowed(editor) && editor.api.isCollapsed();
   }
   return false;
 }

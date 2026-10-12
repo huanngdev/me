@@ -67,6 +67,11 @@ import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../featur
 import { inlineDatePlugin } from "../features/editor-inline-date";
 import { footnoteRefPlugin } from "../features/editor-footnote";
 import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
+import {
+  jumpFromCaretDefinition,
+  onFootnoteDefKeyDown,
+  onFootnoteRefKeyDown,
+} from "./editor-footnote-ui";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
@@ -1064,6 +1069,11 @@ const listPlugin = ListPlugin.configure({
     toggleChecked: {
       keys: [[Key.Mod, "Enter"]],
       handler: ({ editor }) => {
+        // Plate stops the event when a shortcut handler returns, so a definition is handled here:
+        // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
+        if (jumpFromCaretDefinition(editor)) {
+          return;
+        }
         // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
         const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
         runEditorCommand(editor, command, undefined, {
@@ -1696,10 +1706,20 @@ const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
 // Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
 const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
   render: { node: FootnoteRefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteRefKeyDown(editor, event);
+    },
+  },
 });
 
 const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
   render: { node: FootnoteDefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteDefKeyDown(editor, event);
+    },
+  },
 });
 
 // Mod+; inserts today's date, and Enter on a selected inline date opens it.

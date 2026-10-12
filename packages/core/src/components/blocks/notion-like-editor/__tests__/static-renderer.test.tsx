@@ -495,6 +495,10 @@ describe("static renderer", () => {
       const compact = (element: Element) => {
         const copy = element.cloneNode(true) as Element;
         copy.querySelectorAll("style, button, svg").forEach((child) => child.remove());
+        // The static-only back link to a reference is not text the editor shows, so parity skips it.
+        copy
+          .querySelectorAll('a[aria-label="Back to reference"]')
+          .forEach((child) => child.remove());
         return (copy.textContent ?? "").replace(/Copy/g, "").replace(/\s+/g, "");
       };
       const left = compact(node);

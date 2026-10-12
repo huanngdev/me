@@ -31,6 +31,7 @@ import {
   siblingMove,
 } from "../features/editor-block-drop";
 import { openAncestorToggle } from "../plugins/editor-toggle";
+import { footnoteDefinitionIdAt, removeFootnote } from "../features/editor-footnote";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -1364,11 +1365,17 @@ export const duplicateBlock: EditorCommand<{ path: number[] }> = {
   },
 };
 
+// A definition goes with its references, in the same undo step. Other blocks delete as before.
 export const deleteBlock: EditorCommand<{ path: number[] }> = {
   id: "block.menu.delete",
   label: "Delete",
   group: "action",
   run: (editor, payload) => {
+    const footnoteId = footnoteDefinitionIdAt(editor, payload.path);
+    if (footnoteId !== undefined) {
+      removeFootnote.run(editor, { footnoteId });
+      return;
+    }
     deleteBlockAt(editor, payload.path);
   },
 };

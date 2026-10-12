@@ -101,6 +101,19 @@ describe("demo document", () => {
     expect(headings).toBe(DEMO_DOCUMENT_VALUE.indexOf(toc) + 1);
   });
 
+  test("the demo footnote is referenced in its paragraph and defined as the last block", () => {
+    const line = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-footnote-line");
+    const last = DEMO_DOCUMENT_VALUE[DEMO_DOCUMENT_VALUE.length - 1];
+    const reference = elementChildren(line).find(
+      (child) => field(child, "type") === "footnote_ref",
+    );
+
+    expect(field(reference, "footnoteId")).toBe("demo-footnote");
+    expect(last?.type).toBe("footnote_def");
+    expect(last?.id).toBe("demo-footnote-def");
+    expect(field(last, "footnoteId")).toBe("demo-footnote");
+  });
+
   test("the demo document parses with no repairs", () => {
     const parsed = expectOk(parseEditorDocument(createEditorDocument("demo", DEMO_DOCUMENT_VALUE)));
 
@@ -577,22 +590,22 @@ describe("demo document", () => {
     const syncedRef = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-synced-ref");
     expect(synced?.type).toBe("h3");
     expect(synced ? textOf(synced) : "").toBe("Synced block");
-    // +8 onward: the inline equation and inline date paragraphs sit after the block equations.
+    // +9 onward: the inline equation, inline date and footnote paragraphs sit after the block equations.
     expect(DEMO_DOCUMENT_VALUE.indexOf(synced ?? bookmarkFallback)).toBe(
-      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 8,
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 9,
     );
     expect(syncedOriginal?.type).toBe("callout");
     expect(field(syncedOriginal, "icon")).toBe("info");
     expect(DEMO_DOCUMENT_VALUE.indexOf(syncedOriginal ?? bookmarkFallback)).toBe(
-      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 9,
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 10,
     );
     expect(syncedRef?.type).toBe("synced_ref");
     expect(field(syncedRef, "targetBlockId")).toBe("demo-synced-original");
     expect(DEMO_DOCUMENT_VALUE.indexOf(syncedRef ?? bookmarkFallback)).toBe(
-      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 10,
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 11,
     );
     expect(DEMO_DOCUMENT_VALUE.indexOf(paste)).toBe(
-      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 11,
+      DEMO_DOCUMENT_VALUE.indexOf(bookmarkFallback) + 12,
     );
     const toggleChildren = elementChildren(toggle);
     expect(toggleChildren.map((child) => field(child, "id"))).toEqual([
@@ -948,7 +961,7 @@ describe("demo document", () => {
   });
 
   test("the demo includes an external link, a mailto link, and an autolink example", () => {
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(95);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(97);
     const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");

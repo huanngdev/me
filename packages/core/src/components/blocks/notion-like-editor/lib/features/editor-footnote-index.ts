@@ -79,3 +79,18 @@ export function footnoteReferenceOrdinal(
 
   return found > 0 ? found : 1;
 }
+
+// True when no definition sits directly above this one. Shared by the editor and the static renderer.
+export function startsFootnoteRun(value: readonly Descendant[], blockId: string): boolean {
+  const index = value.findIndex((node) => ElementApi.isElement(node) && node.id === blockId);
+  if (index < 0) {
+    return false;
+  }
+
+  const previous = value[index - 1];
+  return !(
+    previous !== undefined &&
+    ElementApi.isElement(previous) &&
+    previous.type === FOOTNOTE_DEF_KEY
+  );
+}

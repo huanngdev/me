@@ -75,7 +75,7 @@ function editableOf(editor: SlateEditor): HTMLElement | null {
 
 // One band per rendered target, in document order. Gaps between blocks have no
 // hit element, so the handle resolves a target from these bands instead.
-function handleBands(editor: SlateEditor): HandleBand[] {
+export function handleBands(editor: SlateEditor): HandleBand[] {
   const editable = editableOf(editor);
   if (!editable) {
     return [];

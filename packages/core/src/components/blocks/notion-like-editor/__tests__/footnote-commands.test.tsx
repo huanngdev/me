@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { KEYS, type TElement } from "platejs";
+import { KEYS, type SlateEditor, type TElement } from "platejs";
 
 import { runEditorCommand } from "../lib/commands/editor-commands";
 import type { EditorValue } from "../lib/document/editor-value";
@@ -96,7 +96,7 @@ describe("insertFootnote", () => {
     expect(editor.selection?.anchor.path).toEqual([1, 0]);
   });
 
-  test("the new definition is appended after existing definitions", () => {
+  test("with no trailing run of definitions, the new definition goes at the end", () => {
     const editor = createEditor([
       para("p", [text("abc")]),
       def("d-old", "old", "older"),
@@ -113,6 +113,59 @@ describe("insertFootnote", () => {
       KEYS.p,
       FOOTNOTE_DEF_KEY,
     ]);
+  });
+
+  // Definition order inside the trailing run, by footnote number.
+  function definitionOrder(editor: SlateEditor): string[] {
+    return defsOf(editor).map((node) => String(node.footnoteId));
+  }
+
+  test("a new first reference puts its definition before the existing ones", () => {
+    const editor = createEditor([
+      para("p0", [text("start")]),
+      para("p1", [text("a "), ref("r-a", "a")]),
+      para("p2", [text("b "), ref("r-b", "b")]),
+      def("da", "a", "A"),
+      def("db", "b", "B"),
+    ] as unknown as EditorValue);
+    editor.tf.select(caret([0, 0], 5));
+
+    runEditorCommand(editor, insertFootnote, undefined);
+
+    const created = String(refsOf(editor)[0]?.footnoteId);
+    expect(footnoteNumber(editor, created)).toBe(1);
+    expect(definitionOrder(editor)).toEqual([created, "a", "b"]);
+  });
+
+  test("a new reference between two existing ones puts its definition in the middle", () => {
+    const editor = createEditor([
+      para("p0", [text("a "), ref("r-a", "a")]),
+      para("p1", [text("b "), ref("r-c", "c")]),
+      def("da", "a", "A"),
+      def("dc", "c", "C"),
+    ] as unknown as EditorValue);
+    editor.tf.select(caret([1, 0], 2));
+
+    runEditorCommand(editor, insertFootnote, undefined);
+
+    const created = String(refsOf(editor)[1]?.footnoteId);
+    expect(footnoteNumber(editor, created)).toBe(2);
+    expect(definitionOrder(editor)).toEqual(["a", created, "c"]);
+  });
+
+  test("an unreferenced definition stays after the new one", () => {
+    const editor = createEditor([
+      para("p0", [text("a "), ref("r-a", "a"), text(" end")]),
+      def("da", "a", "A"),
+      def("dorphan", "orphan", "lonely"),
+    ] as unknown as EditorValue);
+    editor.tf.select(caret([0, 2], 0));
+
+    runEditorCommand(editor, insertFootnote, undefined);
+
+    const created = String(refsOf(editor)[1]?.footnoteId);
+    expect(footnoteNumber(editor, created)).toBe(2);
+    expect(definitionOrder(editor)).toEqual(["a", created, "orphan"]);
   });
 
   test("one undo removes the reference and the definition and restores the selection", () => {

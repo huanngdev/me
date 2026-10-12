@@ -331,7 +331,7 @@ describe("footnote static HTML", () => {
   test("a missing definition renders a plain ? without a link", () => {
     const html = renderToStaticMarkup(<NotionLikeEditorStatic value={value} />);
 
-    expect(html).toContain("<sup>?</sup>");
+    expect(html).toMatch(/<sup[^>]*>\?<\/sup>/);
     expect(html).not.toContain('href="#fn-gone"');
   });
 

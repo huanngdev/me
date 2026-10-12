@@ -1159,6 +1159,20 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-footnote-line",
+    children: [
+      { text: "Footnotes keep asides out of the sentence." },
+      {
+        type: "footnote_ref",
+        id: "demo-footnote-ref",
+        footnoteId: "demo-footnote",
+        children: [{ text: "" }],
+      },
+      { text: " Type /footnote to add one." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],
@@ -1204,6 +1218,16 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [
       {
         text: "Your changes save in this browser. Reload the page and they are still here. Undo with Cmd+Z or Ctrl+Z.",
+      },
+    ],
+  },
+  {
+    type: "footnote_def",
+    id: "demo-footnote-def",
+    footnoteId: "demo-footnote",
+    children: [
+      {
+        text: "A footnote definition sits at the end of the page. Click its number to jump back.",
       },
     ],
   },

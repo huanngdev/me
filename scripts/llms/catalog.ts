@@ -164,6 +164,8 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-popover.tsx",
       "packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-calendar.tsx",
       "packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-date-ui.ts",
+      "packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-classes.ts",
+      "packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote-ui.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-repair.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-index.ts",

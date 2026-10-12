@@ -1,5 +1,6 @@
 import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
+import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
@@ -24,6 +25,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.codeBlock,
   KEYS.table,
   KEYS.columnGroup,
+  FOOTNOTE_DEF_KEY,
 ]);
 
 // The handle's top edge is flush with the top of the block's visible content.
