@@ -66,6 +66,7 @@ import {
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
+import { BlockColorMenu } from "./block-color-menu";
 import { BlockPickerGroups } from "./block-picker";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
@@ -288,6 +289,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     return (
       <>
         <DropdownMenuLabel data-block-menu-count="">{`${multi.ids.length} blocks`}</DropdownMenuLabel>
+        <BlockColorMenu ids={multi.ids} onActed={onActed} />
         <DropdownMenuItem
           onSelect={() => {
             duplicate();
@@ -411,6 +413,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
           </DropdownMenuItem>
         </>
       ) : null}
+      <BlockColorMenu ids={[target.id]} onActed={onActed} />
       <DropdownMenuItem
         onSelect={() => {
           duplicate();

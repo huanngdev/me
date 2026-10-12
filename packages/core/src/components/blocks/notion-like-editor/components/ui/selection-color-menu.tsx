@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 
 import { PALETTE_TOKENS, type PaletteToken } from "../../lib/document/editor-document-schema";
 import type { HighlightState, TextColorState } from "../../lib/commands/editor-commands";
-const COLUMNS = 5;
+export const COLUMNS = 5;
 
-function tokenLabel(token: string): string {
+export function tokenLabel(token: string): string {
   return token.charAt(0).toUpperCase() + token.slice(1);
 }
 
@@ -237,7 +237,7 @@ function Swatch({
   );
 }
 
-function moveSwatchFocus(event: React.KeyboardEvent<HTMLElement>): void {
+export function moveSwatchFocus(event: React.KeyboardEvent<HTMLElement>): void {
   if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
     return;
   }

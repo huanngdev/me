@@ -2406,103 +2406,104 @@ export default function ErrorPageBlockPage() {
 12. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
 13. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
 14. packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
-15. packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
-16. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
-17. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-18. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-19. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-21. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-22. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-24. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-25. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-26. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-27. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-28. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-29. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-30. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-31. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-32. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-33. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-35. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-37. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-39. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-41. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
-43. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
-44. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
-46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
-47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-48. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-51. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-52. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-55. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-56. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-62. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-63. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-64. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-65. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-67. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-68. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-73. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-74. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-75. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-76. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-77. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-78. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-79. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-80. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-88. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-89. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-90. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-91. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-92. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-93. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-110. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-111. apps/web/src/app/blocks/notion-like-editor/page.tsx
+15. packages/core/src/components/blocks/notion-like-editor/components/ui/block-color-menu.tsx
+16. packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
+17. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+18. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+19. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+20. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+21. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+22. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+24. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+25. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+26. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+27. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+28. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+29. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+30. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+31. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+32. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+33. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+35. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+36. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+37. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+38. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+39. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+40. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+41. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+42. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+43. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
+44. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
+45. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
+46. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
+47. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
+48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+49. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+50. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+51. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+52. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+53. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+56. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+57. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+63. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+64. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+65. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+69. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+74. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+75. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+76. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+77. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+78. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+79. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+80. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+88. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+89. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+90. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+91. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+92. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+93. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+94. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+111. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+112. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -6905,6 +6906,7 @@ import {
   type NativeMenuProbe,
 } from "../../lib/features/editor-block-menu";
 import { findBlockById } from "../../lib/features/editor-synced-block";
+import { BlockColorMenu } from "./block-color-menu";
 import { BlockPickerGroups } from "./block-picker";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
@@ -7127,6 +7129,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
     return (
       <>
         <DropdownMenuLabel data-block-menu-count="">{`${multi.ids.length} blocks`}</DropdownMenuLabel>
+        <BlockColorMenu ids={multi.ids} onActed={onActed} />
         <DropdownMenuItem
           onSelect={() => {
             duplicate();
@@ -7250,6 +7253,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
           </DropdownMenuItem>
         </>
       ) : null}
+      <BlockColorMenu ids={[target.id]} onActed={onActed} />
       <DropdownMenuItem
         onSelect={() => {
           duplicate();
@@ -7571,6 +7575,214 @@ export function BlockMenu({
         />
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/block-color-menu.tsx
+```tsx
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Check, Palette } from "lucide-react";
+import { ElementApi, type SlateEditor } from "platejs";
+import { useEditorRef } from "platejs/react";
+
+import {
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { PALETTE_TOKENS, type PaletteToken } from "../../lib/document/editor-document-schema";
+import {
+  blockToneAllowed,
+  blockToneState,
+  setBlockTone,
+} from "../../lib/features/editor-block-tone";
+import type { BlockToneKind } from "../../lib/features/editor-block-tone-style";
+import { findBlockById } from "../../lib/features/editor-synced-block";
+import { COLUMNS, moveSwatchFocus, tokenLabel } from "./selection-color-menu";
+
+type ToneState = PaletteToken | null | "mixed";
+
+// Capture phase, so it runs before Radix's roving focus on the items. Arrow keys walk the grid.
+// ArrowLeft from the first column is left alone, so Radix closes the submenu.
+function moveGridFocus(event: ReactKeyboardEvent<HTMLElement>): void {
+  if (event.key === "ArrowLeft") {
+    const swatches = Array.from(event.currentTarget.querySelectorAll("[data-color-swatch]"));
+    const index = swatches.indexOf(document.activeElement as Element);
+    if (index >= 0 && index % COLUMNS === 0) {
+      return;
+    }
+  }
+  moveSwatchFocus(event);
+}
+
+// The choice closes the menu, and the menu unmounts with the focused swatch. Move focus into the
+// editor first, so the swatch never leaves the DOM while focused. The block selection clears on a
+// focusout that leaves the editor.
+function focusEditable(editor: SlateEditor): void {
+  const first = editor.children[0];
+  if (!first || !ElementApi.isElement(first)) {
+    return;
+  }
+  const editable = editor.api.toDOMNode(first)?.closest("[data-slate-editor]");
+  if (editable instanceof HTMLElement) {
+    editable.focus({ preventScroll: true });
+  }
+}
+
+function pathsOf(editor: SlateEditor, ids: readonly string[]): number[][] {
+  const paths: number[][] = [];
+  for (const id of ids) {
+    const located = findBlockById(editor, id);
+    if (located) {
+      paths.push([...located[1]]);
+    }
+  }
+  return paths;
+}
+
+// The block menu's Color submenu. It shares the swatch look of the selection colour menu.
+export function BlockColorMenu({ ids, onActed }: { ids: readonly string[]; onActed: () => void }) {
+  const editor = useEditorRef();
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const paths = pathsOf(editor, ids);
+  const allowed = paths.some((path) => blockToneAllowed(editor, path));
+  const states: Record<BlockToneKind, ToneState> = {
+    text: blockToneState(editor, paths, "text"),
+    background: blockToneState(editor, paths, "background"),
+  };
+
+  function choose(kind: BlockToneKind, token: PaletteToken | null): void {
+    onActed();
+    focusEditable(editor);
+    if (states[kind] === token) {
+      return;
+    }
+    runEditorCommand(editor, setBlockTone, { ids: [...ids], kind, token });
+  }
+
+  if (!allowed) {
+    const reason =
+      ids.length > 1
+        ? "Color is not available for these blocks."
+        : "Color is not available for this block.";
+    return (
+      <DropdownMenuItem disabled data-block-menu-color="">
+        <Palette aria-hidden="true" />
+        <span className="flex min-w-0 flex-col items-start">
+          <span>Color</span>
+          <span className="text-muted-foreground text-xs whitespace-normal">{reason}</span>
+        </span>
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuSub open={open} onOpenChange={setOpen}>
+      <DropdownMenuSubTrigger ref={triggerRef} data-block-menu-color="">
+        <Palette aria-hidden="true" />
+        Color
+      </DropdownMenuSubTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent
+          data-block-menu-portal=""
+          data-block-color-menu=""
+          collisionPadding={8}
+          hideWhenDetached
+          className="w-auto p-2"
+          onKeyDownCapture={moveGridFocus}
+          onEscapeKeyDown={(event) => {
+            // Escape closes this submenu only. Radix would otherwise close the whole block menu.
+            event.preventDefault();
+            setOpen(false);
+            triggerRef.current?.focus();
+          }}
+        >
+          <ColorSection kind="text" state={states.text} onChoose={choose} />
+          <ColorSection kind="background" state={states.background} onChoose={choose} />
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
+    </DropdownMenuSub>
+  );
+}
+
+function ColorSection({
+  kind,
+  state,
+  onChoose,
+}: {
+  kind: BlockToneKind;
+  state: ToneState;
+  onChoose: (kind: BlockToneKind, token: PaletteToken | null) => void;
+}) {
+  const name = kind === "text" ? "Text" : "Background";
+  const label = state === "mixed" ? `${name} · Mixed` : name;
+
+  return (
+    <div role="group" aria-label={label} className="mb-2 grid grid-cols-5 gap-1 last:mb-0">
+      <p className="text-muted-foreground col-span-5 text-xs">{label}</p>
+      <Swatch kind={kind} token={null} pressed={state === null} onChoose={onChoose} />
+      {PALETTE_TOKENS.map((token) => (
+        <Swatch
+          key={token}
+          kind={kind}
+          token={token}
+          pressed={state === token}
+          onChoose={onChoose}
+        />
+      ))}
+    </div>
+  );
+}
+
+// A menu item, not a button: Radix owns focus and Escape inside the submenu.
+function Swatch({
+  kind,
+  token,
+  pressed,
+  onChoose,
+}: {
+  kind: BlockToneKind;
+  token: PaletteToken | null;
+  pressed: boolean;
+  onChoose: (kind: BlockToneKind, token: PaletteToken | null) => void;
+}) {
+  const name = token === null ? "Default" : tokenLabel(token);
+  const color = token === null ? undefined : `var(--editor-text-${token})`;
+  const background = token === null ? undefined : `var(--editor-bg-${token})`;
+
+  return (
+    <DropdownMenuItem
+      aria-label={`${name} ${kind}`}
+      aria-pressed={pressed}
+      data-color-swatch=""
+      data-color-kind={kind}
+      data-color-token={token ?? "default"}
+      className={cn(
+        "relative size-8 justify-center p-0",
+        kind === "background" && token === null && "border-border border bg-transparent",
+        pressed && "ring-ring ring-offset-popover ring-2 ring-offset-2",
+      )}
+      style={kind === "text" ? { color } : { backgroundColor: background }}
+      onSelect={() => {
+        onChoose(kind, token);
+      }}
+    >
+      A
+      {pressed ? (
+        <Check
+          aria-hidden="true"
+          data-color-check=""
+          className="absolute top-0.5 right-0.5 size-2.5"
+        />
+      ) : null}
+    </DropdownMenuItem>
   );
 }
 ```
@@ -28731,6 +28943,16 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "Select " },
       { text: "formatted text", bold: true, italic: true, color: "red" },
       { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-block-color",
+    backgroundTone: "blue",
+    children: [
+      {
+        text: "A whole block can have a background or text colour. Open the block menu and choose Color.",
+      },
     ],
   },
   {

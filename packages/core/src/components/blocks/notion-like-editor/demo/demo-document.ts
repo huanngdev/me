@@ -275,6 +275,16 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-block-color",
+    backgroundTone: "blue",
+    children: [
+      {
+        text: "A whole block can have a background or text colour. Open the block menu and choose Color.",
+      },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-block-styles",
     children: [{ text: "Block styles" }],

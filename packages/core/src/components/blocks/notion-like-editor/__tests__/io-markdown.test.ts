@@ -55,6 +55,7 @@ describe("markdown io", () => {
     expect(exportedCodes).toEqual(
       [
         "alignment",
+        "block-color",
         "bookmark-details",
         "callout-icon",
         "columns-layout",

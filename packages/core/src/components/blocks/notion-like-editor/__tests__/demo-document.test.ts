@@ -948,7 +948,7 @@ describe("demo document", () => {
   });
 
   test("the demo includes an external link, a mailto link, and an autolink example", () => {
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(91);
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(92);
     const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");
