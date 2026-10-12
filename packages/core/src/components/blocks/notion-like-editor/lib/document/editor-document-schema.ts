@@ -246,8 +246,8 @@ export function codeLangFromToken(token: string): CodeLang | null {
 }
 
 const headingElementRule = {
-  attrs: ["id", "align"],
-  attrValues: { align: TEXT_ALIGNS },
+  attrs: ["id", "align", "textTone", "backgroundTone"],
+  attrValues: { align: TEXT_ALIGNS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
 } as const;
 
 export const EQUATION_EXPRESSION_MAX = 4000;
@@ -389,6 +389,8 @@ export const EDITOR_ELEMENT_RULES = [
       "listRestart",
       "listRestartPolite",
       "checked",
+      "textTone",
+      "backgroundTone",
     ],
     attrValues: {
       align: TEXT_ALIGNS,
@@ -396,6 +398,8 @@ export const EDITOR_ELEMENT_RULES = [
       indent: LIST_INDENTS,
       listStyleType: LIST_STYLES,
       checked: [true, false],
+      textTone: PALETTE_TOKENS,
+      backgroundTone: PALETTE_TOKENS,
     },
     attrRanges: {
       listStart: LIST_NUMBER_RANGE,
@@ -419,9 +423,11 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
   // Alignment and line height stay on the child paragraphs. A quote stores only its id.
+  // Tones are block attrs on the quote itself. Child paragraphs keep their own.
   {
     type: KEYS.blockquote,
-    attrs: ["id"],
+    attrs: ["id", "textTone", "backgroundTone"],
+    attrValues: { textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
     childTypes: [KEYS.p],
   },
   // A divider is a void. It stores only its id, never align, line height, or list attrs.

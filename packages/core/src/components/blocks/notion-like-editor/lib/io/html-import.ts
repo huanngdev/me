@@ -4,7 +4,11 @@ import { createEditorDocument } from "../document/editor-document";
 import { parseEditorDocument } from "../document/editor-document-validate";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { MENTION_ENTITY_TYPE } from "../features/editor-mention-node";
-import { SYNCED_REF_KEY, isStoredEquationExpression } from "../document/editor-document-schema";
+import {
+  SYNCED_REF_KEY,
+  isPaletteToken,
+  isStoredEquationExpression,
+} from "../document/editor-document-schema";
 import {
   MEDIA_NOT_SUPPORTED,
   PASTE_BLOCK_LIMIT,
@@ -19,7 +23,7 @@ import type { EditorValue } from "../document/editor-value";
 import { assignFreshIds } from "./fresh-ids";
 import { pasteHtmlAsDocument } from "./html-paste";
 import { mergeInlineText } from "./inline-text";
-import { COLOR_CSS, FONT_CSS } from "./html-export";
+import { BACKGROUND_CSS, COLOR_CSS, FONT_CSS } from "./html-export";
 import { createWarnings, plural, type IoImportResult, type IoWarning } from "./io-types";
 
 type SlateNode = Record<string, unknown>;
@@ -74,15 +78,20 @@ function styleDeclarations(element: Element): Map<string, string> {
   return map;
 }
 
-function tokenFromColor(css: string | undefined): string | undefined {
+function tokenFromColor(
+  css: string | undefined,
+  tables: readonly Readonly<Record<string, string>>[],
+): string | undefined {
   if (css === undefined) {
     return undefined;
   }
 
   const normalized = css.replaceAll(" ", "").toLowerCase();
-  for (const [token, hex] of Object.entries(COLOR_CSS)) {
-    if (hex === normalized) {
-      return token;
+  for (const table of tables) {
+    for (const [token, hex] of Object.entries(table)) {
+      if (hex === normalized) {
+        return token;
+      }
     }
   }
 
@@ -120,7 +129,7 @@ function applySpanStyle(
     }
   }
 
-  const color = tokenFromColor(style.get("color"));
+  const color = tokenFromColor(style.get("color"), [COLOR_CSS]);
   if (style.has("color")) {
     if (color === undefined) {
       warnings.add(
@@ -133,7 +142,8 @@ function applySpanStyle(
     }
   }
 
-  const highlight = tokenFromColor(style.get("background-color"));
+  // Files exported before the soft tints kept the saturated hexes for highlights, so both are read.
+  const highlight = tokenFromColor(style.get("background-color"), [BACKGROUND_CSS, COLOR_CSS]);
   if (style.has("background-color")) {
     if (highlight === undefined) {
       warnings.add(
@@ -180,11 +190,40 @@ function applySpanStyle(
   }
 }
 
+// Only the data attributes our export writes. The style colour is never parsed back into a tone.
+function applyBlockTone(
+  element: Element,
+  node: SlateNode,
+  warnings: ReturnType<typeof createWarnings>,
+): void {
+  const tones = [
+    ["data-nle-text-tone", "textTone"],
+    ["data-nle-background-tone", "backgroundTone"],
+  ] as const;
+  for (const [name, key] of tones) {
+    const raw = element.getAttribute(name);
+    if (raw === null) {
+      continue;
+    }
+
+    if (isPaletteToken(raw)) {
+      node[key] = raw;
+    } else {
+      warnings.add(
+        "block-color",
+        (count) =>
+          `${count} block ${plural(count, "colour was", "colours were")} removed. The colour is not one this editor stores.`,
+      );
+    }
+  }
+}
+
 function applyBlockStyle(
   element: Element,
   node: SlateNode,
   warnings: ReturnType<typeof createWarnings>,
 ): void {
+  applyBlockTone(element, node, warnings);
   const style = styleDeclarations(element);
   const align = style.get("text-align");
   if (align === "left" || align === "center" || align === "right" || align === "justify") {
@@ -588,12 +627,12 @@ function blocksFromElement(
     const children = blocksFromChildren(element, warnings).map((child) =>
       child.type === KEYS.p ? child : paragraph([{ text: textOf(child) }]),
     );
-    return [
-      stamp(element, {
-        type: KEYS.blockquote,
-        children: children.length > 0 ? children : [{ type: KEYS.p, children: [{ text: "" }] }],
-      }),
-    ];
+    const quote = stamp(element, {
+      type: KEYS.blockquote,
+      children: children.length > 0 ? children : [{ type: KEYS.p, children: [{ text: "" }] }],
+    });
+    applyBlockTone(element, quote, warnings);
+    return [quote];
   }
 
   if (element.tagName === "HR") {

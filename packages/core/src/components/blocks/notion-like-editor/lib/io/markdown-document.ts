@@ -251,6 +251,13 @@ function renderInline(
 }
 
 function blockStyles(node: Node, warnings: ReturnType<typeof createWarnings>): void {
+  if (node.textTone !== undefined || node.backgroundTone !== undefined) {
+    warnings.add(
+      "block-color",
+      (count) =>
+        `${count} block ${plural(count, "colour was", "colours were")} removed. Markdown has no block colour.`,
+    );
+  }
   if (typeof node.align === "string") {
     warnings.add(
       "alignment",

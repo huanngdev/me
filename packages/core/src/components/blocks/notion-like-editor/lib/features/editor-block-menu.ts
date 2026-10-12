@@ -10,11 +10,14 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { isInsideTable } from "./editor-block-tone";
+import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  isPaletteToken,
   maxNesting,
 } from "../document/editor-document-schema";
 
@@ -116,6 +119,8 @@ const STRUCTURAL = new Set<string>([
 
 const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
 
+const TONE_KEYS = ["textTone", "backgroundTone"] as const;
+
 const LIST_ATTRS = [
   "listStyleType",
   "indent",
@@ -212,6 +217,12 @@ export function applyBlockTurn(editor: SlateEditor, path: number[], kind: BlockM
 
   const seen = collectIds(editor);
   const replacement = replacementNodes(node, decision.effect, kind, seen);
+  // Table cells own their colour, so nothing inside a table keeps a tone.
+  if (isInsideTable(editor, at)) {
+    for (const next of replacement) {
+      unsetTones(next);
+    }
+  }
   editor.tf.withoutNormalizing(() => {
     replaceAt(editor, at, replacement);
   });
@@ -650,7 +661,7 @@ function replacementNodes(
 function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
   const align = stringProp(node, "align");
   const lineHeight = stringProp(node, "lineHeight");
-  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight);
+  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight, node);
 }
 
 function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -658,7 +669,7 @@ function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElem
   const lineHeight = stringProp(node, "lineHeight");
   const inlines = structuredClone(node.children);
   const label = labelKind(kind, node);
-  const inner = textBlock(createId(seen), label, inlines, align, lineHeight);
+  const inner = textBlock(createId(seen), label, inlines, align, lineHeight, node);
   return containerNode(nodeId(node), kind, [inner]);
 }
 
@@ -668,6 +679,9 @@ function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>)
   unsetProp(next, "icon");
   unsetProp(next, "variant");
   unsetProp(next, "lineHeight");
+  if (!BLOCK_TONE_TYPES.includes(next.type)) {
+    unsetTones(next);
+  }
   for (const key of LIST_ATTRS) {
     unsetProp(next, key);
   }
@@ -694,12 +708,15 @@ function containerToLeaf(
   const children = blockElements(node);
   const first = children[0];
   if (first && canRepresent(childView(first), kind)) {
+    // A toned quote keeps its tone. Otherwise the first child's tone comes along, as align does.
+    const toned = hasTone(node) ? node : first;
     const leaf = textBlock(
       nodeId(node),
       kind,
       structuredClone(first.children),
       stringProp(first, "align"),
       stringProp(first, "lineHeight"),
+      toned,
     );
     return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
   }
@@ -793,8 +810,12 @@ function textBlock(
   children: Descendant[],
   align?: string,
   lineHeight?: string,
+  toneSource?: TElement,
 ): TElement {
   const node: TElement = { type: slateType(kind), id, children };
+  if (toneSource !== undefined) {
+    copyTones(node, toneSource);
+  }
   if (align !== undefined && allowsAlign(kind)) {
     setProp(node, "align", align);
   }
@@ -821,6 +842,30 @@ function containerNode(id: string, kind: BlockMenuKind, children: Descendant[]):
 
 function codeLine(id: string, text: string): TElement {
   return { type: KEYS.codeLine, id, children: [{ text }] };
+}
+
+// Tones move only onto block types that store them. Callout and toggle drop them.
+function copyTones(target: TElement, source: TElement): void {
+  if (!BLOCK_TONE_TYPES.includes(target.type)) {
+    return;
+  }
+
+  for (const key of TONE_KEYS) {
+    const value = stringProp(source, key);
+    if (isPaletteToken(value)) {
+      setProp(target, key, value);
+    }
+  }
+}
+
+function unsetTones(node: TElement): void {
+  for (const key of TONE_KEYS) {
+    unsetProp(node, key);
+  }
+}
+
+function hasTone(node: TElement): boolean {
+  return TONE_KEYS.some((key) => stringProp(node, key) !== undefined);
 }
 
 function allowsAlign(kind: BlockMenuKind): boolean {

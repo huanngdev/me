@@ -70,6 +70,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "../../components/elements/link-element";
 import {
@@ -1150,6 +1151,16 @@ const textAlignPlugin = TextAlignPlugin.configure({
   },
 });
 
+// Block tones are injected by the block itself, so the leaf token helpers do not apply.
+const blockTonePlugin = createSlatePlugin({
+  key: "blockTone",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_TONE_TYPES],
+    nodeProps: blockToneNodeProps(),
+  },
+});
+
 const lineHeightPlugin = LineHeightPlugin.configure({
   inject: {
     // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
@@ -1881,6 +1892,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     togglePlugin,
     horizontalRulePlugin,
     textAlignPlugin,
+    blockTonePlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,

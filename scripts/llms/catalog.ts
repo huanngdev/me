@@ -171,6 +171,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts",
+      "packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts",
       "packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts",
       "packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts",
       "packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts",

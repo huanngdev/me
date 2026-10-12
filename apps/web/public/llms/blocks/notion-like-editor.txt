@@ -68,56 +68,57 @@
 58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
 59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
 60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-62. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-63. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-65. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-67. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-68. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-73. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-74. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-75. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-76. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-77. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-78. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-79. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-80. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-88. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-89. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-90. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-91. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-92. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-110. apps/web/src/app/blocks/notion-like-editor/page.tsx
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+63. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+64. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+65. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+68. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+74. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+75. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+76. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+77. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+78. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+79. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+80. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+88. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+89. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+90. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+91. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+92. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+93. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+111. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -383,8 +384,8 @@ export function codeLangFromToken(token: string): CodeLang | null {
 }
 
 const headingElementRule = {
-  attrs: ["id", "align"],
-  attrValues: { align: TEXT_ALIGNS },
+  attrs: ["id", "align", "textTone", "backgroundTone"],
+  attrValues: { align: TEXT_ALIGNS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
 } as const;
 
 export const EQUATION_EXPRESSION_MAX = 4000;
@@ -526,6 +527,8 @@ export const EDITOR_ELEMENT_RULES = [
       "listRestart",
       "listRestartPolite",
       "checked",
+      "textTone",
+      "backgroundTone",
     ],
     attrValues: {
       align: TEXT_ALIGNS,
@@ -533,6 +536,8 @@ export const EDITOR_ELEMENT_RULES = [
       indent: LIST_INDENTS,
       listStyleType: LIST_STYLES,
       checked: [true, false],
+      textTone: PALETTE_TOKENS,
+      backgroundTone: PALETTE_TOKENS,
     },
     attrRanges: {
       listStart: LIST_NUMBER_RANGE,
@@ -556,9 +561,11 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
   // Alignment and line height stay on the child paragraphs. A quote stores only its id.
+  // Tones are block attrs on the quote itself. Child paragraphs keep their own.
   {
     type: KEYS.blockquote,
-    attrs: ["id"],
+    attrs: ["id", "textTone", "backgroundTone"],
+    attrValues: { textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
     childTypes: [KEYS.p],
   },
   // A divider is a void. It stores only its id, never align, line height, or list attrs.
@@ -3123,7 +3130,11 @@ function fitPasteForCell(editor: SlateEditor, value: EditorValue): EditorValue {
 
   return value.map((node) => {
     if (node.type === KEYS.p) {
-      return node;
+      // Cells own their colour, so a pasted paragraph keeps no block tone.
+      const copy = structuredClone(node);
+      Reflect.deleteProperty(copy, "textTone");
+      Reflect.deleteProperty(copy, "backgroundTone");
+      return copy;
     }
 
     return { type: KEYS.p, children: [{ text: nodeText(node) }] };
@@ -6146,6 +6157,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "../../components/elements/link-element";
 import {
@@ -7226,6 +7238,16 @@ const textAlignPlugin = TextAlignPlugin.configure({
   },
 });
 
+// Block tones are injected by the block itself, so the leaf token helpers do not apply.
+const blockTonePlugin = createSlatePlugin({
+  key: "blockTone",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_TONE_TYPES],
+    nodeProps: blockToneNodeProps(),
+  },
+});
+
 const lineHeightPlugin = LineHeightPlugin.configure({
   inject: {
     // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
@@ -7957,6 +7979,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     togglePlugin,
     horizontalRulePlugin,
     textAlignPlugin,
+    blockTonePlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,
@@ -20638,11 +20661,14 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { isInsideTable } from "./editor-block-tone";
+import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  isPaletteToken,
   maxNesting,
 } from "../document/editor-document-schema";
 
@@ -20744,6 +20770,8 @@ const STRUCTURAL = new Set<string>([
 
 const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
 
+const TONE_KEYS = ["textTone", "backgroundTone"] as const;
+
 const LIST_ATTRS = [
   "listStyleType",
   "indent",
@@ -20840,6 +20868,12 @@ export function applyBlockTurn(editor: SlateEditor, path: number[], kind: BlockM
 
   const seen = collectIds(editor);
   const replacement = replacementNodes(node, decision.effect, kind, seen);
+  // Table cells own their colour, so nothing inside a table keeps a tone.
+  if (isInsideTable(editor, at)) {
+    for (const next of replacement) {
+      unsetTones(next);
+    }
+  }
   editor.tf.withoutNormalizing(() => {
     replaceAt(editor, at, replacement);
   });
@@ -21278,7 +21312,7 @@ function replacementNodes(
 function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
   const align = stringProp(node, "align");
   const lineHeight = stringProp(node, "lineHeight");
-  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight);
+  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight, node);
 }
 
 function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -21286,7 +21320,7 @@ function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElem
   const lineHeight = stringProp(node, "lineHeight");
   const inlines = structuredClone(node.children);
   const label = labelKind(kind, node);
-  const inner = textBlock(createId(seen), label, inlines, align, lineHeight);
+  const inner = textBlock(createId(seen), label, inlines, align, lineHeight, node);
   return containerNode(nodeId(node), kind, [inner]);
 }
 
@@ -21296,6 +21330,9 @@ function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>)
   unsetProp(next, "icon");
   unsetProp(next, "variant");
   unsetProp(next, "lineHeight");
+  if (!BLOCK_TONE_TYPES.includes(next.type)) {
+    unsetTones(next);
+  }
   for (const key of LIST_ATTRS) {
     unsetProp(next, key);
   }
@@ -21322,12 +21359,15 @@ function containerToLeaf(
   const children = blockElements(node);
   const first = children[0];
   if (first && canRepresent(childView(first), kind)) {
+    // A toned quote keeps its tone. Otherwise the first child's tone comes along, as align does.
+    const toned = hasTone(node) ? node : first;
     const leaf = textBlock(
       nodeId(node),
       kind,
       structuredClone(first.children),
       stringProp(first, "align"),
       stringProp(first, "lineHeight"),
+      toned,
     );
     return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
   }
@@ -21421,8 +21461,12 @@ function textBlock(
   children: Descendant[],
   align?: string,
   lineHeight?: string,
+  toneSource?: TElement,
 ): TElement {
   const node: TElement = { type: slateType(kind), id, children };
+  if (toneSource !== undefined) {
+    copyTones(node, toneSource);
+  }
   if (align !== undefined && allowsAlign(kind)) {
     setProp(node, "align", align);
   }
@@ -21449,6 +21493,30 @@ function containerNode(id: string, kind: BlockMenuKind, children: Descendant[]):
 
 function codeLine(id: string, text: string): TElement {
   return { type: KEYS.codeLine, id, children: [{ text }] };
+}
+
+// Tones move only onto block types that store them. Callout and toggle drop them.
+function copyTones(target: TElement, source: TElement): void {
+  if (!BLOCK_TONE_TYPES.includes(target.type)) {
+    return;
+  }
+
+  for (const key of TONE_KEYS) {
+    const value = stringProp(source, key);
+    if (isPaletteToken(value)) {
+      setProp(target, key, value);
+    }
+  }
+}
+
+function unsetTones(node: TElement): void {
+  for (const key of TONE_KEYS) {
+    unsetProp(node, key);
+  }
+}
+
+function hasTone(node: TElement): boolean {
+  return TONE_KEYS.some((key) => stringProp(node, key) !== undefined);
 }
 
 function allowsAlign(kind: BlockMenuKind): boolean {
@@ -22454,6 +22522,162 @@ export function settleMovedBlock(editor: SlateEditor, snap: ScrollSnap): void {
   }
   window.scrollTo(snap.windowX, snap.windowY);
 }
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+```ts
+import { ElementApi, KEYS, type SlateEditor } from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import { isPaletteToken, type PaletteToken } from "../document/editor-document-schema";
+import {
+  BLOCK_TONE_TYPES,
+  TONE_ATTR,
+  isRecord,
+  storedTone,
+  type BlockToneKind,
+} from "./editor-block-tone-style";
+
+export { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
+import { blockSelectionActive, blockSelectionIds } from "../plugins/editor-block-selection";
+
+export type BlockTonePayload = {
+  ids: readonly string[];
+  kind: BlockToneKind;
+  token: PaletteToken | null;
+};
+
+function idOf(node: unknown): string | undefined {
+  return isRecord(node) && typeof node.id === "string" ? node.id : undefined;
+}
+
+export function isInsideTable(editor: SlateEditor, path: number[]): boolean {
+  for (let depth = 1; depth < path.length; depth += 1) {
+    const ancestor = editor.api.node(path.slice(0, depth))?.[0];
+    if (ElementApi.isElement(ancestor) && ancestor.type === KEYS.table) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function blockToneAllowed(editor: SlateEditor, path: number[]): boolean {
+  const node = editor.api.node(path)?.[0];
+  return (
+    ElementApi.isElement(node) &&
+    BLOCK_TONE_TYPES.includes(node.type) &&
+    !isInsideTable(editor, path)
+  );
+}
+
+// Same reading as getBlockAttr: an invalid stored value counts as unset.
+export function blockToneState(
+  editor: SlateEditor,
+  paths: number[][],
+  kind: BlockToneKind,
+): PaletteToken | null | "mixed" {
+  let token: PaletteToken | null = null;
+  let sawDefault = false;
+  let sawBlock = false;
+
+  for (const path of paths) {
+    if (!blockToneAllowed(editor, path)) {
+      continue;
+    }
+
+    sawBlock = true;
+    const value = storedTone(editor.api.node(path)?.[0], kind);
+    if (value === null) {
+      sawDefault = true;
+      continue;
+    }
+
+    if (token === null) {
+      token = value;
+      continue;
+    }
+
+    if (token !== value) {
+      return "mixed";
+    }
+  }
+
+  if (!sawBlock) {
+    return null;
+  }
+
+  if (token !== null && sawDefault) {
+    return "mixed";
+  }
+
+  return token;
+}
+
+// A block selection wins. Otherwise the highest allowed blocks under the text selection.
+export function blockToneTargetIds(editor: SlateEditor): string[] {
+  if (blockSelectionActive(editor)) {
+    return [...blockSelectionIds(editor)];
+  }
+
+  if (!editor.selection) {
+    return [];
+  }
+
+  const ids: string[] = [];
+  for (const [node] of editor.api.nodes({
+    at: editor.selection,
+    mode: "highest",
+    match: (candidate, candidatePath) =>
+      ElementApi.isElement(candidate) && blockToneAllowed(editor, candidatePath),
+  })) {
+    const id = idOf(node);
+    if (id !== undefined) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
+export const setBlockTone: EditorCommand<BlockTonePayload> = {
+  id: "block.tone",
+  label: "Color",
+  group: "format",
+  run: (editor, payload) => {
+    if (payload.token !== null && !isPaletteToken(payload.token)) {
+      return;
+    }
+
+    const wanted = new Set(payload.ids);
+    const paths: number[][] = [];
+    for (const [node, path] of editor.api.nodes({
+      at: [],
+      match: (candidate, candidatePath) => {
+        const id = idOf(candidate);
+        return id !== undefined && wanted.has(id) && blockToneAllowed(editor, candidatePath);
+      },
+    })) {
+      if (ElementApi.isElement(node)) {
+        paths.push([...path]);
+      }
+    }
+
+    const { token } = payload;
+    const attr = TONE_ATTR[payload.kind];
+    editor.tf.withoutNormalizing(() => {
+      for (const path of paths) {
+        if (token === null) {
+          editor.tf.unsetNodes(attr, { at: path });
+        } else if (payload.kind === "text") {
+          editor.tf.setNodes({ textTone: token }, { at: path });
+        } else {
+          editor.tf.setNodes({ backgroundTone: token }, { at: path });
+        }
+      }
+    });
+  },
+};
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
@@ -27550,6 +27774,7 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { SYNCED_REF_KEY } from "../document/editor-document-schema";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
 import { codeLeafClassName } from "./mark-classes";
@@ -27648,6 +27873,14 @@ export const editorStaticPlugins = [
   }),
   BaseTextAlignPlugin.configure({
     inject: { targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3] },
+  }),
+  createSlatePlugin({
+    key: "blockTone",
+    inject: {
+      isElement: true,
+      targetPlugins: [...BLOCK_TONE_TYPES],
+      nodeProps: blockToneNodeProps(),
+    },
   }),
   BaseLineHeightPlugin.configure({
     inject: {

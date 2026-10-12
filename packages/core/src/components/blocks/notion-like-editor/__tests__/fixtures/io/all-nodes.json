@@ -11,7 +11,9 @@
           "text": "Heading 1"
         }
       ],
-      "align": "center"
+      "align": "center",
+      "backgroundTone": "blue",
+      "textTone": "purple"
     },
     {
       "type": "h2",
@@ -21,7 +23,9 @@
           "text": "Heading 2"
         }
       ],
-      "align": "right"
+      "align": "right",
+      "backgroundTone": "pink",
+      "textTone": "orange"
     },
     {
       "type": "h3",
@@ -31,7 +35,9 @@
           "text": "Heading 3"
         }
       ],
-      "align": "justify"
+      "align": "justify",
+      "backgroundTone": "brown",
+      "textTone": "green"
     },
     {
       "type": "p",
@@ -160,7 +166,9 @@
         }
       ],
       "align": "left",
-      "lineHeight": 1.5
+      "lineHeight": 1.5,
+      "backgroundTone": "yellow",
+      "textTone": "red"
     },
     {
       "type": "p",
@@ -224,7 +232,9 @@
             }
           ]
         }
-      ]
+      ],
+      "backgroundTone": "green",
+      "textTone": "gray"
     },
     {
       "type": "hr",

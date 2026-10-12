@@ -10,14 +10,37 @@ const paragraph = (id: string, text: string, extra: Record<string, unknown> = {}
 // One of every stored node, attribute, and mark. List attributes that cannot
 // share a node live on their own paragraphs.
 export const IO_ALL_NODES = [
-  { type: "h1", id: "h1", align: "center", children: [{ text: "Heading 1" }] },
-  { type: "h2", id: "h2", align: "right", children: [{ text: "Heading 2" }] },
-  { type: "h3", id: "h3", align: "justify", children: [{ text: "Heading 3" }] },
+  {
+    type: "h1",
+    id: "h1",
+    align: "center",
+    textTone: "purple",
+    backgroundTone: "blue",
+    children: [{ text: "Heading 1" }],
+  },
+  {
+    type: "h2",
+    id: "h2",
+    align: "right",
+    textTone: "orange",
+    backgroundTone: "pink",
+    children: [{ text: "Heading 2" }],
+  },
+  {
+    type: "h3",
+    id: "h3",
+    align: "justify",
+    textTone: "green",
+    backgroundTone: "brown",
+    children: [{ text: "Heading 3" }],
+  },
   {
     type: "p",
     id: "p-marks",
     align: "left",
     lineHeight: 1.5,
+    textTone: "red",
+    backgroundTone: "yellow",
     children: [
       { text: "plain " },
       { text: "bold", bold: true },
@@ -84,6 +107,8 @@ export const IO_ALL_NODES = [
   {
     type: "blockquote",
     id: "quote",
+    textTone: "gray",
+    backgroundTone: "green",
     children: [paragraph("quote-p", "Quoted")],
   },
   { type: "hr", id: "hr", children: [{ text: "" }] },

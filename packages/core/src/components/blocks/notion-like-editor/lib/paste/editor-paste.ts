@@ -1238,7 +1238,11 @@ function fitPasteForCell(editor: SlateEditor, value: EditorValue): EditorValue {
 
   return value.map((node) => {
     if (node.type === KEYS.p) {
-      return node;
+      // Cells own their colour, so a pasted paragraph keeps no block tone.
+      const copy = structuredClone(node);
+      Reflect.deleteProperty(copy, "textTone");
+      Reflect.deleteProperty(copy, "backgroundTone");
+      return copy;
     }
 
     return { type: KEYS.p, children: [{ text: nodeText(node) }] };

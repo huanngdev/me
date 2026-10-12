@@ -11,6 +11,7 @@ import {
   PALETTE_TOKENS,
   SYNCED_REF_KEY,
   TEXT_ALIGNS,
+  isPaletteToken,
   type FontFamily,
   type PaletteToken,
 } from "../document/editor-document-schema";
@@ -27,6 +28,19 @@ const COLOR_CSS: Record<PaletteToken, string> = {
   purple: "#9065b0",
   pink: "#c14c8a",
   red: "#d44c47",
+};
+
+// Soft tints for block and highlight backgrounds. The saturated COLOR_CSS hexes are text only.
+const BACKGROUND_CSS: Record<PaletteToken, string> = {
+  gray: "#f1f1ef",
+  brown: "#f4eeee",
+  orange: "#fbecdd",
+  yellow: "#fbf3db",
+  green: "#edf3ec",
+  blue: "#e7f3f8",
+  purple: "#f6f3f9",
+  pink: "#faf1f5",
+  red: "#fdebec",
 };
 
 const FONT_CSS: Record<FontFamily, string> = {
@@ -130,7 +144,19 @@ function blockStyle(node: Node): string {
     declarations.push(`line-height: ${String(node.lineHeight)}`);
   }
 
-  return styleAttribute(declarations);
+  // The inline colour keeps a saved file right outside the editor. The data attributes are what import reads.
+  let data = "";
+  if (isPaletteToken(node.textTone)) {
+    declarations.push(`color: ${COLOR_CSS[node.textTone]}`);
+    data += attr("data-nle-text-tone", node.textTone);
+  }
+
+  if (isPaletteToken(node.backgroundTone)) {
+    declarations.push(`background-color: ${BACKGROUND_CSS[node.backgroundTone]}`);
+    data += attr("data-nle-background-tone", node.backgroundTone);
+  }
+
+  return `${styleAttribute(declarations)}${data}`;
 }
 
 function renderInlines(nodes: readonly Node[], inTable: boolean): string {
@@ -159,7 +185,9 @@ function renderInline(node: Node, inTable: boolean): string {
     }
 
     if (PALETTE_TOKENS.some((token) => token === node.backgroundColor)) {
-      declarations.push(`background-color: ${COLOR_CSS[node.backgroundColor as PaletteToken]}`);
+      declarations.push(
+        `background-color: ${BACKGROUND_CSS[node.backgroundColor as PaletteToken]}`,
+      );
     }
 
     if (FONT_SIZES.some((size) => size === node.fontSize)) {
@@ -351,7 +379,7 @@ function renderBlock(node: Node, root: readonly Node[]): string {
   }
 
   if (type === KEYS.blockquote) {
-    return `<blockquote${idAttr(node)}>${renderBlocks(childrenOf(node), root)}</blockquote>`;
+    return `<blockquote${idAttr(node)}${blockStyle(node)}>${renderBlocks(childrenOf(node), root)}</blockquote>`;
   }
 
   if (type === KEYS.hr) {
@@ -546,4 +574,4 @@ ${body}
   };
 }
 
-export { COLOR_CSS, FONT_CSS };
+export { BACKGROUND_CSS, COLOR_CSS, FONT_CSS };
