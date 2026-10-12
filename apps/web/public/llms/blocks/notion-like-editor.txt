@@ -6192,6 +6192,7 @@ import {
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
+import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
@@ -8130,6 +8131,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     emojiUiPlugin,
     emojiWatchPlugin,
     bookmarkUrlPlugin,
+    pageLinkPickerPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
     PasteFallbackPlugin,
@@ -28986,6 +28988,7 @@ import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
 import { PageLinkScope } from "../elements/page-link-element";
+import { PageLinkPicker } from "../ui/page-link-picker";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
@@ -29047,6 +29050,7 @@ export function EditorSurface({
               <LinkToolbar />
               <LinkPopover />
               <BookmarkUrlPopover />
+              <PageLinkPicker />
               <SelectionToolbar />
               <FindBar />
               <PlateContent
@@ -30575,6 +30579,36 @@ export const DEMO_DOCUMENT_VALUE = [
     type: "bookmark",
     id: "demo-bookmark-fallback",
     url: "https://example.com/not-in-the-preview-list",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-page-links",
+    children: [{ text: "Page links" }],
+  },
+  // The stored title is the fallback. The live title comes from the demo page provider.
+  {
+    type: "page_link",
+    id: "demo-page-link-roadmap",
+    pageId: "page-roadmap",
+    title: "Roadmap draft",
+    kind: "link",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-notes",
+    pageId: "page-notes",
+    title: "Meeting notes",
+    kind: "child",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-missing",
+    pageId: "page-archived",
+    title: "Old spec",
+    kind: "link",
     children: [{ text: "" }],
   },
   {
@@ -32678,6 +32712,7 @@ import { lazy, Suspense, useSyncExternalStore } from "react";
 
 import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
+import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
 import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
@@ -32774,6 +32809,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       linkPreview={demoLinkPreviewAdapter}
       mentionProvider={demoMentionProvider}
+      pageProvider={demoPageProvider}
       readOnly={readOnly}
     />
   );

@@ -4,6 +4,7 @@ import { lazy, Suspense, useSyncExternalStore } from "react";
 
 import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
+import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
 import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
@@ -100,6 +101,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       linkPreview={demoLinkPreviewAdapter}
       mentionProvider={demoMentionProvider}
+      pageProvider={demoPageProvider}
       readOnly={readOnly}
     />
   );

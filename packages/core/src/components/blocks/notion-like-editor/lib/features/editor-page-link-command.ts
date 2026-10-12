@@ -1,16 +1,20 @@
 import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
 
 import type { EditorCommand } from "../commands/editor-commands";
-import { isStoredPageId, pageLinkNode, type PageLinkKind } from "./editor-page-link";
+import { PAGE_LINK_KEY, isStoredPageId, pageLinkNode, type PageLinkKind } from "./editor-page-link";
+import { placeBlockBesideSlash } from "../plugins/editor-bookmark-popover";
 
 export type PageLinkInsert = {
   pageId: string;
   title: string;
   kind?: PageLinkKind;
+  // A slash block id. The link goes where a bookmark picked from that block would go.
+  beside?: { blockId: string };
 };
 
-// Mirrors insertBookmarkFromUrl and placeBookmark: an empty top-level paragraph is replaced,
-// anything else gets the block below the current top-level block, and the block is selected.
+// Without a target this mirrors insertBookmarkFromUrl and placeBookmark: an empty top-level
+// paragraph is replaced, anything else gets the block below the current top-level block, and the
+// block is selected. With a target it uses the bookmark's slash placement (placeBlockBesideSlash).
 export const insertPageLink: EditorCommand<PageLinkInsert> = {
   id: "block.page-link",
   label: "Page link",
@@ -20,10 +24,12 @@ export const insertPageLink: EditorCommand<PageLinkInsert> = {
       return false;
     }
 
-    return placePageLink(
-      editor,
-      pageLinkNode(payload.pageId, payload.title, payload.kind, nanoid()),
-    );
+    const element = pageLinkNode(payload.pageId, payload.title, payload.kind, nanoid());
+    if (payload.beside !== undefined) {
+      return placeBlockBesideSlash(editor, payload.beside.blockId, element, PAGE_LINK_KEY);
+    }
+
+    return placePageLink(editor, element);
   },
 };
 

@@ -117,17 +117,37 @@ export function submitBookmarkUrl(editor: SlateEditor, raw: string): boolean {
     return false;
   }
 
-  const [node, path] = block;
-  const index = path[path.length - 1];
-  if (index === undefined || !bookmarkStillPlaceable(editor, path, node)) {
+  const element = bookmarkElement({ url }, nanoid());
+  if (!placeBlockBesideSlash(editor, blockId, element, BOOKMARK_KEY)) {
     cancelBookmarkUrl(editor);
     return false;
   }
 
-  const element = bookmarkElement({ url }, nanoid());
+  clearBookmarkUrl(editor);
+  editor.tf.focus();
+  return true;
+}
+
+// The one placement for blocks picked from a slash menu: beside the slash block, replacing it when
+// it is an empty paragraph, in one undo entry. Refused where the block type is not allowed.
+export function placeBlockBesideSlash(
+  editor: SlateEditor,
+  blockId: string,
+  element: TElement,
+  type: string,
+): boolean {
+  const block = findSlashBlock(editor, blockId);
+  if (block === null) {
+    return false;
+  }
+
+  const [node, path] = block;
+  if (!slashBlockPlaceable(editor, path, node, type)) {
+    return false;
+  }
+
   const at = PathApi.next([...path]);
   if (at === undefined) {
-    cancelBookmarkUrl(editor);
     return false;
   }
 
@@ -145,8 +165,6 @@ export function submitBookmarkUrl(editor: SlateEditor, raw: string): boolean {
     }
   });
   editor.tf.setSplittingOnce(true);
-  clearBookmarkUrl(editor);
-  editor.tf.focus();
   return true;
 }
 
@@ -169,7 +187,12 @@ function restoreBookmarkCaret(editor: SlateEditor, blockId: string, offset: numb
   }
 }
 
-function bookmarkStillPlaceable(editor: SlateEditor, path: number[], node: TElement): boolean {
+function slashBlockPlaceable(
+  editor: SlateEditor,
+  path: number[],
+  node: TElement,
+  type: string,
+): boolean {
   const index = path[path.length - 1];
   if (index === undefined) {
     return false;
@@ -186,7 +209,7 @@ function bookmarkStillPlaceable(editor: SlateEditor, path: number[], node: TElem
   }
 
   const toIndex = isEmptyParagraph(node) ? index : index + 1;
-  return blockPlacementRefusal(parentType, toIndex, BOOKMARK_KEY, false) === undefined;
+  return blockPlacementRefusal(parentType, toIndex, type, false) === undefined;
 }
 
 function isEmptyParagraph(node: TElement): boolean {

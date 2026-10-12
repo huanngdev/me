@@ -12,6 +12,8 @@ export const PAGE_LINK_KINDS = ["link", "child"] as const;
 export const PAGE_LINK_TITLE_MAX = 200;
 export const PAGE_LINK_ICON_MAX = 8;
 export const PAGE_LINK_UNTITLED = "Untitled";
+export const PAGE_LINK_SEARCH_LIMIT = 8;
+export const PAGE_LINK_SEARCH_SLOW_MS = 200;
 
 export const PAGE_LINK_PASTE_DROPPED = "A page link was removed because its page id is not valid.";
 export const PAGE_LINK_TITLE_CLEANED = "A page link title was cleaned to fit the editor.";
@@ -237,4 +239,35 @@ export function repairPageLinkContent(content: EditorValue): {
   }
 
   return { content: next as EditorValue, repairs };
+}
+
+function isPageRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+// Search results are untrusted. Entries without a valid page id are dropped, titles are cleaned, and the list is cut.
+export function pagesFromSearch(value: unknown): PageEntity[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const pages: PageEntity[] = [];
+  for (const entry of value) {
+    if (pages.length >= PAGE_LINK_SEARCH_LIMIT) {
+      break;
+    }
+    if (!isPageRecord(entry) || !isStoredPageId(entry.pageId)) {
+      continue;
+    }
+
+    pages.push(
+      sanitizePageEntity({
+        pageId: entry.pageId,
+        title: typeof entry.title === "string" ? entry.title : "",
+        icon: typeof entry.icon === "string" ? entry.icon : undefined,
+      }),
+    );
+  }
+
+  return pages;
 }

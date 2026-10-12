@@ -15,6 +15,7 @@ import {
   type PageLinkHost,
   type PageLinkStatus,
   type PageOpenRequest,
+  type PageProvider,
 } from "../features/editor-page-link";
 import { blockSelectionActive } from "./editor-block-selection";
 
@@ -58,6 +59,11 @@ function containsPageLink(node: Descendant): boolean {
 // The scope sets the host during render, so a row that resolves in the same commit sees it.
 export function attachPageLinkHost(editor: SlateEditor, host: PageLinkHost): void {
   hosts.set(editor, host);
+}
+
+// The slash menu offers Page link only when a provider is attached.
+export function pageLinkProvider(editor: SlateEditor): PageProvider | null {
+  return hosts.get(editor)?.provider ?? null;
 }
 
 // The row reports its status so a missing or denied page cannot be opened from the keyboard.

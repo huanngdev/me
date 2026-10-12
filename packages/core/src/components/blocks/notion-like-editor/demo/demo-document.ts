@@ -1070,6 +1070,36 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "h3",
+    id: "demo-page-links",
+    children: [{ text: "Page links" }],
+  },
+  // The stored title is the fallback. The live title comes from the demo page provider.
+  {
+    type: "page_link",
+    id: "demo-page-link-roadmap",
+    pageId: "page-roadmap",
+    title: "Roadmap draft",
+    kind: "link",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-notes",
+    pageId: "page-notes",
+    title: "Meeting notes",
+    kind: "child",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-missing",
+    pageId: "page-archived",
+    title: "Old spec",
+    kind: "link",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
     id: "demo-columns",
     children: [{ text: "Columns" }],
   },

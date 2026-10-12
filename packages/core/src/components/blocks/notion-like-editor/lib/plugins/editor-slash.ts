@@ -17,6 +17,7 @@ import {
 } from "../features/editor-slash";
 import { retainScroll } from "../../components/ui/block-toolbar";
 import { openBookmarkUrlPopover } from "./editor-bookmark-popover";
+import { openPageLinkPicker } from "./editor-page-link-picker";
 import { insertSlashFootnote } from "./editor-footnote-ui";
 import { openLinkPopover } from "./editor-link";
 import { editorIsComposing, openMentionInput } from "./editor-mention";
@@ -187,6 +188,11 @@ function chooseSlash(editor: SlateEditor, id: string): void {
   if (item.bookmark === true) {
     editor.tf.setSplittingOnce(true);
     openBookmarkUrlPopover(editor, session.anchor.blockId);
+    return;
+  }
+  if (item.pageLink === true) {
+    editor.tf.setSplittingOnce(true);
+    openPageLinkPicker(editor, session.anchor.blockId);
     return;
   }
   const block = item.block;

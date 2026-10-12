@@ -1,4 +1,4 @@
-import { AtSign, Bookmark, Link, Superscript, type LucideIcon } from "lucide-react";
+import { AtSign, Bookmark, FileText, Link, Superscript, type LucideIcon } from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -14,6 +14,7 @@ import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
 import { inlineTriggerBlocked, insertMention } from "../plugins/editor-mention";
+import { pageLinkProvider } from "../plugins/editor-page-link";
 import { footnoteInsertAllowed } from "./editor-footnote";
 
 export const SLASH_QUERY_LIMIT = 40;
@@ -32,6 +33,7 @@ export type SlashItem = {
   block?: BlockPickerItem;
   inline?: "mention" | "link" | "footnote";
   bookmark?: boolean;
+  pageLink?: boolean;
 };
 
 export type SlashAnchor = {
@@ -232,7 +234,10 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
     .filter((item) => !item.disabled)
     .map(slashBlockItem);
   const inline = INLINE_ITEMS.filter((item) => inlineItemEnabled(editor, item.inline));
-  return insertBookmarkSlashItem(blocks, bookmarkSlashItem(editor, session), inline);
+  const bookmark = bookmarkSlashItem(editor, session);
+  const pageLink = pageLinkSlashItem(editor, bookmark);
+  const advanced = [bookmark, pageLink].filter((item): item is SlashItem => item !== null);
+  return insertAdvancedSlashItems(blocks, advanced, inline);
 }
 
 export function slashItemsForSession(editor: SlateEditor, session: SlashSession): SlashItem[] {
@@ -257,18 +262,35 @@ export function slashShowsGroups(query: string): boolean {
   return query.length === 0;
 }
 
-function insertBookmarkSlashItem(
+function insertAdvancedSlashItems(
   blocks: SlashItem[],
-  bookmark: SlashItem | null,
+  advanced: SlashItem[],
   inline: SlashItem[],
 ): SlashItem[] {
-  if (bookmark === null) {
+  if (advanced.length === 0) {
     return [...blocks, ...inline];
   }
 
   const columnsAt = blocks.findIndex((item) => item.id === "columns");
   const at = columnsAt === -1 ? blocks.length : columnsAt + 1;
-  return [...blocks.slice(0, at), bookmark, ...blocks.slice(at), ...inline];
+  return [...blocks.slice(0, at), ...advanced, ...blocks.slice(at), ...inline];
+}
+
+// Offered only with a page provider, and only where Bookmark is offered.
+function pageLinkSlashItem(editor: SlateEditor, bookmark: SlashItem | null): SlashItem | null {
+  if (bookmark === null || pageLinkProvider(editor) === null) {
+    return null;
+  }
+
+  return {
+    id: "page-link",
+    label: "Page link",
+    description: "Link to a page",
+    keywords: ["page", "subpage", "doc"],
+    icon: FileText,
+    group: "Advanced",
+    pageLink: true,
+  };
 }
 
 function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {

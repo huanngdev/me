@@ -12,6 +12,7 @@ import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
 import { PageLinkScope } from "../elements/page-link-element";
+import { PageLinkPicker } from "../ui/page-link-picker";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
@@ -73,6 +74,7 @@ export function EditorSurface({
               <LinkToolbar />
               <LinkPopover />
               <BookmarkUrlPopover />
+              <PageLinkPicker />
               <SelectionToolbar />
               <FindBar />
               <PlateContent
