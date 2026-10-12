@@ -56,9 +56,9 @@ function isNewBlockId(editor: SlateEditor, id: unknown): id is string {
   return true;
 }
 
-// Mirrors the bookmark insert: an empty top-level paragraph is replaced, and anything else gets
-// the block below the current top-level block. The new block is selected.
-function placeImage(editor: SlateEditor, element: TElement): boolean {
+// Mirrors the bookmark insert: an empty top-level paragraph is replaced, and anything else gets the
+// blocks below the current top-level block. The last new block is selected.
+function placeImages(editor: SlateEditor, elements: TElement[]): boolean {
   const entry = editor.api.block({ highest: true });
   if (entry === undefined || !ElementApi.isElement(entry[0])) {
     return false;
@@ -69,7 +69,7 @@ function placeImage(editor: SlateEditor, element: TElement): boolean {
     node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
   if (replaceEmpty) {
     editor.tf.removeNodes({ at: path });
-    editor.tf.insertNodes(element, { at: path, select: true });
+    editor.tf.insertNodes(elements, { at: path, select: true });
     return true;
   }
 
@@ -78,7 +78,7 @@ function placeImage(editor: SlateEditor, element: TElement): boolean {
     return false;
   }
 
-  editor.tf.insertNodes(element, { at, select: true });
+  editor.tf.insertNodes(elements, { at, select: true });
   return true;
 }
 
@@ -93,7 +93,31 @@ export const insertImage: EditorCommand<{ id: string }> = {
       return false;
     }
 
-    return placeImage(editor, imageElement({}, id));
+    return placeImages(editor, [imageElement({}, id)]);
+  },
+};
+
+// One image block per id, in order, as one undo step. Ids must be new and unique. With
+// `replaceSelection`, an expanded selection is deleted first, in the same step.
+export const insertImages: EditorCommand<{ ids: string[]; replaceSelection?: boolean }> = {
+  id: "block.insert.images",
+  label: "Image",
+  group: "insert",
+  run: (editor, { ids, replaceSelection = false }) => {
+    if (ids.length === 0 || new Set(ids).size !== ids.length) {
+      return false;
+    }
+    if (!ids.every((id) => isNewBlockId(editor, id))) {
+      return false;
+    }
+
+    if (replaceSelection && editor.selection !== null && !editor.api.isCollapsed()) {
+      editor.tf.deleteFragment();
+    }
+    return placeImages(
+      editor,
+      ids.map((id) => imageElement({}, id)),
+    );
   },
 };
 

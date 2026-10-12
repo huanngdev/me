@@ -115,6 +115,7 @@ import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
+import { mediaUiPlatePlugin } from "./editor-media-ui";
 import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
@@ -2133,5 +2134,6 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     blockSelectionWatchPlugin,
     editorInputRulesPlugin,
     bookmarkToolbarPlatePlugin,
+    mediaUiPlatePlugin,
   ];
 }

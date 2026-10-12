@@ -1,4 +1,12 @@
-import { AtSign, Bookmark, FileText, Link, Superscript, type LucideIcon } from "lucide-react";
+import {
+  AtSign,
+  Bookmark,
+  FileText,
+  Image as ImageIcon,
+  Link,
+  Superscript,
+  type LucideIcon,
+} from "lucide-react";
 import {
   ElementApi,
   KEYS,
@@ -10,6 +18,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { IMAGE_KEY } from "./editor-image";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
@@ -33,6 +42,7 @@ export type SlashItem = {
   block?: BlockPickerItem;
   inline?: "mention" | "link" | "footnote";
   bookmark?: boolean;
+  image?: boolean;
   pageLink?: boolean;
 };
 
@@ -235,8 +245,9 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
     .map(slashBlockItem);
   const inline = INLINE_ITEMS.filter((item) => inlineItemEnabled(editor, item.inline));
   const bookmark = bookmarkSlashItem(editor, session);
+  const image = imageSlashItem(editor, session);
   const pageLink = pageLinkSlashItem(editor, bookmark);
-  const advanced = [bookmark, pageLink].filter((item): item is SlashItem => item !== null);
+  const advanced = [bookmark, pageLink, image].filter((item): item is SlashItem => item !== null);
   return insertAdvancedSlashItems(blocks, advanced, inline);
 }
 
@@ -293,8 +304,25 @@ function pageLinkSlashItem(editor: SlateEditor, bookmark: SlashItem | null): Sla
   };
 }
 
+// Offered with or without a file adapter. Without one, the popover has only the link form.
+function imageSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, IMAGE_KEY)) {
+    return null;
+  }
+
+  return {
+    id: "image",
+    label: "Image",
+    description: "Upload or embed with a link",
+    keywords: ["image", "photo", "picture", "img"],
+    icon: ImageIcon,
+    group: "Advanced",
+    image: true,
+  };
+}
+
 function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
-  if (editor.dom.readOnly === true || !bookmarkPlaceable(editor, session)) {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, BOOKMARK_KEY)) {
     return null;
   }
 
@@ -309,7 +337,7 @@ function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashIte
   };
 }
 
-function bookmarkPlaceable(editor: SlateEditor, session: SlashSession): boolean {
+function blockPlaceable(editor: SlateEditor, session: SlashSession, type: string): boolean {
   const index = session.blockPath[session.blockPath.length - 1];
   if (index === undefined) {
     return false;
@@ -326,7 +354,7 @@ function bookmarkPlaceable(editor: SlateEditor, session: SlashSession): boolean 
   }
 
   const toIndex = session.replaceInPlace ? index : index + 1;
-  return blockPlacementRefusal(parentType, toIndex, BOOKMARK_KEY, false) === undefined;
+  return blockPlacementRefusal(parentType, toIndex, type, false) === undefined;
 }
 
 function slashBlockItem(item: BlockPickerItem): SlashItem {

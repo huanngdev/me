@@ -271,6 +271,27 @@ describe("upload controller", () => {
     expect(controller.get("b2")).toBeUndefined();
   });
 
+  test("ids lists the blocks with a running or failed upload, and no others", async () => {
+    const { controller, calls } = setup();
+    expect(controller.ids()).toEqual([]);
+
+    controller.start("b1", fileNamed("a.txt"));
+    controller.start("b2", fileNamed("b.txt"));
+    expect(controller.ids()).toEqual(["b1", "b2"]);
+
+    calls[0].reject(new Error("no"));
+    await settle();
+    expect(controller.get("b1")?.status).toBe("failed");
+    expect(controller.ids()).toEqual(["b1", "b2"]);
+
+    controller.cancel("b2");
+    expect(controller.ids()).toEqual(["b1"]);
+
+    calls[1].resolve({ url: "local-file:x" });
+    await settle();
+    expect(controller.ids()).toEqual(["b1"]);
+  });
+
   test("a listener that throws does not stop the other listeners", () => {
     const { controller, calls } = setup();
     let steady = 0;

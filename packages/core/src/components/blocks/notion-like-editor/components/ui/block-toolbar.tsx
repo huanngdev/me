@@ -1,4 +1,10 @@
-import { createElement, Fragment, type ComponentProps, type ReactNode } from "react";
+import {
+  createElement,
+  Fragment,
+  type ComponentProps,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { TElement } from "platejs";
 
 import { Button } from "@/components/button";
@@ -209,4 +215,40 @@ export function focusEditorWithoutScroll(editorRoot: Element | null): void {
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;
+}
+
+// Arrow keys, Home and End move focus between the controls of an action popover.
+export function moveActionFocus(event: ReactKeyboardEvent<HTMLDivElement>): void {
+  if (
+    event.key !== "ArrowDown" &&
+    event.key !== "ArrowUp" &&
+    event.key !== "ArrowRight" &&
+    event.key !== "ArrowLeft" &&
+    event.key !== "Home" &&
+    event.key !== "End"
+  ) {
+    return;
+  }
+
+  const items = Array.from(
+    event.currentTarget.querySelectorAll<HTMLElement>('button, a[href], [role="menuitem"]'),
+  ).filter((item) => item.getAttribute("aria-disabled") !== "true");
+  if (items.length === 0) {
+    return;
+  }
+
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  let next = current;
+  if (event.key === "Home") {
+    next = 0;
+  } else if (event.key === "End") {
+    next = items.length - 1;
+  } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+    next = current < 0 ? 0 : (current + 1) % items.length;
+  } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+    next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+  }
+
+  event.preventDefault();
+  items[next]?.focus();
 }

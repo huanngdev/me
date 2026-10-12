@@ -1,8 +1,17 @@
-import { ElementApi, KEYS, NodeApi, TextApi, createSlatePlugin, type SlateEditor } from "platejs";
+import {
+  ElementApi,
+  KEYS,
+  NodeApi,
+  TextApi,
+  createSlatePlugin,
+  nanoid,
+  type SlateEditor,
+} from "platejs";
 import { toPlatePlugin } from "platejs/react";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
 import { applyBlockTurn } from "../features/editor-block-menu";
+import { IMAGE_KEY, imageElement } from "../features/editor-image";
 import { insertPickedBlock } from "../features/editor-block-picker";
 import {
   blockTextOffset,
@@ -16,11 +25,12 @@ import {
   type SlashSession,
 } from "../features/editor-slash";
 import { retainScroll } from "../../components/ui/block-toolbar";
-import { openBookmarkUrlPopover } from "./editor-bookmark-popover";
+import { openBookmarkUrlPopover, placeBlockBesideSlash } from "./editor-bookmark-popover";
 import { openPageLinkPicker } from "./editor-page-link-picker";
 import { insertSlashFootnote } from "./editor-footnote-ui";
 import { openLinkPopover } from "./editor-link";
 import { editorIsComposing, openMentionInput } from "./editor-mention";
+import { openMediaSource } from "./editor-media-ui";
 
 export const SLASH_HANDLER_PRIORITY = 2000;
 
@@ -195,6 +205,10 @@ function chooseSlash(editor: SlateEditor, id: string): void {
     openPageLinkPicker(editor, session.anchor.blockId);
     return;
   }
+  if (item.image === true) {
+    insertImageBesideSlash(editor, session.anchor.blockId);
+    return;
+  }
   const block = item.block;
   if (block === undefined) {
     return;
@@ -210,6 +224,16 @@ function chooseSlash(editor: SlateEditor, id: string): void {
     return;
   }
   insertPickedBlock(editor, session.blockPath, block, { batch: false });
+}
+
+// An empty image block goes beside the slash line, and its source popover opens for it.
+function insertImageBesideSlash(editor: SlateEditor, blockId: string): void {
+  const id = nanoid();
+  if (!placeBlockBesideSlash(editor, blockId, imageElement({}, id), IMAGE_KEY, true)) {
+    return;
+  }
+
+  openMediaSource(editor, id);
 }
 
 function replaceEmptyParagraph(

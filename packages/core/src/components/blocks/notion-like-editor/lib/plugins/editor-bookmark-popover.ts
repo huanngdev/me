@@ -130,11 +130,14 @@ export function submitBookmarkUrl(editor: SlateEditor, raw: string): boolean {
 
 // The one placement for blocks picked from a slash menu: beside the slash block, replacing it when
 // it is an empty paragraph, in one undo entry. Refused where the block type is not allowed.
+// `inCommand` is set when the caller already runs this inside one command, so the placement joins that
+// command's undo entry. Otherwise the placement is its own entry, and the next edit starts another.
 export function placeBlockBesideSlash(
   editor: SlateEditor,
   blockId: string,
   element: TElement,
   type: string,
+  inCommand = false,
 ): boolean {
   const block = findSlashBlock(editor, blockId);
   if (block === null) {
@@ -153,7 +156,7 @@ export function placeBlockBesideSlash(
 
   const id = typeof node.id === "string" ? node.id : undefined;
   const replace = isEmptyParagraph(node);
-  editor.tf.withNewBatch(() => {
+  const place = (): void => {
     editor.tf.insertNodes(element, { at, select: true });
     if (!replace || id === undefined) {
       return;
@@ -163,7 +166,14 @@ export function placeBlockBesideSlash(
     if (left !== null && isEmptyParagraph(left[0])) {
       editor.tf.removeNodes({ at: left[1] });
     }
-  });
+  };
+
+  if (inCommand) {
+    place();
+    return true;
+  }
+
+  editor.tf.withNewBatch(place);
   editor.tf.setSplittingOnce(true);
   return true;
 }

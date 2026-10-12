@@ -15,6 +15,7 @@ export type UploadController = {
   cancel: (blockId: string) => void; // aborts and forgets the upload; no onDone
   retry: (blockId: string) => void; // only from "failed"; uploads the same File again
   get: (blockId: string) => UploadState | undefined;
+  ids: () => string[]; // blocks with an upload that is running or failed
   subscribe: (listener: () => void) => () => void;
   dispose: () => void; // aborts everything
 };
@@ -218,6 +219,9 @@ export function createUploadController(options: {
     retry,
     get(blockId) {
       return records.get(blockId)?.state;
+    },
+    ids() {
+      return [...records.keys()];
     },
     subscribe(listener) {
       listeners.add(listener);

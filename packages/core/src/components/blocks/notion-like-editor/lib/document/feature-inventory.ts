@@ -44,6 +44,7 @@ export const SLASH_ITEM_LABELS: Readonly<Partial<Record<string, string>>> = {
   table: "Table",
   columns: "Columns",
   bookmark: "Bookmark",
+  image: "Image",
   "page-link": "Page link",
   mention: "Mention",
   link: "Link",
@@ -151,7 +152,16 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     key: "image",
     kind: "block",
     label: "Image",
-    entry: [{ via: "host", note: "Insert command only, until the image block UI is added" }],
+    entry: [
+      { via: "slash", id: "image" },
+      { via: "paste", note: "Image files pasted or dropped, up to 10 at a time" },
+      { via: "pointer", note: "Click for actions, drag the edge handles to resize" },
+      { via: "toolbar", id: "block.image.align", note: "Align left, center and right" },
+      { via: "toolbar", id: "block.image.caption", note: "Caption" },
+      { via: "toolbar", id: "block.image.set-source", note: "Replace" },
+      { via: "toolbar", id: "block.image.remove", note: "Delete" },
+      { via: "host", note: "A file adapter stores picked and pasted files" },
+    ],
     static: "rendered",
     demoBlockId: "demo-image",
     limits: [
@@ -160,6 +170,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       "Mime type must start with image/",
       "Caption up to 500 characters",
       "Without a file adapter, only http, https and root-relative urls show an image",
+      "Arrow keys resize by 5, or by 1 with Shift; Home and End set 10 and 100",
     ],
   },
   {
@@ -760,7 +771,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     limits: [
       "Up to 2000 blocks and 1000000 text characters per paste",
       "HTML over 2000000 characters is dropped and plain text is used",
-      "Files and media are not stored",
+      "Image files are stored with a file adapter, up to 10 per paste or drop; other files and media are not stored",
     ],
   },
   {

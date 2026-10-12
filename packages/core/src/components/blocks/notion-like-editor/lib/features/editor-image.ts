@@ -75,6 +75,59 @@ export function isImageAlign(value: unknown): value is ImageAlign {
   return IMAGE_ALIGNS.some((align) => align === value);
 }
 
+// Keyboard steps on a resize handle. Shift uses the fine step.
+export const IMAGE_RESIZE_STEP = 5;
+export const IMAGE_RESIZE_FINE_STEP = 1;
+
+export function clampImageWidth(value: number): number {
+  return Math.min(IMAGE_WIDTH_MAX, Math.max(IMAGE_WIDTH_MIN, Math.round(value)));
+}
+
+// The rendered width of an image as a whole percent of the column. Null when either is not laid out
+// yet (an image that has not loaded renders 0px wide).
+export function naturalImagePercent(renderedPx: number, columnPx: number): number | undefined {
+  if (!(columnPx > 0) || !(renderedPx > 0)) {
+    return undefined;
+  }
+
+  return clampImageWidth((renderedPx / columnPx) * 100);
+}
+
+// The width after a pointer drag on one handle. Dragging a handle outward grows the image. A centred
+// image grows on both sides, so it changes twice as fast. `columnPx` is the editor column width.
+export function dragImageWidth(options: {
+  start: number;
+  deltaPx: number;
+  columnPx: number;
+  handle: "left" | "right";
+  align: ImageAlign | undefined;
+}): number {
+  if (!(options.columnPx > 0)) {
+    return clampImageWidth(options.start);
+  }
+
+  const sides = options.align === undefined || options.align === "center" ? 2 : 1;
+  const outward = options.handle === "right" ? options.deltaPx : -options.deltaPx;
+  return clampImageWidth(options.start + (sides * outward * 100) / options.columnPx);
+}
+
+// The width after a key on a resize handle, or null when the key is not a resize key.
+export function keyImageWidth(current: number, key: string, fine: boolean): number | null {
+  const step = fine ? IMAGE_RESIZE_FINE_STEP : IMAGE_RESIZE_STEP;
+  switch (key) {
+    case "ArrowRight":
+      return clampImageWidth(current + step);
+    case "ArrowLeft":
+      return clampImageWidth(current - step);
+    case "Home":
+      return IMAGE_WIDTH_MIN;
+    case "End":
+      return IMAGE_WIDTH_MAX;
+    default:
+      return null;
+  }
+}
+
 // A stored caption is already cleaned and no longer than the limit.
 export function isImageCaption(value: unknown): value is string {
   return typeof value === "string" && cleanFileText(value, IMAGE_CAPTION_MAX) === value;

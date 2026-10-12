@@ -1,4 +1,4 @@
-import { useEffect, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect } from "react";
 import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import { ElementApi } from "platejs";
 import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
@@ -15,8 +15,14 @@ import {
   bookmarkToolbarSelectionOn,
   closeBookmarkToolbar,
 } from "../../lib/plugins/editor-bookmark-toolbar";
+import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
-import { EditorIconButton, EditorTextButton, editorControlLabel } from "./block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  editorControlLabel,
+  moveActionFocus,
+} from "./block-toolbar";
 
 // One row of actions, opened by a click on the card (or Enter on the selected
 // void). It follows the inline link popover: anchored to the card, side bottom.
@@ -130,6 +136,9 @@ export function BookmarkToolbarPopover({
           event.preventDefault();
         }}
         onKeyDown={(event) => {
+          if (onPopoverHistoryKey(editor, event)) {
+            return;
+          }
           moveActionFocus(event);
         }}
       >
@@ -197,39 +206,4 @@ function bookmarkCardNode(editor: ReturnType<typeof useEditorRef>, id: string): 
   }
 
   return dom.querySelector("[data-bookmark-card]");
-}
-
-function moveActionFocus(event: ReactKeyboardEvent<HTMLDivElement>): void {
-  if (
-    event.key !== "ArrowDown" &&
-    event.key !== "ArrowUp" &&
-    event.key !== "ArrowRight" &&
-    event.key !== "ArrowLeft" &&
-    event.key !== "Home" &&
-    event.key !== "End"
-  ) {
-    return;
-  }
-
-  const items = Array.from(
-    event.currentTarget.querySelectorAll<HTMLElement>('button, a[href], [role="menuitem"]'),
-  ).filter((item) => item.getAttribute("aria-disabled") !== "true");
-  if (items.length === 0) {
-    return;
-  }
-
-  const current = items.indexOf(document.activeElement as HTMLElement);
-  let next = current;
-  if (event.key === "Home") {
-    next = 0;
-  } else if (event.key === "End") {
-    next = items.length - 1;
-  } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-    next = current < 0 ? 0 : (current + 1) % items.length;
-  } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-    next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
-  }
-
-  event.preventDefault();
-  items[next]?.focus();
 }

@@ -11,6 +11,7 @@ import {
   type TElement,
   type TText,
 } from "platejs";
+import { toPlatePlugin } from "platejs/react";
 
 import type { Repair } from "../document/editor-document-ids";
 import {
@@ -61,6 +62,13 @@ import {
   cleanImageFields,
   imageElement,
 } from "../features/editor-image";
+import {
+  MEDIA_FILE_LIMIT,
+  MEDIA_FILE_LIMIT_MESSAGE,
+  insertImageFiles,
+  mediaKindForFile,
+} from "../features/editor-media";
+import { uploadControllerOf } from "../plugins/editor-media-ui";
 import {
   BOOKMARK_KEY,
   BOOKMARK_PASTE_DROPPED,
@@ -1623,53 +1631,148 @@ export function rejectDroppedFiles(editor: SlateEditor, event: MediaDropEvent): 
   return true;
 }
 
+// The Slate fragment type. A clipboard or drop with one keeps the fragment path, and its files are not used.
+const SLATE_FRAGMENT_TYPE = "application/x-slate-fragment";
+
+function isFileValue(value: unknown): value is File {
+  return value instanceof File;
+}
+
+// Image files become image blocks when an upload adapter is set. Each block is placed after the
+// current block, as one undo step, and its upload starts. Returns false when no image was inserted,
+// so the caller keeps the existing notice.
+function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean {
+  const controller = uploadControllerOf(editor);
+  if (controller === null) {
+    return false;
+  }
+
+  const listed: unknown[] = Array.from(data.files);
+  const files = listed.filter(isFileValue);
+  const images = files.filter((file) => mediaKindForFile(file) === "image");
+  if (images.length === 0) {
+    return false;
+  }
+
+  const notices: string[] = [];
+  if (listed.length > images.length) {
+    notices.push(MEDIA_NOT_SUPPORTED);
+  }
+  if (images.length > MEDIA_FILE_LIMIT) {
+    notices.push(MEDIA_FILE_LIMIT_MESSAGE);
+  }
+
+  if (!editor.selection) {
+    const end = editor.api.end([]);
+    if (end === undefined) {
+      return false;
+    }
+    editor.tf.select(end);
+  }
+
+  const inserted = insertImageFiles(editor, controller, images.slice(0, MEDIA_FILE_LIMIT));
+  if (!inserted) {
+    return false;
+  }
+
+  setPasteRepairs(
+    editor,
+    notices.map((message) => ({ path: [], message })),
+  );
+  return true;
+}
+
+// The caret goes to the drop point, as slate-react does before insertData. slate-react throws when the
+// point cannot be resolved, so a throw here keeps the current selection instead.
+function selectDropPoint(editor: SlateEditor, event: MediaDropEvent): void {
+  try {
+    const range = editor.api.findEventRange(event);
+    if (range !== undefined) {
+      editor.tf.select(range);
+    }
+  } catch {
+    // No point could be resolved. The current selection is used.
+  }
+}
+
 // Registered after the paste-url plugin so a file list is rejected before a
 // link, a table, or a code block reads the same clipboard.
-export const unsupportedMediaPlugin = createSlatePlugin({
-  key: "unsupportedMedia",
-  parsers: {
-    html: {
-      deserializer: {
-        isElement: true,
-        rules: [
-          { validNodeName: "IMG" },
-          { validNodeName: "VIDEO" },
-          { validNodeName: "AUDIO" },
-          { validNodeName: "IFRAME" },
-        ],
-        parse: ({ element }) => {
-          // Carry the readable text so the sanitizer can keep it and report the drop.
-          const alt = element.getAttribute("alt") ?? element.getAttribute("title") ?? "";
-          const label = alt.trim();
-          const node: Record<string, unknown> = {
-            type: "unsupported_media",
-            children: [{ text: "" }],
-          };
-          if (label.length > 0) {
-            node.alt = label;
-          }
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onDrop.
+export const unsupportedMediaPlugin = toPlatePlugin(
+  createSlatePlugin({
+    key: "unsupportedMedia",
+    parsers: {
+      html: {
+        deserializer: {
+          isElement: true,
+          rules: [
+            { validNodeName: "IMG" },
+            { validNodeName: "VIDEO" },
+            { validNodeName: "AUDIO" },
+            { validNodeName: "IFRAME" },
+          ],
+          parse: ({ element }) => {
+            // Carry the readable text so the sanitizer can keep it and report the drop.
+            const alt = element.getAttribute("alt") ?? element.getAttribute("title") ?? "";
+            const label = alt.trim();
+            const node: Record<string, unknown> = {
+              type: "unsupported_media",
+              children: [{ text: "" }],
+            };
+            if (label.length > 0) {
+              node.alt = label;
+            }
 
-          return node;
+            return node;
+          },
         },
       },
     },
-  },
-}).overrideEditor(({ editor, tf: { insertData } }) => ({
-  transforms: {
-    insertData(data: DataTransfer) {
-      if (transferFileCount(data) > 0) {
-        setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
-        return;
-      }
+  }).overrideEditor(({ editor, tf: { insertData } }) => ({
+    transforms: {
+      insertData(data: DataTransfer) {
+        if (transferFileCount(data) === 0) {
+          insertData(data);
+          return;
+        }
 
-      insertData(data);
+        if (uploadControllerOf(editor) !== null && data.getData(SLATE_FRAGMENT_TYPE) !== "") {
+          insertData(data);
+          return;
+        }
+
+        if (insertTransferImages(editor, data)) {
+          return;
+        }
+
+        setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
+      },
     },
-  },
-  handlers: {
-    onDrop: ({ event }: { event: MediaDropEvent }) => {
-      if (rejectDroppedFiles(editor, event)) {
+  })),
+  {
+    handlers: {
+      // A file drop is claimed here, so slate-react's own drop code does not run for it.
+      onDrop: ({ editor, event }: { editor: SlateEditor; event: MediaDropEvent }) => {
+        const data = event.dataTransfer;
+        if (data === null || transferFileCount(data) === 0) {
+          return undefined;
+        }
+
+        if (uploadControllerOf(editor) === null) {
+          return rejectDroppedFiles(editor, event);
+        }
+
+        if (data.getData(SLATE_FRAGMENT_TYPE) !== "") {
+          return undefined;
+        }
+
+        event.preventDefault();
+        selectDropPoint(editor, event);
+        if (!insertTransferImages(editor, data)) {
+          setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
+        }
         return true;
-      }
+      },
     },
   },
-}));
+);

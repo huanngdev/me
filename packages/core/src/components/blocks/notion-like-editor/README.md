@@ -208,7 +208,7 @@ The allow lists are `EDITOR_ELEMENT_RULES` and `EDITOR_MARK_RULES` in `lib/docum
 - **Quote** — `blockquote`. Entry: Slash "Quote"; Block menu "Quote"; Input rule "> + space". Static: yes. Limits: Children are paragraphs only.
 - **Divider** — `hr`. Entry: Slash "Divider"; Input rule "---". Static: yes. Limits: Stores only its id, with no alignment or indent.
 - **Bookmark** — `bookmark`. Entry: Slash "Bookmark"; Paste (Bookmark in the link paste menu); Host (LinkPreviewAdapter fills the preview). Static: yes. Limits: Only http and https links; Link up to 2048 characters; Title up to 300, description up to 500, site name up to 100 characters; Without a LinkPreviewAdapter the card shows the domain.
-- **Image** — `image`. Entry: Host (Insert command only, until the image block UI is added). Static: yes. Limits: Embed links are http or https only; Width is 10 to 100 percent of the column, or the natural size; Mime type must start with image/; Caption up to 500 characters; Without a file adapter, only http, https and root-relative urls show an image.
+- **Image** — `image`. Entry: Slash "Image"; Paste (Image files pasted or dropped, up to 10 at a time); Pointer (Click for actions, drag the edge handles to resize); Toolbar "Align left, center and right"; Toolbar "Caption"; Toolbar "Replace"; Toolbar "Delete"; Host (A file adapter stores picked and pasted files). Static: yes. Limits: Embed links are http or https only; Width is 10 to 100 percent of the column, or the natural size; Mime type must start with image/; Caption up to 500 characters; Without a file adapter, only http, https and root-relative urls show an image; Arrow keys resize by 5, or by 1 with Shift; Home and End set 10 and 100.
 - **Page link** — `page_link`. Entry: Slash "Page link"; Host (onOpenPage receives the page id and kind). Static: yes. Limits: The slash item is offered only with a PageProvider; Title up to 200 characters; Static output has no link.
 - **Table of contents** — `toc`. Entry: Slash "Table of contents"; Toolbar "Table of contents depth". Static: yes. Limits: Depth 1 to 3, default 3.
 - **Equation** — `equation`. Entry: Slash "Equation". Static: yes. Limits: Expression up to 4000 characters; Control characters other than tab and newline are refused; Rendered with KaTeX.
@@ -269,7 +269,7 @@ The allow lists are `EDITOR_ELEMENT_RULES` and `EDITOR_MARK_RULES` in `lib/docum
 - **Block selection** — `ux:block-selection`. Entry: Shortcut Mod+A (Selects the block text, then all blocks); Shortcut Mod+D (With blocks selected, duplicates them); Shortcut Mod+Shift+Alt+ArrowUp (With blocks selected, moves them up); Shortcut Mod+Shift+Alt+ArrowDown (With blocks selected, moves them down). Static: n/a.
 - **Undo and redo** — `ux:history`. Entry: Shortcut Mod+Z (Undo); Shortcut Mod+Shift+Z (Redo). Static: n/a. Limits: No undo depth limit is configured.
 - **Clear formatting** — `ux:clear-formatting`. Entry: Shortcut Mod+\ (Clear formatting); Toolbar "Clear formatting". Static: n/a. Limits: Removes inline marks only; Block attributes stay.
-- **Paste** — `ux:paste`. Entry: Paste (HTML, plain text and pasted links). Static: n/a. Limits: Up to 2000 blocks and 1000000 text characters per paste; HTML over 2000000 characters is dropped and plain text is used; Files and media are not stored.
+- **Paste** — `ux:paste`. Entry: Paste (HTML, plain text and pasted links). Static: n/a. Limits: Up to 2000 blocks and 1000000 text characters per paste; HTML over 2000000 characters is dropped and plain text is used; Image files are stored with a file adapter, up to 10 per paste or drop; other files and media are not stored.
 - **Emoji suggestions** — `ux:emoji`. Entry: Input rule ": then a name". Static: n/a. Limits: 8 suggestions; A closing colon converts only an exact name; Not inside code blocks.
 - **Autosave** — `ux:autosave`. Entry: Host (Pass an EditorPersistenceAdapter). Static: n/a. Limits: Waits 800 ms after a change by default; A revision conflict asks the user to reload.
 - **Read-only** — `ux:read-only`. Entry: Host (readOnly prop). Static: n/a.
@@ -329,7 +329,7 @@ Shortcuts are generated from the same inventory as the feature list. `Mod` is Cm
 - Footnote definitions are top level only. A definition moved anywhere else becomes a paragraph (`lib/document/editor-document-schema.ts`, `lib/features/editor-footnote-repair.ts`).
 - A `<sup>` in pasted HTML stays plain text. Footnotes are not parsed from HTML (`lib/paste/editor-paste.ts`).
 - Page links have no URL in static output (`components/static/page-link-static.tsx`).
-- Files and media are not stored. Dropped or pasted files are rejected, and the readable text of media is kept (`lib/paste/editor-paste.ts`).
+- Image files are stored only with a file adapter, and up to 10 per paste or drop. Other files and media are not stored: they are rejected, and the readable text of media is kept (`lib/paste/editor-paste.ts`).
 - Paste is capped at 2000 blocks and 1,000,000 text characters, and HTML over 2,000,000 characters is dropped (`lib/paste/editor-paste.ts`).
 - Equations are capped at 4000 characters (`lib/document/editor-document-schema.ts`).
 - Restart numbering has no menu or toolbar control. Only the numbered input rule with a number above 1 sets it (`lib/plugins/editor-input-rules.ts`).

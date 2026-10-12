@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import {
   isDirectFileUrl,
@@ -23,6 +24,7 @@ import {
   type UploadController,
   type UploadState,
 } from "../../lib/features/editor-upload-controller";
+import { attachUploadController, reconcileUploads } from "../../lib/plugins/editor-media-ui";
 
 export type ResolvedFileUrl = {
   status: "idle" | "loading" | "ready" | "unavailable";
@@ -84,6 +86,25 @@ export function FileUploadScope({
   return (
     <FileUploadScopeContext.Provider value={value}>{children}</FileUploadScopeContext.Provider>
   );
+}
+
+// Rendered inside the scope in an editor. It gives the editor the controller for paste and drop, and
+// cancels uploads whose block is gone or every upload when the editor turns read-only. Document
+// changes run the same check from the media plugin's onChange.
+export function UploadEditorLink() {
+  const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
+  const controller = useUploadController();
+  useEffect(() => {
+    attachUploadController(editor, controller);
+    return () => {
+      attachUploadController(editor, null);
+    };
+  }, [editor, controller]);
+  useEffect(() => {
+    reconcileUploads(editor, readOnly);
+  }, [editor, readOnly, controller]);
+  return null;
 }
 
 export function useFileUploadAdapter(): FileUploadAdapter | null {

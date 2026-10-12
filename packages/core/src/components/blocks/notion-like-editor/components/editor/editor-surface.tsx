@@ -11,7 +11,7 @@ import type { EditorValue } from "../../lib/document/editor-value";
 import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
-import { FileUploadScope } from "../elements/file-upload-scope";
+import { FileUploadScope, UploadEditorLink } from "../elements/file-upload-scope";
 import { PageLinkScope } from "../elements/page-link-element";
 import { PageLinkPicker } from "../ui/page-link-picker";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
@@ -30,7 +30,7 @@ import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
-import { applyFinishedUpload } from "../../lib/features/editor-media";
+import { applyUploadResult } from "../../lib/features/editor-media";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -75,12 +75,13 @@ export function EditorSurface({
           <FileUploadScope
             adapter={fileUpload}
             onDone={(blockId, file) => {
-              // Refused in read-only mode, and when the block is gone or already has a file.
+              // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
               if (editor !== null) {
-                applyFinishedUpload(editor, blockId, file);
+                applyUploadResult(editor, blockId, file);
               }
             }}
           >
+            <UploadEditorLink />
             <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
               <LinkPreviewProvider adapter={linkPreview}>
                 <PasteRepairNotice />
