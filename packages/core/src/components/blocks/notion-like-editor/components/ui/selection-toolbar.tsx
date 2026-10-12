@@ -12,6 +12,7 @@ import {
   Italic,
   Link,
   RemoveFormatting,
+  Sigma,
   Strikethrough,
   Subscript,
   Superscript,
@@ -80,6 +81,7 @@ import {
   holdSelectionHighlight,
   insertInlineLink,
 } from "../../lib/plugins/editor-link";
+import { toggleInlineEquation } from "../../lib/plugins/editor-inline-equation-ui";
 import { useSelectionToolbar } from "../../hooks/use-selection-toolbar";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import { editorControlLabel, focusEditorWithoutScroll, retainScroll } from "./block-toolbar";
@@ -306,6 +308,9 @@ export function SelectionToolbar() {
       onLink={() => {
         run(model.link.editing ? editInlineLink : insertInlineLink, undefined);
       }}
+      onEquation={() => {
+        run(toggleInlineEquation, undefined);
+      }}
       onTextColor={(token) => {
         const saved = range();
         if (!saved) {
@@ -453,6 +458,7 @@ function ToolbarControls({
   onMenu,
   onMark,
   onLink,
+  onEquation,
   onTextColor,
   onHighlight,
   onTurn,
@@ -469,6 +475,7 @@ function ToolbarControls({
   onMenu: (open: boolean) => void;
   onMark: (id: SelectionToolbarMarkId) => void;
   onLink: () => void;
+  onEquation: () => void;
   onTextColor: (token: PaletteToken | null) => void;
   onHighlight: (token: PaletteToken | null) => void;
   onTurn: (item: BlockPickerItem) => void;
@@ -586,6 +593,27 @@ function ToolbarControls({
           onClick={onLink}
         >
           <Link aria-hidden="true" />
+        </Button>
+      </ControlTip>
+      <ControlTip
+        label="Equation"
+        shortcut={model.equation.shortcut}
+        reason={model.equation.reason}
+        disabled={model.equation.disabled}
+      >
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label="Equation"
+          disabled={model.equation.disabled}
+          data-toolbar-control="equation"
+          tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
+          className="disabled:pointer-events-auto"
+          onMouseDown={keepSelection}
+          onClick={onEquation}
+        >
+          <Sigma aria-hidden="true" />
         </Button>
       </ControlTip>
       <AlignMenu

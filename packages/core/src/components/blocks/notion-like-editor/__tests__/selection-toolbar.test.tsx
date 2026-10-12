@@ -482,6 +482,7 @@ describe("selection toolbar controls", () => {
         "Strikethrough",
         "Code",
         "Link",
+        "Equation",
         "Align",
         "Color",
         "More",

@@ -1,6 +1,7 @@
 import {
   ElementApi,
   KEYS,
+  PathApi,
   RangeApi,
   createSlatePlugin,
   nanoid,
@@ -121,4 +122,56 @@ export function insertInlineEquation(editor: SlateEditor, expression: string): s
     }
   });
   return id;
+}
+
+export type InlineEquationRefusal = "span" | "unavailable";
+
+// Why an inline equation cannot be inserted over the current selection, or undefined when it can.
+export function inlineEquationRefusal(editor: SlateEditor): InlineEquationRefusal | undefined {
+  const selection = editor.selection;
+  if (selection === null) {
+    return "unavailable";
+  }
+
+  if (!RangeApi.isCollapsed(selection)) {
+    const start = editor.api.block({ at: RangeApi.start(selection) });
+    const end = editor.api.block({ at: RangeApi.end(selection) });
+    if (!start || !end || !PathApi.equals(start[1], end[1])) {
+      return "span";
+    }
+
+    if (!isStoredEquationExpression(editor.api.string(selection))) {
+      return "unavailable";
+    }
+
+    if (
+      editor.api.some({
+        at: selection,
+        voids: true,
+        match: (node) => ElementApi.isElement(node) && editor.api.isVoid(node),
+      })
+    ) {
+      return "unavailable";
+    }
+  }
+
+  return inlineEquationAllowed(editor, selection) ? undefined : "unavailable";
+}
+
+// The node and its path, or undefined when no inline equation has this id.
+export function inlineEquationEntry(
+  editor: SlateEditor,
+  id: string,
+): [TElement, number[]] | undefined {
+  const entry = editor.api.node({
+    at: [],
+    voids: true,
+    match: (node) =>
+      ElementApi.isElement(node) && node.type === KEYS.inlineEquation && node.id === id,
+  });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+
+  return [entry[0], entry[1]];
 }

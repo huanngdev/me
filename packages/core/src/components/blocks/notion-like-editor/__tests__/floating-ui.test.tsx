@@ -21,6 +21,7 @@ const floatingSources = [
   "components/ui/link-popover.tsx",
   "components/ui/bookmark-url-popover.tsx",
   "components/ui/bookmark-toolbar-popover.tsx",
+  "components/ui/inline-equation-popover.tsx",
   "components/ui/paste-url-menu.tsx",
   "components/elements/link-element.tsx",
   "components/elements/mention-element.tsx",

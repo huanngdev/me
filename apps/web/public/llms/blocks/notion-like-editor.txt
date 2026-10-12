@@ -52,70 +52,72 @@
 42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
 43. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
 44. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-46. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-48. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-49. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-50. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-52. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-53. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-54. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-60. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-61. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-62. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-63. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-65. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-66. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-67. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-68. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-70. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-73. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-74. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-75. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-76. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-77. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-78. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-79. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-80. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-86. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-88. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-89. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-90. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-91. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-92. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-108. apps/web/src/app/blocks/notion-like-editor/page.tsx
+45. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
+46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
+47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+48. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+50. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+51. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+52. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+55. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+56. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+62. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+63. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+64. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+65. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+67. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+68. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+74. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+75. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+76. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+77. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+78. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+79. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+80. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+88. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+89. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+90. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+91. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+92. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+110. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -6135,6 +6137,7 @@ import { InlineEquationElement } from "../../components/elements/inline-equation
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
+import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
 import {
   SYNCED_REF_KEY,
   goToSyncedOriginal,
@@ -7676,9 +7679,18 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
-// Display only for now. Editing UI is a later task.
 const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
   render: { node: InlineEquationElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Holds the popover state. Mod+Shift+E and Enter on the selected equation are handled here.
+const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineEquationKeyDown(editor, event);
+    },
+  },
 });
 
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
@@ -7965,6 +7977,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     linkUiPlugin,
     mentionPlatePlugin,
     inlineEquationPlatePlugin,
+    inlineEquationUiPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
@@ -15904,6 +15917,7 @@ export function EquationElement(props: PlateElementProps) {
 import {
   ElementApi,
   KEYS,
+  PathApi,
   RangeApi,
   createSlatePlugin,
   nanoid,
@@ -16025,6 +16039,58 @@ export function insertInlineEquation(editor: SlateEditor, expression: string): s
   });
   return id;
 }
+
+export type InlineEquationRefusal = "span" | "unavailable";
+
+// Why an inline equation cannot be inserted over the current selection, or undefined when it can.
+export function inlineEquationRefusal(editor: SlateEditor): InlineEquationRefusal | undefined {
+  const selection = editor.selection;
+  if (selection === null) {
+    return "unavailable";
+  }
+
+  if (!RangeApi.isCollapsed(selection)) {
+    const start = editor.api.block({ at: RangeApi.start(selection) });
+    const end = editor.api.block({ at: RangeApi.end(selection) });
+    if (!start || !end || !PathApi.equals(start[1], end[1])) {
+      return "span";
+    }
+
+    if (!isStoredEquationExpression(editor.api.string(selection))) {
+      return "unavailable";
+    }
+
+    if (
+      editor.api.some({
+        at: selection,
+        voids: true,
+        match: (node) => ElementApi.isElement(node) && editor.api.isVoid(node),
+      })
+    ) {
+      return "unavailable";
+    }
+  }
+
+  return inlineEquationAllowed(editor, selection) ? undefined : "unavailable";
+}
+
+// The node and its path, or undefined when no inline equation has this id.
+export function inlineEquationEntry(
+  editor: SlateEditor,
+  id: string,
+): [TElement, number[]] | undefined {
+  const entry = editor.api.node({
+    at: [],
+    voids: true,
+    match: (node) =>
+      ElementApi.isElement(node) && node.type === KEYS.inlineEquation && node.id === id,
+  });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+
+  return [entry[0], entry[1]];
+}
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
@@ -16037,7 +16103,9 @@ export const INLINE_EQUATION_CLASS = "inline align-baseline";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   PlateElement,
+  useEditorRef,
   useFocused,
+  usePluginOption,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -16050,6 +16118,12 @@ import {
   INLINE_EQUATION_EMPTY_PLACEHOLDER,
   renderInlineEquation,
 } from "../../lib/features/editor-equation-render";
+import {
+  cancelInlineEquationEditor,
+  inlineEquationUiPlugin,
+  openInlineEquationEditor,
+} from "../../lib/plugins/editor-inline-equation-ui";
+import { InlineEquationPopover } from "../ui/inline-equation-popover";
 import { INLINE_EQUATION_CLASS } from "./inline-equation-classes";
 
 import "katex/dist/katex.min.css";
@@ -16057,12 +16131,26 @@ import "katex/dist/katex.min.css";
 type KatexModule = Parameters<typeof renderInlineEquation>[0];
 
 export function InlineEquationElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
   const focused = useFocused();
-  const expression =
-    typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  const id = typeof props.element.id === "string" ? props.element.id : "";
+  const editingId = usePluginOption(inlineEquationUiPlugin, "editingId");
+  const draft = usePluginOption(inlineEquationUiPlugin, "draft");
+  const stored = typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  // While the popover is open the preview shows the draft. The document keeps the stored source.
+  const open = !readOnly && id.length > 0 && editingId === id;
+  const expression = open ? draft : stored;
   const [katex, setKatex] = useState<KatexModule | undefined>();
+
+  // A switch to read-only cancels the open draft. The plugin cannot see a read-only prop change
+  // (no editor change happens), so this stays here. Removal is handled in the plugin's onChange.
+  useEffect(() => {
+    if (readOnly && editingId === id) {
+      cancelInlineEquationEditor(editor);
+    }
+  }, [editingId, editor, id, readOnly]);
 
   useEffect(() => {
     let cancelled = false;
@@ -16114,12 +16202,526 @@ export function InlineEquationElement(props: PlateElementProps) {
         selected && focused && !readOnly && "bg-muted rounded-sm",
       )}
     >
-      <span contentEditable={false} data-inline-equation="">
+      <span
+        contentEditable={false}
+        data-inline-equation=""
+        onClick={
+          readOnly
+            ? undefined
+            : () => {
+                openInlineEquationEditor(editor, id);
+              }
+        }
+      >
         {body}
       </span>
+      {readOnly ? null : <InlineEquationPopover id={id} />}
       {props.children}
     </PlateElement>
   );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
+```tsx
+import { useEffect, useRef } from "react";
+import { Check } from "lucide-react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
+
+import { Input } from "@/components/input";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { isStoredEquationExpression } from "../../lib/document/editor-document-schema";
+import { inlineEquationEntry } from "../../lib/features/editor-inline-equation";
+import {
+  commitInlineEquationEditor,
+  inlineEquationUiPlugin,
+  cancelInlineEquationEditor,
+  setInlineEquationDraft,
+} from "../../lib/plugins/editor-inline-equation-ui";
+import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
+import { EditorTextButton } from "./block-toolbar";
+
+// The node's own element, found through the editor so no ref is read during render.
+function inlineEquationNodeDom(
+  editor: ReturnType<typeof useEditorRef>,
+  id: string,
+): HTMLElement | null {
+  const entry = inlineEquationEntry(editor, id);
+  if (entry === undefined) {
+    return null;
+  }
+
+  const dom: unknown = editor.api.toDOMNode(entry[0]);
+  if (!(dom instanceof HTMLElement)) {
+    return null;
+  }
+
+  return dom.querySelector("[data-inline-equation]");
+}
+
+// Edits the source of one inline equation. It sits under the node and writes only on commit.
+export function InlineEquationPopover({ id }: { id: string }) {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
+  const editingId = usePluginOption(inlineEquationUiPlugin, "editingId");
+  const draft = usePluginOption(inlineEquationUiPlugin, "draft");
+  const mine = !readOnly && id.length > 0 && editingId === id;
+  const input = useRef<HTMLInputElement>(null);
+  const virtualRef = virtualAnchor(
+    () => elementRect(inlineEquationNodeDom(editor, id)),
+    () => anchorContext(inlineEquationNodeDom(editor, id)),
+  );
+
+  // A press outside the popover and the node commits. A press on the node keeps it open.
+  useEffect(() => {
+    if (!mine) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (target instanceof Node) {
+        if (inlineEquationNodeDom(editor, id)?.contains(target) === true) {
+          return;
+        }
+        if (
+          target instanceof Element &&
+          target.closest("[data-inline-equation-popover]") !== null
+        ) {
+          return;
+        }
+      }
+
+      commitInlineEquationEditor(editor);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [editor, id, mine]);
+
+  if (!mine) {
+    return null;
+  }
+
+  const invalid = !isStoredEquationExpression(draft.trim());
+
+  return (
+    <Popover open>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        data-inline-equation-popover=""
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        hideWhenDetached
+        className="w-auto p-2"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          input.current?.focus();
+          input.current?.select();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onKeyDown={(event) => {
+          // The editor must not see keys typed here. Escape and Enter are handled in this popover.
+          event.stopPropagation();
+          if (event.key === "Escape") {
+            event.preventDefault();
+            cancelInlineEquationEditor(editor);
+            return;
+          }
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            commitInlineEquationEditor(editor);
+          }
+        }}
+        onKeyUp={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionStart={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionUpdate={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionEnd={(event) => {
+          event.stopPropagation();
+        }}
+        onPaste={(event) => {
+          event.stopPropagation();
+        }}
+        onCut={(event) => {
+          event.stopPropagation();
+        }}
+        onCopy={(event) => {
+          event.stopPropagation();
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
+      >
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Input
+              ref={input}
+              aria-label="Equation source"
+              aria-invalid={invalid}
+              className="w-64 font-mono text-sm"
+              placeholder="E = mc^2"
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              value={draft}
+              onChange={(event) => {
+                setInlineEquationDraft(editor, event.target.value);
+              }}
+            />
+            <EditorTextButton
+              variant="default"
+              label="Done"
+              icon={<Check aria-hidden="true" />}
+              onClick={() => {
+                commitInlineEquationEditor(editor);
+              }}
+            />
+          </div>
+          {invalid ? <p className="text-destructive text-xs">Up to 4,000 characters.</p> : null}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  RangeApi,
+  createSlatePlugin,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
+import { isStoredEquationExpression } from "../document/editor-document-schema";
+import {
+  inlineEquationEntry,
+  inlineEquationRefusal,
+  insertInlineEquation,
+} from "../features/editor-inline-equation";
+import { blockSelectionActive } from "./editor-block-selection";
+
+// The popover edits a draft held in these options. The document is written once, on commit.
+// createdUndoDepth is the undo depth before the node was inserted, or -1 when it was not created here.
+export const inlineEquationUiPlugin = createSlatePlugin({
+  key: "inlineEquationUi",
+  options: { editingId: "", draft: "", original: "", created: false, createdUndoDepth: -1 },
+}).overrideEditor(({ editor }) => {
+  const { onChange } = editor;
+  if (isEditorOnChange(onChange)) {
+    editor.onChange = (options?: { operation?: unknown }) => {
+      onChange(options);
+      // A node removed while open, or a switch to read-only, closes the popover without writing.
+      const id = inlineEquationEditingId(editor);
+      if (
+        id.length > 0 &&
+        (editor.dom.readOnly === true || inlineEquationEntry(editor, id) === undefined)
+      ) {
+        resetInlineEquationState(editor);
+      }
+    };
+  }
+  return { transforms: {} };
+});
+
+function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
+  return typeof value === "function";
+}
+
+export function inlineEquationEditingId(editor: SlateEditor): string {
+  return editor.getOption(inlineEquationUiPlugin, "editingId");
+}
+
+function storedSource(node: TElement): string {
+  return typeof node.texExpression === "string" ? node.texExpression : "";
+}
+
+function resetInlineEquationState(editor: SlateEditor): void {
+  editor.setOption(inlineEquationUiPlugin, "editingId", "");
+  editor.setOption(inlineEquationUiPlugin, "draft", "");
+  editor.setOption(inlineEquationUiPlugin, "original", "");
+  editor.setOption(inlineEquationUiPlugin, "created", false);
+  editor.setOption(inlineEquationUiPlugin, "createdUndoDepth", -1);
+}
+
+// Drops the popover state without writing the document.
+export function closeInlineEquationEditor(editor: SlateEditor): void {
+  if (inlineEquationEditingId(editor).length === 0) {
+    return;
+  }
+
+  resetInlineEquationState(editor);
+}
+
+export function setInlineEquationDraft(editor: SlateEditor, draft: string): void {
+  if (inlineEquationEditingId(editor).length === 0) {
+    return;
+  }
+
+  editor.setOption(inlineEquationUiPlugin, "draft", draft);
+}
+
+// Opening another equation commits the open one first. A refused commit keeps both as they are.
+export function openInlineEquationEditor(
+  editor: SlateEditor,
+  id: string,
+  options: { created?: boolean; createdUndoDepth?: number } = {},
+): void {
+  if (editor.dom.readOnly === true || blockSelectionActive(editor) || id.length === 0) {
+    return;
+  }
+
+  if (inlineEquationEditingId(editor) === id) {
+    return;
+  }
+
+  if (inlineEquationEditingId(editor).length > 0 && !commitInlineEquationEditor(editor)) {
+    return;
+  }
+
+  // The commit can remove a node and shift paths, so the entry is read after it.
+  const entry = inlineEquationEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  const stored = storedSource(entry[0]);
+  editor.setOption(inlineEquationUiPlugin, "editingId", id);
+  editor.setOption(inlineEquationUiPlugin, "draft", stored);
+  editor.setOption(inlineEquationUiPlugin, "original", stored);
+  editor.setOption(inlineEquationUiPlugin, "created", options.created === true);
+  editor.setOption(inlineEquationUiPlugin, "createdUndoDepth", options.createdUndoDepth ?? -1);
+  editor.tf.select(entry[1]);
+}
+
+// Returns false when the draft cannot be written, so the popover stays open.
+export function commitInlineEquationEditor(editor: SlateEditor): boolean {
+  const id = inlineEquationEditingId(editor);
+  if (id.length === 0) {
+    return false;
+  }
+
+  const draft = editor.getOption(inlineEquationUiPlugin, "draft").trim();
+  if (draft.length > 0 && !isStoredEquationExpression(draft)) {
+    return false;
+  }
+
+  const created = editor.getOption(inlineEquationUiPlugin, "created");
+  const createdUndoDepth = editor.getOption(inlineEquationUiPlugin, "createdUndoDepth");
+  resetInlineEquationState(editor);
+  const entry = inlineEquationEntry(editor, id);
+  if (entry === undefined) {
+    return true;
+  }
+
+  if (draft.length === 0) {
+    if (created) {
+      removeCreatedInlineEquation(editor, id, createdUndoDepth);
+    } else {
+      removeInlineEquation(editor, id);
+    }
+  } else {
+    if (draft !== storedSource(entry[0])) {
+      runEditorCommand(editor, setInlineEquationSource, { id, expression: draft });
+    }
+    selectAfterInlineEquation(editor, id);
+  }
+  editor.tf.focus();
+  return true;
+}
+
+// Removes a node that was just created with an empty source. Any other cancel only leaves the caret after it.
+export function cancelInlineEquationEditor(editor: SlateEditor): void {
+  const id = inlineEquationEditingId(editor);
+  if (id.length === 0) {
+    return;
+  }
+
+  const created = editor.getOption(inlineEquationUiPlugin, "created");
+  const createdUndoDepth = editor.getOption(inlineEquationUiPlugin, "createdUndoDepth");
+  resetInlineEquationState(editor);
+  const entry = inlineEquationEntry(editor, id);
+  if (entry !== undefined) {
+    if (created && storedSource(entry[0]).length === 0) {
+      removeCreatedInlineEquation(editor, id, createdUndoDepth);
+    } else {
+      selectAfterInlineEquation(editor, id);
+    }
+  }
+  editor.tf.focus();
+}
+
+function selectAfterInlineEquation(editor: SlateEditor, id: string): void {
+  const entry = inlineEquationEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  const after = editor.api.after(entry[1]);
+  if (after !== undefined) {
+    editor.tf.select(after);
+  }
+}
+
+// When the insertion is the only entry since it was made, undo it and drop its redo, so
+// neither undo nor redo brings the empty node back. Otherwise remove it with a new entry.
+function removeCreatedInlineEquation(
+  editor: SlateEditor,
+  id: string,
+  createdUndoDepth: number,
+): void {
+  if (createdUndoDepth >= 0 && editor.history.undos.length === createdUndoDepth + 1) {
+    const redoDepth = editor.history.redos.length;
+    editor.tf.undo();
+    editor.history.redos.splice(redoDepth);
+    return;
+  }
+
+  removeInlineEquation(editor, id);
+}
+
+// The caret goes to the end of the text before the node, or to the start of the block when there is none.
+function removeInlineEquation(editor: SlateEditor, id: string): void {
+  const entry = inlineEquationEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  const previous = PathApi.previous(entry[1]);
+  const block = editor.api.block({ at: entry[1] });
+  runEditorCommand(editor, removeInlineEquationNode, { id });
+
+  const target = previous === undefined ? undefined : editor.api.end(previous);
+  if (target !== undefined) {
+    editor.tf.select(target);
+  } else if (block !== undefined) {
+    const start = editor.api.start(block[1]);
+    if (start !== undefined) {
+      editor.tf.select(start);
+    }
+  }
+}
+
+const setInlineEquationSource: EditorCommand<{ id: string; expression: string }> = {
+  id: "inline.equation.source",
+  label: "Edit equation",
+  group: "action",
+  run: (editor, { id, expression }) => {
+    const entry = inlineEquationEntry(editor, id);
+    if (entry !== undefined) {
+      editor.tf.setNodes({ texExpression: expression }, { at: entry[1], voids: true });
+    }
+  },
+};
+
+const removeInlineEquationNode: EditorCommand<{ id: string }> = {
+  id: "inline.equation.remove",
+  label: "Remove equation",
+  group: "action",
+  run: (editor, { id }) => {
+    const entry = inlineEquationEntry(editor, id);
+    if (entry !== undefined) {
+      editor.tf.removeNodes({ at: entry[1], voids: true });
+    }
+  },
+};
+
+export const toggleInlineEquation: EditorCommand = {
+  id: "inline.equation",
+  label: "Equation",
+  group: "insert",
+  isEnabled: (editor) =>
+    editor.dom.readOnly !== true && inlineEquationRefusal(editor) === undefined,
+  disabledReason: (editor) => {
+    const refusal = inlineEquationRefusal(editor);
+    if (refusal === "span") {
+      return "Equations cannot span blocks.";
+    }
+
+    return refusal === undefined ? undefined : "Equations are not available here.";
+  },
+  run: (editor) => {
+    const selection = editor.selection;
+    if (selection === null) {
+      return;
+    }
+
+    // A caret makes an empty equation. A selection becomes its source, and cancel keeps it.
+    const created = RangeApi.isCollapsed(selection);
+    const undoDepth = editor.history.undos.length;
+    const id = insertInlineEquation(editor, created ? "" : editor.api.string(selection));
+    if (id !== null) {
+      openInlineEquationEditor(editor, id, { created, createdUndoDepth: undoDepth });
+    }
+  },
+};
+
+type InlineEquationKeyEvent = {
+  key: string;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean;
+  preventDefault: () => void;
+};
+
+// Mod+Shift+E inserts or wraps an equation. Enter on a selected inline equation opens it.
+export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquationKeyEvent): void {
+  if (event.defaultPrevented || event.altKey || editor.dom.readOnly === true) {
+    return;
+  }
+
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "e") {
+    event.preventDefault();
+    runEditorCommand(editor, toggleInlineEquation, undefined);
+    return;
+  }
+
+  if (event.key !== "Enter" || event.shiftKey || event.metaKey || event.ctrlKey) {
+    return;
+  }
+
+  if (blockSelectionActive(editor)) {
+    return;
+  }
+
+  const block = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.inlineEquation,
+  });
+  if (block === undefined || !ElementApi.isElement(block[0])) {
+    return;
+  }
+
+  const id = typeof block[0].id === "string" ? block[0].id : "";
+  if (id.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  openInlineEquationEditor(editor, id);
 }
 ```
 
@@ -26347,6 +26949,20 @@ export const DEMO_DOCUMENT_VALUE = [
     id: "demo-equation-matrix",
     texExpression: "\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}",
     children: [{ text: "" }],
+  },
+  {
+    type: "p",
+    id: "demo-inline-math",
+    children: [
+      { text: "Inline math such as " },
+      {
+        type: "inline_equation",
+        id: "demo-inline-equation",
+        texExpression: "e^{i\\pi}+1=0",
+        children: [{ text: "" }],
+      },
+      { text: " sits inside a sentence. Select text and press Cmd+Shift+E." },
+    ],
   },
   {
     type: "h3",

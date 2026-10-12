@@ -61,6 +61,7 @@ import { InlineEquationElement } from "../../components/elements/inline-equation
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
+import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
 import {
   SYNCED_REF_KEY,
   goToSyncedOriginal,
@@ -1602,9 +1603,18 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
-// Display only for now. Editing UI is a later task.
 const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
   render: { node: InlineEquationElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Holds the popover state. Mod+Shift+E and Enter on the selected equation are handled here.
+const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineEquationKeyDown(editor, event);
+    },
+  },
 });
 
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
@@ -1891,6 +1901,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     linkUiPlugin,
     mentionPlatePlugin,
     inlineEquationPlatePlugin,
+    inlineEquationUiPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,

@@ -38,11 +38,13 @@ import { blockMenuDecisions, menuBlockView } from "./editor-block-menu";
 import { blockPickerTurnItems } from "./editor-block-picker";
 import { bookmarkUrlOpen } from "../plugins/editor-bookmark-popover";
 import { editInlineLink, insertInlineLink, linkUiPlugin } from "../plugins/editor-link";
+import { toggleInlineEquation } from "../plugins/editor-inline-equation-ui";
 import { slashMenuOpen } from "../plugins/editor-slash";
 
 export const SELECTION_TOOLBAR_MEDIA = "(hover: none), (pointer: coarse)";
 
 export const LINK_SHORTCUT_KEYS = ["Mod", "k"] as const;
+export const EQUATION_SHORTCUT_KEYS = ["Mod", "Shift", "e"] as const;
 
 const MARKS = [
   { id: "bold", label: "Bold", command: formatBold, pluginKey: "bold" },
@@ -100,6 +102,12 @@ export type SelectionToolbarModel = {
     shortcut?: string;
     pressed: boolean;
     editing: boolean;
+    disabled: boolean;
+    reason?: string;
+  };
+  equation: {
+    label: string;
+    shortcut?: string;
     disabled: boolean;
     reason?: string;
   };
@@ -207,6 +215,7 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
   const linkEditing = selectionInOneLink(editor);
   const linkCommand = linkEditing ? editInlineLink : insertInlineLink;
   const linkFlags = commandFlags(editor, linkCommand);
+  const equationFlags = commandFlags(editor, toggleInlineEquation);
 
   return {
     turnInto: selectionTurnTarget(editor),
@@ -220,6 +229,12 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
       editing: linkEditing,
       disabled: linkFlags.disabled,
       reason: linkFlags.reason,
+    },
+    equation: {
+      label: "Equation",
+      shortcut: formatShortcut(EQUATION_SHORTCUT_KEYS),
+      disabled: equationFlags.disabled,
+      reason: equationFlags.reason,
     },
     textColor: getTextColor(editor),
     highlight: getHighlight(editor),

@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   PlateElement,
+  useEditorRef,
   useFocused,
+  usePluginOption,
   useReadOnly,
   useSelected,
   type PlateElementProps,
@@ -14,6 +16,12 @@ import {
   INLINE_EQUATION_EMPTY_PLACEHOLDER,
   renderInlineEquation,
 } from "../../lib/features/editor-equation-render";
+import {
+  cancelInlineEquationEditor,
+  inlineEquationUiPlugin,
+  openInlineEquationEditor,
+} from "../../lib/plugins/editor-inline-equation-ui";
+import { InlineEquationPopover } from "../ui/inline-equation-popover";
 import { INLINE_EQUATION_CLASS } from "./inline-equation-classes";
 
 import "katex/dist/katex.min.css";
@@ -21,12 +29,26 @@ import "katex/dist/katex.min.css";
 type KatexModule = Parameters<typeof renderInlineEquation>[0];
 
 export function InlineEquationElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
   const focused = useFocused();
-  const expression =
-    typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  const id = typeof props.element.id === "string" ? props.element.id : "";
+  const editingId = usePluginOption(inlineEquationUiPlugin, "editingId");
+  const draft = usePluginOption(inlineEquationUiPlugin, "draft");
+  const stored = typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  // While the popover is open the preview shows the draft. The document keeps the stored source.
+  const open = !readOnly && id.length > 0 && editingId === id;
+  const expression = open ? draft : stored;
   const [katex, setKatex] = useState<KatexModule | undefined>();
+
+  // A switch to read-only cancels the open draft. The plugin cannot see a read-only prop change
+  // (no editor change happens), so this stays here. Removal is handled in the plugin's onChange.
+  useEffect(() => {
+    if (readOnly && editingId === id) {
+      cancelInlineEquationEditor(editor);
+    }
+  }, [editingId, editor, id, readOnly]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,9 +100,20 @@ export function InlineEquationElement(props: PlateElementProps) {
         selected && focused && !readOnly && "bg-muted rounded-sm",
       )}
     >
-      <span contentEditable={false} data-inline-equation="">
+      <span
+        contentEditable={false}
+        data-inline-equation=""
+        onClick={
+          readOnly
+            ? undefined
+            : () => {
+                openInlineEquationEditor(editor, id);
+              }
+        }
+      >
         {body}
       </span>
+      {readOnly ? null : <InlineEquationPopover id={id} />}
       {props.children}
     </PlateElement>
   );

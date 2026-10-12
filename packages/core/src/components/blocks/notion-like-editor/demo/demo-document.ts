@@ -1100,6 +1100,20 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "p",
+    id: "demo-inline-math",
+    children: [
+      { text: "Inline math such as " },
+      {
+        type: "inline_equation",
+        id: "demo-inline-equation",
+        texExpression: "e^{i\\pi}+1=0",
+        children: [{ text: "" }],
+      },
+      { text: " sits inside a sentence. Select text and press Cmd+Shift+E." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],
