@@ -2401,99 +2401,101 @@ export default function ErrorPageBlockPage() {
 7. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste.ts
 8. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-repairs.ts
 9. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-repair-notice.tsx
-10. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
-11. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
-12. packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
-13. packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
-14. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
-15. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
-16. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
-17. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
-18. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
-19. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
-20. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
-21. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
-22. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
-23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
-24. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
-25. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
-26. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
-27. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
-28. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
-29. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
-30. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
-31. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
-32. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
-33. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
-34. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
-35. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
-36. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
-37. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
-38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
-39. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-41. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-43. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-44. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-45. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-46. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-47. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-48. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-49. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-50. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-52. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-55. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-56. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-60. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-61. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-62. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-63. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-64. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-65. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-66. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-67. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-68. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-69. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-70. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-71. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-72. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-73. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-74. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-75. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-76. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-77. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-78. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-79. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-80. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-81. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-82. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-83. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-86. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-87. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-88. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-89. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-90. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-91. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-92. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-102. apps/web/src/app/blocks/notion-like-editor/page.tsx
+10. packages/core/src/components/blocks/notion-like-editor/components/ui/document-menu.tsx
+11. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-document-io.ts
+12. packages/core/src/components/blocks/notion-like-editor/components/ui/block-toolbar.tsx
+13. packages/core/src/components/blocks/notion-like-editor/components/ui/block-handle.tsx
+14. packages/core/src/components/blocks/notion-like-editor/components/ui/block-menu.tsx
+15. packages/core/src/components/blocks/notion-like-editor/components/ui/block-drag.tsx
+16. packages/core/src/components/blocks/notion-like-editor/components/ui/anchor-rect.ts
+17. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
+18. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-toggle.ts
+19. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-element.tsx
+20. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list.tsx
+21. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-element.tsx
+22. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-element.tsx
+23. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-code.ts
+24. packages/core/src/components/blocks/notion-like-editor/components/elements/code-block-element.tsx
+25. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table.ts
+26. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-table-grid.ts
+27. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-table-commands.ts
+28. packages/core/src/components/blocks/notion-like-editor/components/elements/table-element.tsx
+29. packages/core/src/components/blocks/notion-like-editor/components/ui/table-controls.tsx
+30. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-element.tsx
+31. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-element.tsx
+32. packages/core/src/components/blocks/notion-like-editor/lib/paste/editor-paste-url.ts
+33. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark-url.ts
+34. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-bookmark.ts
+35. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-element.tsx
+36. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-columns.ts
+37. packages/core/src/components/blocks/notion-like-editor/components/elements/column-element.tsx
+38. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
+39. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
+40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
+41. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
+42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+43. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+44. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+45. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+46. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+47. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+49. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+50. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+51. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+52. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+56. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+57. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+58. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+62. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+63. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+64. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+65. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+66. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+67. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+68. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+69. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+71. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+72. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+73. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+74. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+75. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+76. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+77. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+78. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+79. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+80. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+82. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+83. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+85. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+88. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+89. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+90. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+91. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+92. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+104. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -5769,6 +5771,432 @@ export function PasteRepairNotice() {
       ))}
     </div>
   );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/document-menu.tsx
+```tsx
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Download, Ellipsis, Upload } from "lucide-react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/dropdown-menu";
+
+import { EditorMenuTrigger } from "./block-toolbar";
+import { ScrollFadeArea } from "./editor-scroll";
+
+import { runEditorCommand } from "../../lib/commands/editor-commands";
+import type { EditorValue } from "../../lib/document/editor-value";
+import {
+  downloadTextFile,
+  exportFileName,
+  IMPORT_ACCEPT,
+  IMPORT_FILE_BYTE_LIMIT,
+  importFormatOf,
+  replaceDocument,
+} from "../../lib/features/editor-document-io";
+import type { IoExportResult, IoFormat, IoImportResult, IoWarning } from "../../lib/io/io-types";
+
+type Download = {
+  fileName: string;
+  content: string;
+  mimeType: string;
+};
+
+type DialogState =
+  | { mode: "export"; title: string; download: Download; warnings: IoWarning[] }
+  | { mode: "import"; fileName: string; value: EditorValue; warnings: IoWarning[] }
+  | { mode: "error"; title: string; message: string };
+
+const EXPORT_TITLES: Record<IoFormat, string> = {
+  json: "Export as JSON",
+  html: "Export as HTML",
+  markdown: "Export as Markdown",
+};
+
+const IMPORT_TYPE_MESSAGE = "Only .json, .html and .md files can be imported.";
+const IMPORT_SIZE_MESSAGE = "This file is too large to import. The limit is 5 MB.";
+const IMPORT_READ_MESSAGE = "This file could not be read.";
+const EXPORT_FAILED_MESSAGE = "The document could not be exported.";
+
+function WarningList({ warnings }: { warnings: IoWarning[] }) {
+  return (
+    <ScrollFadeArea className="max-h-40">
+      <ul className="text-muted-foreground text-sm">
+        {warnings.map((warning) => (
+          <li key={warning.code}>{warning.message}</li>
+        ))}
+      </ul>
+    </ScrollFadeArea>
+  );
+}
+
+export function DocumentMenu() {
+  const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const requestRef = useRef(0);
+  const mountedRef = useRef(false);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  function nextRequest(): number {
+    requestRef.current += 1;
+    return requestRef.current;
+  }
+
+  function isCurrent(request: number): boolean {
+    return mountedRef.current && request === requestRef.current;
+  }
+
+  function showError(title: string, message: string): void {
+    setDialog({ mode: "error", title, message });
+  }
+
+  async function exportAs(format: IoFormat): Promise<void> {
+    const request = nextRequest();
+    const value = editor.children as EditorValue;
+    try {
+      const io = await import("../../lib/io");
+      const result: IoExportResult = await io.exportEditorDocument(value, format);
+      if (!isCurrent(request)) {
+        return;
+      }
+
+      const download: Download = {
+        fileName: exportFileName(value, result.extension),
+        content: result.content,
+        mimeType: result.mimeType,
+      };
+      if (result.warnings.length === 0) {
+        downloadTextFile(download.fileName, download.content, download.mimeType);
+        return;
+      }
+
+      setDialog({
+        mode: "export",
+        title: EXPORT_TITLES[format],
+        download,
+        warnings: result.warnings,
+      });
+    } catch {
+      if (isCurrent(request)) {
+        showError("Export failed", EXPORT_FAILED_MESSAGE);
+      }
+    }
+  }
+
+  async function importFile(file: File): Promise<void> {
+    const request = nextRequest();
+    const format = importFormatOf(file.name);
+    if (format === null) {
+      showError("Import failed", IMPORT_TYPE_MESSAGE);
+      return;
+    }
+    if (file.size > IMPORT_FILE_BYTE_LIMIT) {
+      showError("Import failed", IMPORT_SIZE_MESSAGE);
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const io = await import("../../lib/io");
+      const result: IoImportResult = await io.importEditorDocument(text, format);
+      if (!isCurrent(request)) {
+        return;
+      }
+      if (!result.ok) {
+        showError("Import failed", result.error);
+        return;
+      }
+
+      setDialog({
+        mode: "import",
+        fileName: file.name,
+        value: result.value,
+        warnings: result.warnings,
+      });
+    } catch {
+      if (isCurrent(request)) {
+        showError("Import failed", IMPORT_READ_MESSAGE);
+      }
+    }
+  }
+
+  function closeDialog(): void {
+    setDialog(null);
+  }
+
+  return (
+    <div
+      data-document-menu=""
+      contentEditable={false}
+      className="relative mx-auto h-0 w-full max-w-[700px]"
+    >
+      <div className="absolute top-1 right-0 z-10">
+        <DropdownMenu>
+          <EditorMenuTrigger label="Document options" icon={<Ellipsis aria-hidden="true" />} />
+          <DropdownMenuContent
+            align="end"
+            sideOffset={4}
+            collisionPadding={8}
+            hideWhenDetached
+            className="w-48"
+          >
+            <DropdownMenuLabel>Export</DropdownMenuLabel>
+            <DropdownMenuItem
+              data-document-action="export-json"
+              onSelect={() => {
+                void exportAs("json");
+              }}
+            >
+              <Download aria-hidden="true" />
+              JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-document-action="export-html"
+              onSelect={() => {
+                void exportAs("html");
+              }}
+            >
+              <Download aria-hidden="true" />
+              HTML
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-document-action="export-markdown"
+              onSelect={() => {
+                void exportAs("markdown");
+              }}
+            >
+              <Download aria-hidden="true" />
+              Markdown
+            </DropdownMenuItem>
+            {readOnly ? null : (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  data-document-action="import"
+                  onSelect={() => {
+                    inputRef.current?.click();
+                  }}
+                >
+                  <Upload aria-hidden="true" />
+                  Import…
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={IMPORT_ACCEPT}
+          className="hidden"
+          data-document-import-input=""
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file) {
+              void importFile(file);
+            }
+          }}
+        />
+      </div>
+      <AlertDialog
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog();
+          }
+        }}
+      >
+        <AlertDialogContent data-document-dialog={dialog?.mode}>
+          {dialog?.mode === "export" ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{dialog.title}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Some content cannot be kept in this format:
+                </AlertDialogDescription>
+                <WarningList warnings={dialog.warnings} />
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  size="sm"
+                  onClick={() => {
+                    downloadTextFile(
+                      dialog.download.fileName,
+                      dialog.download.content,
+                      dialog.download.mimeType,
+                    );
+                  }}
+                >
+                  Download
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : null}
+          {dialog?.mode === "import" ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Replace this document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {`"${dialog.fileName}" has ${String(dialog.value.length)} ${dialog.value.length === 1 ? "block" : "blocks"}. It replaces the whole document. You can undo this.`}
+                </AlertDialogDescription>
+                {dialog.warnings.length > 0 ? (
+                  <>
+                    <p className="text-muted-foreground text-sm">
+                      Some content could not be imported as is:
+                    </p>
+                    <WarningList warnings={dialog.warnings} />
+                  </>
+                ) : null}
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  size="sm"
+                  onClick={() => {
+                    runEditorCommand(editor, replaceDocument, dialog.value);
+                    closeDialog();
+                    editor.tf.focus();
+                  }}
+                >
+                  Replace document
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : null}
+          {dialog?.mode === "error" ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{dialog.title}</AlertDialogTitle>
+                <AlertDialogDescription>{dialog.message}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction size="sm">Close</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : null}
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-document-io.ts
+```ts
+import { ElementApi, type Descendant } from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import type { EditorValue } from "../document/editor-value";
+import type { IoFormat } from "../io/io-types";
+
+export const IMPORT_FILE_BYTE_LIMIT = 5 * 1024 * 1024;
+
+export const IMPORT_ACCEPT = ".json,.html,.htm,.md,.markdown";
+
+export function importFormatOf(fileName: string): IoFormat | null {
+  const dot = fileName.lastIndexOf(".");
+  if (dot < 0) {
+    return null;
+  }
+
+  switch (fileName.slice(dot + 1).toLowerCase()) {
+    case "json":
+      return "json";
+    case "html":
+    case "htm":
+      return "html";
+    case "md":
+    case "markdown":
+      return "markdown";
+    default:
+      return null;
+  }
+}
+
+function plainTextOf(node: Descendant): string {
+  if (ElementApi.isElement(node)) {
+    return node.children.map((child) => plainTextOf(child)).join("");
+  }
+
+  return "text" in node && typeof node.text === "string" ? node.text : "";
+}
+
+export function exportFileName(value: EditorValue, extension: string): string {
+  const first = value[0];
+  const title = first ? plainTextOf(first) : "";
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/, "");
+
+  return `${slug || "document"}.${extension}`;
+}
+
+export const replaceDocument: EditorCommand<EditorValue> = {
+  id: "replace-document",
+  label: "Replace document",
+  group: "action",
+  run: (editor, payload) => {
+    if (payload.length === 0) {
+      return;
+    }
+
+    editor.tf.deselect();
+    editor.tf.withoutNormalizing(() => {
+      for (let index = editor.children.length - 1; index >= 0; index -= 1) {
+        editor.tf.removeNodes({ at: [index] });
+      }
+      editor.tf.insertNodes(structuredClone(payload), { at: [0] });
+    });
+
+    const start = editor.api.start([]);
+    if (start) {
+      editor.tf.select(start);
+    }
+  },
+};
+
+export function downloadTextFile(fileName: string, content: string, mimeType: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.rel = "noopener";
+  link.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 ```
 
@@ -26433,6 +26861,7 @@ import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
 import { BlockSelection } from "../ui/block-selection";
 import { BlockPlaceholders } from "./block-placeholders";
+import { DocumentMenu } from "../ui/document-menu";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 import { SelectionToolbar } from "../ui/selection-toolbar";
@@ -26471,6 +26900,7 @@ export function EditorSurface({
       >
         <MentionScope provider={mentionProvider}>
           <LinkPreviewProvider adapter={linkPreview}>
+            <DocumentMenu />
             <PasteRepairNotice />
             <PasteUrlMenu />
             <SlashMenu />

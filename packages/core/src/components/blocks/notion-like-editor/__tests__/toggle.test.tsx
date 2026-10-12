@@ -500,7 +500,7 @@ describe("toggle open state", () => {
     const undos = mounted.editor.history.undos.length;
 
     try {
-      const button: unknown = document.querySelector("[aria-expanded]");
+      const button: unknown = document.querySelector("[data-slate-editor] [aria-expanded]");
       if (!isClickable(button)) {
         throw new Error("Missing toggle button.");
       }
@@ -555,7 +555,7 @@ describe("toggle rendering", () => {
     mounted.editor.tf.select(selection);
 
     try {
-      const button: unknown = document.querySelector("[aria-expanded]");
+      const button: unknown = document.querySelector("[data-slate-editor] [aria-expanded]");
       if (!isClickable(button)) {
         throw new Error("Missing toggle button.");
       }
