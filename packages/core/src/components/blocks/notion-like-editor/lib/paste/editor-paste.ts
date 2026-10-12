@@ -69,6 +69,18 @@ import {
   fileElement,
 } from "../features/editor-file";
 import {
+  AUDIO_ATTRS_CLEANED,
+  AUDIO_KEY,
+  cleanAudioFields,
+  audioElement,
+} from "../features/editor-audio";
+import {
+  VIDEO_ATTRS_CLEANED,
+  VIDEO_KEY,
+  cleanVideoFields,
+  videoElement,
+} from "../features/editor-video";
+import {
   MEDIA_FILE_LIMIT,
   MEDIA_FILE_LIMIT_MESSAGE,
   insertMediaFiles,
@@ -328,14 +340,12 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
   return props;
 }
 
+// KEYS.video and KEYS.audio are the same strings as the video and audio blocks, so they are not
+// dropped here. The video and audio sanitizers keep a node of those types as a block, as they do for
+// KEYS.file and the file block. HTML video and audio elements still become unsupported_media.
 function isDroppedMediaType(type: string): boolean {
   return (
-    type === KEYS.img ||
-    type === KEYS.video ||
-    type === KEYS.audio ||
-    type === KEYS.mediaEmbed ||
-    type === "pdf" ||
-    type === "unsupported_media"
+    type === KEYS.img || type === KEYS.mediaEmbed || type === "pdf" || type === "unsupported_media"
   );
 }
 
@@ -405,6 +415,26 @@ function pastedFile(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [fileElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the video and its valid fields, as pastedImage does for an image.
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanVideoFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: VIDEO_ATTRS_CLEANED });
+  }
+
+  return [videoElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the audio and its valid fields, as pastedImage does for an image.
+function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanAudioFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: AUDIO_ATTRS_CLEANED });
+  }
+
+  return [audioElement(cleaned.fields, takeId(node, seen))];
 }
 
 function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
@@ -1050,6 +1080,14 @@ function expandBlock(
 
     if (node.type === FILE_KEY) {
       return pastedFile(node, seen);
+    }
+
+    if (node.type === VIDEO_KEY) {
+      return pastedVideo(node, seen);
+    }
+
+    if (node.type === AUDIO_KEY) {
+      return pastedAudio(node, seen);
     }
 
     if (node.type === PAGE_LINK_KEY) {

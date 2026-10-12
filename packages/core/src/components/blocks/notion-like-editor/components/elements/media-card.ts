@@ -1,6 +1,8 @@
 import { useEffect, type RefObject } from "react";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
+import type { SlateEditor } from "platejs";
+
 import {
   closeMediaActions,
   mediaActionsBlockId,
@@ -8,12 +10,39 @@ import {
   selectedMediaId,
 } from "../../lib/plugins/editor-media-ui";
 
-// Clicks and keys on these controls belong to the control, not to the media card.
+// Clicks and keys on these controls belong to the control, not to the media card. A video or audio
+// player is a control, so a click on it does not select the block.
 export function isControlTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("input, textarea, button, a, [role='separator']") !== null
+    target.closest("input, textarea, button, a, video, audio, [role='separator']") !== null
   );
+}
+
+type PlayerKeyEvent = {
+  key: string;
+  preventDefault: () => void;
+  stopPropagation: () => void;
+};
+
+// Keys pressed in a player belong to the player, so the editor never sees them. Escape also returns
+// focus to the editor.
+export function onPlayerKeyDown(editor: SlateEditor, event: PlayerKeyEvent): void {
+  event.stopPropagation();
+  if (event.key === "Escape") {
+    event.preventDefault();
+    editor.tf.focus();
+  }
+}
+
+export function onPlayerKeyUp(event: Pick<PlayerKeyEvent, "stopPropagation">): void {
+  event.stopPropagation();
+}
+
+// The editor selects a void block when its inner element is clicked. A click on the player stops here,
+// so the block under the player keeps the selection it has.
+export function onPlayerClick(event: { stopPropagation: () => void }): void {
+  event.stopPropagation();
 }
 
 // Mouse-down on the card selects its block, as a bookmark card does. It runs only while `active`,

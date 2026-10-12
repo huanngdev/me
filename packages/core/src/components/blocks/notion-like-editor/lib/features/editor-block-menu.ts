@@ -10,8 +10,10 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { AUDIO_KEY } from "./editor-audio";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
@@ -119,6 +121,8 @@ const STRUCTURAL = new Set<string>([
   BOOKMARK_KEY,
   IMAGE_KEY,
   FILE_KEY,
+  VIDEO_KEY,
+  AUDIO_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -597,6 +601,12 @@ function article(type: string): string {
   }
   if (type === FILE_KEY) {
     return "a file";
+  }
+  if (type === VIDEO_KEY) {
+    return "a video";
+  }
+  if (type === AUDIO_KEY) {
+    return "an audio file";
   }
   return "that block";
 }

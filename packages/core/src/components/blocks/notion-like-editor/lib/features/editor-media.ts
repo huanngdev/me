@@ -1,32 +1,56 @@
 import { nanoid, type SlateEditor } from "platejs";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
-import { fileElement, FILE_KEY } from "./editor-file";
+import { setAudioSource } from "./editor-audio-commands";
 import { setFileSource } from "./editor-file-commands";
-import { imageElement } from "./editor-image";
 import { setImageSource } from "./editor-image-commands";
 import type { UploadedFile } from "./editor-file-upload";
+import { mediaBlockElement } from "./editor-media-commands";
 import type { UploadController } from "./editor-upload-controller";
+import { setVideoSource } from "./editor-video-commands";
 import {
   MEDIA_MIME_PREFIXES,
   applyMediaSource,
+  isMediaBlockType,
   mediaBlockEntry,
   mediaMimePrefix,
   placeNewMediaBlocks,
   sanitizeMediaSource,
+  type MediaBlockType,
 } from "./editor-media-source";
 
 // A paste or drop takes at most this many files. The rest are skipped with one notice.
 export const MEDIA_FILE_LIMIT = 10;
 export const MEDIA_FILE_LIMIT_MESSAGE = "Only the first 10 files were added.";
 
-// The block kind a file becomes. Image files become image blocks, and every other file a file block.
-export type MediaKind = "image" | "file";
+// The block kind a file becomes. Image, video and audio files become their own block. Every other
+// file becomes a file block.
+export type MediaKind = MediaBlockType;
 
 // The one place that routes a file to a block kind.
 export function mediaKindForFile(file: { readonly type: string }): MediaKind {
-  return file.type.startsWith(MEDIA_MIME_PREFIXES.image) ? "image" : "file";
+  if (file.type.startsWith(MEDIA_MIME_PREFIXES.image)) {
+    return "image";
+  }
+  if (file.type.startsWith(MEDIA_MIME_PREFIXES.video)) {
+    return "video";
+  }
+  if (file.type.startsWith(MEDIA_MIME_PREFIXES.audio)) {
+    return "audio";
+  }
+  return "file";
 }
+
+// The source command of each block type. An upload result for a block that already has a file uses it.
+const SET_SOURCE_BY_TYPE: Record<
+  MediaBlockType,
+  EditorCommand<{ id: string; file: UploadedFile }>
+> = {
+  image: setImageSource,
+  file: setFileSource,
+  video: setVideoSource,
+  audio: setAudioSource,
+};
 
 // Writes an upload result into a media block that is still empty. The block must exist, be a media
 // block, and have no url. Otherwise nothing changes.
@@ -68,7 +92,7 @@ export const insertMediaBlocks: EditorCommand<{
       editor,
       items.map((item) => ({
         id: item.id,
-        element: item.kind === "image" ? imageElement({}, item.id) : fileElement({}, item.id),
+        element: mediaBlockElement(item.kind, item.id),
       })),
       replaceSelection,
     ),
@@ -99,16 +123,19 @@ export function applyUploadResult(
 ): boolean {
   const entry = mediaBlockEntry(editor, blockId);
   if (entry !== undefined && typeof entry[0].url === "string") {
-    const command = entry[0].type === FILE_KEY ? setFileSource : setImageSource;
-    return runEditorCommand(editor, command, { id: blockId, file });
+    const type = entry[0].type;
+    if (!isMediaBlockType(type)) {
+      return false;
+    }
+    return runEditorCommand(editor, SET_SOURCE_BY_TYPE[type], { id: blockId, file });
   }
 
   return applyFinishedUpload(editor, blockId, file);
 }
 
-// One media block per file, in order, each with its upload started. Image files become image blocks
-// and the rest become file blocks. The insert is one undo step, and the uploads start after it. An
-// expanded selection is replaced in that same step.
+// One media block per file, in order, each with its upload started. Image, video and audio files
+// become their own blocks and the rest become file blocks. The insert is one undo step, and the
+// uploads start after it. An expanded selection is replaced in that same step.
 export function insertMediaFiles(
   editor: SlateEditor,
   controller: UploadController,

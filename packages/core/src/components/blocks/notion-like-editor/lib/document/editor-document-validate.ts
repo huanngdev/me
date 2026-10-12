@@ -29,8 +29,10 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { isEditorValue, repairColumnContent } from "./editor-column-repair";
+import { AUDIO_KEY, AUDIO_URL_REMOVED } from "../features/editor-audio";
 import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
+import { VIDEO_KEY, VIDEO_URL_REMOVED } from "../features/editor-video";
 import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
@@ -420,6 +422,12 @@ function repairAttrMessage(path: number[], type: string, key: string, value: unk
   }
   if (type === FILE_KEY && key === "url") {
     return FILE_URL_REMOVED;
+  }
+  if (type === VIDEO_KEY && key === "url") {
+    return VIDEO_URL_REMOVED;
+  }
+  if (type === AUDIO_KEY && key === "url") {
+    return AUDIO_URL_REMOVED;
   }
 
   if (key === "lang" && value === "plaintext") {

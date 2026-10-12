@@ -2,6 +2,7 @@ import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } fr
 
 import {
   cleanFileName,
+  isHttpFileUrl,
   sanitizeMimeType,
   sanitizeStoredFileUrl,
   sanitizeUploadedFile,
@@ -9,12 +10,19 @@ import {
 import type { UploadedFile } from "./editor-file-upload";
 
 // Media block types and the mime prefix each one accepts. Every key is a block type.
-// An empty prefix accepts any mime type. The image and file blocks read their prefixes from here.
-export const MEDIA_MIME_PREFIXES = { image: "image/", file: "" } as const;
+// An empty prefix accepts any mime type. Every media block reads its prefix from here.
+export const MEDIA_MIME_PREFIXES = {
+  image: "image/",
+  file: "",
+  video: "video/",
+  audio: "audio/",
+} as const;
+
+export type MediaBlockType = keyof typeof MEDIA_MIME_PREFIXES;
 
 const MEDIA_PREFIX_BY_TYPE = new Map<string, string>(Object.entries(MEDIA_MIME_PREFIXES));
 
-// The longest id a media block can have. Image and file blocks share it.
+// The longest id a media block can have. Every media block shares it.
 export const MEDIA_ID_MAX = 128;
 
 // The attributes a media block stores for its file. Nothing else about the file is stored.
@@ -27,7 +35,7 @@ export type MediaSource = {
   mime?: string;
 };
 
-export function isMediaBlockType(type: string): boolean {
+export function isMediaBlockType(type: string): type is MediaBlockType {
   return MEDIA_PREFIX_BY_TYPE.has(type);
 }
 
@@ -138,6 +146,18 @@ export function sanitizeMediaSource(raw: unknown, prefix: string): MediaSource |
 // A url-only value is an embed link. Any name, size or mime makes the value an upload result.
 export function isEmbedLink(file: UploadedFile): boolean {
   return file.name === undefined && file.size === undefined && file.mime === undefined;
+}
+
+// An embed link must be http or https. It is trimmed and at most 2048 characters.
+export function sanitizeMediaEmbedUrl(raw: unknown): string | null {
+  const clean = sanitizeStoredFileUrl(raw);
+  return clean !== null && isHttpFileUrl(clean) ? clean : null;
+}
+
+// The source of an embed link that has only a url. The image, video and audio blocks use it.
+export function embedUrlSource(file: UploadedFile): MediaSource | null {
+  const url = sanitizeMediaEmbedUrl(file.url);
+  return url === null ? null : { url };
 }
 
 // The block with this id, when it is a media block and the editor is writable.

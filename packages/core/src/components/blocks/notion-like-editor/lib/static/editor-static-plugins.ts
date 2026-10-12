@@ -38,8 +38,10 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { AudioStatic } from "../../components/static/audio-static";
 import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
+import { VideoStatic } from "../../components/static/video-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
@@ -69,8 +71,10 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { AUDIO_KEY } from "../features/editor-audio";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
+import { VIDEO_KEY } from "../features/editor-video";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
@@ -161,6 +165,18 @@ const filePlugin = createSlatePlugin({
   key: FILE_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: FileStatic },
+});
+
+const videoPlugin = createSlatePlugin({
+  key: VIDEO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: VideoStatic },
+});
+
+const audioPlugin = createSlatePlugin({
+  key: AUDIO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: AudioStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -287,6 +303,8 @@ export const editorStaticPlugins = [
   bookmarkPlugin,
   imagePlugin,
   filePlugin,
+  videoPlugin,
+  audioPlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,

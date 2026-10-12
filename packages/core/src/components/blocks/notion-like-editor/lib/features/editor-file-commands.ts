@@ -5,17 +5,13 @@ import { FILE_KEY, fileElement, fileNameFromUrl } from "./editor-file";
 import { cleanFileName, isHttpFileUrl, sanitizeStoredFileUrl } from "./editor-file-url";
 import type { UploadedFile } from "./editor-file-upload";
 import {
-  MEDIA_MIME_PREFIXES,
-  MEDIA_SOURCE_ATTRS,
-  applyMediaSource,
-  isEmbedLink,
-  isStoredMediaUrl,
-  mediaBlockEntry,
-  placeNewMediaBlocks,
-  removeMediaBlockAt,
-  sanitizeMediaSource,
-  type MediaSource,
-} from "./editor-media-source";
+  createMediaClearSourceCommand,
+  createMediaInsertCommand,
+  createMediaRemoveCommand,
+  createMediaSetSourceCommand,
+  writableMediaBlock,
+} from "./editor-media-commands";
+import { isStoredMediaUrl, placeNewMediaBlocks, type MediaSource } from "./editor-media-source";
 
 // A link is http or https only. Its name is the file name in the url, unless one is given.
 function linkSource(file: UploadedFile): MediaSource | null {
@@ -29,18 +25,11 @@ function linkSource(file: UploadedFile): MediaSource | null {
 }
 
 function writableFile(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
-  const entry = mediaBlockEntry(editor, id);
-  return entry !== undefined && entry[0].type === FILE_KEY ? entry : undefined;
+  return writableMediaBlock(editor, id, FILE_KEY);
 }
 
 // One file block with this id. The id must be new.
-export const insertFile: EditorCommand<{ id: string }> = {
-  id: "block.insert.file",
-  label: "File",
-  group: "insert",
-  run: (editor, { id }) =>
-    placeNewMediaBlocks(editor, [{ id, element: fileElement({}, id) }], false),
-};
+export const insertFile: EditorCommand<{ id: string }> = createMediaInsertCommand(FILE_KEY);
 
 // One file block per id, in order, as one undo step. Ids must be new and unique. With
 // `replaceSelection`, an expanded selection is deleted first, in the same step.
@@ -58,43 +47,10 @@ export const insertFiles: EditorCommand<{ ids: string[]; replaceSelection?: bool
 
 // A url-only value is a link and must be http or https. Any other value is an upload result, and
 // its name, size and mime type are kept when they are valid.
-export const setFileSource: EditorCommand<{ id: string; file: UploadedFile }> = {
-  id: "block.file.set-source",
-  label: "Set file",
-  group: "action",
-  run: (editor, { id, file }) => {
-    const entry = writableFile(editor, id);
-    if (entry === undefined) {
-      return false;
-    }
-
-    const source = isEmbedLink(file)
-      ? linkSource(file)
-      : sanitizeMediaSource(file, MEDIA_MIME_PREFIXES.file);
-    if (source === null) {
-      return false;
-    }
-
-    applyMediaSource(editor, entry[1], source);
-    return true;
-  },
-};
+export const setFileSource = createMediaSetSourceCommand(FILE_KEY, linkSource);
 
 // Back to the empty placeholder. The name, size and mime type are removed with the url.
-export const clearFileSource: EditorCommand<{ id: string }> = {
-  id: "block.file.clear-source",
-  label: "Remove file",
-  group: "action",
-  run: (editor, { id }) => {
-    const entry = writableFile(editor, id);
-    if (entry === undefined) {
-      return false;
-    }
-
-    editor.tf.unsetNodes([...MEDIA_SOURCE_ATTRS], { at: entry[1] });
-    return true;
-  },
-};
+export const clearFileSource = createMediaClearSourceCommand(FILE_KEY);
 
 // The name is cleaned the way paste cleans names, so it is never empty and at most 255 characters.
 // A file with no url has no name to change, so it is refused.
@@ -119,17 +75,4 @@ export const renameFile: EditorCommand<{ id: string; name: string }> = {
 };
 
 // Removes the block. An empty document gets an empty paragraph, as the bookmark remove does.
-export const removeFile: EditorCommand<{ id: string }> = {
-  id: "block.file.remove",
-  label: "Delete",
-  group: "action",
-  run: (editor, { id }) => {
-    const entry = writableFile(editor, id);
-    if (entry === undefined) {
-      return false;
-    }
-
-    removeMediaBlockAt(editor, entry[1]);
-    return true;
-  },
-};
+export const removeFile: EditorCommand<{ id: string }> = createMediaRemoveCommand(FILE_KEY);

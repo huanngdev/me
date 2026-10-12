@@ -2561,8 +2561,10 @@ import {
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
+import { AUDIO_KEY, isStoredAudioAttr } from "../features/editor-audio";
 import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
+import { VIDEO_KEY, isStoredVideoAttr } from "../features/editor-video";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
@@ -3053,6 +3055,20 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime"],
   },
+  // Custom void, like the image: a video file or embed link with the same width, alignment and caption.
+  {
+    type: VIDEO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "width", "align", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
+  },
+  // Custom void, like the file with a caption and no width or alignment.
+  {
+    type: AUDIO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "caption"],
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -3111,6 +3127,8 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       IMAGE_KEY,
       FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -3198,6 +3216,8 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       IMAGE_KEY,
       FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -3556,6 +3576,14 @@ export function isAllowedElementAttrValue(type: string, attr: string, value: unk
     return isStoredFileAttr(attr, value);
   }
 
+  if (type === VIDEO_KEY) {
+    return isStoredVideoAttr(attr, value);
+  }
+
+  if (type === AUDIO_KEY) {
+    return isStoredAudioAttr(attr, value);
+  }
+
   if (type === KEYS.link && attr === "url") {
     return typeof value === "string" && sanitizeLinkUrl(value) === value;
   }
@@ -3853,8 +3881,10 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { isEditorValue, repairColumnContent } from "./editor-column-repair";
+import { AUDIO_KEY, AUDIO_URL_REMOVED } from "../features/editor-audio";
 import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
+import { VIDEO_KEY, VIDEO_URL_REMOVED } from "../features/editor-video";
 import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
@@ -4245,6 +4275,12 @@ function repairAttrMessage(path: number[], type: string, key: string, value: unk
   if (type === FILE_KEY && key === "url") {
     return FILE_URL_REMOVED;
   }
+  if (type === VIDEO_KEY && key === "url") {
+    return VIDEO_URL_REMOVED;
+  }
+  if (type === AUDIO_KEY && key === "url") {
+    return AUDIO_URL_REMOVED;
+  }
 
   if (key === "lang" && value === "plaintext") {
     return `${formatBlockLabel(path)} stores lang "plaintext". Plaintext is the default, so the language was cleared.`;
@@ -4570,6 +4606,18 @@ import {
   fileElement,
 } from "../features/editor-file";
 import {
+  AUDIO_ATTRS_CLEANED,
+  AUDIO_KEY,
+  cleanAudioFields,
+  audioElement,
+} from "../features/editor-audio";
+import {
+  VIDEO_ATTRS_CLEANED,
+  VIDEO_KEY,
+  cleanVideoFields,
+  videoElement,
+} from "../features/editor-video";
+import {
   MEDIA_FILE_LIMIT,
   MEDIA_FILE_LIMIT_MESSAGE,
   insertMediaFiles,
@@ -4829,14 +4877,12 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
   return props;
 }
 
+// KEYS.video and KEYS.audio are the same strings as the video and audio blocks, so they are not
+// dropped here. The video and audio sanitizers keep a node of those types as a block, as they do for
+// KEYS.file and the file block. HTML video and audio elements still become unsupported_media.
 function isDroppedMediaType(type: string): boolean {
   return (
-    type === KEYS.img ||
-    type === KEYS.video ||
-    type === KEYS.audio ||
-    type === KEYS.mediaEmbed ||
-    type === "pdf" ||
-    type === "unsupported_media"
+    type === KEYS.img || type === KEYS.mediaEmbed || type === "pdf" || type === "unsupported_media"
   );
 }
 
@@ -4906,6 +4952,26 @@ function pastedFile(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [fileElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the video and its valid fields, as pastedImage does for an image.
+function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanVideoFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: VIDEO_ATTRS_CLEANED });
+  }
+
+  return [videoElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the audio and its valid fields, as pastedImage does for an image.
+function pastedAudio(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanAudioFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: AUDIO_ATTRS_CLEANED });
+  }
+
+  return [audioElement(cleaned.fields, takeId(node, seen))];
 }
 
 function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
@@ -5551,6 +5617,14 @@ function expandBlock(
 
     if (node.type === FILE_KEY) {
       return pastedFile(node, seen);
+    }
+
+    if (node.type === VIDEO_KEY) {
+      return pastedVideo(node, seen);
+    }
+
+    if (node.type === AUDIO_KEY) {
+      return pastedAudio(node, seen);
     }
 
     if (node.type === PAGE_LINK_KEY) {
@@ -8905,8 +8979,10 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { AudioElement } from "../../components/elements/audio-element";
 import { FileElement } from "../../components/elements/file-element";
 import { ImageElement } from "../../components/elements/image-element";
+import { VideoElement } from "../../components/elements/video-element";
 import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
@@ -8935,8 +9011,10 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { AUDIO_KEY } from "../features/editor-audio";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
+import { VIDEO_KEY } from "../features/editor-video";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
@@ -9612,6 +9690,8 @@ function normalizeDisallowedChild(
       (child.type === BOOKMARK_KEY ||
         child.type === IMAGE_KEY ||
         child.type === FILE_KEY ||
+        child.type === VIDEO_KEY ||
+        child.type === AUDIO_KEY ||
         child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
@@ -10515,6 +10595,18 @@ const filePlugin = createSlatePlugin({
   render: { node: FileElement },
 });
 
+const videoPlugin = createSlatePlugin({
+  key: VIDEO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: VideoElement },
+});
+
+const audioPlugin = createSlatePlugin({
+  key: AUDIO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: AudioElement },
+});
+
 // toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
 // Enter on the selected bookmark opens its action popover.
 const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
@@ -10949,6 +11041,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     bookmarkPlugin,
     imagePlugin,
     filePlugin,
+    videoPlugin,
+    audioPlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,
@@ -26101,8 +26195,10 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { AUDIO_KEY } from "./editor-audio";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
@@ -26123,6 +26219,8 @@ const ELIGIBLE = new Set<string>([
   BOOKMARK_KEY,
   IMAGE_KEY,
   FILE_KEY,
+  VIDEO_KEY,
+  AUDIO_KEY,
   PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
@@ -26650,8 +26748,10 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { AUDIO_KEY } from "./editor-audio";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
@@ -26759,6 +26859,8 @@ const STRUCTURAL = new Set<string>([
   BOOKMARK_KEY,
   IMAGE_KEY,
   FILE_KEY,
+  VIDEO_KEY,
+  AUDIO_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -27237,6 +27339,12 @@ function article(type: string): string {
   }
   if (type === FILE_KEY) {
     return "a file";
+  }
+  if (type === VIDEO_KEY) {
+    return "a video";
+  }
+  if (type === AUDIO_KEY) {
+    return "an audio file";
   }
   return "that block";
 }
@@ -33746,6 +33854,38 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-videos",
+    children: [{ text: "Video" }],
+  },
+  {
+    type: "video",
+    id: "demo-video",
+    url: "/blocks/notion-like-editor/video-demo.webm",
+    name: "video-demo.webm",
+    size: 2331,
+    mime: "video/webm",
+    width: 60,
+    align: "center",
+    caption: "A short clip of a few frames.",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-audios",
+    children: [{ text: "Audio" }],
+  },
+  {
+    type: "audio",
+    id: "demo-audio",
+    url: "/blocks/notion-like-editor/audio-demo.wav",
+    name: "audio-demo.wav",
+    size: 8044,
+    mime: "audio/wav",
+    caption: "A short tone.",
+    children: [{ text: "" }],
+  },
+  {
     type: "footnote_def",
     id: "demo-footnote-def",
     footnoteId: "demo-footnote",
@@ -34272,8 +34412,10 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { AudioStatic } from "../../components/static/audio-static";
 import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
+import { VideoStatic } from "../../components/static/video-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
@@ -34303,8 +34445,10 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { AUDIO_KEY } from "../features/editor-audio";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
+import { VIDEO_KEY } from "../features/editor-video";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
@@ -34395,6 +34539,18 @@ const filePlugin = createSlatePlugin({
   key: FILE_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: FileStatic },
+});
+
+const videoPlugin = createSlatePlugin({
+  key: VIDEO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: VideoStatic },
+});
+
+const audioPlugin = createSlatePlugin({
+  key: AUDIO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: AudioStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -34521,6 +34677,8 @@ export const editorStaticPlugins = [
   bookmarkPlugin,
   imagePlugin,
   filePlugin,
+  videoPlugin,
+  audioPlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,

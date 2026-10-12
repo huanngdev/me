@@ -11,8 +11,11 @@ import { toPlatePlugin } from "platejs/react";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
 import { applyBlockTurn } from "../features/editor-block-menu";
-import { FILE_KEY, fileElement } from "../features/editor-file";
-import { IMAGE_KEY, imageElement } from "../features/editor-image";
+import { AUDIO_KEY } from "../features/editor-audio";
+import { FILE_KEY } from "../features/editor-file";
+import { IMAGE_KEY } from "../features/editor-image";
+import { mediaBlockElement } from "../features/editor-media-commands";
+import { VIDEO_KEY } from "../features/editor-video";
 import { insertPickedBlock } from "../features/editor-block-picker";
 import {
   blockTextOffset,
@@ -214,6 +217,14 @@ function chooseSlash(editor: SlateEditor, id: string): void {
     insertMediaBesideSlash(editor, session.anchor.blockId, FILE_KEY);
     return;
   }
+  if (item.video === true) {
+    insertMediaBesideSlash(editor, session.anchor.blockId, VIDEO_KEY);
+    return;
+  }
+  if (item.audio === true) {
+    insertMediaBesideSlash(editor, session.anchor.blockId, AUDIO_KEY);
+    return;
+  }
   const block = item.block;
   if (block === undefined) {
     return;
@@ -231,14 +242,14 @@ function chooseSlash(editor: SlateEditor, id: string): void {
   insertPickedBlock(editor, session.blockPath, block, { batch: false });
 }
 
-// An empty image or file block goes beside the slash line, and its source popover opens for it.
+// An empty media block goes beside the slash line, and its source popover opens for it.
 function insertMediaBesideSlash(
   editor: SlateEditor,
   blockId: string,
-  type: typeof IMAGE_KEY | typeof FILE_KEY,
+  type: typeof IMAGE_KEY | typeof FILE_KEY | typeof VIDEO_KEY | typeof AUDIO_KEY,
 ): void {
   const id = nanoid();
-  const element = type === FILE_KEY ? fileElement({}, id) : imageElement({}, id);
+  const element = mediaBlockElement(type, id);
   if (!placeBlockBesideSlash(editor, blockId, element, type, true)) {
     return;
   }

@@ -14,8 +14,10 @@ import {
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
+import { AUDIO_KEY, isStoredAudioAttr } from "../features/editor-audio";
 import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
+import { VIDEO_KEY, isStoredVideoAttr } from "../features/editor-video";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
@@ -506,6 +508,20 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime"],
   },
+  // Custom void, like the image: a video file or embed link with the same width, alignment and caption.
+  {
+    type: VIDEO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "width", "align", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
+  },
+  // Custom void, like the file with a caption and no width or alignment.
+  {
+    type: AUDIO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "caption"],
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -564,6 +580,8 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       IMAGE_KEY,
       FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -651,6 +669,8 @@ export const EDITOR_ELEMENT_RULES = [
       BOOKMARK_KEY,
       IMAGE_KEY,
       FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -1007,6 +1027,14 @@ export function isAllowedElementAttrValue(type: string, attr: string, value: unk
 
   if (type === FILE_KEY) {
     return isStoredFileAttr(attr, value);
+  }
+
+  if (type === VIDEO_KEY) {
+    return isStoredVideoAttr(attr, value);
+  }
+
+  if (type === AUDIO_KEY) {
+    return isStoredAudioAttr(attr, value);
   }
 
   if (type === KEYS.link && attr === "url") {

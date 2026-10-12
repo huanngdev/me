@@ -4,8 +4,10 @@ import {
   FileText,
   Image as ImageIcon,
   Link,
+  Music,
   Paperclip,
   Superscript,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -18,9 +20,11 @@ import {
   type TElement,
 } from "platejs";
 
+import { AUDIO_KEY } from "./editor-audio";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
@@ -46,6 +50,8 @@ export type SlashItem = {
   bookmark?: boolean;
   image?: boolean;
   file?: boolean;
+  video?: boolean;
+  audio?: boolean;
   pageLink?: boolean;
 };
 
@@ -250,8 +256,10 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
   const bookmark = bookmarkSlashItem(editor, session);
   const image = imageSlashItem(editor, session);
   const file = fileSlashItem(editor, session);
+  const video = videoSlashItem(editor, session);
+  const audio = audioSlashItem(editor, session);
   const pageLink = pageLinkSlashItem(editor, bookmark);
-  const advanced = [bookmark, pageLink, image, file].filter(
+  const advanced = [bookmark, pageLink, image, file, video, audio].filter(
     (item): item is SlashItem => item !== null,
   );
   return insertAdvancedSlashItems(blocks, advanced, inline);
@@ -341,6 +349,40 @@ function fileSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | 
     icon: Paperclip,
     group: "Advanced",
     file: true,
+  };
+}
+
+// Offered right after File. The popover takes any file, so no video type is checked here.
+function videoSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, VIDEO_KEY)) {
+    return null;
+  }
+
+  return {
+    id: "video",
+    label: "Video",
+    description: "Upload or embed with a link",
+    keywords: ["video", "movie", "mp4", "clip"],
+    icon: Video,
+    group: "Advanced",
+    video: true,
+  };
+}
+
+// Offered right after Video.
+function audioSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, AUDIO_KEY)) {
+    return null;
+  }
+
+  return {
+    id: "audio",
+    label: "Audio",
+    description: "Upload or embed with a link",
+    keywords: ["audio", "sound", "music", "mp3", "voice"],
+    icon: Music,
+    group: "Advanced",
+    audio: true,
   };
 }
 

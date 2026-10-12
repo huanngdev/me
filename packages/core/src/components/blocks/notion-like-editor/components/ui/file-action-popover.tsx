@@ -1,23 +1,17 @@
-import { Download, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useEditorRef, usePluginOption } from "platejs/react";
 
-import { Button } from "@/components/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { Separator } from "@/components/separator";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { removeFile } from "../../lib/features/editor-file-commands";
-import { isHttpFileUrl } from "../../lib/features/editor-file-url";
 import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
 import { useMediaActionsLifecycle } from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
-import {
-  EditorIconButton,
-  EditorTextButton,
-  editorControlLabel,
-  moveActionFocus,
-} from "./block-toolbar";
+import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
+import { MediaDownloadButton } from "./media-download-button";
 
 // One row of file actions, opened by a click on the file row (or Enter on the selected file).
 // Download, then Rename and Replace, then Delete, with separators between the sections.
@@ -51,8 +45,6 @@ export function FileActionPopover({
     return null;
   }
 
-  // A cross-origin file cannot be downloaded in place, so its link opens in a new tab.
-  const external = href !== undefined && isHttpFileUrl(href);
   return (
     <Popover open>
       <PopoverAnchor virtualRef={anchor} />
@@ -104,26 +96,14 @@ export function FileActionPopover({
           tabIndex={-1}
           className="flex flex-nowrap items-center gap-1 focus:outline-none"
         >
-          <Button
-            asChild
-            size="sm"
-            variant="ghost"
-            className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
-          >
-            <a
-              href={href}
-              download={href === undefined ? undefined : name}
-              target={external ? "_blank" : undefined}
-              rel={external ? "noopener noreferrer nofollow" : undefined}
-              aria-disabled={href === undefined ? true : undefined}
-              data-file-action="download"
-              onClick={() => {
-                closeMediaActions(editor);
-              }}
-            >
-              {editorControlLabel(<Download aria-hidden="true" />, "Download")}
-            </a>
-          </Button>
+          <MediaDownloadButton
+            kind="file"
+            href={href}
+            name={name}
+            onDownload={() => {
+              closeMediaActions(editor);
+            }}
+          />
           <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
           <EditorTextButton
             label="Rename"

@@ -11,7 +11,7 @@ import { MEDIA_NOT_SUPPORTED, pasteRepairsOf, rejectDroppedFiles } from "../lib/
 import { pasteUrlActions } from "../lib/paste/editor-paste-url";
 import { EditorSurface } from "../components/editor/editor-surface";
 import type { EditorValue } from "../lib/document/editor-value";
-import { caret, createEditor, expectUnsupported, field } from "./test-utils";
+import { caret, createEditor, expectOk, expectUnsupported, field } from "./test-utils";
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
@@ -125,12 +125,33 @@ describe("legacy media documents", () => {
     expectLegacyKept("img", { url: "blob:https://local/shot", alt: "Hill" });
   });
 
-  test("a stored video node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("video", { url: "/clip.webm", mimeType: "video/webm" });
+  // A video or audio node is a block now. Only a field it does not have makes it unsupported.
+  test("a stored video node with its own fields is a video block, not unsupported", () => {
+    const raw = legacyDocument("video", { url: "/clip.webm", mime: "video/webm", width: 60 });
+    const result = expectOk(parseEditorDocument(raw));
+    expect(result.document.content.map((node) => node.type)).toEqual(["p", "video"]);
+    expect(field(result.document.content[1], "mime")).toBe("video/webm");
   });
 
-  test("a stored audio node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("audio", { url: "/tone.wav", mimeType: "audio/wav" });
+  test("a stored audio node with its own fields is an audio block, not unsupported", () => {
+    const raw = legacyDocument("audio", { url: "/tone.wav", mime: "audio/wav", caption: "Tone" });
+    const result = expectOk(parseEditorDocument(raw));
+    expect(result.document.content.map((node) => node.type)).toEqual(["p", "audio"]);
+    expect(field(result.document.content[1], "caption")).toBe("Tone");
+  });
+
+  test("a stored video node with a field it does not have is unsupported, and the raw document is kept", () => {
+    const raw = legacyDocument("video", { url: "/clip.webm", mimeType: "video/webm" });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes("mimeType"))).toBe(true);
+  });
+
+  test("a stored audio node with a field it does not have is unsupported, and the raw document is kept", () => {
+    const raw = legacyDocument("audio", { url: "/tone.wav", mimeType: "audio/wav" });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes("mimeType"))).toBe(true);
   });
 
   // "file" is a block now. The old attributes mimeType and byteSize are not file attributes, so a
