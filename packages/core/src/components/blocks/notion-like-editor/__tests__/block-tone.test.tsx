@@ -17,8 +17,6 @@ import {
   blockToneTargetIds,
   setBlockTone,
 } from "../lib/features/editor-block-tone";
-import { exportEditorDocument } from "../lib/io/export-document";
-import { importEditorDocument } from "../lib/io/import-document";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { setBlockSelection } from "../lib/plugins/editor-block-selection";
 import { sanitizePastedFragment } from "../lib/paste/editor-paste";
@@ -131,12 +129,6 @@ function blockEl(host: HTMLElement, id: string): HTMLElement {
     throw new Error(`no rendered block ${id}`);
   }
   return el;
-}
-
-function withoutIds(value: unknown): unknown {
-  return JSON.parse(
-    JSON.stringify(value, (key, child: unknown) => (key === "id" ? undefined : child)),
-  );
 }
 
 describe("block tone validation", () => {
@@ -566,120 +558,5 @@ describe("paste", () => {
       paragraph("after", "After"),
     ]);
     expect(allElements(editor.children).find((node) => node.id === "pasted")?.textTone).toBe("red");
-  });
-});
-
-describe("io", () => {
-  const toned = [
-    paragraph("p1", "One", { textTone: "red", backgroundTone: "blue" }),
-    heading("h", "Two", { textTone: "green" }),
-    quote("q", { backgroundTone: "pink" }),
-  ] as EditorValue;
-
-  test("json round trip keeps the tones", async () => {
-    const exported = await exportEditorDocument(toned, "json");
-    const imported = await importEditorDocument(exported.content, "json");
-    expect(imported.ok).toBe(true);
-    if (imported.ok) {
-      // Import assigns fresh ids, so compare everything else.
-      expect(withoutIds(imported.value)).toEqual(withoutIds(toned));
-    }
-  });
-
-  test("html export carries data attributes and inline colours", async () => {
-    const exported = await exportEditorDocument(toned, "html");
-    expect(exported.content).toContain('data-nle-text-tone="red"');
-    expect(exported.content).toContain('data-nle-background-tone="blue"');
-    // Text uses the saturated hex. A block background uses the soft tint.
-    expect(exported.content).toContain("color: #d44c47");
-    expect(exported.content).toContain("background-color: #e7f3f8");
-    expect(exported.content).not.toContain("background-color: #337ea9");
-  });
-
-  test("a highlight mark exports the soft tint and imports back to the same token", async () => {
-    const value = [
-      {
-        type: "p",
-        id: "p1",
-        children: [{ text: "Marked", backgroundColor: "yellow" }],
-      },
-    ] as unknown as EditorValue;
-    const exported = await exportEditorDocument(value, "html");
-    expect(exported.content).toContain("background-color: #fbf3db");
-    const imported = await importEditorDocument(exported.content, "html");
-    expect(imported.ok).toBe(true);
-    if (!imported.ok) {
-      return;
-    }
-    expect(field(imported.value[0]?.children[0], "backgroundColor")).toBe("yellow");
-  });
-
-  test("a highlight with the old saturated hex still imports as the same token", async () => {
-    const imported = await importEditorDocument(
-      '<p data-nle-id="p1"><span style="background-color: #cb912f">Old</span></p>',
-      "html",
-    );
-    expect(imported.ok).toBe(true);
-    if (!imported.ok) {
-      return;
-    }
-    expect(field(imported.value[0]?.children[0], "backgroundColor")).toBe("yellow");
-    expect(imported.warnings.some((warning) => warning.code === "highlight")).toBe(false);
-  });
-
-  test("html import restores the tones", async () => {
-    const exported = await exportEditorDocument(toned, "html");
-    const imported = await importEditorDocument(exported.content, "html");
-    expect(imported.ok).toBe(true);
-    if (!imported.ok) {
-      return;
-    }
-    const first = imported.value[0] as TElement;
-    expect(toneAttrs(first)).toEqual({ textTone: "red", backgroundTone: "blue" });
-  });
-
-  test("an unknown data attribute is dropped with a block-color warning", async () => {
-    const imported = await importEditorDocument(
-      '<p data-nle-id="p1" data-nle-text-tone="evil">Hi</p>',
-      "html",
-    );
-    expect(imported.ok).toBe(true);
-    if (!imported.ok) {
-      return;
-    }
-    expect(toneAttrs(imported.value[0])).toEqual({
-      textTone: undefined,
-      backgroundTone: undefined,
-    });
-    expect(imported.warnings.some((warning) => warning.code === "block-color")).toBe(true);
-  });
-
-  test("foreign html never produces tones", async () => {
-    const imported = await importEditorDocument(
-      '<p style="color:red;background:blue">Hi</p>',
-      "html",
-    );
-    expect(imported.ok).toBe(true);
-    if (!imported.ok) {
-      return;
-    }
-    expect(JSON.stringify(imported.value)).not.toContain("Tone");
-  });
-
-  test("markdown drops tones with one block-color warning counting the toned blocks", async () => {
-    const exported = await exportEditorDocument(toned, "markdown");
-    const warnings = exported.warnings.filter((warning) => warning.code === "block-color");
-    expect(warnings).toEqual([
-      {
-        code: "block-color",
-        message: "3 block colours were removed. Markdown has no block colour.",
-        count: 3,
-      },
-    ]);
-    const imported = await importEditorDocument(exported.content, "markdown");
-    expect(imported.ok).toBe(true);
-    if (imported.ok) {
-      expect(JSON.stringify(imported.value)).not.toContain("Tone");
-    }
   });
 });

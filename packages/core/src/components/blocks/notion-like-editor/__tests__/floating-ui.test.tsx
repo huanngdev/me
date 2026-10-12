@@ -34,7 +34,6 @@ const floatingSources = [
   "components/ui/block-color-menu.tsx",
   "components/ui/selection-toolbar.tsx",
   "components/ui/selection-color-menu.tsx",
-  "components/ui/document-menu.tsx",
 ];
 
 function isReactContainer(value: object): value is Parameters<typeof createRoot>[0] {

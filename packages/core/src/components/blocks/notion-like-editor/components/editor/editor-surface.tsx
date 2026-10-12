@@ -19,7 +19,6 @@ import { MentionScope } from "../elements/mention-element";
 import { BlockHandle } from "../ui/block-handle";
 import { BlockSelection } from "../ui/block-selection";
 import { BlockPlaceholders } from "./block-placeholders";
-import { DocumentMenu } from "../ui/document-menu";
 import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 import { SelectionToolbar } from "../ui/selection-toolbar";
@@ -58,7 +57,6 @@ export function EditorSurface({
       >
         <MentionScope provider={mentionProvider}>
           <LinkPreviewProvider adapter={linkPreview}>
-            <DocumentMenu />
             <PasteRepairNotice />
             <PasteUrlMenu />
             <SlashMenu />
