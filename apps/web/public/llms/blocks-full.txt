@@ -2445,78 +2445,87 @@ export default function ErrorPageBlockPage() {
 51. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-popover.tsx
 52. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-calendar.tsx
 53. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-date-ui.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-55. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-57. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-58. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-59. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-62. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-63. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-64. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
-65. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
-67. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
-68. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-69. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-70. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-71. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-72. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-73. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
-74. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
-75. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-76. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-77. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-78. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-79. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-80. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-81. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-83. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-84. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-85. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-86. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-87. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-88. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-89. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-90. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-91. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-92. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-93. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-94. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-95. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-96. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-97. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-98. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-99. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-100. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-101. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-102. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-103. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-104. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-105. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-106. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-110. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-111. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-112. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-113. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-114. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-115. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-116. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-117. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-118. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-119. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-120. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-121. packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
-122. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-123. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-124. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-125. apps/web/src/app/blocks/notion-like-editor/page.tsx
+54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts
+55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-repair.ts
+56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-index.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote.ts
+59. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-ref-element.tsx
+60. packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-def-element.tsx
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+62. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+64. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+65. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+66. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+67. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+69. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+70. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
+72. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
+73. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
+74. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
+75. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+76. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+77. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+78. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+79. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+80. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+81. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+82. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+83. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+84. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+85. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+86. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+87. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+88. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+89. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+90. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+91. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+92. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+96. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+97. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+98. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+99. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+100. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+101. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+102. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+103. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+104. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+105. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+106. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+107. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+108. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+109. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+110. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+111. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+112. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+113. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+114. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+115. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+116. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+117. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+118. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+119. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+120. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+121. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+122. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+123. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+124. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+125. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+126. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+127. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+128. packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
+129. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-ref-static.tsx
+130. packages/core/src/components/blocks/notion-like-editor/components/static/footnote-def-static.tsx
+131. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+132. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+133. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+134. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -2549,6 +2558,7 @@ import {
 } from "../features/editor-bookmark-url";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
+import { isFootnoteId } from "../features/editor-footnote-id";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
@@ -2843,6 +2853,26 @@ export function checkDateNode(
     {
       path,
       message: `${formatBlockLabel(path)} has an unsupported date. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// Footnote nodes. The reference is an inline void, the definition a top-level block. Numbers are derived.
+export const FOOTNOTE_REF_KEY = "footnote_ref";
+export const FOOTNOTE_DEF_KEY = "footnote_def";
+
+export function checkFootnoteRefNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if (isFootnoteId(node.footnoteId)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported footnoteId. Restore from a backup or remove the block.`,
     },
   ];
 }
@@ -3168,6 +3198,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "date"],
     isVoid: true,
     validateChildren: (node, path) => checkDateNode(node, path),
+  },
+  // Inline footnote reference. Lives where the inline date lives. The number is derived, not stored.
+  {
+    type: FOOTNOTE_REF_KEY,
+    attrs: ["id", "footnoteId"],
+    isVoid: true,
+    validateChildren: (node, path) => checkFootnoteRefNode(node, path),
+  },
+  // Top-level footnote definition. It holds inline text, with no tone, indent, or alignment.
+  // The footnote repair moves a definition anywhere else into a paragraph before this rule runs.
+  {
+    type: FOOTNOTE_DEF_KEY,
+    attrs: ["id", "footnoteId"],
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -3725,6 +3768,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  FOOTNOTE_REF_KEY,
   allowedChildTypes,
   allowedElementAttrs,
   allowsFirstChild,
@@ -3744,6 +3788,7 @@ import {
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
+import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
@@ -3924,7 +3969,8 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
       (childType === KEYS.link ||
         childType === KEYS.mention ||
         childType === KEYS.inlineEquation ||
-        childType === KEYS.date) &&
+        childType === KEYS.date ||
+        childType === FOOTNOTE_REF_KEY) &&
       parentAllowsInlineLink(parentType)
     );
   }
@@ -4274,7 +4320,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
-  const structurally = repairColumnContent(envelope.data.content);
+  const footnotes = repairFootnoteContent(envelope.data.content);
+  const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
   const content = mentions.content;
 
@@ -4308,6 +4355,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       content: normalized.content,
     },
     repairs: [
+      ...footnotes.repairs,
       ...structurally.repairs,
       ...mentions.repairs,
       ...state.repairs,
@@ -4347,6 +4395,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  FOOTNOTE_REF_KEY,
   SYNCED_REF_KEY,
   isStoredSyncedTargetId,
   isVoidElementType,
@@ -4368,6 +4417,9 @@ import {
 } from "../features/editor-mention-node";
 import { formatStoredDate, isStoredDate } from "../features/editor-date-value";
 import { inlineDateNode } from "../features/editor-inline-date";
+import { isFootnoteId } from "../features/editor-footnote-id";
+import { footnoteIndex, footnoteReferenceNode } from "../features/editor-footnote";
+import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { inlineEquationNode } from "../features/editor-inline-equation";
 import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
@@ -5234,6 +5286,17 @@ function pastedInlineDateNodes(node: TElement, allowMarks: boolean): Descendant[
   return text.length > 0 ? [{ text }] : [];
 }
 
+// A reference keeps its id and gets a fresh node id. Only inline marks can hold one, so a code line
+// drops it. Pasted HTML never reaches this path, so a foreign <sup> stays plain text.
+function pastedFootnoteRefNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const stored = node.footnoteId;
+  if (!allowMarks || !isFootnoteId(stored)) {
+    return [];
+  }
+
+  return [footnoteReferenceNode(stored)];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -5277,6 +5340,11 @@ function expandBlock(
 
   if (node.type === KEYS.date) {
     const nodes = pastedInlineDateNodes(node, true);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === FOOTNOTE_REF_KEY) {
+    const nodes = pastedFootnoteRefNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -5423,6 +5491,10 @@ function inlineNodes(
     return pastedInlineDateNodes(node, allowMarks);
   }
 
+  if (node.type === FOOTNOTE_REF_KEY) {
+    return pastedFootnoteRefNodes(node, allowMarks);
+  }
+
   if (node.type === KEYS.link) {
     const url = typeof node.url === "string" ? node.url : "";
     const safe = sanitizeLinkUrl(url);
@@ -5549,11 +5621,15 @@ export function preparePastedFragment(
   fragment: readonly unknown[],
 ): EditorValue {
   const repairs: Repair[] = [];
-  const value = sanitizePastedFragment(fragment, {
+  const sanitized = sanitizePastedFragment(fragment, {
     isInline: (node) => isElementNode(node) && editor.api.isInline(node),
     seenIds: collectEditorIds(editor.children),
     repairs,
   });
+  // A pasted definition keeps its id only when the document has no definition with it.
+  const footnotes = repairFootnoteContent(sanitized, footnoteIndex(editor).definitions);
+  const value = footnotes.content;
+  repairs.push(...footnotes.repairs);
   for (const repair of pendingWidthRepairs) {
     if (!repairs.some((item) => item.message === repair.message)) {
       repairs.push(repair);
@@ -5628,6 +5704,7 @@ function isInlinePasteType(type: string): boolean {
     type === KEYS.mention ||
     type === KEYS.inlineEquation ||
     type === KEYS.date ||
+    type === FOOTNOTE_REF_KEY ||
     type === "a"
   );
 }
@@ -8403,11 +8480,15 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
+import { FootnoteRefElement } from "../../components/elements/footnote-ref-element";
 import { InlineDateElement } from "../../components/elements/inline-date-element";
 import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
 import { inlineDatePlugin } from "../features/editor-inline-date";
+import { footnoteRefPlugin } from "../features/editor-footnote";
+import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
@@ -10034,6 +10115,15 @@ const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
   render: { node: InlineDateElement },
 });
 
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
+  render: { node: FootnoteRefElement },
+});
+
+const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
+  render: { node: FootnoteDefElement },
+});
+
 // Mod+; inserts today's date, and Enter on a selected inline date opens it.
 const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
   handlers: {
@@ -10335,6 +10425,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     inlineEquationUiPlatePlugin,
     inlineDatePlatePlugin,
     inlineDateUiPlatePlugin,
+    footnoteRefPlatePlugin,
+    footnoteDefPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
@@ -10348,6 +10440,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     breakAbovePlugin,
     childTypesPlugin,
     columnNormalizePlugin,
+    // Registered after the column and child-type normalizers, so it runs first and a definition
+    // moved into a container becomes a paragraph before those see it.
+    footnoteNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
     blockSelectionWatchPlugin,
@@ -19241,10 +19336,19 @@ function containsInlineDate(node: Descendant): boolean {
   return node.type === KEYS.date || node.children.some((child) => containsInlineDate(child));
 }
 
+// A hook returns a node's copied text, or undefined to keep the default. `body` is the node's children as text.
+export type PlainTextHook = (node: TElement, body: () => string) => string | undefined;
+
 // Matches the inline equation's plain text, so a mixed fragment keeps both.
-function plainText(node: Descendant): string {
+export function plainText(node: Descendant, hook?: PlainTextHook): string {
   if (!ElementApi.isElement(node)) {
     return "text" in node ? node.text : "";
+  }
+
+  const body = (): string => node.children.map((child) => plainText(child, hook)).join("");
+  const custom = hook?.(node, body);
+  if (custom !== undefined) {
+    return custom;
   }
 
   if (node.type === KEYS.date) {
@@ -19256,7 +19360,7 @@ function plainText(node: Descendant): string {
     return `$${tex}$`;
   }
 
-  return node.children.map((child) => plainText(child)).join("");
+  return body();
 }
 
 export function inlineDateNode(date: string, id?: string): TElement {
@@ -19893,6 +19997,764 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
 
   event.preventDefault();
   openInlineDateEditor(editor, id);
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-id.ts
+```ts
+import { nanoid } from "platejs";
+
+// A footnote id links a reference to its definition. Numbers are never stored, so the id is the only key.
+const FOOTNOTE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function isFootnoteId(value: unknown): value is string {
+  return typeof value === "string" && FOOTNOTE_ID.test(value);
+}
+
+// Same generator and length as the block ids the validator assigns.
+export function createFootnoteId(): string {
+  return nanoid(10);
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-repair.ts
+```ts
+import { KEYS } from "platejs";
+
+import { formatBlockLabel } from "../document/editor-document";
+import type { Repair } from "../document/editor-document-ids";
+import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-schema";
+import type { EditorValue } from "../document/editor-value";
+import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
+
+export const FOOTNOTE_NESTED_MESSAGE =
+  "A footnote definition outside the top level was turned into a paragraph.";
+export const FOOTNOTE_INVALID_ID_MESSAGE =
+  "A footnote definition had an invalid footnote id. It was turned into a paragraph.";
+export const FOOTNOTE_DUPLICATE_MESSAGE =
+  "A footnote definition reused a footnote id. A new id was assigned so each definition stays unique.";
+export const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
+  "A footnote reference inside a footnote definition was removed.";
+
+export type FootnoteRepairResult = {
+  content: EditorValue;
+  repairs: Repair[];
+};
+
+type FootnoteElement = Record<string, unknown> & { type: string; children: unknown[] };
+
+type RepairContext = {
+  seen: Set<string>;
+  repairs: Repair[];
+};
+
+function isElementRecord(value: unknown): value is FootnoteElement {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "type" in value &&
+    typeof value.type === "string" &&
+    "children" in value &&
+    Array.isArray(value.children)
+  );
+}
+
+// A reference cannot sit inside a definition. Every removed reference is reported.
+function stripReferences(
+  children: readonly unknown[],
+  path: number[],
+  repairs: Repair[],
+): { children: unknown[]; changed: boolean } {
+  let changed = false;
+  const next: unknown[] = [];
+  for (const child of children) {
+    if (isElementRecord(child) && child.type === FOOTNOTE_REF_KEY) {
+      repairs.push({
+        path,
+        message: `${formatBlockLabel(path)} ${FOOTNOTE_REFERENCE_REMOVED_MESSAGE}`,
+      });
+      changed = true;
+      continue;
+    }
+
+    if (isElementRecord(child)) {
+      const inner = stripReferences(child.children, path, repairs);
+      if (inner.changed) {
+        changed = true;
+        next.push({ ...child, children: inner.children });
+        continue;
+      }
+    }
+
+    next.push(child);
+  }
+
+  return { children: changed ? next : [...children], changed };
+}
+
+function freshFootnoteId(seen: Set<string>): string {
+  let id = createFootnoteId();
+  while (seen.has(id)) {
+    id = createFootnoteId();
+  }
+
+  return id;
+}
+
+function definitionAsParagraph(node: FootnoteElement, children: unknown[]): FootnoteElement {
+  const paragraph: FootnoteElement = { ...node, type: KEYS.p, children };
+  Reflect.deleteProperty(paragraph, "footnoteId");
+  return paragraph;
+}
+
+// The first definition of an id keeps it. A later one gets a fresh id and stays unreferenced.
+function repairDefinition(node: FootnoteElement, path: number[], context: RepairContext): unknown {
+  const stripped = stripReferences(node.children, path, context.repairs);
+  const nested = path.length > 1;
+  if (nested || !isFootnoteId(node.footnoteId)) {
+    context.repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} ${nested ? FOOTNOTE_NESTED_MESSAGE : FOOTNOTE_INVALID_ID_MESSAGE}`,
+    });
+    return definitionAsParagraph(node, stripped.children);
+  }
+
+  let footnoteId = node.footnoteId;
+  let changed = stripped.changed;
+  if (context.seen.has(footnoteId)) {
+    footnoteId = freshFootnoteId(context.seen);
+    context.repairs.push({
+      path,
+      message: `${formatBlockLabel(path)} ${FOOTNOTE_DUPLICATE_MESSAGE}`,
+    });
+    changed = true;
+  }
+
+  context.seen.add(footnoteId);
+  if (!changed) {
+    return node;
+  }
+
+  return { ...node, footnoteId, children: stripped.children };
+}
+
+function repairNode(value: unknown, path: number[], context: RepairContext): unknown {
+  if (!isElementRecord(value)) {
+    return value;
+  }
+
+  if (value.type === FOOTNOTE_DEF_KEY) {
+    return repairDefinition(value, path, context);
+  }
+
+  let changed = false;
+  const children = value.children.map((child, index) => {
+    const next = repairNode(child, [...path, index], context);
+    if (next !== child) {
+      changed = true;
+    }
+
+    return next;
+  });
+  return changed ? { ...value, children } : value;
+}
+
+// Runs before the column and attribute repairs, so a definition moved out of a column is a paragraph.
+// `reserved` holds ids already in the document. A pasted definition with one of them gets a fresh id.
+export function repairFootnoteContent(
+  content: EditorValue,
+  reserved: ReadonlySet<string> = new Set<string>(),
+): FootnoteRepairResult {
+  const context: RepairContext = { seen: new Set(reserved), repairs: [] };
+  let changed = false;
+  const next = content.map((node, index) => {
+    const repaired = repairNode(node, [index], context);
+    if (repaired !== node) {
+      changed = true;
+    }
+
+    return repaired;
+  });
+
+  if (!changed) {
+    return { content, repairs: context.repairs };
+  }
+
+  return { content: next as EditorValue, repairs: context.repairs };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote-index.ts
+```ts
+import { ElementApi, type Descendant, type SlateEditor } from "platejs";
+
+import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-schema";
+import { isFootnoteId } from "./editor-footnote-id";
+
+// Pure index helpers. The static renderer imports this file, so it must not import commands or plugins.
+export type FootnoteIndex = {
+  numbers: Map<string, number>; // footnoteId -> 1-based number
+  refCounts: Map<string, number>; // footnoteId -> how many refs
+  definitions: Set<string>; // footnoteIds that have a definition
+};
+
+// Numbers come from document order at read time. They are never stored on a node.
+export function footnoteIndexOf(value: readonly Descendant[]): FootnoteIndex {
+  const numbers = new Map<string, number>();
+  const refCounts = new Map<string, number>();
+  const definitions = new Set<string>();
+  const visit = (node: Descendant): void => {
+    if (!ElementApi.isElement(node)) {
+      return;
+    }
+
+    if (node.type === FOOTNOTE_REF_KEY && isFootnoteId(node.footnoteId)) {
+      const id = node.footnoteId;
+      if (!numbers.has(id)) {
+        numbers.set(id, numbers.size + 1);
+      }
+      refCounts.set(id, (refCounts.get(id) ?? 0) + 1);
+    }
+
+    if (node.type === FOOTNOTE_DEF_KEY && isFootnoteId(node.footnoteId)) {
+      definitions.add(node.footnoteId);
+    }
+
+    node.children.forEach(visit);
+  };
+  value.forEach(visit);
+
+  return { numbers, refCounts, definitions };
+}
+
+const indexCache = new WeakMap<object, FootnoteIndex>();
+
+// Cached on the children array, which Slate replaces on every change.
+export function footnoteIndex(editor: SlateEditor): FootnoteIndex {
+  const cached = indexCache.get(editor.children);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const index = footnoteIndexOf(editor.children);
+  indexCache.set(editor.children, index);
+  return index;
+}
+
+// Which reference of one footnote this node is, counted in document order from 1. Used by static HTML.
+export function footnoteReferenceOrdinal(
+  value: readonly Descendant[],
+  footnoteId: string,
+  refId: unknown,
+): number {
+  let ordinal = 0;
+  let found = 0;
+  const visit = (node: Descendant): void => {
+    if (found > 0 || !ElementApi.isElement(node)) {
+      return;
+    }
+
+    if (node.type === FOOTNOTE_REF_KEY && node.footnoteId === footnoteId) {
+      ordinal += 1;
+      if (node.id === refId) {
+        found = ordinal;
+      }
+    }
+
+    node.children.forEach(visit);
+  };
+  value.forEach(visit);
+
+  return found > 0 ? found : 1;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-footnote.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  RangeApi,
+  createSlatePlugin,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type Point,
+} from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import {
+  elementAllowsMarks,
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
+} from "../document/editor-document-schema";
+import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
+import { plainText, type PlainTextHook } from "./editor-inline-date";
+import { footnoteIndex, type FootnoteIndex } from "./editor-footnote-index";
+
+export {
+  footnoteIndex,
+  footnoteIndexOf,
+  footnoteReferenceOrdinal,
+  type FootnoteIndex,
+} from "./editor-footnote-index";
+
+export function footnoteNumber(editor: SlateEditor, footnoteId: string): number | undefined {
+  return footnoteIndex(editor).numbers.get(footnoteId);
+}
+
+function matchingEntries(
+  editor: SlateEditor,
+  type: string,
+  footnoteId: string,
+): [TElement, number[]][] {
+  const entries: [TElement, number[]][] = [];
+  for (const [node, path] of editor.api.nodes({
+    at: [],
+    voids: true,
+    match: (candidate) =>
+      ElementApi.isElement(candidate) &&
+      candidate.type === type &&
+      candidate.footnoteId === footnoteId,
+  })) {
+    if (ElementApi.isElement(node)) {
+      entries.push([node, path]);
+    }
+  }
+
+  return entries;
+}
+
+// The first definition in document order, or undefined when the id has none.
+export function footnoteDefinitionEntry(
+  editor: SlateEditor,
+  footnoteId: string,
+): [TElement, number[]] | undefined {
+  return matchingEntries(editor, FOOTNOTE_DEF_KEY, footnoteId)[0];
+}
+
+export function footnoteReferenceEntries(
+  editor: SlateEditor,
+  footnoteId: string,
+): [TElement, number[]][] {
+  return matchingEntries(editor, FOOTNOTE_REF_KEY, footnoteId);
+}
+
+export function footnoteReferenceNode(footnoteId: string, id?: string): TElement {
+  return {
+    type: FOOTNOTE_REF_KEY,
+    id: id ?? nanoid(10),
+    footnoteId,
+    children: [{ text: "" }],
+  };
+}
+
+export function footnoteDefinitionNode(footnoteId: string, id?: string): TElement {
+  return {
+    type: FOOTNOTE_DEF_KEY,
+    id: id ?? nanoid(10),
+    footnoteId,
+    children: [{ text: "" }],
+  };
+}
+
+// A reference sits where an inline date sits: not in a link, a void, a code line, or a definition.
+export function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
+  const block = editor.api.block({ at: point });
+  if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
+    return false;
+  }
+
+  const blocked = editor.api.above({
+    at: point,
+    match: (node) =>
+      ElementApi.isElement(node) && (node.type === KEYS.link || node.type === FOOTNOTE_DEF_KEY),
+  });
+  if (blocked !== undefined) {
+    return false;
+  }
+
+  return editor.api.void({ at: point }) === undefined;
+}
+
+// Moves the caret to the end of the definition. False, and nothing changes, when the id has none.
+export function selectFootnoteDefinition(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteDefinitionEntry(editor, footnoteId);
+  if (entry === undefined) {
+    return false;
+  }
+
+  const end = editor.api.end(entry[1]);
+  if (end === undefined) {
+    return false;
+  }
+
+  editor.tf.select(end);
+  return true;
+}
+
+// Moves the caret right after the first reference. False, and nothing changes, when there is none.
+export function selectFootnoteReference(editor: SlateEditor, footnoteId: string): boolean {
+  const entry = footnoteReferenceEntries(editor, footnoteId)[0];
+  if (entry === undefined) {
+    return false;
+  }
+
+  // The point after the node. With no text after it, the caret stays on the node instead of
+  // jumping into the next block, so a toggle that holds the reference still opens.
+  const after = editor.api.after(entry[1]);
+  const block = editor.api.block({ at: entry[1] });
+  const inBlock =
+    after !== undefined && block !== undefined && PathApi.isDescendant(after.path, block[1]);
+  const target = inBlock ? after : editor.api.end(entry[1]);
+  if (target === undefined) {
+    return false;
+  }
+
+  editor.tf.select(target);
+  return true;
+}
+
+function footnotePlainText(
+  index: FootnoteIndex,
+  node: TElement,
+  body: () => string,
+): string | undefined {
+  if (node.type === FOOTNOTE_REF_KEY) {
+    const number = isFootnoteId(node.footnoteId) ? index.numbers.get(node.footnoteId) : undefined;
+    return `[${number ?? "?"}]`;
+  }
+
+  if (node.type === FOOTNOTE_DEF_KEY) {
+    const number = isFootnoteId(node.footnoteId) ? index.numbers.get(node.footnoteId) : undefined;
+    const text = body();
+    return number === undefined ? text : `${number}. ${text}`;
+  }
+
+  return undefined;
+}
+
+function containsFootnote(node: Descendant): boolean {
+  if (!ElementApi.isElement(node)) {
+    return false;
+  }
+
+  return (
+    node.type === FOOTNOTE_REF_KEY ||
+    node.type === FOOTNOTE_DEF_KEY ||
+    node.children.some((child) => containsFootnote(child))
+  );
+}
+
+// Plain-text copy of a reference is [n], and of a definition is n. text. Registered after the
+// inline date, so a fragment with both a footnote and a date is written here in full.
+export const footnoteRefPlugin = createSlatePlugin({
+  key: FOOTNOTE_REF_KEY,
+  node: { isElement: true, isInline: true, isVoid: true },
+}).overrideEditor(({ editor, tf: { setFragmentData } }) => ({
+  transforms: {
+    setFragmentData(data, originEvent) {
+      setFragmentData(data, originEvent);
+      const fragment = editor.api.getFragment();
+      if (!fragment.some((node) => containsFootnote(node))) {
+        return;
+      }
+
+      const index = footnoteIndex(editor);
+      const hook: PlainTextHook = (node, body) => footnotePlainText(index, node, body);
+      data.setData("text/plain", fragment.map((node) => plainText(node, hook)).join("\n"));
+    },
+  },
+}));
+
+export function footnoteInsertAllowed(editor: SlateEditor): boolean {
+  const selection = editor.selection;
+  return selection !== null && footnoteReferenceAllowedAt(editor, RangeApi.end(selection));
+}
+
+// A reference at the selection end, and a new empty definition at the end of the document.
+// The caret lands in the new definition. One undo removes both.
+export const insertFootnote: EditorCommand = {
+  id: "inline.footnote",
+  label: "Footnote",
+  group: "insert",
+  isEnabled: (editor) => editor.dom.readOnly !== true && footnoteInsertAllowed(editor),
+  run: (editor) => {
+    const selection = editor.selection;
+    if (selection === null) {
+      return;
+    }
+
+    const footnoteId = createFootnoteId();
+    editor.tf.select(RangeApi.end(selection));
+    editor.tf.insertNodes(footnoteReferenceNode(footnoteId));
+
+    const at = [editor.children.length];
+    editor.tf.insertNodes(footnoteDefinitionNode(footnoteId), { at, select: false });
+    const start = editor.api.start(at);
+    if (start !== undefined) {
+      editor.tf.select(start);
+    }
+  },
+};
+
+// Every reference and every definition with this id goes in one undo step. Refs go first.
+export const removeFootnote: EditorCommand<{ footnoteId: string }> = {
+  id: "inline.footnote.remove",
+  label: "Remove footnote",
+  group: "action",
+  run: (editor, { footnoteId }) => {
+    for (;;) {
+      const refs = footnoteReferenceEntries(editor, footnoteId);
+      const last = refs[refs.length - 1];
+      if (last === undefined) {
+        break;
+      }
+
+      editor.tf.removeNodes({ at: last[1], voids: true });
+    }
+
+    for (;;) {
+      const defs = matchingEntries(editor, FOOTNOTE_DEF_KEY, footnoteId);
+      const last = defs[defs.length - 1];
+      if (last === undefined) {
+        break;
+      }
+
+      editor.tf.removeNodes({ at: last[1], voids: true });
+    }
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-footnote.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  createSlatePlugin,
+  type SlateEditor,
+  type TElement,
+} from "platejs";
+
+import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-schema";
+import { createFootnoteId, isFootnoteId } from "../features/editor-footnote-id";
+
+// The definition is a block with inline text. Its own rules are below, and it has no other keys.
+export const footnoteDefPlugin = createSlatePlugin({
+  key: FOOTNOTE_DEF_KEY,
+  node: { isElement: true },
+});
+
+function footnoteDefinitionBlock(editor: SlateEditor): [TElement, number[]] | undefined {
+  const block = editor.api.block();
+  if (!block || !ElementApi.isElement(block[0]) || block[0].type !== FOOTNOTE_DEF_KEY) {
+    return undefined;
+  }
+
+  return [block[0], block[1]];
+}
+
+// Enter splits the definition, and the block after the caret becomes a paragraph. The split is
+// splitNodes, not insertBreak: at offset 0 Plate's break inserts an empty block above and would
+// turn the definition itself into a paragraph. Both halves change in one batch, so normalize
+// never sees two definitions with one id.
+export function breakFootnoteDefinition(editor: SlateEditor): boolean {
+  const entry = footnoteDefinitionBlock(editor);
+  if (entry === undefined || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  editor.tf.withNewBatch(() => {
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.splitNodes({ always: true });
+      const next = PathApi.next(entry[1]);
+      if (next !== undefined) {
+        editor.tf.unsetNodes(["footnoteId"], { at: next });
+        editor.tf.setNodes({ type: KEYS.p }, { at: next });
+      }
+    });
+  });
+  return true;
+}
+
+// Backspace at the start keeps the text. The definition becomes a paragraph and nothing merges.
+export function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
+  const entry = footnoteDefinitionBlock(editor);
+  if (entry === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
+    return false;
+  }
+
+  editor.tf.withNewBatch(() => {
+    editor.tf.setNodes({ type: KEYS.p }, { at: entry[1] });
+    editor.tf.unsetNodes(["footnoteId"], { at: entry[1] });
+  });
+  return true;
+}
+
+function footnoteReferencePaths(editor: SlateEditor, path: number[]): number[][] {
+  const paths: number[][] = [];
+  for (const [, refPath] of editor.api.nodes({
+    at: path,
+    voids: true,
+    match: (candidate) => ElementApi.isElement(candidate) && candidate.type === FOOTNOTE_REF_KEY,
+  })) {
+    paths.push(refPath);
+  }
+
+  return paths;
+}
+
+// Live rules for a definition that the editor creates or moves. Each rule makes one change and
+// returns true, so Slate normalizes again. Every path ends as a valid block, so the loop stops.
+export function normalizeFootnoteDefinition(
+  editor: SlateEditor,
+  node: TElement,
+  path: number[],
+): boolean {
+  if (node.type !== FOOTNOTE_DEF_KEY) {
+    return false;
+  }
+
+  const references = footnoteReferencePaths(editor, path);
+  if (references.length > 0) {
+    editor.tf.withoutNormalizing(() => {
+      for (const refPath of [...references].reverse()) {
+        editor.tf.removeNodes({ at: refPath, voids: true });
+      }
+    });
+    return true;
+  }
+
+  const index = path[0];
+  if (path.length !== 1 || index === undefined || !isFootnoteId(node.footnoteId)) {
+    editor.tf.withoutNormalizing(() => {
+      editor.tf.unsetNodes(["footnoteId"], { at: path });
+      editor.tf.setNodes({ type: KEYS.p }, { at: path });
+    });
+    return true;
+  }
+
+  const footnoteId = node.footnoteId;
+  const earlier = editor.children.some(
+    (child, position) =>
+      position < index &&
+      ElementApi.isElement(child) &&
+      child.type === FOOTNOTE_DEF_KEY &&
+      child.footnoteId === footnoteId,
+  );
+  if (earlier) {
+    editor.tf.setNodes({ footnoteId: createFootnoteId() }, { at: path });
+    return true;
+  }
+
+  return false;
+}
+
+// Runs before the column and child-type normalizers, so a definition moved out of a column
+// becomes a paragraph in place, not a lifted definition. Enter and Backspace rules are here too.
+export const footnoteNormalizePlugin = createSlatePlugin({
+  key: "footnoteNormalize",
+}).overrideEditor(({ editor, tf: { normalizeNode, insertBreak, deleteBackward } }) => ({
+  transforms: {
+    normalizeNode(entry) {
+      const [node, path] = entry;
+      if (ElementApi.isElement(node) && normalizeFootnoteDefinition(editor, node, path)) {
+        return;
+      }
+
+      normalizeNode(entry);
+    },
+    insertBreak() {
+      if (breakFootnoteDefinition(editor)) {
+        return;
+      }
+
+      insertBreak();
+    },
+    deleteBackward(unit) {
+      if (backspaceFootnoteDefinition(editor)) {
+        return;
+      }
+
+      deleteBackward(unit);
+    },
+  },
+}));
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-ref-element.tsx
+```tsx
+import {
+  PlateElement,
+  useEditorRef,
+  useEditorSelector,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { footnoteIndex, footnoteNumber } from "../../lib/features/editor-footnote";
+
+// Minimal markup only. Styling and interaction come with the footnote UI.
+export function FootnoteRefElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
+  const number = useEditorSelector(() => footnoteNumber(editor, footnoteId), [editor, footnoteId]);
+  const defined = useEditorSelector(
+    () => footnoteIndex(editor).definitions.has(footnoteId),
+    [editor, footnoteId],
+  );
+
+  return (
+    <PlateElement {...props} as="span">
+      <sup
+        contentEditable={false}
+        data-footnote-ref=""
+        data-footnote-id={footnoteId}
+        data-footnote-missing={defined ? undefined : ""}
+      >
+        {defined && number !== undefined ? number : "?"}
+      </sup>
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/footnote-def-element.tsx
+```tsx
+import {
+  PlateElement,
+  useEditorRef,
+  useEditorSelector,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { footnoteNumber } from "../../lib/features/editor-footnote";
+
+// Minimal markup only. The number is derived, so it is shown but never stored.
+export function FootnoteDefElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
+  const number = useEditorSelector(() => footnoteNumber(editor, footnoteId), [editor, footnoteId]);
+
+  // PlateElement drops unknown props, so the markers go through the root's attributes.
+  const attributes = {
+    ...props.attributes,
+    "data-footnote-def": "",
+    "data-footnote-id": footnoteId,
+    ...(number === undefined ? { "data-footnote-unreferenced": "" } : {}),
+  };
+
+  return (
+    <PlateElement {...props} attributes={attributes}>
+      {number === undefined ? null : <span contentEditable={false}>{number}.</span>}
+      {props.children}
+    </PlateElement>
+  );
 }
 ```
 
@@ -24738,6 +25600,8 @@ import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
@@ -24839,6 +25703,8 @@ const STRUCTURAL = new Set<string>([
   KEYS.toc,
   SYNCED_REF_KEY,
   KEYS.codeLine,
+  // A definition is neither a Turn into source nor a target.
+  FOOTNOTE_DEF_KEY,
 ]);
 
 const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
@@ -25736,7 +26602,8 @@ function blockElements(node: TElement): TElement[] {
       child.type === KEYS.link ||
       child.type === KEYS.mention ||
       child.type === KEYS.inlineEquation ||
-      child.type === KEYS.date
+      child.type === KEYS.date ||
+      child.type === FOOTNOTE_REF_KEY
     ) {
       continue;
     }
@@ -25787,7 +26654,8 @@ function isRich(node: Descendant): boolean {
       node.type === KEYS.link ||
       node.type === KEYS.mention ||
       node.type === KEYS.inlineEquation ||
-      node.type === KEYS.date
+      node.type === KEYS.date ||
+      node.type === FOOTNOTE_REF_KEY
     ) {
       return true;
     }
@@ -32174,6 +33042,8 @@ import { ensureStaticCodeLanguages } from "../../components/static/code-highligh
 ensureStaticCodeLanguages();
 import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
 import { EquationStatic } from "../../components/static/equation-static";
+import { FootnoteDefStatic } from "../../components/static/footnote-def-static";
+import { FootnoteRefStatic } from "../../components/static/footnote-ref-static";
 import { InlineDateStatic } from "../../components/static/inline-date-static";
 import { InlineEquationStatic } from "../../components/static/inline-equation-static";
 import { HeadingStatic } from "../../components/static/heading-static";
@@ -32188,7 +33058,11 @@ import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
-import { SYNCED_REF_KEY } from "../document/editor-document-schema";
+import {
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
+  SYNCED_REF_KEY,
+} from "../document/editor-document-schema";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
 import { codeLeafClassName } from "./mark-classes";
 import { BaseParagraphPlugin } from "platejs";
@@ -32277,6 +33151,18 @@ const inlineDatePlugin = createSlatePlugin({
   key: KEYS.date,
   node: { isElement: true, isInline: true, isVoid: true },
   render: { node: InlineDateStatic },
+});
+
+const footnoteRefStaticPlugin = createSlatePlugin({
+  key: FOOTNOTE_REF_KEY,
+  node: { isElement: true, isInline: true, isVoid: true },
+  render: { node: FootnoteRefStatic },
+});
+
+const footnoteDefStaticPlugin = createSlatePlugin({
+  key: FOOTNOTE_DEF_KEY,
+  node: { isElement: true },
+  render: { node: FootnoteDefStatic },
 });
 
 const syncedPlugin = createSlatePlugin({
@@ -32372,6 +33258,8 @@ export const editorStaticPlugins = [
   BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
   inlineEquationPlugin,
   inlineDatePlugin,
+  footnoteRefStaticPlugin,
+  footnoteDefStaticPlugin,
 ];
 ```
 
@@ -33300,6 +34188,68 @@ export function InlineDateStatic(props: SlateElementProps) {
         )}
       </span>
       {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/footnote-ref-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { footnoteIndex, footnoteReferenceOrdinal } from "../../lib/features/editor-footnote-index";
+
+// Static markup only. The number and the ordinal come from the same document the element sits in.
+export function FootnoteRefStatic(props: SlateElementProps) {
+  const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
+  const index = footnoteIndex(props.editor);
+  const number = index.numbers.get(footnoteId);
+
+  return (
+    <SlateElement {...props} as="span">
+      {index.definitions.has(footnoteId) && number !== undefined ? (
+        <sup
+          id={`fnref-${footnoteId}-${footnoteReferenceOrdinal(props.editor.children, footnoteId, props.element.id)}`}
+        >
+          <a href={`#fn-${footnoteId}`}>{number}</a>
+        </sup>
+      ) : (
+        <sup>?</sup>
+      )}
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/footnote-def-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { footnoteIndex } from "../../lib/features/editor-footnote-index";
+
+// Static markup only. The back link appears only when some reference points here.
+export function FootnoteDefStatic(props: SlateElementProps) {
+  const footnoteId = typeof props.element.footnoteId === "string" ? props.element.footnoteId : "";
+  const number = footnoteIndex(props.editor).numbers.get(footnoteId);
+
+  // SlateElement only renders attributes, so the anchor id goes through them.
+  const attributes = {
+    ...props.attributes,
+    id: `fn-${footnoteId}`,
+    "data-footnote-def": "",
+    "data-footnote-id": footnoteId,
+  };
+
+  return (
+    <SlateElement {...props} attributes={attributes}>
+      {number === undefined ? null : <span>{number}. </span>}
+      {props.children}
+      {number === undefined ? null : (
+        <a href={`#fnref-${footnoteId}-1`} aria-label="Back to reference">
+          ↩
+        </a>
+      )}
     </SlateElement>
   );
 }

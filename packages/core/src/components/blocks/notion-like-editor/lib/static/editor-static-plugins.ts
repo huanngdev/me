@@ -52,6 +52,8 @@ import { ensureStaticCodeLanguages } from "../../components/static/code-highligh
 ensureStaticCodeLanguages();
 import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
 import { EquationStatic } from "../../components/static/equation-static";
+import { FootnoteDefStatic } from "../../components/static/footnote-def-static";
+import { FootnoteRefStatic } from "../../components/static/footnote-ref-static";
 import { InlineDateStatic } from "../../components/static/inline-date-static";
 import { InlineEquationStatic } from "../../components/static/inline-equation-static";
 import { HeadingStatic } from "../../components/static/heading-static";
@@ -66,7 +68,11 @@ import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
-import { SYNCED_REF_KEY } from "../document/editor-document-schema";
+import {
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
+  SYNCED_REF_KEY,
+} from "../document/editor-document-schema";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
 import { codeLeafClassName } from "./mark-classes";
 import { BaseParagraphPlugin } from "platejs";
@@ -155,6 +161,18 @@ const inlineDatePlugin = createSlatePlugin({
   key: KEYS.date,
   node: { isElement: true, isInline: true, isVoid: true },
   render: { node: InlineDateStatic },
+});
+
+const footnoteRefStaticPlugin = createSlatePlugin({
+  key: FOOTNOTE_REF_KEY,
+  node: { isElement: true, isInline: true, isVoid: true },
+  render: { node: FootnoteRefStatic },
+});
+
+const footnoteDefStaticPlugin = createSlatePlugin({
+  key: FOOTNOTE_DEF_KEY,
+  node: { isElement: true },
+  render: { node: FootnoteDefStatic },
 });
 
 const syncedPlugin = createSlatePlugin({
@@ -250,4 +268,6 @@ export const editorStaticPlugins = [
   BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
   inlineEquationPlugin,
   inlineDatePlugin,
+  footnoteRefStaticPlugin,
+  footnoteDefStaticPlugin,
 ];

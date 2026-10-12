@@ -15,6 +15,8 @@ import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
@@ -116,6 +118,8 @@ const STRUCTURAL = new Set<string>([
   KEYS.toc,
   SYNCED_REF_KEY,
   KEYS.codeLine,
+  // A definition is neither a Turn into source nor a target.
+  FOOTNOTE_DEF_KEY,
 ]);
 
 const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
@@ -1013,7 +1017,8 @@ function blockElements(node: TElement): TElement[] {
       child.type === KEYS.link ||
       child.type === KEYS.mention ||
       child.type === KEYS.inlineEquation ||
-      child.type === KEYS.date
+      child.type === KEYS.date ||
+      child.type === FOOTNOTE_REF_KEY
     ) {
       continue;
     }
@@ -1064,7 +1069,8 @@ function isRich(node: Descendant): boolean {
       node.type === KEYS.link ||
       node.type === KEYS.mention ||
       node.type === KEYS.inlineEquation ||
-      node.type === KEYS.date
+      node.type === KEYS.date ||
+      node.type === FOOTNOTE_REF_KEY
     ) {
       return true;
     }

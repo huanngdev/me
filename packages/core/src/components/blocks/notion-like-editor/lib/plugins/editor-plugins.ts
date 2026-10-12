@@ -58,11 +58,15 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
+import { FootnoteRefElement } from "../../components/elements/footnote-ref-element";
 import { InlineDateElement } from "../../components/elements/inline-date-element";
 import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
 import { inlineDatePlugin } from "../features/editor-inline-date";
+import { footnoteRefPlugin } from "../features/editor-footnote";
+import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
@@ -1689,6 +1693,15 @@ const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
   render: { node: InlineDateElement },
 });
 
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
+  render: { node: FootnoteRefElement },
+});
+
+const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
+  render: { node: FootnoteDefElement },
+});
+
 // Mod+; inserts today's date, and Enter on a selected inline date opens it.
 const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
   handlers: {
@@ -1990,6 +2003,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     inlineEquationUiPlatePlugin,
     inlineDatePlatePlugin,
     inlineDateUiPlatePlugin,
+    footnoteRefPlatePlugin,
+    footnoteDefPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
@@ -2003,6 +2018,9 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     breakAbovePlugin,
     childTypesPlugin,
     columnNormalizePlugin,
+    // Registered after the column and child-type normalizers, so it runs first and a definition
+    // moved into a container becomes a paragraph before those see it.
+    footnoteNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
     blockSelectionWatchPlugin,

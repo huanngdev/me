@@ -9,6 +9,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  FOOTNOTE_REF_KEY,
   allowedChildTypes,
   allowedElementAttrs,
   allowsFirstChild,
@@ -28,6 +29,7 @@ import {
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
+import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
@@ -208,7 +210,8 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
       (childType === KEYS.link ||
         childType === KEYS.mention ||
         childType === KEYS.inlineEquation ||
-        childType === KEYS.date) &&
+        childType === KEYS.date ||
+        childType === FOOTNOTE_REF_KEY) &&
       parentAllowsInlineLink(parentType)
     );
   }
@@ -558,7 +561,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
-  const structurally = repairColumnContent(envelope.data.content);
+  const footnotes = repairFootnoteContent(envelope.data.content);
+  const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
   const content = mentions.content;
 
@@ -592,6 +596,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       content: normalized.content,
     },
     repairs: [
+      ...footnotes.repairs,
       ...structurally.repairs,
       ...mentions.repairs,
       ...state.repairs,

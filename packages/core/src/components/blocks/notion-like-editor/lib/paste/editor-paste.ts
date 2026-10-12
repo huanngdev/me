@@ -25,6 +25,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  FOOTNOTE_REF_KEY,
   SYNCED_REF_KEY,
   isStoredSyncedTargetId,
   isVoidElementType,
@@ -46,6 +47,9 @@ import {
 } from "../features/editor-mention-node";
 import { formatStoredDate, isStoredDate } from "../features/editor-date-value";
 import { inlineDateNode } from "../features/editor-inline-date";
+import { isFootnoteId } from "../features/editor-footnote-id";
+import { footnoteIndex, footnoteReferenceNode } from "../features/editor-footnote";
+import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { inlineEquationNode } from "../features/editor-inline-equation";
 import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
@@ -912,6 +916,17 @@ function pastedInlineDateNodes(node: TElement, allowMarks: boolean): Descendant[
   return text.length > 0 ? [{ text }] : [];
 }
 
+// A reference keeps its id and gets a fresh node id. Only inline marks can hold one, so a code line
+// drops it. Pasted HTML never reaches this path, so a foreign <sup> stays plain text.
+function pastedFootnoteRefNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const stored = node.footnoteId;
+  if (!allowMarks || !isFootnoteId(stored)) {
+    return [];
+  }
+
+  return [footnoteReferenceNode(stored)];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -955,6 +970,11 @@ function expandBlock(
 
   if (node.type === KEYS.date) {
     const nodes = pastedInlineDateNodes(node, true);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === FOOTNOTE_REF_KEY) {
+    const nodes = pastedFootnoteRefNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -1101,6 +1121,10 @@ function inlineNodes(
     return pastedInlineDateNodes(node, allowMarks);
   }
 
+  if (node.type === FOOTNOTE_REF_KEY) {
+    return pastedFootnoteRefNodes(node, allowMarks);
+  }
+
   if (node.type === KEYS.link) {
     const url = typeof node.url === "string" ? node.url : "";
     const safe = sanitizeLinkUrl(url);
@@ -1227,11 +1251,15 @@ export function preparePastedFragment(
   fragment: readonly unknown[],
 ): EditorValue {
   const repairs: Repair[] = [];
-  const value = sanitizePastedFragment(fragment, {
+  const sanitized = sanitizePastedFragment(fragment, {
     isInline: (node) => isElementNode(node) && editor.api.isInline(node),
     seenIds: collectEditorIds(editor.children),
     repairs,
   });
+  // A pasted definition keeps its id only when the document has no definition with it.
+  const footnotes = repairFootnoteContent(sanitized, footnoteIndex(editor).definitions);
+  const value = footnotes.content;
+  repairs.push(...footnotes.repairs);
   for (const repair of pendingWidthRepairs) {
     if (!repairs.some((item) => item.message === repair.message)) {
       repairs.push(repair);
@@ -1306,6 +1334,7 @@ function isInlinePasteType(type: string): boolean {
     type === KEYS.mention ||
     type === KEYS.inlineEquation ||
     type === KEYS.date ||
+    type === FOOTNOTE_REF_KEY ||
     type === "a"
   );
 }

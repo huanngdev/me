@@ -13,6 +13,7 @@ import {
 } from "../features/editor-bookmark-url";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
+import { isFootnoteId } from "../features/editor-footnote-id";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
@@ -307,6 +308,26 @@ export function checkDateNode(
     {
       path,
       message: `${formatBlockLabel(path)} has an unsupported date. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// Footnote nodes. The reference is an inline void, the definition a top-level block. Numbers are derived.
+export const FOOTNOTE_REF_KEY = "footnote_ref";
+export const FOOTNOTE_DEF_KEY = "footnote_def";
+
+export function checkFootnoteRefNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if (isFootnoteId(node.footnoteId)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported footnoteId. Restore from a backup or remove the block.`,
     },
   ];
 }
@@ -632,6 +653,19 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "date"],
     isVoid: true,
     validateChildren: (node, path) => checkDateNode(node, path),
+  },
+  // Inline footnote reference. Lives where the inline date lives. The number is derived, not stored.
+  {
+    type: FOOTNOTE_REF_KEY,
+    attrs: ["id", "footnoteId"],
+    isVoid: true,
+    validateChildren: (node, path) => checkFootnoteRefNode(node, path),
+  },
+  // Top-level footnote definition. It holds inline text, with no tone, indent, or alignment.
+  // The footnote repair moves a definition anywhere else into a paragraph before this rule runs.
+  {
+    type: FOOTNOTE_DEF_KEY,
+    attrs: ["id", "footnoteId"],
   },
 ] as const satisfies readonly EditorElementRule[];
 

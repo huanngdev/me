@@ -44,10 +44,19 @@ function containsInlineDate(node: Descendant): boolean {
   return node.type === KEYS.date || node.children.some((child) => containsInlineDate(child));
 }
 
+// A hook returns a node's copied text, or undefined to keep the default. `body` is the node's children as text.
+export type PlainTextHook = (node: TElement, body: () => string) => string | undefined;
+
 // Matches the inline equation's plain text, so a mixed fragment keeps both.
-function plainText(node: Descendant): string {
+export function plainText(node: Descendant, hook?: PlainTextHook): string {
   if (!ElementApi.isElement(node)) {
     return "text" in node ? node.text : "";
+  }
+
+  const body = (): string => node.children.map((child) => plainText(child, hook)).join("");
+  const custom = hook?.(node, body);
+  if (custom !== undefined) {
+    return custom;
   }
 
   if (node.type === KEYS.date) {
@@ -59,7 +68,7 @@ function plainText(node: Descendant): string {
     return `$${tex}$`;
   }
 
-  return node.children.map((child) => plainText(child)).join("");
+  return body();
 }
 
 export function inlineDateNode(date: string, id?: string): TElement {
