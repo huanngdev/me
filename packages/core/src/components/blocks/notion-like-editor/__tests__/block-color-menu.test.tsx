@@ -263,7 +263,7 @@ describe("block color menu", () => {
       const after = nodeOf(editor, "p1");
       expect(field(after, "backgroundTone")).toBe("blue");
       expect(withoutTones(after)).toEqual(withoutTones(before));
-      expect(document.querySelector("[data-block-menu]")).toBeNull();
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
       expect(editor.history.undos.length).toBe(undos + 1);
 
       await act(async () => {
@@ -404,7 +404,7 @@ describe("block color menu", () => {
     });
   });
 
-  test("choosing the current value closes the menu and adds no history entry", async () => {
+  test("choosing the current value keeps the menu open and adds no history entry", async () => {
     const value = [paragraph("p1", "Plain", { backgroundTone: "blue" })] as EditorValue;
     await withEditor(value, async (mounted) => {
       const { editor } = mounted;
@@ -413,7 +413,7 @@ describe("block color menu", () => {
       await openColorSubmenu();
       await click(swatch("background", "blue"));
 
-      expect(document.querySelector("[data-block-menu]")).toBeNull();
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
       expect(editor.history.undos.length).toBe(undos);
       expect(field(nodeOf(editor, "p1"), "backgroundTone")).toBe("blue");
     });
@@ -476,7 +476,7 @@ describe("block color menu", () => {
       expect(focusedToken()).toBe("red");
       await press("Enter");
 
-      expect(document.querySelector("[data-block-menu]")).toBeNull();
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
       expect(field(nodeOf(editor, "p1"), "textTone")).toBe("red");
     });
   });
@@ -603,6 +603,232 @@ describe("block color menu selection after a mouse choice", () => {
       await pointerPress(swatch("background", "green"));
 
       expect(field(nodeOf(editor, "p1"), "backgroundTone")).toBe("green");
+      expect([...blockSelectionIds(editor)]).toEqual(ids);
+      expect(markedBlocks()).toBe(ids.length);
+    });
+  });
+});
+
+// Focuses the swatch the way a press does, then chooses it.
+async function choose(element: HTMLElement): Promise<void> {
+  await act(async () => {
+    element.focus();
+  });
+  await click(element);
+}
+
+async function settle(): Promise<void> {
+  for (let frame = 0; frame < 3; frame += 1) {
+    await act(async () => {
+      await frames();
+    });
+  }
+}
+
+describe("block color menu stays open after a choice", () => {
+  test("a swatch choice keeps both menus open, keeps focus and the pressed state on the choice", async () => {
+    await withEditor([paragraph("p1", "Plain")] as EditorValue, async (mounted) => {
+      const { editor } = mounted;
+      const undos = editor.history.undos.length;
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("text", "red"));
+
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+      expect(document.activeElement).toBe(swatch("text", "red"));
+      expect(swatch("text", "red").getAttribute("aria-pressed")).toBe("true");
+      expect(swatch("text", "red").querySelector("[data-color-check]")).not.toBeNull();
+      expect(swatch("text", "default").getAttribute("aria-pressed")).toBe("false");
+      expect(swatch("text", "default").querySelector("[data-color-check]")).toBeNull();
+      expect(field(nodeOf(editor, "p1"), "textTone")).toBe("red");
+      expect(editor.history.undos.length).toBe(undos + 1);
+    });
+  });
+
+  test("a text colour and then a background colour both apply, in two undo steps, menu open", async () => {
+    await withEditor([paragraph("p1", "Plain")] as EditorValue, async (mounted) => {
+      const { editor } = mounted;
+      const before = structuredClone(nodeOf(editor, "p1"));
+      const undos = editor.history.undos.length;
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("text", "red"));
+      await choose(swatch("background", "blue"));
+
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+      expect(document.activeElement).toBe(swatch("background", "blue"));
+      expect(swatch("background", "blue").getAttribute("aria-pressed")).toBe("true");
+      expect(swatch("text", "red").getAttribute("aria-pressed")).toBe("true");
+      expect(field(nodeOf(editor, "p1"), "textTone")).toBe("red");
+      expect(field(nodeOf(editor, "p1"), "backgroundTone")).toBe("blue");
+      expect(editor.history.undos.length).toBe(undos + 2);
+
+      await act(async () => {
+        editor.tf.undo();
+      });
+      expect(field(nodeOf(editor, "p1"), "backgroundTone")).toBeUndefined();
+      expect(field(nodeOf(editor, "p1"), "textTone")).toBe("red");
+      await act(async () => {
+        editor.tf.undo();
+      });
+      expect(nodeOf(editor, "p1")).toEqual(before);
+    });
+  });
+
+  test("choosing the active swatch again keeps the menu open and adds no history entry", async () => {
+    const value = [paragraph("p1", "Plain", { backgroundTone: "blue" })] as EditorValue;
+    await withEditor(value, async (mounted) => {
+      const { editor } = mounted;
+      const undos = editor.history.undos.length;
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("background", "blue"));
+
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+      expect(document.activeElement).toBe(swatch("background", "blue"));
+      expect(editor.history.undos.length).toBe(undos);
+    });
+  });
+
+  test("after a choice, Escape closes the submenu only, and a second Escape closes the block menu", async () => {
+    await withEditor([paragraph("p1", "Plain")] as EditorValue, async (mounted) => {
+      const { editor } = mounted;
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("text", "red"));
+      await act(async () => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+        );
+      });
+
+      expect(document.querySelector("[data-block-color-menu]")).toBeNull();
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.activeElement).toBe(colorTrigger());
+      expect(field(nodeOf(editor, "p1"), "textTone")).toBe("red");
+
+      await act(async () => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+        );
+      });
+      expect(document.querySelector("[data-block-menu]")).toBeNull();
+    });
+  });
+
+  test("after a choice, arrow keys still move the focus across the swatch grid", async () => {
+    await withEditor([paragraph("p1", "Plain")] as EditorValue, async (mounted) => {
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("text", "red"));
+      // Red is the last palette token and not in the first column, so ArrowLeft lands on pink.
+      await act(async () => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }),
+        );
+      });
+
+      expect(document.activeElement?.getAttribute("data-color-token")).toBe("pink");
+      expect(PALETTE_TOKENS[PALETTE_TOKENS.indexOf("red") - 1]).toBe("pink");
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+    });
+  });
+
+  test("closing by a press outside after a choice closes the block menu and keeps the tone", async () => {
+    await withEditor([paragraph("p1", "Plain")] as EditorValue, async (mounted) => {
+      const { editor } = mounted;
+      await openMenu(mounted, ["p1"]);
+      await openColorSubmenu();
+      await choose(swatch("background", "green"));
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+
+      await act(async () => {
+        document.body.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            bubbles: true,
+            cancelable: true,
+            pointerType: "mouse",
+          }),
+        );
+        document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      await settle();
+
+      expect(document.querySelector("[data-block-menu]")).toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).toBeNull();
+      expect(field(nodeOf(editor, "p1"), "backgroundTone")).toBe("green");
+    });
+  });
+
+  test("the caret the editor holds at close is restored, as when the menu closes after a choice", async () => {
+    await withEditor([paragraph("p1", "Plain text")] as EditorValue, async (mounted) => {
+      const { editor } = mounted;
+      await act(async () => {
+        editor.tf.select({ path: [0, 0], offset: 1 });
+      });
+      const editable = mounted.host.querySelector("[data-slate-editor]");
+      await act(async () => {
+        editable?.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "/",
+            code: "Slash",
+            metaKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+      await settle();
+      await openColorSubmenu();
+      await choose(swatch("text", "red"));
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+
+      await act(async () => {
+        editor.tf.select({ path: [0, 0], offset: 3 });
+      });
+      await act(async () => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+        );
+      });
+      await act(async () => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+        );
+      });
+      await settle();
+
+      expect(document.querySelector("[data-block-menu]")).toBeNull();
+      expect(editor.selection?.anchor.offset).toBe(3);
+    });
+  });
+
+  test("the multi-block menu stays open after two choices, applies both, and keeps the selection", async () => {
+    const value = [paragraph("p1", "One"), heading("h", "Two")] as EditorValue;
+    await withEditor(value, async (mounted) => {
+      const { editor } = mounted;
+      const ids = ["p1", "h"];
+      const undos = editor.history.undos.length;
+      await openMenu(mounted, ids);
+      await openColorSubmenu();
+      await choose(swatch("background", "yellow"));
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+      await choose(swatch("text", "red"));
+
+      expect(document.querySelector("[data-block-menu]")).not.toBeNull();
+      expect(document.querySelector("[data-block-color-menu]")).not.toBeNull();
+      expect(swatch("text", "red").getAttribute("aria-pressed")).toBe("true");
+      expect(swatch("background", "yellow").getAttribute("aria-pressed")).toBe("true");
+      for (const id of ids) {
+        expect(field(nodeOf(editor, id), "backgroundTone")).toBe("yellow");
+        expect(field(nodeOf(editor, id), "textTone")).toBe("red");
+      }
+      expect(editor.history.undos.length).toBe(undos + 2);
       expect([...blockSelectionIds(editor)]).toEqual(ids);
       expect(markedBlocks()).toBe(ids.length);
     });
