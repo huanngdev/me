@@ -150,6 +150,7 @@ export function CodeBlockElement(props: PlateElementProps) {
           <DropdownMenu modal={false}>
             <EditorMenuTrigger
               label="Change code language"
+              accessibleName={`Change code language, current: ${languageLabel(lang)}`}
               text={languageLabel(lang)}
               icon={<ChevronDown aria-hidden="true" />}
               onMouseDown={keepEditorSelection}

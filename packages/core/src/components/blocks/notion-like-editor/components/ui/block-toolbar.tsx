@@ -94,12 +94,14 @@ export function EditorIconButton({
 
 export function EditorMenuTrigger({
   label,
+  accessibleName,
   icon,
   text,
   onMouseDown,
   onPointerDown,
 }: {
   label: string;
+  accessibleName?: string;
   icon?: ReactNode;
   text?: string;
   onMouseDown?: ComponentProps<typeof Button>["onMouseDown"];
@@ -111,7 +113,7 @@ export function EditorMenuTrigger({
         type="button"
         size={text === undefined ? "icon" : "sm"}
         variant="ghost"
-        aria-label={label}
+        aria-label={accessibleName ?? label}
         onMouseDown={onMouseDown}
         onPointerDown={onPointerDown}
       >

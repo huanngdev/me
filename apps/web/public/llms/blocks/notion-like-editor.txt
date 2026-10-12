@@ -3905,12 +3905,14 @@ export function EditorIconButton({
 
 export function EditorMenuTrigger({
   label,
+  accessibleName,
   icon,
   text,
   onMouseDown,
   onPointerDown,
 }: {
   label: string;
+  accessibleName?: string;
   icon?: ReactNode;
   text?: string;
   onMouseDown?: ComponentProps<typeof Button>["onMouseDown"];
@@ -3922,7 +3924,7 @@ export function EditorMenuTrigger({
         type="button"
         size={text === undefined ? "icon" : "sm"}
         variant="ghost"
-        aria-label={label}
+        aria-label={accessibleName ?? label}
         onMouseDown={onMouseDown}
         onPointerDown={onPointerDown}
       >
@@ -9752,6 +9754,7 @@ export function CodeBlockElement(props: PlateElementProps) {
           <DropdownMenu modal={false}>
             <EditorMenuTrigger
               label="Change code language"
+              accessibleName={`Change code language, current: ${languageLabel(lang)}`}
               text={languageLabel(lang)}
               icon={<ChevronDown aria-hidden="true" />}
               onMouseDown={keepEditorSelection}
@@ -15621,6 +15624,7 @@ export function TocElement(props: PlateElementProps) {
   const selected = useSelected();
   const focused = useFocused();
   const depth = storedTocDepth(props.element);
+  const depthLabel = isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3];
   const entries = useEditorSelector(() => tocEntries(editor, depth), [depth]);
   const shallowest = shallowestDepth(entries);
   const path = editor.api.findPath(props.element);
@@ -15710,7 +15714,8 @@ export function TocElement(props: PlateElementProps) {
             <DropdownMenu modal={false}>
               <EditorMenuTrigger
                 label="Table of contents depth"
-                text={isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3]}
+                accessibleName={`Table of contents depth, current: ${depthLabel}`}
+                text={depthLabel}
                 icon={<ChevronDown aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
               />

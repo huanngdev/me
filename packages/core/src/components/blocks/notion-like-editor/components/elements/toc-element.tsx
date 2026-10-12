@@ -65,6 +65,7 @@ export function TocElement(props: PlateElementProps) {
   const selected = useSelected();
   const focused = useFocused();
   const depth = storedTocDepth(props.element);
+  const depthLabel = isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3];
   const entries = useEditorSelector(() => tocEntries(editor, depth), [depth]);
   const shallowest = shallowestDepth(entries);
   const path = editor.api.findPath(props.element);
@@ -154,7 +155,8 @@ export function TocElement(props: PlateElementProps) {
             <DropdownMenu modal={false}>
               <EditorMenuTrigger
                 label="Table of contents depth"
-                text={isTocDepth(depth) ? TOC_DEPTH_LABEL[depth] : TOC_DEPTH_LABEL[3]}
+                accessibleName={`Table of contents depth, current: ${depthLabel}`}
+                text={depthLabel}
                 icon={<ChevronDown aria-hidden="true" />}
                 onMouseDown={keepMediaSelection}
               />
