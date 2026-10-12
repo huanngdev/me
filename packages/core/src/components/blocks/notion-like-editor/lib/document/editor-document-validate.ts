@@ -1,4 +1,4 @@
-import { KEYS, nanoid } from "platejs";
+import { ElementApi, KEYS, TextApi, nanoid, type Descendant } from "platejs";
 
 import {
   EDITOR_DOCUMENT_LIMITS,
@@ -9,7 +9,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
-  FOOTNOTE_REF_KEY,
+  INLINE_ELEMENT_TYPES,
   allowedChildTypes,
   allowedElementAttrs,
   allowsFirstChild,
@@ -19,6 +19,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isChildOnlyElementType,
   isVoidElementType,
   elementChildIssues,
   maxChildren,
@@ -27,7 +28,7 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "./editor-column-repair";
+import { isEditorValue, repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
@@ -208,12 +209,7 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     }
 
     return (
-      (childType === KEYS.link ||
-        childType === KEYS.mention ||
-        childType === KEYS.inlineEquation ||
-        childType === KEYS.date ||
-        childType === FOOTNOTE_REF_KEY) &&
-      parentAllowsInlineLink(parentType)
+      INLINE_ELEMENT_TYPES.some((type) => type === childType) && parentAllowsInlineLink(parentType)
     );
   }
 
@@ -517,7 +513,61 @@ function walkTopLevel(
     return;
   }
 
+  if (typeof value.type === "string" && isChildOnlyElementType(value.type)) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported top-level type "${value.type}". Restore from a backup or remove the block.`,
+    });
+  }
+
   walkElement(value, path, state, nesting);
+}
+
+function isInlineNode(node: Descendant): boolean {
+  return ElementApi.isElement(node) && INLINE_ELEMENT_TYPES.some((type) => type === node.type);
+}
+
+// Slate needs a text leaf before and after each inline element, and between two of them.
+// Adds the empty leaves a stored document already has. Void elements keep their own leaf.
+// Input is not checked yet, so anything that is not an element with a children array is returned as it is.
+function spaceInlineChildren(node: Descendant): Descendant {
+  if (!ElementApi.isElement(node) || isVoidElementType(node.type)) {
+    return node;
+  }
+
+  let changed = false;
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    const last = children.at(-1);
+    if (isInlineNode(child) && (last === undefined || !TextApi.isText(last))) {
+      children.push({ text: "" });
+      changed = true;
+    }
+
+    const spaced = spaceInlineChildren(child);
+    if (spaced !== child) {
+      changed = true;
+    }
+    children.push(spaced);
+  }
+
+  const last = children.at(-1);
+  if (last !== undefined && isInlineNode(last)) {
+    children.push({ text: "" });
+    changed = true;
+  }
+
+  return changed ? { ...node, children } : node;
+}
+
+// Returns the same array when no block needs a leaf.
+function spaceInlineContent(content: EditorValue): EditorValue {
+  const spaced: Descendant[] = content.map((block) => spaceInlineChildren(block));
+  if (spaced.every((block, index) => block === content[index]) || !isEditorValue(spaced)) {
+    return content;
+  }
+
+  return spaced;
 }
 
 export function parseEditorDocument(raw: unknown): ParseResult {
@@ -562,7 +612,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
-  const footnotes = repairFootnoteContent(envelope.data.content);
+  // Leaves go in before any repair, so the walk and every repair path match the returned content.
+  const footnotes = repairFootnoteContent(spaceInlineContent(envelope.data.content));
   const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
   const pageLinks = repairPageLinkContent(mentions.content);

@@ -1989,7 +1989,9 @@ const toggleRevealPlugin = createSlatePlugin({
 
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
-    NodeIdPlugin,
+    // A split keeps the id it carries unless a block already has it, so undo of a merge restores
+    // the second block's id. Enter still gives the new half a fresh id, because the original keeps its own.
+    NodeIdPlugin.configure({ options: { reuseId: true } }),
     paragraphPlugin,
     boldPlugin,
     italicPlugin,

@@ -797,23 +797,51 @@ describe("read-only", () => {
 });
 
 describe("undo of a merge", () => {
-  // DEFECT: undoing a backspace that merged two paragraphs restores the second one with a new id, so an
-  // id-based reference (a synced reference, for example) can no longer find its block. Suspected in Plate's
-  // history and split path, which the editor does not override (unsure of the exact source).
-  test.failing("undo after backspace at the start of a paragraph restores the block id", () => {
-    const editor = createEditor([
-      { type: "p", id: "merge-a", children: [{ text: "one" }] },
-      { type: "p", id: "merge-b", children: [{ text: "two" }] },
-    ] as unknown as EditorValue);
-    const before = snapshot(editor);
+  // Backspace at the start of the second paragraph. The merge keeps the first paragraph's id.
+  function backspaceIntoFirst(editor: SlateEditor): void {
     const start = editor.api.start([1]);
     if (start === undefined) {
       throw new Error("The second paragraph has no start point.");
     }
     editor.tf.select(start);
     editor.tf.deleteBackward("character");
+  }
+
+  // Undo of a merge restores the second paragraph with the id it had before the merge.
+  test("undo after backspace at the start of a paragraph restores the block id", () => {
+    const editor = createEditor([
+      { type: "p", id: "merge-a", children: [{ text: "one" }] },
+      { type: "p", id: "merge-b", children: [{ text: "two" }] },
+    ] as unknown as EditorValue);
+    const before = snapshot(editor);
+    backspaceIntoFirst(editor);
     editor.tf.undo();
     expectExact(snapshot(editor), before, "undo after merge");
+  });
+
+  test("redo merges again, and a second undo restores the same block id", () => {
+    const editor = createEditor([
+      { type: "p", id: "merge-a", children: [{ text: "one" }] },
+      { type: "p", id: "merge-b", children: [{ text: "two" }] },
+    ] as unknown as EditorValue);
+    const before = snapshot(editor);
+    backspaceIntoFirst(editor);
+    editor.tf.undo();
+    editor.tf.redo();
+    expect(editor.children).toHaveLength(1);
+    expect(allElementIds(snapshot(editor))).toEqual(["merge-a"]);
+    editor.tf.undo();
+    expectExact(snapshot(editor), before, "second undo");
+  });
+
+  test("undo of a merge leaves every block id unique", () => {
+    const editor = createEditor([
+      { type: "p", id: "merge-a", children: [{ text: "one" }] },
+      { type: "p", id: "merge-b", children: [{ text: "two" }] },
+    ] as unknown as EditorValue);
+    backspaceIntoFirst(editor);
+    editor.tf.undo();
+    checkInvariants(editor, "undo of a merge");
   });
 });
 

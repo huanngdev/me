@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { KEYS } from "platejs";
 
 import { DEMO_DOCUMENT_VALUE } from "../demo/demo-document";
+import { COLUMN_BARE } from "../lib/document/editor-column-repair";
 import { createEditorDocument } from "../lib/document/editor-document";
 import { parseEditorDocument } from "../lib/document/editor-document-validate";
 import {
@@ -49,6 +50,22 @@ function saveAndReload(content: EditorValue, label: string): EditorValue {
   }
 
   expectSame(parsed.document.content, content, `${label} after parse`);
+  return parsed.document.content;
+}
+
+// Parse a document the editor did not save. It must be ok with no repairs. Returns the content it opens with.
+function openAsOk(content: EditorValue, label: string): EditorValue {
+  const parsed = parseEditorDocument(createEditorDocument("edge", content));
+  if (parsed.status !== "ok") {
+    throw new Error(`${label}: parse is ${parsed.status}: ${describeIssues(parsed)}`);
+  }
+
+  if (parsed.repairs.length > 0) {
+    throw new Error(
+      `${label}: parse needed ${parsed.repairs.length} repair(s): ${describeIssues(parsed)}`,
+    );
+  }
+
   return parsed.document.content;
 }
 
@@ -235,16 +252,33 @@ describe("save and reload: documented edge cases", () => {
     expectNormalizationIsNoop(reloaded, "table at end");
   });
 
-  // DEFECT: the validator accepts a block that starts with an inline element and no text leaf before it,
-  // but Slate's normalizer inserts an empty text leaf there, so the editor opens a changed document.
-  test.failing(
-    "a paragraph that starts with a link loads unchanged (validator-ok input is not normalized)",
-    () => {
-      const content: EditorValue = [
+  // The validator adds the empty text leaves Slate needs around inline elements, so the editor changes nothing on open.
+  test("a paragraph that starts with a link loads unchanged (validator-ok input is not normalized)", () => {
+    const content: EditorValue = [
+      {
+        type: KEYS.p,
+        id: "edge-start",
+        children: [
+          {
+            type: KEYS.link,
+            id: "edge-link",
+            url: "https://example.com",
+            children: [{ text: "go" }],
+          },
+          { text: " then more" },
+        ],
+      },
+    ] as unknown as EditorValue;
+
+    const opened = openAsOk(content, "edge start");
+    expectSame(
+      opened,
+      [
         {
           type: KEYS.p,
           id: "edge-start",
           children: [
+            { text: "" },
             {
               type: KEYS.link,
               id: "edge-link",
@@ -254,19 +288,212 @@ describe("save and reload: documented edge cases", () => {
             { text: " then more" },
           ],
         },
-      ] as unknown as EditorValue;
+      ],
+      "edge start leaves",
+    );
+    expectNormalizationIsNoop(opened, "edge start");
+  });
 
-      const reloaded = saveAndReload(content, "edge start");
-      expectNormalizationIsNoop(reloaded, "edge start");
-    },
-  );
+  test("a paragraph that ends with a link gets an empty leaf after it", () => {
+    const opened = openAsOk(
+      [
+        {
+          type: KEYS.p,
+          id: "edge-end",
+          children: [
+            { text: "see " },
+            {
+              type: KEYS.link,
+              id: "edge-end-link",
+              url: "https://example.com",
+              children: [{ text: "go" }],
+            },
+          ],
+        },
+      ] as unknown as EditorValue,
+      "edge end",
+    );
+    expectSame(
+      opened,
+      [
+        {
+          type: KEYS.p,
+          id: "edge-end",
+          children: [
+            { text: "see " },
+            {
+              type: KEYS.link,
+              id: "edge-end-link",
+              url: "https://example.com",
+              children: [{ text: "go" }],
+            },
+            { text: "" },
+          ],
+        },
+      ],
+      "edge end leaves",
+    );
+    expectNormalizationIsNoop(opened, "edge end");
+  });
+
+  // Two inline elements side by side get an empty leaf between them. A void keeps its one empty leaf.
+  test("two adjacent inline elements get an empty leaf between them and none inside the void", () => {
+    const opened = openAsOk(
+      [
+        {
+          type: KEYS.p,
+          id: "edge-adjacent",
+          children: [
+            { text: "due " },
+            {
+              type: KEYS.link,
+              id: "edge-adjacent-link",
+              url: "https://example.com",
+              children: [{ text: "go" }],
+            },
+            {
+              type: KEYS.date,
+              id: "edge-adjacent-date",
+              date: "2026-10-12",
+              children: [{ text: "" }],
+            },
+          ],
+        },
+      ] as unknown as EditorValue,
+      "edge adjacent",
+    );
+    expectSame(
+      opened,
+      [
+        {
+          type: KEYS.p,
+          id: "edge-adjacent",
+          children: [
+            { text: "due " },
+            {
+              type: KEYS.link,
+              id: "edge-adjacent-link",
+              url: "https://example.com",
+              children: [{ text: "go" }],
+            },
+            { text: "" },
+            {
+              type: KEYS.date,
+              id: "edge-adjacent-date",
+              date: "2026-10-12",
+              children: [{ text: "" }],
+            },
+            { text: "" },
+          ],
+        },
+      ],
+      "edge adjacent leaves",
+    );
+    expectNormalizationIsNoop(opened, "edge adjacent");
+  });
+
+  // The same rule applies to a paragraph inside a callout and to a paragraph inside a table cell.
+  test("inline elements inside a callout and a table cell get the leaves too", () => {
+    const linkNode = (id: string) => ({
+      type: KEYS.link,
+      id,
+      url: "https://example.com",
+      children: [{ text: "go" }],
+    });
+    const opened = openAsOk(
+      [
+        {
+          type: KEYS.callout,
+          id: "edge-callout",
+          children: [
+            {
+              type: KEYS.p,
+              id: "edge-callout-p",
+              children: [linkNode("edge-callout-link"), { text: " note" }],
+            },
+          ],
+        },
+        {
+          type: KEYS.table,
+          id: "edge-table",
+          children: [
+            {
+              type: KEYS.tr,
+              id: "edge-row",
+              children: [
+                {
+                  type: KEYS.td,
+                  id: "edge-cell",
+                  children: [
+                    {
+                      type: KEYS.p,
+                      id: "edge-cell-p",
+                      children: [{ text: "cell " }, linkNode("edge-cell-link")],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        // A table that ends the document gets a trailing paragraph from the editor, so one follows it here.
+        { type: KEYS.p, id: "edge-tail", children: [{ text: "end" }] },
+      ] as unknown as EditorValue,
+      "edge nested",
+    );
+    expectSame(
+      opened,
+      [
+        {
+          type: KEYS.callout,
+          id: "edge-callout",
+          children: [
+            {
+              type: KEYS.p,
+              id: "edge-callout-p",
+              children: [{ text: "" }, linkNode("edge-callout-link"), { text: " note" }],
+            },
+          ],
+        },
+        {
+          type: KEYS.table,
+          id: "edge-table",
+          children: [
+            {
+              type: KEYS.tr,
+              id: "edge-row",
+              children: [
+                {
+                  type: KEYS.td,
+                  id: "edge-cell",
+                  children: [
+                    {
+                      type: KEYS.p,
+                      id: "edge-cell-p",
+                      children: [{ text: "cell " }, linkNode("edge-cell-link"), { text: "" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: KEYS.p, id: "edge-tail", children: [{ text: "end" }] },
+      ],
+      "edge nested leaves",
+    );
+    expectNormalizationIsNoop(opened, "edge nested");
+  });
+
+  test("the demo document parses to a deeply equal value", () => {
+    const opened = openAsOk(DEMO_DOCUMENT_VALUE as EditorValue, "demo document");
+    expectSame(opened, DEMO_DOCUMENT_VALUE, "demo document after parse");
+  });
 });
 
 describe("save and reload: the root of a document", () => {
-  // DEFECT: the validator checks what each container may hold, but not what the document root may hold.
-  // A table row, a table cell or a code line at the top level is accepted with no repair, and the
-  // editor then shows it as a block. Paste into a paragraph can produce such a code line (see integrity-clipboard).
-  test.failing("the validator rejects structural-only nodes at the top level", () => {
+  // The document root may not hold a node that only exists inside a parent. The validator reports it as unsupported.
+  test("the validator rejects structural-only nodes at the top level", () => {
     const orphans: unknown[] = [
       { type: KEYS.codeLine, id: "orphan-line", children: [{ text: "line" }] },
       {
@@ -285,13 +512,40 @@ describe("save and reload: the root of a document", () => {
         id: "orphan-td",
         children: [{ type: KEYS.p, id: "orphan-td-p", children: [{ text: "cell" }] }],
       },
+      {
+        type: KEYS.th,
+        id: "orphan-th",
+        children: [{ type: KEYS.p, id: "orphan-th-p", children: [{ text: "heading" }] }],
+      },
     ];
     for (const node of orphans) {
       const document = createEditorDocument("orphan", [
         { type: KEYS.p, id: "orphan-lead", children: [{ text: "lead" }] },
         node,
       ] as unknown as EditorValue);
-      expect(parseEditorDocument(document).status).not.toBe("ok");
+      expect(parseEditorDocument(document).status).toBe("unsupported");
     }
+  });
+
+  // A bare column is unwrapped by the column repair before the root check runs, so it opens as its blocks.
+  test("a column at the top level is unwrapped into its blocks", () => {
+    const parsed = parseEditorDocument(
+      createEditorDocument("orphan", [
+        {
+          type: KEYS.column,
+          id: "orphan-column",
+          width: "100%",
+          children: [{ type: KEYS.p, id: "orphan-column-p", children: [{ text: "inside" }] }],
+        },
+      ] as unknown as EditorValue),
+    );
+    if (parsed.status !== "ok") {
+      throw new Error(`top-level column: parse is ${parsed.status}`);
+    }
+
+    expect(parsed.document.content).toEqual([
+      { type: KEYS.p, id: "orphan-column-p", children: [{ text: "inside" }] },
+    ]);
+    expect(parsed.repairs.map((repair) => repair.message)).toContain(COLUMN_BARE);
   });
 });

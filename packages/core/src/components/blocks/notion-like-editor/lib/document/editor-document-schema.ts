@@ -698,6 +698,28 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
 
 export const CLEARABLE_MARK_KEYS: readonly string[] = EDITOR_MARK_RULES.map((rule) => rule.type);
 
+// Only valid inside a parent. The document root may not hold these. A bare column is not
+// listed: the column repair unwraps it before the validator checks the root.
+const CHILD_ONLY_ELEMENT_TYPES: ReadonlySet<string> = new Set<string>([
+  KEYS.codeLine,
+  KEYS.tr,
+  KEYS.td,
+  KEYS.th,
+]);
+
+export function isChildOnlyElementType(type: string): boolean {
+  return CHILD_ONLY_ELEMENT_TYPES.has(type);
+}
+
+// Inline elements. Slate needs a text leaf before and after each one, and between two of them.
+export const INLINE_ELEMENT_TYPES: readonly string[] = [
+  KEYS.link,
+  KEYS.mention,
+  KEYS.inlineEquation,
+  KEYS.date,
+  FOOTNOTE_REF_KEY,
+];
+
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );

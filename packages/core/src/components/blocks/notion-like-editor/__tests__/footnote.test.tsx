@@ -224,7 +224,12 @@ describe("footnote schema", () => {
     );
     expect(again.repairs).toHaveLength(0);
     expect(again.document.content).toEqual(first.document.content);
-    expect(again.document.content).toEqual(value);
+    // The validator adds the empty leaf Slate needs after a trailing reference.
+    expect(again.document.content).toEqual([
+      { ...value[0], children: [...value[0].children, { text: "" }] },
+      value[1],
+      value[2],
+    ]);
   });
 
   test("repairs are reported in the parse result, not silently applied", () => {

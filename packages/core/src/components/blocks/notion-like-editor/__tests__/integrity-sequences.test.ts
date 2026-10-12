@@ -159,7 +159,7 @@ function runStep(editor: SlateEditor, rng: Rng, operation: Operation): string | 
 
   if (operation === "delete backward") {
     // The caret goes to the end of a block with text. Backspace at a block start merges two blocks, and
-    // undoing a merge gives the restored block a new id (a known defect, see integrity-operations).
+    // undoing a merge restores the block with the id it had (see integrity-operations).
     const index = randomTextBlock(editor, rng);
     if (index === undefined || allTextOf(editor.children[index]).length === 0) {
       return undefined;

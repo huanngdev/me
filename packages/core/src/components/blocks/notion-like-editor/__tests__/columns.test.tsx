@@ -12,7 +12,6 @@ import { createRoot, type Root } from "react-dom/client";
 
 import { COLUMN_GROUP_LAYOUT_CLASS } from "../components/elements/column-element";
 import {
-  COLUMN_CHILD_LIFTED,
   COLUMN_LIFT_CALLOUT,
   COLUMN_LIFT_QUOTE,
   COLUMN_LIFT_TABLE,
@@ -371,7 +370,7 @@ describe("column schema", () => {
     }
   });
 
-  test("a one-column group unwraps, a nested group lifts, and a disallowed child lifts", () => {
+  test("a one-column group unwraps, a nested group lifts, and a disallowed child lifts to the top level, where it is unsupported", () => {
     const unwrapped = expectOk(
       documentOf([group("g", [column("a", "100%", [paragraph("Only", "only")])])]),
     );
@@ -404,20 +403,14 @@ describe("column schema", () => {
       id: "line-1",
       children: [{ text: "code" }],
     };
-    const lifted = expectOk(
-      documentOf([
-        group("g", [
-          column("a", "50%", [paragraph("A", "a"), line]),
-          column("b", "50%", [paragraph("B", "b")]),
-        ]),
+    // The lifted code line lands at the top level, which the validator rejects, so the document is kept raw.
+    const lifted = documentOf([
+      group("g", [
+        column("a", "50%", [paragraph("A", "a"), line]),
+        column("b", "50%", [paragraph("B", "b")]),
       ]),
-    );
-    expect(messages(lifted)).toContain(COLUMN_CHILD_LIFTED);
-    expect(lifted.document.content.map((block) => block.type)).toEqual([
-      "column_group",
-      "code_line",
     ]);
-    expect(paragraphs(lifted.document.content)).toEqual(["A", "B", "code"]);
+    expect(lifted.status).toBe("unsupported");
   });
 
   test("an unknown attribute keeps the raw document", () => {

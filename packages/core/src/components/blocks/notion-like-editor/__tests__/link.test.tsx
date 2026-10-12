@@ -337,7 +337,10 @@ describe("link schema", () => {
     const parsed = expectOk(parseEditorDocument(JSON.parse(serializeEditorDocument(document))));
 
     expect(parsed.repairs).toEqual([]);
-    expect(parsed.document.content).toEqual(content);
+    // The validator adds the empty leaf Slate needs after a trailing link.
+    expect(parsed.document.content).toEqual([
+      { ...content[0], children: [...content[0].children, { text: "" }] },
+    ]);
   });
 
   test("target, rel, and unknown attrs are rejected and the raw document is kept", () => {
