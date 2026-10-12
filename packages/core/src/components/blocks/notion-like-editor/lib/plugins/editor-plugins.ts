@@ -85,6 +85,7 @@ import {
 } from "../features/editor-block-indent-style";
 import { blockIndentTargets, indentBlocks, outdentBlocks } from "../features/editor-block-indent";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
+import { findPlugin } from "./editor-find";
 import { LinkElement } from "../../components/elements/link-element";
 import {
   mentionPlugin,
@@ -1983,6 +1984,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
+    findPlugin,
     mentionPlatePlugin,
     inlineEquationPlatePlugin,
     inlineEquationUiPlatePlugin,
