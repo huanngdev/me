@@ -36,6 +36,8 @@ type FindCache = {
   result: FindResult;
   // Matches keyed by the path of the text block that holds them.
   groups: Map<string, FindGroup[]>;
+  // The resolved active index. Reads use this, never the plugin option, so reads write nothing.
+  index: number;
 };
 
 type FindLeafProps = {
@@ -74,6 +76,8 @@ export const findPlugin = createSlatePlugin({
     query: "",
     matchCase: false,
     activeIndex: 0,
+    // Bumped by a Mod+F press so the bar moves focus to its input again.
+    focusRequest: 0,
   },
   decorate: ({ editor, entry }) => {
     if (!editor.getOption(findPlugin, "open")) {
@@ -96,7 +100,7 @@ export const findPlugin = createSlatePlugin({
     }
 
     const groups = cache.groups.get(blockKey(block[1])) ?? [];
-    const activeIndex = clampIndex(editor.getOption(findPlugin, "activeIndex"), cache.result);
+    const activeIndex = cache.index;
     const leafStart: Point = { path, offset: 0 };
     const leafEnd: Point = { path, offset: node.text.length };
     const ranges: { anchor: Point; focus: Point; find: true; findActive: boolean }[] = [];
@@ -121,9 +125,9 @@ function blockKey(path: readonly number[]): string {
   return path.join(",");
 }
 
-function clampIndex(value: unknown, result: FindResult): number {
+function clampIndex(value: number, result: FindResult): number {
   const count = result.matches.length;
-  if (count === 0 || typeof value !== "number" || !Number.isInteger(value)) {
+  if (count === 0) {
     return 0;
   }
   return Math.min(Math.max(value, 0), count - 1);
@@ -139,10 +143,8 @@ function indexAtOrAfter(result: FindResult, point: Point | undefined): number {
   return index < 0 ? 0 : index;
 }
 
-function setActiveIndex(editor: SlateEditor, result: FindResult, index: number): void {
-  const active = clampIndex(index, result);
-  editor.setOption(findPlugin, "activeIndex", active);
-  const match = result.matches[active];
+function rememberActive(editor: SlateEditor, cache: FindCache): void {
+  const match = cache.result.matches[cache.index];
   if (match === undefined) {
     rememberedStarts.delete(editor);
   } else {
@@ -150,7 +152,8 @@ function setActiveIndex(editor: SlateEditor, result: FindResult, index: number):
   }
 }
 
-function storeFind(editor: SlateEditor, result: FindResult, index: number): FindCache {
+// Stores a result in the cache only. It writes no plugin option, so it is safe during render.
+function cacheFind(editor: SlateEditor, result: FindResult, index: number): FindCache {
   const groups = new Map<string, FindGroup[]>();
   result.matches.forEach((match, matchIndex) => {
     const block = editor.api.block({ at: match.anchor.path });
@@ -170,9 +173,10 @@ function storeFind(editor: SlateEditor, result: FindResult, index: number): Find
     matchCase: editor.getOption(findPlugin, "matchCase"),
     result,
     groups,
+    index: clampIndex(index, result),
   };
   caches.set(editor, cache);
-  setActiveIndex(editor, result, index);
+  rememberActive(editor, cache);
   return cache;
 }
 
@@ -194,11 +198,15 @@ function currentFind(editor: SlateEditor): FindCache {
   const sameQuery =
     cached !== undefined && cached.query === query && cached.matchCase === matchCase;
   const index = sameQuery ? indexAtOrAfter(result, rememberedStarts.get(editor)) : 0;
-  return storeFind(editor, result, index);
+  return cacheFind(editor, result, index);
 }
 
-function activeIndexOf(editor: SlateEditor): number {
-  return clampIndex(editor.getOption(findPlugin, "activeIndex"), currentFind(editor).result);
+// Explicit moves only (navigation, query and match case changes). Writes the activeIndex option.
+function setActiveIndex(editor: SlateEditor, index: number): void {
+  const cache = currentFind(editor);
+  cache.index = clampIndex(index, cache.result);
+  rememberActive(editor, cache);
+  editor.setOption(findPlugin, "activeIndex", cache.index);
 }
 
 // The matches of the current document, for the replace commands.
@@ -211,7 +219,8 @@ export function settleFind(editor: SlateEditor, point: Point | undefined): void 
   const result = findMatches(editor, editor.getOption(findPlugin, "query"), {
     matchCase: editor.getOption(findPlugin, "matchCase"),
   });
-  storeFind(editor, result, indexAtOrAfter(result, point));
+  const cache = cacheFind(editor, result, indexAtOrAfter(result, point));
+  editor.setOption(findPlugin, "activeIndex", cache.index);
   editor.api.redecorate();
 }
 
@@ -229,7 +238,7 @@ export function closeFind(editor: SlateEditor): void {
 function resetActiveToSelection(editor: SlateEditor): void {
   const cache = currentFind(editor);
   const start = editor.selection === null ? undefined : RangeApi.start(editor.selection);
-  setActiveIndex(editor, cache.result, indexAtOrAfter(cache.result, start));
+  setActiveIndex(editor, indexAtOrAfter(cache.result, start));
   editor.api.redecorate();
 }
 
@@ -250,8 +259,7 @@ function moveActive(editor: SlateEditor, step: number): void {
     return;
   }
 
-  const current = activeIndexOf(editor);
-  setActiveIndex(editor, cache.result, (current + step + count) % count);
+  setActiveIndex(editor, (cache.index + step + count) % count);
   editor.api.redecorate();
 }
 
@@ -271,8 +279,7 @@ export function findState(editor: SlateEditor): FindState {
     query: editor.getOption(findPlugin, "query"),
     matchCase: editor.getOption(findPlugin, "matchCase"),
     count,
-    activeIndex:
-      count === 0 ? -1 : clampIndex(editor.getOption(findPlugin, "activeIndex"), cache.result),
+    activeIndex: count === 0 ? -1 : cache.index,
     truncated: cache.result.truncated,
   };
 }
@@ -283,9 +290,7 @@ export function findActiveMatch(editor: SlateEditor): FindMatch | undefined {
     return undefined;
   }
 
-  return cache.result.matches[
-    clampIndex(editor.getOption(findPlugin, "activeIndex"), cache.result)
-  ];
+  return cache.result.matches[cache.index];
 }
 
 // Opens each collapsed toggle that hides the active match. Selection and history are untouched.

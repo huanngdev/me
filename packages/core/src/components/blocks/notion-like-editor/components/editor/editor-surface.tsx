@@ -24,6 +24,7 @@ import { PasteUrlMenu } from "../ui/paste-url-menu";
 import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
+import { FindBar } from "../ui/find-bar";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -66,6 +67,7 @@ export function EditorSurface({
             <LinkPopover />
             <BookmarkUrlPopover />
             <SelectionToolbar />
+            <FindBar />
             <PlateContent
               aria-readonly={readOnly ? true : undefined}
               placeholder={readOnly ? undefined : placeholder}

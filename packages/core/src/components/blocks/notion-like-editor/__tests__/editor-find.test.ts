@@ -436,11 +436,24 @@ describe("find state and purity", () => {
     expect(findActiveMatch(editor)).toBeUndefined();
   });
 
-  test("findState clamps an active index that is past the last match", () => {
+  test("findState reads the engine's own index, so a raw option write does not move the active match", () => {
     const editor = editorWith(para("p1", [{ text: "a a a" }]));
     setFindQuery(editor, "a");
     editor.setOption(findPlugin, "activeIndex", 99);
-    expect(findState(editor).activeIndex).toBe(2);
+    expect(findState(editor).activeIndex).toBe(0);
+  });
+
+  test("reading the find state after an edit writes no plugin option", () => {
+    const editor = editorWith(para("p1", [{ text: "a a a" }]));
+    setFindQuery(editor, "a");
+    findNext(editor);
+    editor.tf.insertText("b", { at: { path: [0, 0], offset: 0 } });
+
+    expect(findState(editor)).toMatchObject({ count: 3, activeIndex: 1 });
+    expect(editor.getOption(findPlugin, "activeIndex")).toBe(1);
+    editor.setOption(findPlugin, "activeIndex", 0);
+    expect(findState(editor).activeIndex).toBe(1);
+    expect(editor.getOption(findPlugin, "activeIndex")).toBe(0);
   });
 
   test("findActiveMatch returns the match at the active index", () => {

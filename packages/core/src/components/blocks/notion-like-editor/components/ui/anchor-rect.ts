@@ -45,6 +45,11 @@ export function rangeRect(range: Range | null | undefined): DOMRect {
   return copyRect(rect);
 }
 
+// A zero-size rect at a point, for anchors that are placed rather than measured.
+export function pointRect(x: number, y: number): DOMRect {
+  return createRect(x, y, 0, 0);
+}
+
 export function elementRect(element: Element | null | undefined): DOMRect {
   if (!element) {
     return emptyRect();
