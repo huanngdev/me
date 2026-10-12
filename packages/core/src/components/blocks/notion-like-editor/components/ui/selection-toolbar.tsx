@@ -421,7 +421,7 @@ export function SelectionToolbar() {
         onPointerDownOutside={keepNested}
         onMouseDown={keepSelection}
         onKeyDown={onToolbarKeyDown}
-        className="w-auto max-w-[calc(100vw-16px)] p-2"
+        className="w-auto max-w-[calc(100vw-16px)] p-1"
       >
         <ScrollFadeArea orientation="horizontal" className="w-full">
           <ToolbarRoot placement="floating" collisionBoundary={frame ? "frame" : undefined}>

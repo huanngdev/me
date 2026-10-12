@@ -1012,14 +1012,15 @@ describe("selection toolbar keys and state", () => {
     }
   });
 
-  test("the floating popover is the visible surface, padded with p-2", async () => {
+  test("the floating popover is the visible surface, padded with p-1", async () => {
     const mounted = await showToolbar();
     try {
       const content = toolbar()?.closest("[data-slot='popover-content']");
       if (!(content instanceof HTMLElement)) {
         throw new Error("Missing popover content.");
       }
-      expect(content.classList.contains("p-2")).toBe(true);
+      expect(content.classList.contains("p-1")).toBe(true);
+      expect(content.classList.contains("p-2")).toBe(false);
       expect(content.className).not.toContain("bg-transparent");
       expect(content.classList.contains("p-0")).toBe(false);
       expect(content.className).not.toContain("shadow-none");
