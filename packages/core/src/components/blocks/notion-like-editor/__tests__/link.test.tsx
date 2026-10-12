@@ -50,6 +50,12 @@ import {
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
+// The viewport size is read when the editor selection is synced to the DOM, and happy-dom leaves it undefined.
+if (!("innerWidth" in globalThis)) {
+  Reflect.set(globalThis, "innerWidth", 1024);
+  Reflect.set(globalThis, "innerHeight", 768);
+}
+
 const HTTPS = "https://example.com";
 const MAIL = "mailto:a@b.c";
 const TEL = "tel:+84123456789";
@@ -220,6 +226,15 @@ function renderLinks(value: EditorValue, readOnly = false): string {
   return renderToStaticMarkup(
     <EditorSurface editor={editor} readOnly={readOnly} placeholder="" className="editor" />,
   );
+}
+
+// Plate focuses the editor on a short timer when edits are pending, so a test waits past it.
+async function settleFocus(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 30);
+    });
+  });
 }
 
 function maxUrl(extra = 0): string {
@@ -950,5 +965,88 @@ describe("link render and clicks", () => {
     expect(document.querySelector("[data-link-popover]")).toBeNull();
     expect(mounted.editor.children).toEqual(before);
     await mounted.cleanup();
+  });
+
+  test("escape returns focus to the editor on the selected range", async () => {
+    const mounted = await mountLink([paragraph("Hello world", "p")]);
+    mounted.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(mounted.editor);
+      });
+      expect(document.querySelector("[data-link-popover]")).not.toBeNull();
+
+      await act(async () => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(mounted.host.querySelector("[data-slate-editor]"));
+      expect(mounted.editor.selection).toEqual(textRange([0, 0], 0, 5));
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("save and remove return focus to the editor, and a click outside keeps focus on the clicked control", async () => {
+    const saved = await mountLink([paragraph("Hello world", "p")]);
+    saved.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(saved.editor);
+      });
+      await act(async () => {
+        commitLinkPopover(saved.editor, HTTPS, "");
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(saved.host.querySelector("[data-slate-editor]"));
+    } finally {
+      await saved.cleanup();
+    }
+
+    const removed = await mountLink([
+      { type: "p", id: "p", children: [linkNode(HTTPS, "site", "site")] },
+    ]);
+    removed.editor.tf.select(caret([0, 0, 0], 1));
+    try {
+      await act(async () => {
+        openLinkPopover(removed.editor);
+      });
+      const remove = Array.from(document.querySelectorAll("[data-link-popover] button")).find(
+        (button) => button.textContent === "Remove link",
+      );
+      if (!(remove instanceof HTMLButtonElement)) {
+        throw new Error("Missing Remove link.");
+      }
+      await act(async () => {
+        remove.click();
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(linkNodes(removed.editor.children)).toEqual([]);
+      expect(document.activeElement).toBe(removed.host.querySelector("[data-slate-editor]"));
+    } finally {
+      await removed.cleanup();
+    }
+
+    const outside = await mountLink([paragraph("Hello world", "p")]);
+    const other = document.createElement("button");
+    document.body.appendChild(other);
+    outside.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(outside.editor);
+      });
+      other.focus();
+      await act(async () => {
+        other.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      });
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(other);
+    } finally {
+      other.remove();
+      await outside.cleanup();
+    }
   });
 });

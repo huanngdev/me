@@ -376,6 +376,8 @@ function insertMentionAtom(editor: SlateEditor, entity: MentionEntity): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on commit, so focus goes back to the editor after the mention.
+  editor.tf.focus();
 }
 
 export function commitMention(editor: SlateEditor, entity: MentionEntity): boolean {
@@ -421,6 +423,8 @@ export function cancelMentionInput(editor: SlateEditor): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on cancel, so focus goes back to the editor after the typed text.
+  editor.tf.focus();
 }
 
 export function onMentionInputKeyDown(editor: SlateEditor, event: MentionInputKey): boolean {

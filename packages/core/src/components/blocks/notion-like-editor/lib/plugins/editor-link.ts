@@ -275,6 +275,17 @@ export function closeLinkPopover(editor: SlateEditor): void {
   editor.api.redecorate();
 }
 
+// Escape and Remove link: the popover input is removed, so focus goes back to the editor
+// on the range the popover was opened on.
+export function cancelLinkPopover(editor: SlateEditor): void {
+  const saved = savedSelections.get(editor);
+  closeLinkPopover(editor);
+  if (saved !== undefined) {
+    editor.tf.select(saved);
+  }
+  editor.tf.focus();
+}
+
 export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
   const url = sanitizeLinkUrl(normalizeLinkInput(urlRaw));
   if (url === undefined) {
@@ -304,6 +315,8 @@ export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw:
   });
   editor.tf.setSplittingOnce(true);
   closeLinkPopover(editor);
+  // Save keeps the selection the command left, so focus goes to the editor without restoring it.
+  editor.tf.focus();
   return true;
 }
 

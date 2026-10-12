@@ -22736,6 +22736,17 @@ export function closeLinkPopover(editor: SlateEditor): void {
   editor.api.redecorate();
 }
 
+// Escape and Remove link: the popover input is removed, so focus goes back to the editor
+// on the range the popover was opened on.
+export function cancelLinkPopover(editor: SlateEditor): void {
+  const saved = savedSelections.get(editor);
+  closeLinkPopover(editor);
+  if (saved !== undefined) {
+    editor.tf.select(saved);
+  }
+  editor.tf.focus();
+}
+
 export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
   const url = sanitizeLinkUrl(normalizeLinkInput(urlRaw));
   if (url === undefined) {
@@ -22765,6 +22776,8 @@ export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw:
   });
   editor.tf.setSplittingOnce(true);
   closeLinkPopover(editor);
+  // Save keeps the selection the command left, so focus goes to the editor without restoring it.
+  editor.tf.focus();
   return true;
 }
 
@@ -23393,6 +23406,7 @@ import { EditorTextButton } from "./block-toolbar";
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import {
+  cancelLinkPopover,
   closeLinkPopover,
   commitLinkPopover,
   linkAnchorRange,
@@ -23462,7 +23476,7 @@ function LinkPopoverForm({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
-        closeLinkPopover(editor);
+        cancelLinkPopover(editor);
       }
     };
     const onPointerDown = (event: PointerEvent): void => {
@@ -23566,7 +23580,7 @@ function LinkPopoverForm({
                   event.preventDefault();
                 }}
                 onClick={() => {
-                  closeLinkPopover(editor);
+                  cancelLinkPopover(editor);
                   runEditorCommand(editor, removeInlineLink, undefined);
                 }}
               />
@@ -24232,6 +24246,8 @@ function insertMentionAtom(editor: SlateEditor, entity: MentionEntity): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on commit, so focus goes back to the editor after the mention.
+  editor.tf.focus();
 }
 
 export function commitMention(editor: SlateEditor, entity: MentionEntity): boolean {
@@ -24277,6 +24293,8 @@ export function cancelMentionInput(editor: SlateEditor): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on cancel, so focus goes back to the editor after the typed text.
+  editor.tf.focus();
 }
 
 export function onMentionInputKeyDown(editor: SlateEditor, event: MentionInputKey): boolean {

@@ -10,6 +10,7 @@ import { EditorTextButton } from "./block-toolbar";
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import {
+  cancelLinkPopover,
   closeLinkPopover,
   commitLinkPopover,
   linkAnchorRange,
@@ -79,7 +80,7 @@ function LinkPopoverForm({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
-        closeLinkPopover(editor);
+        cancelLinkPopover(editor);
       }
     };
     const onPointerDown = (event: PointerEvent): void => {
@@ -183,7 +184,7 @@ function LinkPopoverForm({
                   event.preventDefault();
                 }}
                 onClick={() => {
-                  closeLinkPopover(editor);
+                  cancelLinkPopover(editor);
                   runEditorCommand(editor, removeInlineLink, undefined);
                 }}
               />
