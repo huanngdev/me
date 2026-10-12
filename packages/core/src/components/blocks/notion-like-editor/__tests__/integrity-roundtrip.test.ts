@@ -135,7 +135,7 @@ function blockWithDependencies(id: string): EditorValue {
     .map((index) => cloneValue(DEMO_DOCUMENT_VALUE[index])) as EditorValue;
 }
 
-// Plate adds an empty paragraph after a table that ends a document (see the test.failing below).
+// The editor adds an empty paragraph after a table that ends a document (ensureParagraphAfterTable).
 // Feature documents end with that paragraph so the per-feature check stays strict about the feature.
 function withTrailingParagraphAfterTable(content: EditorValue): EditorValue {
   const last = content[content.length - 1];
@@ -224,9 +224,8 @@ describe("save and reload: every stored feature", () => {
 });
 
 describe("save and reload: documented edge cases", () => {
-  // DEFECT (unsure whether intended): Plate's trailing-block normalization appends an empty paragraph
-  // when a table is the last block. The README and the feature inventory do not mention it.
-  test.failing("a document that ends with a table loads unchanged", () => {
+  // A root table is always followed by one empty paragraph, which is where the caret goes below it.
+  test("a document that ends with a table gets exactly one empty paragraph after it", () => {
     const content: EditorValue = [
       { type: KEYS.p, id: "table-end-p", children: [{ text: "before" }] },
       {
@@ -249,7 +248,16 @@ describe("save and reload: documented edge cases", () => {
     ] as unknown as EditorValue;
 
     const reloaded = saveAndReload(content, "table at end");
-    expectNormalizationIsNoop(reloaded, "table at end");
+    const editor = createEditor(cloneValue(reloaded));
+    editor.tf.normalize({ force: true });
+    const once = snapshot(editor);
+    expectSame(once.slice(0, content.length), content, "table at end: original blocks");
+    expect(once).toHaveLength(content.length + 1);
+    expect(once.at(-1)).toMatchObject({ type: KEYS.p, children: [{ text: "" }] });
+
+    editor.tf.normalize({ force: true });
+    expectSame(snapshot(editor), once, "table at end: second normalize");
+    checkInvariants(editor, "table at end");
   });
 
   // The validator adds the empty text leaves Slate needs around inline elements, so the editor changes nothing on open.

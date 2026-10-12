@@ -3245,6 +3245,28 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
 
 export const CLEARABLE_MARK_KEYS: readonly string[] = EDITOR_MARK_RULES.map((rule) => rule.type);
 
+// Only valid inside a parent. The document root may not hold these. A bare column is not
+// listed: the column repair unwraps it before the validator checks the root.
+const CHILD_ONLY_ELEMENT_TYPES: ReadonlySet<string> = new Set<string>([
+  KEYS.codeLine,
+  KEYS.tr,
+  KEYS.td,
+  KEYS.th,
+]);
+
+export function isChildOnlyElementType(type: string): boolean {
+  return CHILD_ONLY_ELEMENT_TYPES.has(type);
+}
+
+// Inline elements. Slate needs a text leaf before and after each one, and between two of them.
+export const INLINE_ELEMENT_TYPES: readonly string[] = [
+  KEYS.link,
+  KEYS.mention,
+  KEYS.inlineEquation,
+  KEYS.date,
+  FOOTNOTE_REF_KEY,
+];
+
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
 );
@@ -3771,7 +3793,7 @@ export function migrateEditorDocument(raw: unknown, documentId: string): unknown
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-document-validate.ts
 ```ts
-import { KEYS, nanoid } from "platejs";
+import { ElementApi, KEYS, TextApi, nanoid, type Descendant } from "platejs";
 
 import {
   EDITOR_DOCUMENT_LIMITS,
@@ -3782,7 +3804,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
-  FOOTNOTE_REF_KEY,
+  INLINE_ELEMENT_TYPES,
   allowedChildTypes,
   allowedElementAttrs,
   allowsFirstChild,
@@ -3792,6 +3814,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isChildOnlyElementType,
   isVoidElementType,
   elementChildIssues,
   maxChildren,
@@ -3800,7 +3823,7 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "./editor-column-repair";
+import { isEditorValue, repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
@@ -3981,12 +4004,7 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     }
 
     return (
-      (childType === KEYS.link ||
-        childType === KEYS.mention ||
-        childType === KEYS.inlineEquation ||
-        childType === KEYS.date ||
-        childType === FOOTNOTE_REF_KEY) &&
-      parentAllowsInlineLink(parentType)
+      INLINE_ELEMENT_TYPES.some((type) => type === childType) && parentAllowsInlineLink(parentType)
     );
   }
 
@@ -4290,7 +4308,61 @@ function walkTopLevel(
     return;
   }
 
+  if (typeof value.type === "string" && isChildOnlyElementType(value.type)) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported top-level type "${value.type}". Restore from a backup or remove the block.`,
+    });
+  }
+
   walkElement(value, path, state, nesting);
+}
+
+function isInlineNode(node: Descendant): boolean {
+  return ElementApi.isElement(node) && INLINE_ELEMENT_TYPES.some((type) => type === node.type);
+}
+
+// Slate needs a text leaf before and after each inline element, and between two of them.
+// Adds the empty leaves a stored document already has. Void elements keep their own leaf.
+// Input is not checked yet, so anything that is not an element with a children array is returned as it is.
+function spaceInlineChildren(node: Descendant): Descendant {
+  if (!ElementApi.isElement(node) || isVoidElementType(node.type)) {
+    return node;
+  }
+
+  let changed = false;
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    const last = children.at(-1);
+    if (isInlineNode(child) && (last === undefined || !TextApi.isText(last))) {
+      children.push({ text: "" });
+      changed = true;
+    }
+
+    const spaced = spaceInlineChildren(child);
+    if (spaced !== child) {
+      changed = true;
+    }
+    children.push(spaced);
+  }
+
+  const last = children.at(-1);
+  if (last !== undefined && isInlineNode(last)) {
+    children.push({ text: "" });
+    changed = true;
+  }
+
+  return changed ? { ...node, children } : node;
+}
+
+// Returns the same array when no block needs a leaf.
+function spaceInlineContent(content: EditorValue): EditorValue {
+  const spaced: Descendant[] = content.map((block) => spaceInlineChildren(block));
+  if (spaced.every((block, index) => block === content[index]) || !isEditorValue(spaced)) {
+    return content;
+  }
+
+  return spaced;
 }
 
 export function parseEditorDocument(raw: unknown): ParseResult {
@@ -4335,7 +4407,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
-  const footnotes = repairFootnoteContent(envelope.data.content);
+  // Leaves go in before any repair, so the walk and every repair path match the returned content.
+  const footnotes = repairFootnoteContent(spaceInlineContent(envelope.data.content));
   const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
   const pageLinks = repairPageLinkContent(mentions.content);
@@ -8588,13 +8661,16 @@ import {
   TableRowPlugin,
 } from "@platejs/table/react";
 import {
+  ElementApi,
   KEYS,
   NodeIdPlugin,
   PathApi,
+  TextApi,
   combineTransformMatchOptions,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
+  type Descendant,
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
@@ -10406,6 +10482,56 @@ function htmlHasTable(html: string): boolean {
   return html.toLowerCase().includes("<table");
 }
 
+// The empty top-level paragraph that holds a collapsed caret, when a single table is pasted.
+// A paste into a non-empty block or a table cell returns undefined.
+function emptyParagraphForTablePaste(
+  editor: SlateEditor,
+  fragment: readonly Descendant[],
+): { path: number[]; id: unknown } | undefined {
+  const first = fragment[0];
+  if (fragment.length !== 1 || !ElementApi.isElement(first) || first.type !== KEYS.table) {
+    return undefined;
+  }
+
+  if (!editor.selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const top = editor.selection.anchor.path[0];
+  const block = top === undefined ? undefined : editor.children[top];
+  if (top === undefined || !ElementApi.isElement(block) || block.type !== KEYS.p) {
+    return undefined;
+  }
+
+  if (!block.children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return undefined;
+  }
+
+  return { path: [top], id: block.id };
+}
+
+// Removes the paragraph the table was pasted into, if it is still that empty paragraph and a table follows it.
+function removeEmptyParagraphBeforeTable(
+  editor: SlateEditor,
+  replaced: { path: number[]; id: unknown },
+): void {
+  const entry = editor.api.node(replaced.path);
+  const next = editor.api.node(PathApi.next(replaced.path));
+  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== replaced.id) {
+    return;
+  }
+
+  if (!entry[0].children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return;
+  }
+
+  if (!next || !ElementApi.isElement(next[0]) || next[0].type !== KEYS.table) {
+    return;
+  }
+
+  editor.tf.removeNodes({ at: replaced.path });
+}
+
 // Tab inside a table, including a list item in a cell, belongs to the table.
 // Registered after codeBlock and listKeyboard, so this tab runs first and the
 // previous tab is code, then list. Outside a table, Tab is unchanged.
@@ -10429,7 +10555,12 @@ const tablePlugin = TablePlugin.configure({
         // Sanitize here so that path keeps spans, caps the grid, and
         // omits an id the document already uses.
         insertFragment(fragment, options) {
-          insertFragment(preparePastedFragment(editor, fragment), options);
+          const prepared = preparePastedFragment(editor, fragment);
+          const replaced = emptyParagraphForTablePaste(editor, prepared);
+          insertFragment(prepared, options);
+          if (replaced !== undefined) {
+            removeEmptyParagraphBeforeTable(editor, replaced);
+          }
         },
         tab(options?: { reverse?: boolean }) {
           // Plate's tab reads options.reverse and throws when options is missing.
@@ -10539,7 +10670,9 @@ const toggleRevealPlugin = createSlatePlugin({
 
 export function createEditorPlugins(): AnyPluginConfig[] {
   return [
-    NodeIdPlugin,
+    // A split keeps the id it carries unless a block already has it, so undo of a merge restores
+    // the second block's id. Enter still gives the new half a fresh id, because the original keeps its own.
+    NodeIdPlugin.configure({ options: { reuseId: true } }),
     paragraphPlugin,
     boldPlugin,
     italicPlugin,
@@ -12603,6 +12736,7 @@ export function fillTableWithTsv(
   return { handled: true, truncated };
 }
 
+// A root table always gets a paragraph after it: that paragraph is the only place for a caret below the table.
 function followingParagraphAllowed(editor: SlateEditor, tablePath: number[]): boolean {
   if (tablePath.length === 1) {
     return true;

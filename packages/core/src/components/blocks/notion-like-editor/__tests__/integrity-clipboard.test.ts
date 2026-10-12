@@ -204,20 +204,74 @@ describe("copy one block into an empty document", () => {
     });
   }
 
-  // DEFECT (unsure whether intended): a table pasted into an empty paragraph keeps that paragraph and adds
-  // another after the table. The paste should leave the table as the only block.
-  test.failing("a table pasted into an empty document is the only block", () => {
+  // A table pasted into an empty paragraph replaces that paragraph. A root table keeps the one empty paragraph after it.
+  function demoTableCopy(): { encoded: string; fragment: EditorValue } {
     const value = DEMO_DOCUMENT_VALUE as EditorValue;
     const table = value.find((block) => isRecordValue(block) && block.type === "table");
     if (!isRecordValue(table) || typeof table.id !== "string") {
       throw new Error("The demo has no table.");
     }
-    const copied = copyBlock(value, table.id);
+    return copyBlock(value, table.id);
+  }
 
+  function pasteTable(
+    target: SlateEditor,
+    copied: { encoded: string; fragment: EditorValue },
+  ): void {
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+  }
+
+  function blockTypes(editor: SlateEditor): string[] {
+    return snapshot(editor).map((block) => block.type);
+  }
+
+  test("a table pasted into an empty document leaves the table and one empty paragraph after it", () => {
     const target = createEditor();
     target.tf.select(caret([0, 0], 0));
-    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
-    expect(snapshot(target).length).toBe(1);
+    pasteTable(target, demoTableCopy());
+
+    expect(blockTypes(target)).toEqual(["table", "p"]);
+    expect(snapshot(target).at(-1)).toMatchObject({ type: "p", children: [{ text: "" }] });
+    // The caret stays inside the pasted table, where Plate leaves it today.
+    expect(target.selection?.anchor.path[0]).toBe(0);
+  });
+
+  test("one undo after pasting a table into an empty paragraph restores that empty paragraph", () => {
+    const target = createEditor();
+    target.tf.select(caret([0, 0], 0));
+    const before = snapshot(target);
+
+    pasteTable(target, demoTableCopy());
+    target.tf.undo();
+
+    expect(snapshot(target)).toEqual(before);
+  });
+
+  test("a table pasted into an empty paragraph between two paragraphs leaves p, table, p", () => {
+    const target = createEditor([
+      { type: "p", id: "above", children: [{ text: "one" }] },
+      { type: "p", id: "empty", children: [{ text: "" }] },
+      { type: "p", id: "below", children: [{ text: "three" }] },
+    ] as unknown as EditorValue);
+    target.tf.select(caret([1, 0], 0));
+
+    pasteTable(target, demoTableCopy());
+
+    expect(blockTypes(target)).toEqual(["p", "table", "p"]);
+    expect(allTextOf(snapshot(target).slice(0, 1))).toBe("one");
+    expect(allTextOf(snapshot(target).slice(-1))).toBe("three");
+  });
+
+  test("a table pasted at the end of a non-empty paragraph keeps the text and adds the table after it", () => {
+    const target = createEditor([
+      { type: "p", id: "text", children: [{ text: "text" }] },
+    ] as unknown as EditorValue);
+    target.tf.select(caret([0, 0], 4));
+
+    pasteTable(target, demoTableCopy());
+
+    expect(blockTypes(target)).toEqual(["p", "table", "p"]);
+    expect(allTextOf(snapshot(target).slice(0, 1))).toBe("text");
   });
 });
 

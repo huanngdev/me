@@ -38,13 +38,16 @@ import {
   TableRowPlugin,
 } from "@platejs/table/react";
 import {
+  ElementApi,
   KEYS,
   NodeIdPlugin,
   PathApi,
+  TextApi,
   combineTransformMatchOptions,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
+  type Descendant,
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
@@ -1856,6 +1859,56 @@ function htmlHasTable(html: string): boolean {
   return html.toLowerCase().includes("<table");
 }
 
+// The empty top-level paragraph that holds a collapsed caret, when a single table is pasted.
+// A paste into a non-empty block or a table cell returns undefined.
+function emptyParagraphForTablePaste(
+  editor: SlateEditor,
+  fragment: readonly Descendant[],
+): { path: number[]; id: unknown } | undefined {
+  const first = fragment[0];
+  if (fragment.length !== 1 || !ElementApi.isElement(first) || first.type !== KEYS.table) {
+    return undefined;
+  }
+
+  if (!editor.selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const top = editor.selection.anchor.path[0];
+  const block = top === undefined ? undefined : editor.children[top];
+  if (top === undefined || !ElementApi.isElement(block) || block.type !== KEYS.p) {
+    return undefined;
+  }
+
+  if (!block.children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return undefined;
+  }
+
+  return { path: [top], id: block.id };
+}
+
+// Removes the paragraph the table was pasted into, if it is still that empty paragraph and a table follows it.
+function removeEmptyParagraphBeforeTable(
+  editor: SlateEditor,
+  replaced: { path: number[]; id: unknown },
+): void {
+  const entry = editor.api.node(replaced.path);
+  const next = editor.api.node(PathApi.next(replaced.path));
+  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== replaced.id) {
+    return;
+  }
+
+  if (!entry[0].children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return;
+  }
+
+  if (!next || !ElementApi.isElement(next[0]) || next[0].type !== KEYS.table) {
+    return;
+  }
+
+  editor.tf.removeNodes({ at: replaced.path });
+}
+
 // Tab inside a table, including a list item in a cell, belongs to the table.
 // Registered after codeBlock and listKeyboard, so this tab runs first and the
 // previous tab is code, then list. Outside a table, Tab is unchanged.
@@ -1879,7 +1932,12 @@ const tablePlugin = TablePlugin.configure({
         // Sanitize here so that path keeps spans, caps the grid, and
         // omits an id the document already uses.
         insertFragment(fragment, options) {
-          insertFragment(preparePastedFragment(editor, fragment), options);
+          const prepared = preparePastedFragment(editor, fragment);
+          const replaced = emptyParagraphForTablePaste(editor, prepared);
+          insertFragment(prepared, options);
+          if (replaced !== undefined) {
+            removeEmptyParagraphBeforeTable(editor, replaced);
+          }
         },
         tab(options?: { reverse?: boolean }) {
           // Plate's tab reads options.reverse and throws when options is missing.
