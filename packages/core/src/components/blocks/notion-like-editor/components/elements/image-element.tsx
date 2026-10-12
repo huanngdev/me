@@ -21,7 +21,6 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { Input } from "@/components/input";
 import { Skeleton } from "@/components/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +49,8 @@ import {
 } from "../../lib/features/editor-file-url";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
+import { isControlTarget, useMediaCardSelect } from "./media-card";
+import { MediaTextInput } from "./media-text-input";
 import {
   openMediaActions,
   openMediaSource,
@@ -70,12 +71,8 @@ import { EditorTextButton, mediaStringAttr } from "../ui/block-toolbar";
 import { ImageToolbarPopover } from "../ui/image-toolbar-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
 import { hrElementClassName } from "./hr-element";
-import {
-  MEDIA_ICON_CLASS,
-  MediaFailedRow,
-  MediaPlaceholderRow,
-  MediaUploadingRow,
-} from "./media-rows";
+import { MEDIA_ICON_CLASS } from "./media-classes";
+import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import {
   useResolvedFileUrl,
   useUploadController,
@@ -115,14 +112,6 @@ function imageState(
     return "loading";
   }
   return src === failedUrl ? "unavailable" : "ready";
-}
-
-// Clicks and keys on these controls belong to the control, not to the image card.
-function isControlTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof Element &&
-    target.closest("input, textarea, button, a, [role='separator']") !== null
-  );
 }
 
 function storedCaption(editor: SlateEditor, id: string): string | undefined {
@@ -228,28 +217,7 @@ export function ImageElement(props: PlateElementProps) {
   }, [fields.width, showReady]);
 
   // Mouse-down selects the block, as a bookmark card does.
-  useEffect(() => {
-    const node = cardRef.current;
-    if (node === null || readOnly) {
-      return;
-    }
-
-    // The browser's default mousedown moves the caret to the nearest text. An image card has no text of
-    // its own, so the caret would land in a neighbouring block, the image would lose its selection, and
-    // its action popover would close. The default is cancelled, so the image keeps the selection.
-    const onMouseDown = (event: MouseEvent): void => {
-      if (event.button !== 0 || isControlTarget(event.target)) {
-        return;
-      }
-
-      event.preventDefault();
-      selectMediaBlock(editor, id);
-    };
-    node.addEventListener("mousedown", onMouseDown);
-    return () => {
-      node.removeEventListener("mousedown", onMouseDown);
-    };
-  }, [editor, id, readOnly, showReady]);
+  useMediaCardSelect(cardRef, id, !readOnly && showReady);
 
   function openSource(): void {
     selectMediaBlock(editor, id);
@@ -576,96 +544,20 @@ function CaptionField({
   onSettled: () => void;
 }) {
   const editor = useEditorRef();
-  const [draft, setDraft] = useState(caption ?? "");
-  const draftRef = useRef(draft);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Slate reads beforeinput on the editor root, so it is stopped here.
-  useEffect(() => {
-    const node = inputRef.current;
-    if (node === null) {
-      return;
-    }
-
-    const stop = (event: Event): void => {
-      event.stopPropagation();
-    };
-    node.addEventListener("beforeinput", stop);
-    return () => {
-      node.removeEventListener("beforeinput", stop);
-    };
-  }, []);
-
-  // Reads the stored caption from the document, so a repeated commit does nothing.
-  function commit(): void {
-    const text = draftRef.current;
-    const next = cleanFileText(text, IMAGE_CAPTION_MAX) ?? "";
-    if (next === (storedCaption(editor, id) ?? "")) {
-      return;
-    }
-
-    runEditorCommand(editor, setImageCaption, { id, caption: text });
-  }
-
   return (
-    <Input
-      ref={inputRef}
-      aria-label="Image caption"
+    <MediaTextInput
+      label="Image caption"
       placeholder="Write a caption…"
       maxLength={IMAGE_CAPTION_MAX}
-      value={draft}
+      initial={caption ?? ""}
       autoFocus={autoFocus}
       className="text-muted-foreground mt-2 h-auto border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
-      onChange={(event) => {
-        draftRef.current = event.target.value;
-        setDraft(event.target.value);
+      normalize={(text) => cleanFileText(text, IMAGE_CAPTION_MAX) ?? ""}
+      readStored={() => storedCaption(editor, id)}
+      onCommit={(text) => {
+        runEditorCommand(editor, setImageCaption, { id, caption: text });
       }}
-      onBlur={() => {
-        commit();
-        onSettled();
-      }}
-      onKeyDown={(event) => {
-        event.stopPropagation();
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          event.preventDefault();
-          commit();
-          onSettled();
-          editor.tf.focus();
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          draftRef.current = caption ?? "";
-          setDraft(draftRef.current);
-          onSettled();
-          editor.tf.focus();
-        }
-      }}
-      onKeyUp={(event) => {
-        event.stopPropagation();
-      }}
-      onCompositionStart={(event) => {
-        event.stopPropagation();
-      }}
-      onCompositionUpdate={(event) => {
-        event.stopPropagation();
-      }}
-      onCompositionEnd={(event) => {
-        event.stopPropagation();
-      }}
-      onPaste={(event) => {
-        event.stopPropagation();
-      }}
-      onCut={(event) => {
-        event.stopPropagation();
-      }}
-      onCopy={(event) => {
-        event.stopPropagation();
-      }}
-      onMouseDown={(event) => {
-        event.stopPropagation();
-      }}
-      onPointerDown={(event) => {
-        event.stopPropagation();
-      }}
+      onSettled={onSettled}
     />
   );
 }

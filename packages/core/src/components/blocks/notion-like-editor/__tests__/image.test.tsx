@@ -521,18 +521,21 @@ describe("image commands", () => {
 describe("applyFinishedUpload", () => {
   const file: UploadedFile = { url: LOCAL, name: "a.png", size: 12, mime: "image/png" };
 
-  test("writes the upload into an empty image as one undo step", () => {
-    const editor = createEditor([image("img-1")]);
-    const before = snapshot(editor);
+  test("the first upload into an empty image is not an undo step, so one undo removes the block", () => {
+    const editor = createEditor([paragraph("Before", "p1")]);
+    editor.tf.select(caret([0, 0], 6));
+    const beforeInsert = snapshot(editor);
+    runEditorCommand(editor, insertImage, { id: "img-1" });
+    const undos = editor.history.undos.length;
     expect(applyFinishedUpload(editor, "img-1", file)).toBe(true);
     const node = imageEntry(editor, "img-1");
     expect(node.url).toBe(LOCAL);
     expect(node.name).toBe("a.png");
     expect(node.size).toBe(12);
     expect(node.mime).toBe("image/png");
-    expect(editor.history.undos.length).toBe(1);
+    expect(editor.history.undos.length).toBe(undos);
     editor.tf.undo();
-    expect(snapshot(editor)).toBe(before);
+    expect(snapshot(editor)).toBe(beforeInsert);
   });
 
   test("does nothing when the block is gone", () => {

@@ -1,7 +1,7 @@
 import { ElementApi, createSlatePlugin, type SlateEditor } from "platejs";
 import { toPlatePlugin } from "platejs/react";
 
-import { IMAGE_KEY } from "../features/editor-image";
+import { isMediaBlockType } from "../features/editor-media-source";
 import { findBlockById } from "../features/editor-synced-block";
 import type { UploadController } from "../features/editor-upload-controller";
 import { blockSelectionActive } from "./editor-block-selection";
@@ -130,10 +130,10 @@ export function selectMediaBlock(editor: SlateEditor, blockId: string): void {
   }
 }
 
-// The image block that holds the selection, or the empty string.
-export function selectedImageId(editor: SlateEditor): string {
+// The media block (image or file) that holds the selection, or the empty string.
+export function selectedMediaId(editor: SlateEditor): string {
   const entry = editor.api.above({
-    match: (node) => ElementApi.isElement(node) && node.type === IMAGE_KEY,
+    match: (node) => ElementApi.isElement(node) && isMediaBlockType(node.type),
   });
   if (entry === undefined || !ElementApi.isElement(entry[0])) {
     return "";
@@ -171,7 +171,7 @@ export function onMediaUiKeyDown(editor: SlateEditor, event: MediaKeyEvent): boo
     return false;
   }
 
-  const id = selectedImageId(editor);
+  const id = selectedMediaId(editor);
   if (id.length === 0) {
     return false;
   }

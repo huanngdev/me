@@ -485,9 +485,9 @@ describe("static renderer", () => {
     expect(editorBlocks.length).toBeGreaterThan(0);
     for (const node of editorBlocks) {
       const id = node.getAttribute("data-block-id");
-      // A bookmark and the demo image have no static parity here. The DOM test environment cannot
-      // load the image, so the editor shows its unavailable state. image.test.tsx covers both states.
-      if (id?.includes("bookmark") || id === "demo-image") {
+      // A bookmark, the demo image and the demo file have no static parity here. The static output of
+      // these blocks has no data-block-id. The image and file tests cover their static output.
+      if (id?.includes("bookmark") || id === "demo-image" || id === "demo-file") {
         continue;
       }
       const other = staticHost.querySelector(`[data-block-id="${id}"]`);

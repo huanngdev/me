@@ -1,17 +1,10 @@
 import type { TElement } from "platejs";
 
-import {
-  cleanFileName,
-  cleanFileText,
-  isHttpFileUrl,
-  sanitizeMimeType,
-  sanitizeStoredFileUrl,
-} from "./editor-file-url";
+import { cleanFileText, isHttpFileUrl, sanitizeStoredFileUrl } from "./editor-file-url";
 import {
   MEDIA_MIME_PREFIXES,
+  cleanMediaSourceFields,
   isStoredMediaAttr,
-  isStoredMediaSize,
-  isStoredMediaUrl,
 } from "./editor-media-source";
 
 // The image block. The shared source fields (url, name, size, mime) are in editor-media-source.ts.
@@ -29,7 +22,6 @@ export const IMAGE_ALIGNS = ["left", "center", "right"] as const;
 export type ImageAlign = (typeof IMAGE_ALIGNS)[number];
 
 export const IMAGE_CAPTION_MAX = 500;
-export const IMAGE_ID_MAX = 128;
 
 export const IMAGE_URL_REMOVED =
   "An image has an unsupported url. The image was cleared to an empty placeholder.";
@@ -156,43 +148,9 @@ export function sanitizeImageEmbedUrl(raw: unknown): string | null {
 // Cleans each field of a raw image, the way paste does. A stored image comes out unchanged.
 // A field that cannot be cleaned is left out and sets `dropped`.
 export function cleanImageFields(raw: Record<string, unknown>): CleanedImage {
-  const fields: ImageFields = {};
-  let dropped = false;
-
-  if ("url" in raw) {
-    const url = sanitizeStoredFileUrl(raw.url);
-    if (url !== null && isStoredMediaUrl(url)) {
-      fields.url = url;
-    } else {
-      dropped = true;
-    }
-  }
-
-  if ("name" in raw) {
-    const name = typeof raw.name === "string" ? cleanFileName(raw.name) : undefined;
-    if (name !== undefined) {
-      fields.name = name;
-    } else {
-      dropped = true;
-    }
-  }
-
-  if ("size" in raw) {
-    if (isStoredMediaSize(raw.size)) {
-      fields.size = raw.size;
-    } else {
-      dropped = true;
-    }
-  }
-
-  if ("mime" in raw) {
-    const mime = sanitizeMimeType(raw.mime);
-    if (mime !== undefined && mime.startsWith(MEDIA_MIME_PREFIXES.image)) {
-      fields.mime = mime;
-    } else {
-      dropped = true;
-    }
-  }
+  const shared = cleanMediaSourceFields(raw, MEDIA_MIME_PREFIXES.image);
+  const fields: ImageFields = { ...shared.fields };
+  let dropped = shared.dropped;
 
   if ("width" in raw) {
     if (isImageWidth(raw.width)) {

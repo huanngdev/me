@@ -45,6 +45,7 @@ export const SLASH_ITEM_LABELS: Readonly<Partial<Record<string, string>>> = {
   columns: "Columns",
   bookmark: "Bookmark",
   image: "Image",
+  file: "File",
   "page-link": "Page link",
   mention: "Mention",
   link: "Link",
@@ -154,7 +155,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     label: "Image",
     entry: [
       { via: "slash", id: "image" },
-      { via: "paste", note: "Image files pasted or dropped, up to 10 at a time" },
+      { via: "paste", note: "Image files pasted or dropped, with other files, up to 10 at a time" },
       { via: "pointer", note: "Click for actions, drag the edge handles to resize" },
       { via: "toolbar", id: "block.image.align", note: "Align left, center and right" },
       { via: "toolbar", id: "block.image.caption", note: "Caption" },
@@ -171,6 +172,28 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       "Caption up to 500 characters",
       "Without a file adapter, only http, https and root-relative urls show an image",
       "Arrow keys resize by 5, or by 1 with Shift; Home and End set 10 and 100",
+    ],
+  },
+  {
+    key: "file",
+    kind: "block",
+    label: "File",
+    entry: [
+      { via: "slash", id: "file" },
+      { via: "paste", note: "Files pasted or dropped, other than images, up to 10 at a time" },
+      { via: "pointer", note: "Click for actions: Download, Rename, Replace and Delete" },
+      { via: "toolbar", id: "block.file.rename", note: "Rename" },
+      { via: "toolbar", id: "block.file.set-source", note: "Replace" },
+      { via: "toolbar", id: "block.file.remove", note: "Delete" },
+      { via: "host", note: "A file adapter stores picked and pasted files" },
+    ],
+    static: "rendered",
+    demoBlockId: "demo-file",
+    limits: [
+      "Links are http or https only",
+      "Name up to 255 characters; a link without a name takes its name from the url",
+      "Any mime type; the icon follows the mime type, then the extension",
+      "Without a file adapter, only http, https and root-relative urls open",
     ],
   },
   {
@@ -771,7 +794,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     limits: [
       "Up to 2000 blocks and 1000000 text characters per paste",
       "HTML over 2000000 characters is dropped and plain text is used",
-      "Image files are stored with a file adapter, up to 10 per paste or drop; other files and media are not stored",
+      "Files are stored with a file adapter, up to 10 per paste or drop; other media is not stored",
     ],
   },
   {

@@ -7,13 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { formatFileSize } from "../../lib/features/editor-file-url";
 import { EditorIconButton, EditorTextButton } from "../ui/block-toolbar";
-
-// The frame shared by the placeholder, uploading and failed rows of a media block. A single-line row
-// is about 44px tall. The icon is the first child, then the text column, then the actions.
-export const MEDIA_ROW_CLASS =
-  "bg-muted text-foreground flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm";
-
-export const MEDIA_ICON_CLASS = "text-muted-foreground size-4 shrink-0";
+import { MEDIA_ICON_CLASS, MEDIA_ROW_CLASS } from "./media-classes";
 
 // The empty block. Editable, it is a button named by its label. Read-only, it is plain text.
 export function MediaPlaceholderRow({
@@ -62,11 +56,13 @@ export function MediaUploadingRow({
   name,
   size,
   progress,
+  icon = <ImageIcon aria-hidden="true" className={MEDIA_ICON_CLASS} />,
   onCancel,
 }: {
   name: string;
   size: number;
   progress: number;
+  icon?: ReactNode;
   onCancel: () => void;
 }) {
   const [announcement] = useState(() => `Uploading ${name}`);
@@ -77,7 +73,7 @@ export function MediaUploadingRow({
       <span className="sr-only" aria-live="polite">
         {announcement}
       </span>
-      <ImageIcon aria-hidden="true" className={MEDIA_ICON_CLASS} />
+      {icon}
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="min-w-0 truncate">{name}</span>
         <span className="text-muted-foreground text-xs">
@@ -97,16 +93,18 @@ export function MediaUploadingRow({
 
 export function MediaFailedRow({
   message,
+  icon = <TriangleAlert aria-hidden="true" className={MEDIA_ICON_CLASS} />,
   onRetry,
   onRemove,
 }: {
   message: string;
+  icon?: ReactNode;
   onRetry: () => void;
   onRemove: () => void;
 }) {
   return (
     <div className={MEDIA_ROW_CLASS} data-media-row="failed">
-      <TriangleAlert aria-hidden="true" className={MEDIA_ICON_CLASS} />
+      {icon}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span>Upload failed</span>
         <span className="text-muted-foreground min-w-0 truncate text-xs">{message}</span>

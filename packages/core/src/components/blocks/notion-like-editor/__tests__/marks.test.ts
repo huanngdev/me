@@ -450,7 +450,8 @@ describe.each(MARKS)("%s", (_name, mark) => {
 
     expect(parsed.repairs).toEqual([]);
     // Top-level blocks. Paragraphs nested in the quote, callout, toggle, and columns are not counted.
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(103);
+    // 105 blocks: the files heading and the file block were added after the image.
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(105);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });

@@ -133,13 +133,19 @@ describe("legacy media documents", () => {
     expectLegacyKept("audio", { url: "/tone.wav", mimeType: "audio/wav" });
   });
 
-  test("a stored file node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("file", {
+  // "file" is a block now. The old attributes mimeType and byteSize are not file attributes, so a
+  // stored file with them is unsupported and kept raw, and the message names the attribute.
+  test("a stored file node with the old mimeType and byteSize attributes is unsupported and kept raw", () => {
+    const raw = legacyDocument("file", {
       url: "/notes.pdf",
       mimeType: "application/pdf",
       name: "notes.pdf",
       byteSize: 591,
     });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes('"mimeType"'))).toBe(true);
+    expect(raw.content.map((node) => node.type)).toEqual(["p", "file"]);
   });
 
   test("a stored media_embed node is unsupported and the raw document is kept", () => {

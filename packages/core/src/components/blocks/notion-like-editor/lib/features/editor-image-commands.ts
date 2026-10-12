@@ -1,11 +1,10 @@
-import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
+import type { SlateEditor, TElement } from "platejs";
 
 import type { EditorCommand } from "../commands/editor-commands";
 import { cleanFileText } from "./editor-file-url";
 import type { UploadedFile } from "./editor-file-upload";
 import {
   IMAGE_CAPTION_MAX,
-  IMAGE_ID_MAX,
   IMAGE_KEY,
   imageElement,
   isImageAlign,
@@ -17,15 +16,13 @@ import {
   MEDIA_MIME_PREFIXES,
   MEDIA_SOURCE_ATTRS,
   applyMediaSource,
+  isEmbedLink,
   mediaBlockEntry,
+  placeNewMediaBlocks,
+  removeMediaBlockAt,
   sanitizeMediaSource,
   type MediaSource,
 } from "./editor-media-source";
-
-// An embed link has only a url. Any name, size or mime makes the value an upload result.
-function isEmbedLink(file: UploadedFile): boolean {
-  return file.name === undefined && file.size === undefined && file.mime === undefined;
-}
 
 function embedSource(file: UploadedFile): MediaSource | null {
   const url = sanitizeImageEmbedUrl(file.url);
@@ -37,64 +34,13 @@ function writableImage(editor: SlateEditor, id: string): [TElement, number[]] | 
   return entry !== undefined && entry[0].type === IMAGE_KEY ? entry : undefined;
 }
 
-// A new id is not empty, is short enough, and is not used by any block, void or not.
-function isNewBlockId(editor: SlateEditor, id: unknown): id is string {
-  if (typeof id !== "string" || id.length === 0 || id.length > IMAGE_ID_MAX) {
-    return false;
-  }
-
-  for (const [node] of editor.api.nodes({
-    at: [],
-    voids: true,
-    match: (candidate) => ElementApi.isElement(candidate) && candidate.id === id,
-  })) {
-    if (ElementApi.isElement(node)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// Mirrors the bookmark insert: an empty top-level paragraph is replaced, and anything else gets the
-// blocks below the current top-level block. The last new block is selected.
-function placeImages(editor: SlateEditor, elements: TElement[]): boolean {
-  const entry = editor.api.block({ highest: true });
-  if (entry === undefined || !ElementApi.isElement(entry[0])) {
-    return false;
-  }
-
-  const [node, path] = entry;
-  const replaceEmpty =
-    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
-  if (replaceEmpty) {
-    editor.tf.removeNodes({ at: path });
-    editor.tf.insertNodes(elements, { at: path, select: true });
-    return true;
-  }
-
-  const at = PathApi.next(path);
-  if (at === undefined) {
-    return false;
-  }
-
-  editor.tf.insertNodes(elements, { at, select: true });
-  return true;
-}
-
-// The payload id is the new block's id. The caller picks it, so it knows the id after the insert.
-// Refused when the id is empty, too long, or already used.
+// One image block with this id, placed like a bookmark: see placeMediaBlocks. The id must be new.
 export const insertImage: EditorCommand<{ id: string }> = {
   id: "block.insert.image",
   label: "Image",
   group: "insert",
-  run: (editor, { id }) => {
-    if (!isNewBlockId(editor, id)) {
-      return false;
-    }
-
-    return placeImages(editor, [imageElement({}, id)]);
-  },
+  run: (editor, { id }) =>
+    placeNewMediaBlocks(editor, [{ id, element: imageElement({}, id) }], false),
 };
 
 // One image block per id, in order, as one undo step. Ids must be new and unique. With
@@ -103,22 +49,12 @@ export const insertImages: EditorCommand<{ ids: string[]; replaceSelection?: boo
   id: "block.insert.images",
   label: "Image",
   group: "insert",
-  run: (editor, { ids, replaceSelection = false }) => {
-    if (ids.length === 0 || new Set(ids).size !== ids.length) {
-      return false;
-    }
-    if (!ids.every((id) => isNewBlockId(editor, id))) {
-      return false;
-    }
-
-    if (replaceSelection && editor.selection !== null && !editor.api.isCollapsed()) {
-      editor.tf.deleteFragment();
-    }
-    return placeImages(
+  run: (editor, { ids, replaceSelection = false }) =>
+    placeNewMediaBlocks(
       editor,
-      ids.map((id) => imageElement({}, id)),
-    );
-  },
+      ids.map((id) => ({ id, element: imageElement({}, id) })),
+      replaceSelection,
+    ),
 };
 
 // A url-only value is an embed link and must be http or https. Any other value is an upload result.
@@ -233,13 +169,7 @@ export const removeImage: EditorCommand<{ id: string }> = {
       return false;
     }
 
-    editor.tf.removeNodes({ at: entry[1] });
-    if (editor.children.length === 0) {
-      editor.tf.insertNodes(
-        { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
-        { at: [0], select: true },
-      );
-    }
+    removeMediaBlockAt(editor, entry[1]);
     return true;
   },
 };

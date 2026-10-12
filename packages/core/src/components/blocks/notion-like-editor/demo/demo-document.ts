@@ -1268,6 +1268,20 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-files",
+    children: [{ text: "Files" }],
+  },
+  {
+    type: "file",
+    id: "demo-file",
+    url: "/blocks/notion-like-editor/file-demo.txt",
+    name: "file-demo.txt",
+    size: 113,
+    mime: "text/plain",
+    children: [{ text: "" }],
+  },
+  {
     type: "footnote_def",
     id: "demo-footnote-def",
     footnoteId: "demo-footnote",

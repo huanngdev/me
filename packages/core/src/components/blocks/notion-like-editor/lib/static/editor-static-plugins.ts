@@ -38,6 +38,7 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
@@ -68,6 +69,7 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
@@ -153,6 +155,12 @@ const imagePlugin = createSlatePlugin({
   key: IMAGE_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: ImageStatic },
+});
+
+const filePlugin = createSlatePlugin({
+  key: FILE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: FileStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -278,6 +286,7 @@ export const editorStaticPlugins = [
   BaseColumnItemPlugin.configure({ render: { node: ColumnStatic } }),
   bookmarkPlugin,
   imagePlugin,
+  filePlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,

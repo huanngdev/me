@@ -63,10 +63,15 @@ import {
   imageElement,
 } from "../features/editor-image";
 import {
+  FILE_ATTRS_CLEANED,
+  FILE_KEY,
+  cleanFileFields,
+  fileElement,
+} from "../features/editor-file";
+import {
   MEDIA_FILE_LIMIT,
   MEDIA_FILE_LIMIT_MESSAGE,
-  insertImageFiles,
-  mediaKindForFile,
+  insertMediaFiles,
 } from "../features/editor-media";
 import { uploadControllerOf } from "../plugins/editor-media-ui";
 import {
@@ -328,7 +333,6 @@ function isDroppedMediaType(type: string): boolean {
     type === KEYS.img ||
     type === KEYS.video ||
     type === KEYS.audio ||
-    type === KEYS.file ||
     type === KEYS.mediaEmbed ||
     type === "pdf" ||
     type === "unsupported_media"
@@ -391,6 +395,16 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [imageElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the file and its valid fields, as pastedImage does for an image.
+function pastedFile(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanFileFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: FILE_ATTRS_CLEANED });
+  }
+
+  return [fileElement(cleaned.fields, takeId(node, seen))];
 }
 
 function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
@@ -1034,6 +1048,10 @@ function expandBlock(
       return pastedImage(node, seen);
     }
 
+    if (node.type === FILE_KEY) {
+      return pastedFile(node, seen);
+    }
+
     if (node.type === PAGE_LINK_KEY) {
       return pastedPageLink(node, seen);
     }
@@ -1638,10 +1656,10 @@ function isFileValue(value: unknown): value is File {
   return value instanceof File;
 }
 
-// Image files become image blocks when an upload adapter is set. Each block is placed after the
-// current block, as one undo step, and its upload starts. Returns false when no image was inserted,
-// so the caller keeps the existing notice.
-function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean {
+// Files become media blocks when an upload adapter is set: an image file an image block, and every
+// other file a file block. Each block is placed after the current block, as one undo step, and its
+// upload starts. Returns false when no block was inserted, so the caller keeps the existing notice.
+function insertTransferFiles(editor: SlateEditor, data: DataTransfer): boolean {
   const controller = uploadControllerOf(editor);
   if (controller === null) {
     return false;
@@ -1649,16 +1667,12 @@ function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean 
 
   const listed: unknown[] = Array.from(data.files);
   const files = listed.filter(isFileValue);
-  const images = files.filter((file) => mediaKindForFile(file) === "image");
-  if (images.length === 0) {
+  if (files.length === 0) {
     return false;
   }
 
   const notices: string[] = [];
-  if (listed.length > images.length) {
-    notices.push(MEDIA_NOT_SUPPORTED);
-  }
-  if (images.length > MEDIA_FILE_LIMIT) {
+  if (files.length > MEDIA_FILE_LIMIT) {
     notices.push(MEDIA_FILE_LIMIT_MESSAGE);
   }
 
@@ -1670,7 +1684,7 @@ function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean 
     editor.tf.select(end);
   }
 
-  const inserted = insertImageFiles(editor, controller, images.slice(0, MEDIA_FILE_LIMIT));
+  const inserted = insertMediaFiles(editor, controller, files.slice(0, MEDIA_FILE_LIMIT));
   if (!inserted) {
     return false;
   }
@@ -1741,7 +1755,7 @@ export const unsupportedMediaPlugin = toPlatePlugin(
           return;
         }
 
-        if (insertTransferImages(editor, data)) {
+        if (insertTransferFiles(editor, data)) {
           return;
         }
 
@@ -1768,7 +1782,7 @@ export const unsupportedMediaPlugin = toPlatePlugin(
 
         event.preventDefault();
         selectDropPoint(editor, event);
-        if (!insertTransferImages(editor, data)) {
+        if (!insertTransferFiles(editor, data)) {
           setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
         }
         return true;

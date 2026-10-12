@@ -1,4 +1,4 @@
-import { ElementApi, type SlateEditor, type TElement } from "platejs";
+import { ElementApi, KEYS, PathApi, nanoid, type SlateEditor, type TElement } from "platejs";
 
 import {
   cleanFileName,
@@ -6,12 +6,16 @@ import {
   sanitizeStoredFileUrl,
   sanitizeUploadedFile,
 } from "./editor-file-url";
+import type { UploadedFile } from "./editor-file-upload";
 
 // Media block types and the mime prefix each one accepts. Every key is a block type.
-// The image block reads its prefix from here.
-export const MEDIA_MIME_PREFIXES = { image: "image/" } as const;
+// An empty prefix accepts any mime type. The image and file blocks read their prefixes from here.
+export const MEDIA_MIME_PREFIXES = { image: "image/", file: "" } as const;
 
 const MEDIA_PREFIX_BY_TYPE = new Map<string, string>(Object.entries(MEDIA_MIME_PREFIXES));
+
+// The longest id a media block can have. Image and file blocks share it.
+export const MEDIA_ID_MAX = 128;
 
 // The attributes a media block stores for its file. Nothing else about the file is stored.
 export const MEDIA_SOURCE_ATTRS = ["url", "name", "size", "mime"] as const;
@@ -22,6 +26,10 @@ export type MediaSource = {
   size?: number;
   mime?: string;
 };
+
+export function isMediaBlockType(type: string): boolean {
+  return MEDIA_PREFIX_BY_TYPE.has(type);
+}
 
 // A stored url is a valid stored value and never a blob url, which only exists in one browser tab.
 export function isStoredMediaUrl(value: unknown): value is string {
@@ -59,6 +67,53 @@ export function isStoredMediaAttr(attr: string, value: unknown, prefix: string):
   }
 }
 
+// Cleans the shared source fields of a raw media block, the way paste does. A field that cannot be
+// cleaned is left out and sets `dropped`. A mime type must start with `prefix`.
+export function cleanMediaSourceFields(
+  raw: Record<string, unknown>,
+  prefix: string,
+): { fields: Partial<MediaSource>; dropped: boolean } {
+  const fields: Partial<MediaSource> = {};
+  let dropped = false;
+
+  if ("url" in raw) {
+    const url = sanitizeStoredFileUrl(raw.url);
+    if (url !== null && isStoredMediaUrl(url)) {
+      fields.url = url;
+    } else {
+      dropped = true;
+    }
+  }
+
+  if ("name" in raw) {
+    const name = typeof raw.name === "string" ? cleanFileName(raw.name) : undefined;
+    if (name !== undefined) {
+      fields.name = name;
+    } else {
+      dropped = true;
+    }
+  }
+
+  if ("size" in raw) {
+    if (isStoredMediaSize(raw.size)) {
+      fields.size = raw.size;
+    } else {
+      dropped = true;
+    }
+  }
+
+  if ("mime" in raw) {
+    const mime = sanitizeMimeType(raw.mime);
+    if (mime !== undefined && mime.startsWith(prefix)) {
+      fields.mime = mime;
+    } else {
+      dropped = true;
+    }
+  }
+
+  return { fields, dropped };
+}
+
 // Turns a raw upload result or embed value into a stored source. A url that is not storable gives
 // null. An invalid name, size or mime is dropped, and the mime must start with `prefix`.
 export function sanitizeMediaSource(raw: unknown, prefix: string): MediaSource | null {
@@ -78,6 +133,11 @@ export function sanitizeMediaSource(raw: unknown, prefix: string): MediaSource |
     source.mime = file.mime;
   }
   return source;
+}
+
+// A url-only value is an embed link. Any name, size or mime makes the value an upload result.
+export function isEmbedLink(file: UploadedFile): boolean {
+  return file.name === undefined && file.size === undefined && file.mime === undefined;
 }
 
 // The block with this id, when it is a media block and the editor is writable.
@@ -125,5 +185,84 @@ export function applyMediaSource(editor: SlateEditor, path: number[], source: Me
   editor.tf.setNodes(props, { at: path });
   if (drop.length > 0) {
     editor.tf.unsetNodes([...drop], { at: path });
+  }
+}
+
+// A new id is not empty, is short enough, and is not used by any block, void or not.
+export function isNewMediaBlockId(editor: SlateEditor, id: unknown): id is string {
+  if (typeof id !== "string" || id.length === 0 || id.length > MEDIA_ID_MAX) {
+    return false;
+  }
+
+  for (const [node] of editor.api.nodes({
+    at: [],
+    voids: true,
+    match: (candidate) => ElementApi.isElement(candidate) && candidate.id === id,
+  })) {
+    if (ElementApi.isElement(node)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Mirrors the bookmark insert: an empty top-level paragraph is replaced, and anything else gets the
+// blocks below the current top-level block. The last new block is selected.
+function placeMediaBlocks(editor: SlateEditor, elements: TElement[]): boolean {
+  const entry = editor.api.block({ highest: true });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return false;
+  }
+
+  const [node, path] = entry;
+  const replaceEmpty =
+    node.type === KEYS.p && editor.api.string(node).length === 0 && path.length === 1;
+  if (replaceEmpty) {
+    editor.tf.removeNodes({ at: path });
+    editor.tf.insertNodes(elements, { at: path, select: true });
+    return true;
+  }
+
+  const at = PathApi.next(path);
+  if (at === undefined) {
+    return false;
+  }
+
+  editor.tf.insertNodes(elements, { at, select: true });
+  return true;
+}
+
+// One new block per entry, in order, as one undo step. Ids must be new and unique. With
+// `replaceSelection`, an expanded selection is deleted first, in the same step.
+export function placeNewMediaBlocks(
+  editor: SlateEditor,
+  blocks: readonly { id: string; element: TElement }[],
+  replaceSelection: boolean,
+): boolean {
+  if (blocks.length === 0 || new Set(blocks.map((block) => block.id)).size !== blocks.length) {
+    return false;
+  }
+  if (!blocks.every((block) => isNewMediaBlockId(editor, block.id))) {
+    return false;
+  }
+
+  if (replaceSelection && editor.selection !== null && !editor.api.isCollapsed()) {
+    editor.tf.deleteFragment();
+  }
+  return placeMediaBlocks(
+    editor,
+    blocks.map((block) => block.element),
+  );
+}
+
+// Removes a media block. An empty document gets an empty paragraph, as the bookmark remove does.
+export function removeMediaBlockAt(editor: SlateEditor, path: number[]): void {
+  editor.tf.removeNodes({ at: path });
+  if (editor.children.length === 0) {
+    editor.tf.insertNodes(
+      { type: KEYS.p, id: nanoid(), children: [{ text: "" }] },
+      { at: [0], select: true },
+    );
   }
 }

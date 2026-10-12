@@ -1,0 +1,2 @@
+A file block links to a file with its name and size.
+Open its actions to download, rename, replace or delete it.

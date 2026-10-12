@@ -15,7 +15,7 @@ import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
 // The words and limits one media block shows in its source popover.
 export type MediaSourceConfig = {
   label: string; // aria-label of the popover
-  accept: string; // the file input's accept list
+  accept?: string; // the file input's accept list. Absent means any file.
   uploadLabel: string;
   embedPlaceholder: string;
   embedLabel: string;

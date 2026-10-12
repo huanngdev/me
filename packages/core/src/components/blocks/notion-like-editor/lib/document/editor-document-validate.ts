@@ -29,7 +29,9 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { isEditorValue, repairColumnContent } from "./editor-column-repair";
+import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
+import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
@@ -274,11 +276,11 @@ function walkElement(
 
     const attr = value[key];
     // An unknown block is already unsupported. A known block with a blob or data url stays invalid.
-    // An image is the exception: its bad url is repaired to a placeholder, like any bad attribute.
+    // A media block is the exception: its bad url is repaired to a placeholder, like any bad attribute.
     if (
       allowed !== undefined &&
       type !== KEYS.link &&
-      type !== IMAGE_KEY &&
+      !isMediaBlockType(type) &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -415,6 +417,9 @@ function repairAttrMessage(path: number[], type: string, key: string, value: unk
   const label = markValueLabel(value);
   if (type === IMAGE_KEY && key === "url") {
     return IMAGE_URL_REMOVED;
+  }
+  if (type === FILE_KEY && key === "url") {
+    return FILE_URL_REMOVED;
   }
 
   if (key === "lang" && value === "plaintext") {

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   AlignCenter,
   AlignLeft,
@@ -8,7 +7,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -18,13 +17,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { removeImage, setImageAlign } from "../../lib/features/editor-image-commands";
 import type { ImageAlign } from "../../lib/features/editor-image";
-import {
-  closeMediaActions,
-  mediaActionsBlockId,
-  mediaUiPlugin,
-  selectedImageId,
-} from "../../lib/plugins/editor-media-ui";
+import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
+import { useMediaActionsLifecycle } from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
 import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
 
@@ -60,28 +55,8 @@ export function ImageToolbarPopover({
     () => elementRect(readAnchor()),
     () => anchorContext(readAnchor()),
   );
-  const selection = useEditorSelector((current) => current.selection, []);
-
-  // Leaving the block, or entering read-only mode, closes the popover.
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    if (readOnly || selection === null || selectedImageId(editor) !== id) {
-      closeMediaActions(editor);
-    }
-  }, [editor, id, open, readOnly, selection]);
-
-  // The block was removed while its popover was open.
-  useEffect(
-    () => () => {
-      if (mediaActionsBlockId(editor) === id) {
-        closeMediaActions(editor);
-      }
-    },
-    [editor, id],
-  );
+  // Leaving the block, entering read-only mode, or removing the block closes the popover.
+  useMediaActionsLifecycle(id, open);
 
   if (readOnly || !open) {
     return null;

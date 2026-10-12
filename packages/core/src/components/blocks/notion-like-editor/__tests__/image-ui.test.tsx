@@ -25,11 +25,12 @@ import {
   setImageCaption,
   setImageWidth,
 } from "../lib/features/editor-image-commands";
+import { FILE_KEY } from "../lib/features/editor-file";
 import { MEDIA_FILE_LIMIT_MESSAGE, mediaKindForFile } from "../lib/features/editor-media";
 import { BOOKMARK_KEY } from "../lib/features/editor-bookmark-url";
 import { MEDIA_NOT_SUPPORTED, pasteRepairsOf } from "../lib/paste/editor-paste";
 import {
-  selectedImageId,
+  selectedMediaId,
   mediaActionsBlockId,
   mediaSourceBlockId,
   onMediaUiKeyDown,
@@ -246,12 +247,12 @@ function fileOf(name: string, size = 12): File {
 }
 
 describe("media kind routing", () => {
-  test("only image types route to the image kind", () => {
+  test("image types route to the image kind, and every other type to the file kind", () => {
     expect(mediaKindForFile({ type: "image/png" })).toBe("image");
     expect(mediaKindForFile({ type: "image/webp" })).toBe("image");
-    expect(mediaKindForFile({ type: "application/pdf" })).toBeNull();
-    expect(mediaKindForFile({ type: "text/plain" })).toBeNull();
-    expect(mediaKindForFile({ type: "" })).toBeNull();
+    expect(mediaKindForFile({ type: "application/pdf" })).toBe("file");
+    expect(mediaKindForFile({ type: "text/plain" })).toBe("file");
+    expect(mediaKindForFile({ type: "" })).toBe("file");
   });
 });
 
@@ -682,7 +683,7 @@ describe("paste and drop of image files", () => {
     await mounted.cleanup();
   });
 
-  test("a non-image file is skipped with the existing notice, and images still insert", async () => {
+  test("a non-image file becomes a file block, in order with the images, and no notice is shown", async () => {
     const mounted = await mount([paragraph("Stay", "p1")], { adapter: namedAdapter() });
     mounted.editor.tf.select(caret([0, 0], 4));
     await act(async () => {
@@ -692,12 +693,13 @@ describe("paste and drop of image files", () => {
       ]);
     });
     await settle();
-    expect(mounted.editor.children.filter((node) => field(node, "type") === IMAGE_KEY).length).toBe(
-      1,
-    );
-    expect(pasteRepairsOf(mounted.editor).map((repair) => repair.message)).toEqual([
-      MEDIA_NOT_SUPPORTED,
+    expect(mounted.editor.children.map((node) => field(node, "type"))).toEqual([
+      KEYS.p,
+      FILE_KEY,
+      IMAGE_KEY,
     ]);
+    expect(field(mounted.editor.children[1], "url")).toBe("https://cdn.example.com/notes.pdf");
+    expect(pasteRepairsOf(mounted.editor)).toEqual([]);
     await mounted.cleanup();
   });
 
@@ -1179,8 +1181,108 @@ describe("first click on an unfocused editor", () => {
 
     await realClick(blockHost(mounted.host, "img-1")?.querySelector("img") ?? null);
     expect(document.querySelector("[data-image-actions]") !== null).toBe(true);
-    expect(selectedImageId(mounted.editor)).toBe("img-1");
+    expect(selectedMediaId(mounted.editor)).toBe("img-1");
     expect(mounted.editor.selection !== null).toBe(true);
+    await mounted.cleanup();
+  });
+});
+
+describe("the first upload into a block is not an undo step", () => {
+  function pasteImageFiles(editor: SlateEditor, files: File[]): void {
+    const data = new DataTransfer();
+    data.setData("text/plain", "");
+    Object.defineProperty(data, "files", { configurable: true, value: files });
+    editor.tf.insertData(data);
+  }
+
+  test("paste three files and wait: one undo removes all three, and redo brings back three empty placeholders", async () => {
+    const mounted = await mount([paragraph("Stay", "p1")], { adapter: namedAdapter() });
+    mounted.editor.tf.select(caret([0, 0], 4));
+    await act(async () => {
+      pasteImageFiles(mounted.editor, [fileOf("one.png"), fileOf("two.png"), fileOf("three.png")]);
+    });
+    await settle();
+    expect(mounted.editor.children.slice(1).every((node) => field(node, "url") !== undefined)).toBe(
+      true,
+    );
+
+    await act(async () => {
+      mounted.editor.tf.undo();
+    });
+    await settle();
+    expect(mounted.editor.children.map((node) => field(node, "type"))).toEqual([KEYS.p]);
+
+    await act(async () => {
+      mounted.editor.tf.redo();
+    });
+    await settle();
+    expect(mounted.editor.children.map((node) => field(node, "type"))).toEqual([
+      KEYS.p,
+      IMAGE_KEY,
+      IMAGE_KEY,
+      IMAGE_KEY,
+    ]);
+    expect(mounted.editor.children.slice(1).every((node) => field(node, "url") === undefined)).toBe(
+      true,
+    );
+    expect(document.querySelectorAll("[data-media-placeholder]").length).toBe(3);
+    expect(document.querySelector('[data-media-row="uploading"]')).toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("Replace with an upload is one undo step, and undo returns the old url", async () => {
+    const { adapter, calls } = controlledAdapter();
+    const mounted = await mount([paragraph("Before", "p1"), image("img-1", { url: PNG })], {
+      adapter,
+    });
+    await settle();
+    await act(async () => {
+      openMediaSource(mounted.editor, "img-1");
+    });
+    await chooseFile(fileOf("new.png"));
+    await act(async () => {
+      calls[0]?.resolve({ url: "https://cdn.example.com/new.png" });
+    });
+    await settle();
+    expect(imageNode(mounted.editor, "img-1")?.url).toBe("https://cdn.example.com/new.png");
+
+    await act(async () => {
+      mounted.editor.tf.undo();
+    });
+    await settle();
+    expect(imageNode(mounted.editor, "img-1")?.url).toBe(PNG);
+    await mounted.cleanup();
+  });
+
+  test("slash Image, then an upload: one undo removes the block and restores the slash line", async () => {
+    const { adapter, calls } = controlledAdapter();
+    const mounted = await mount([paragraph("", "target"), paragraph("below", "below")], {
+      adapter,
+    });
+    await settle();
+    mounted.editor.tf.select(caret([0, 0], 0));
+    await act(async () => {
+      typeSlash(mounted.editor, "image");
+    });
+    const before = JSON.stringify(mounted.editor.children);
+    await act(async () => {
+      runEditorCommand(mounted.editor, chooseSlashItem, "image");
+    });
+    const id = mediaSourceBlockId(mounted.editor);
+    await settle();
+    await chooseFile(fileOf("slash.png"));
+    await act(async () => {
+      calls[0]?.resolve({ url: "https://cdn.example.com/slash.png" });
+    });
+    await settle();
+    expect(imageNode(mounted.editor, id)?.url).toBe("https://cdn.example.com/slash.png");
+
+    await act(async () => {
+      mounted.editor.tf.undo();
+    });
+    await settle();
+    expect(mounted.editor.children.some((node) => field(node, "id") === id)).toBe(false);
+    expect(JSON.stringify(mounted.editor.children)).toBe(before);
     await mounted.cleanup();
   });
 });

@@ -11,6 +11,7 @@ import { toPlatePlugin } from "platejs/react";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
 import { applyBlockTurn } from "../features/editor-block-menu";
+import { FILE_KEY, fileElement } from "../features/editor-file";
 import { IMAGE_KEY, imageElement } from "../features/editor-image";
 import { insertPickedBlock } from "../features/editor-block-picker";
 import {
@@ -206,7 +207,11 @@ function chooseSlash(editor: SlateEditor, id: string): void {
     return;
   }
   if (item.image === true) {
-    insertImageBesideSlash(editor, session.anchor.blockId);
+    insertMediaBesideSlash(editor, session.anchor.blockId, IMAGE_KEY);
+    return;
+  }
+  if (item.file === true) {
+    insertMediaBesideSlash(editor, session.anchor.blockId, FILE_KEY);
     return;
   }
   const block = item.block;
@@ -226,10 +231,15 @@ function chooseSlash(editor: SlateEditor, id: string): void {
   insertPickedBlock(editor, session.blockPath, block, { batch: false });
 }
 
-// An empty image block goes beside the slash line, and its source popover opens for it.
-function insertImageBesideSlash(editor: SlateEditor, blockId: string): void {
+// An empty image or file block goes beside the slash line, and its source popover opens for it.
+function insertMediaBesideSlash(
+  editor: SlateEditor,
+  blockId: string,
+  type: typeof IMAGE_KEY | typeof FILE_KEY,
+): void {
   const id = nanoid();
-  if (!placeBlockBesideSlash(editor, blockId, imageElement({}, id), IMAGE_KEY, true)) {
+  const element = type === FILE_KEY ? fileElement({}, id) : imageElement({}, id);
+  if (!placeBlockBesideSlash(editor, blockId, element, type, true)) {
     return;
   }
 

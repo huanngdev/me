@@ -14,6 +14,7 @@ import {
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
+import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
@@ -498,6 +499,13 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
   },
+  // Custom void, like the image without its width, alignment or caption. A bad url makes a placeholder.
+  {
+    type: FILE_KEY,
+    attrs: ["id", "url", "name", "size", "mime"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime"],
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -555,6 +563,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       BOOKMARK_KEY,
       IMAGE_KEY,
+      FILE_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -641,6 +650,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.codeBlock,
       BOOKMARK_KEY,
       IMAGE_KEY,
+      FILE_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -993,6 +1003,10 @@ export function allowedElementAttrValues(
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
   if (type === IMAGE_KEY) {
     return isStoredImageAttr(attr, value);
+  }
+
+  if (type === FILE_KEY) {
+    return isStoredFileAttr(attr, value);
   }
 
   if (type === KEYS.link && attr === "url") {

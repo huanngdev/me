@@ -2561,6 +2561,7 @@ import {
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
+import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
@@ -3045,6 +3046,13 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
   },
+  // Custom void, like the image without its width, alignment or caption. A bad url makes a placeholder.
+  {
+    type: FILE_KEY,
+    attrs: ["id", "url", "name", "size", "mime"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime"],
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -3102,6 +3110,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       BOOKMARK_KEY,
       IMAGE_KEY,
+      FILE_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -3188,6 +3197,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.codeBlock,
       BOOKMARK_KEY,
       IMAGE_KEY,
+      FILE_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -3542,6 +3552,10 @@ export function isAllowedElementAttrValue(type: string, attr: string, value: unk
     return isStoredImageAttr(attr, value);
   }
 
+  if (type === FILE_KEY) {
+    return isStoredFileAttr(attr, value);
+  }
+
   if (type === KEYS.link && attr === "url") {
     return typeof value === "string" && sanitizeLinkUrl(value) === value;
   }
@@ -3839,7 +3853,9 @@ import {
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
 import { isEditorValue, repairColumnContent } from "./editor-column-repair";
+import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
+import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
@@ -4084,11 +4100,11 @@ function walkElement(
 
     const attr = value[key];
     // An unknown block is already unsupported. A known block with a blob or data url stays invalid.
-    // An image is the exception: its bad url is repaired to a placeholder, like any bad attribute.
+    // A media block is the exception: its bad url is repaired to a placeholder, like any bad attribute.
     if (
       allowed !== undefined &&
       type !== KEYS.link &&
-      type !== IMAGE_KEY &&
+      !isMediaBlockType(type) &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -4225,6 +4241,9 @@ function repairAttrMessage(path: number[], type: string, key: string, value: unk
   const label = markValueLabel(value);
   if (type === IMAGE_KEY && key === "url") {
     return IMAGE_URL_REMOVED;
+  }
+  if (type === FILE_KEY && key === "url") {
+    return FILE_URL_REMOVED;
   }
 
   if (key === "lang" && value === "plaintext") {
@@ -4545,10 +4564,15 @@ import {
   imageElement,
 } from "../features/editor-image";
 import {
+  FILE_ATTRS_CLEANED,
+  FILE_KEY,
+  cleanFileFields,
+  fileElement,
+} from "../features/editor-file";
+import {
   MEDIA_FILE_LIMIT,
   MEDIA_FILE_LIMIT_MESSAGE,
-  insertImageFiles,
-  mediaKindForFile,
+  insertMediaFiles,
 } from "../features/editor-media";
 import { uploadControllerOf } from "../plugins/editor-media-ui";
 import {
@@ -4810,7 +4834,6 @@ function isDroppedMediaType(type: string): boolean {
     type === KEYS.img ||
     type === KEYS.video ||
     type === KEYS.audio ||
-    type === KEYS.file ||
     type === KEYS.mediaEmbed ||
     type === "pdf" ||
     type === "unsupported_media"
@@ -4873,6 +4896,16 @@ function pastedImage(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [imageElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the file and its valid fields, as pastedImage does for an image.
+function pastedFile(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanFileFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: FILE_ATTRS_CLEANED });
+  }
+
+  return [fileElement(cleaned.fields, takeId(node, seen))];
 }
 
 function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
@@ -5516,6 +5549,10 @@ function expandBlock(
       return pastedImage(node, seen);
     }
 
+    if (node.type === FILE_KEY) {
+      return pastedFile(node, seen);
+    }
+
     if (node.type === PAGE_LINK_KEY) {
       return pastedPageLink(node, seen);
     }
@@ -6120,10 +6157,10 @@ function isFileValue(value: unknown): value is File {
   return value instanceof File;
 }
 
-// Image files become image blocks when an upload adapter is set. Each block is placed after the
-// current block, as one undo step, and its upload starts. Returns false when no image was inserted,
-// so the caller keeps the existing notice.
-function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean {
+// Files become media blocks when an upload adapter is set: an image file an image block, and every
+// other file a file block. Each block is placed after the current block, as one undo step, and its
+// upload starts. Returns false when no block was inserted, so the caller keeps the existing notice.
+function insertTransferFiles(editor: SlateEditor, data: DataTransfer): boolean {
   const controller = uploadControllerOf(editor);
   if (controller === null) {
     return false;
@@ -6131,16 +6168,12 @@ function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean 
 
   const listed: unknown[] = Array.from(data.files);
   const files = listed.filter(isFileValue);
-  const images = files.filter((file) => mediaKindForFile(file) === "image");
-  if (images.length === 0) {
+  if (files.length === 0) {
     return false;
   }
 
   const notices: string[] = [];
-  if (listed.length > images.length) {
-    notices.push(MEDIA_NOT_SUPPORTED);
-  }
-  if (images.length > MEDIA_FILE_LIMIT) {
+  if (files.length > MEDIA_FILE_LIMIT) {
     notices.push(MEDIA_FILE_LIMIT_MESSAGE);
   }
 
@@ -6152,7 +6185,7 @@ function insertTransferImages(editor: SlateEditor, data: DataTransfer): boolean 
     editor.tf.select(end);
   }
 
-  const inserted = insertImageFiles(editor, controller, images.slice(0, MEDIA_FILE_LIMIT));
+  const inserted = insertMediaFiles(editor, controller, files.slice(0, MEDIA_FILE_LIMIT));
   if (!inserted) {
     return false;
   }
@@ -6223,7 +6256,7 @@ export const unsupportedMediaPlugin = toPlatePlugin(
           return;
         }
 
-        if (insertTransferImages(editor, data)) {
+        if (insertTransferFiles(editor, data)) {
           return;
         }
 
@@ -6250,7 +6283,7 @@ export const unsupportedMediaPlugin = toPlatePlugin(
 
         event.preventDefault();
         selectDropPoint(editor, event);
-        if (!insertTransferImages(editor, data)) {
+        if (!insertTransferFiles(editor, data)) {
           setPasteRepairs(editor, [{ path: [], message: MEDIA_NOT_SUPPORTED }]);
         }
         return true;
@@ -8872,6 +8905,7 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { FileElement } from "../../components/elements/file-element";
 import { ImageElement } from "../../components/elements/image-element";
 import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
@@ -8901,6 +8935,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
@@ -9576,6 +9611,7 @@ function normalizeDisallowedChild(
     if (
       (child.type === BOOKMARK_KEY ||
         child.type === IMAGE_KEY ||
+        child.type === FILE_KEY ||
         child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
@@ -10473,6 +10509,12 @@ const imagePlugin = createSlatePlugin({
   render: { node: ImageElement },
 });
 
+const filePlugin = createSlatePlugin({
+  key: FILE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: FileElement },
+});
+
 // toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
 // Enter on the selected bookmark opens its action popover.
 const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
@@ -10906,6 +10948,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codeBlockPlugin,
     bookmarkPlugin,
     imagePlugin,
+    filePlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,
@@ -26058,6 +26101,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
@@ -26078,6 +26122,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.hr,
   BOOKMARK_KEY,
   IMAGE_KEY,
+  FILE_KEY,
   PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
@@ -26605,6 +26650,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
@@ -26712,6 +26758,7 @@ const STRUCTURAL = new Set<string>([
   KEYS.hr,
   BOOKMARK_KEY,
   IMAGE_KEY,
+  FILE_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -27187,6 +27234,9 @@ function article(type: string): string {
   }
   if (type === IMAGE_KEY) {
     return "an image";
+  }
+  if (type === FILE_KEY) {
+    return "a file";
   }
   return "that block";
 }
@@ -33682,6 +33732,20 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-files",
+    children: [{ text: "Files" }],
+  },
+  {
+    type: "file",
+    id: "demo-file",
+    url: "/blocks/notion-like-editor/file-demo.txt",
+    name: "file-demo.txt",
+    size: 113,
+    mime: "text/plain",
+    children: [{ text: "" }],
+  },
+  {
     type: "footnote_def",
     id: "demo-footnote-def",
     footnoteId: "demo-footnote",
@@ -34059,7 +34123,7 @@ import {
   EDITOR_ELEMENT_RULES,
   isAllowedElementAttrValue,
 } from "../document/editor-document-schema";
-import { IMAGE_KEY } from "../features/editor-image";
+import { isMediaBlockType } from "../features/editor-media-source";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { parseEditorDocument } from "../document/editor-document-validate";
 import type { EditorValue } from "../document/editor-value";
@@ -34110,7 +34174,7 @@ function softenNode(value: unknown): Record<string, unknown> | null {
       typeof next.url === "string" &&
       sanitizeLinkUrl(next.url) === undefined &&
       type !== "bookmark" &&
-      type !== IMAGE_KEY
+      !isMediaBlockType(type)
     ) {
       delete next.url;
     }
@@ -34208,6 +34272,7 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
@@ -34238,6 +34303,7 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
@@ -34323,6 +34389,12 @@ const imagePlugin = createSlatePlugin({
   key: IMAGE_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: ImageStatic },
+});
+
+const filePlugin = createSlatePlugin({
+  key: FILE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: FileStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -34448,6 +34520,7 @@ export const editorStaticPlugins = [
   BaseColumnItemPlugin.configure({ render: { node: ColumnStatic } }),
   bookmarkPlugin,
   imagePlugin,
+  filePlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,

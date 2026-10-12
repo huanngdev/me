@@ -1,7 +1,10 @@
 import { nanoid, type SlateEditor } from "platejs";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
-import { insertImages, setImageSource } from "./editor-image-commands";
+import { fileElement, FILE_KEY } from "./editor-file";
+import { setFileSource } from "./editor-file-commands";
+import { imageElement } from "./editor-image";
+import { setImageSource } from "./editor-image-commands";
 import type { UploadedFile } from "./editor-file-upload";
 import type { UploadController } from "./editor-upload-controller";
 import {
@@ -9,6 +12,7 @@ import {
   applyMediaSource,
   mediaBlockEntry,
   mediaMimePrefix,
+  placeNewMediaBlocks,
   sanitizeMediaSource,
 } from "./editor-media-source";
 
@@ -16,9 +20,12 @@ import {
 export const MEDIA_FILE_LIMIT = 10;
 export const MEDIA_FILE_LIMIT_MESSAGE = "Only the first 10 files were added.";
 
-// The one place that routes a file to a block kind. A later kind adds its mime prefix here.
-export function mediaKindForFile(file: { readonly type: string }): "image" | null {
-  return file.type.startsWith(MEDIA_MIME_PREFIXES.image) ? "image" : null;
+// The block kind a file becomes. Image files become image blocks, and every other file a file block.
+export type MediaKind = "image" | "file";
+
+// The one place that routes a file to a block kind.
+export function mediaKindForFile(file: { readonly type: string }): MediaKind {
+  return file.type.startsWith(MEDIA_MIME_PREFIXES.image) ? "image" : "file";
 }
 
 // Writes an upload result into a media block that is still empty. The block must exist, be a media
@@ -48,14 +55,39 @@ export const finishMediaUpload: EditorCommand<{ blockId: string; file: UploadedF
   },
 };
 
-// One undo step. Returns false when the block is gone, is not media, already has a file, or the
-// editor is read-only. The caller's stored file is then not used.
+// Several new media blocks, in order, as one undo step. Each kind makes its own block.
+export const insertMediaBlocks: EditorCommand<{
+  items: readonly { kind: MediaKind; id: string }[];
+  replaceSelection?: boolean;
+}> = {
+  id: "block.insert.media",
+  label: "Insert files",
+  group: "insert",
+  run: (editor, { items, replaceSelection = false }) =>
+    placeNewMediaBlocks(
+      editor,
+      items.map((item) => ({
+        id: item.id,
+        element: item.kind === "image" ? imageElement({}, item.id) : fileElement({}, item.id),
+      })),
+      replaceSelection,
+    ),
+};
+
+// The first fill of an empty block. It is written outside the undo history, so one undo removes a
+// block that a paste or slash insert added, instead of first emptying it. Redo brings back the empty
+// placeholder, and its upload is not running again. Returns false when the block is gone, is not
+// media, already has a file, or the editor is read-only. The caller's stored file is then not used.
 export function applyFinishedUpload(
   editor: SlateEditor,
   blockId: string,
   file: UploadedFile,
 ): boolean {
-  return runEditorCommand(editor, finishMediaUpload, { blockId, file });
+  let applied = false;
+  editor.tf.withoutSaving(() => {
+    applied = runEditorCommand(editor, finishMediaUpload, { blockId, file });
+  });
+  return applied;
 }
 
 // A finished upload fills an empty block. A block that already has a file is being replaced, so the
@@ -67,22 +99,24 @@ export function applyUploadResult(
 ): boolean {
   const entry = mediaBlockEntry(editor, blockId);
   if (entry !== undefined && typeof entry[0].url === "string") {
-    return runEditorCommand(editor, setImageSource, { id: blockId, file });
+    const command = entry[0].type === FILE_KEY ? setFileSource : setImageSource;
+    return runEditorCommand(editor, command, { id: blockId, file });
   }
 
   return applyFinishedUpload(editor, blockId, file);
 }
 
-// One image block per file, in order, each with its upload started. The insert is one undo step, and
-// the uploads start after it. An expanded selection is replaced in that same step.
-export function insertImageFiles(
+// One media block per file, in order, each with its upload started. Image files become image blocks
+// and the rest become file blocks. The insert is one undo step, and the uploads start after it. An
+// expanded selection is replaced in that same step.
+export function insertMediaFiles(
   editor: SlateEditor,
   controller: UploadController,
   files: readonly File[],
 ): boolean {
-  const pending = files.map((file) => ({ file, id: nanoid() }));
-  const inserted = runEditorCommand(editor, insertImages, {
-    ids: pending.map((item) => item.id),
+  const pending = files.map((file) => ({ file, id: nanoid(), kind: mediaKindForFile(file) }));
+  const inserted = runEditorCommand(editor, insertMediaBlocks, {
+    items: pending.map((item) => ({ kind: item.kind, id: item.id })),
     replaceSelection: true,
   });
   if (!inserted) {

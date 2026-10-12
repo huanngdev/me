@@ -2,6 +2,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
@@ -22,6 +23,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.hr,
   BOOKMARK_KEY,
   IMAGE_KEY,
+  FILE_KEY,
   PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,

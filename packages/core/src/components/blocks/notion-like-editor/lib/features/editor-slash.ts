@@ -4,6 +4,7 @@ import {
   FileText,
   Image as ImageIcon,
   Link,
+  Paperclip,
   Superscript,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
@@ -43,6 +45,7 @@ export type SlashItem = {
   inline?: "mention" | "link" | "footnote";
   bookmark?: boolean;
   image?: boolean;
+  file?: boolean;
   pageLink?: boolean;
 };
 
@@ -246,8 +249,11 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
   const inline = INLINE_ITEMS.filter((item) => inlineItemEnabled(editor, item.inline));
   const bookmark = bookmarkSlashItem(editor, session);
   const image = imageSlashItem(editor, session);
+  const file = fileSlashItem(editor, session);
   const pageLink = pageLinkSlashItem(editor, bookmark);
-  const advanced = [bookmark, pageLink, image].filter((item): item is SlashItem => item !== null);
+  const advanced = [bookmark, pageLink, image, file].filter(
+    (item): item is SlashItem => item !== null,
+  );
   return insertAdvancedSlashItems(blocks, advanced, inline);
 }
 
@@ -318,6 +324,23 @@ function imageSlashItem(editor: SlateEditor, session: SlashSession): SlashItem |
     icon: ImageIcon,
     group: "Advanced",
     image: true,
+  };
+}
+
+// Offered right after Image. The file popover takes any file, so no file type is checked here.
+function fileSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, FILE_KEY)) {
+    return null;
+  }
+
+  return {
+    id: "file",
+    label: "File",
+    description: "Upload or embed with a link",
+    keywords: ["file", "attachment", "upload", "document", "pdf"],
+    icon: Paperclip,
+    group: "Advanced",
+    file: true,
   };
 }
 

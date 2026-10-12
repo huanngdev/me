@@ -47,7 +47,7 @@ export function sanitizeStoredFileUrl(raw: unknown): string | null {
   return trimmed;
 }
 
-function parseUrl(url: string): URL | null {
+export function parseUrl(url: string): URL | null {
   try {
     return new URL(url);
   } catch {
