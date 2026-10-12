@@ -1012,7 +1012,8 @@ function blockElements(node: TElement): TElement[] {
     if (
       child.type === KEYS.link ||
       child.type === KEYS.mention ||
-      child.type === KEYS.inlineEquation
+      child.type === KEYS.inlineEquation ||
+      child.type === KEYS.date
     ) {
       continue;
     }
@@ -1062,7 +1063,8 @@ function isRich(node: Descendant): boolean {
     if (
       node.type === KEYS.link ||
       node.type === KEYS.mention ||
-      node.type === KEYS.inlineEquation
+      node.type === KEYS.inlineEquation ||
+      node.type === KEYS.date
     ) {
       return true;
     }

@@ -12,6 +12,7 @@ import {
   storedBookmarkUrl,
 } from "../features/editor-bookmark-url";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
+import { isStoredDate } from "../features/editor-date-value";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
@@ -289,6 +290,23 @@ export function checkEquationNode(
     {
       path,
       message: `${formatBlockLabel(path)} has an unsupported texExpression. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
+export function checkDateNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("date" in node && isStoredDate(node.date)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported date. Restore from a backup or remove the block.`,
     },
   ];
 }
@@ -607,6 +625,13 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "texExpression"],
     isVoid: true,
     validateChildren: (node, path) => checkEquationNode(node, path),
+  },
+  // Inline date. A calendar date only. Lives where the inline equation and mention live.
+  {
+    type: KEYS.date,
+    attrs: ["id", "date"],
+    isVoid: true,
+    validateChildren: (node, path) => checkDateNode(node, path),
   },
 ] as const satisfies readonly EditorElementRule[];
 

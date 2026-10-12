@@ -1145,6 +1145,20 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-inline-date-line",
+    children: [
+      { text: "The next review is on " },
+      {
+        type: "date",
+        id: "demo-inline-date",
+        date: "2026-10-12",
+        children: [{ text: "" }],
+      },
+      { text: ". Click the date to change it, or press Cmd+; to insert today." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],

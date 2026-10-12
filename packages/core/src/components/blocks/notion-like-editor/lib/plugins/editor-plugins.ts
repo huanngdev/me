@@ -58,10 +58,13 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { InlineDateElement } from "../../components/elements/inline-date-element";
 import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import { inlineDatePlugin } from "../features/editor-inline-date";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
+import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
 import {
   SYNCED_REF_KEY,
@@ -1680,6 +1683,20 @@ const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
   },
 });
 
+// Registered after the inline equation, so its setFragmentData override wraps the equation's.
+const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
+  render: { node: InlineDateElement },
+});
+
+// Mod+; inserts today's date, and Enter on a selected inline date opens it.
+const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineDateKeyDown(editor, event);
+    },
+  },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -1969,6 +1986,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionPlatePlugin,
     inlineEquationPlatePlugin,
     inlineEquationUiPlatePlugin,
+    inlineDatePlatePlugin,
+    inlineDateUiPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,

@@ -2438,77 +2438,85 @@ export default function ErrorPageBlockPage() {
 44. packages/core/src/components/blocks/notion-like-editor/components/elements/kbd-classes.ts
 45. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-equation-popover.tsx
 46. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-equation-ui.ts
-47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-48. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-49. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-50. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-51. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-52. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-55. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-56. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-57. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
-58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
-60. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-65. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
-67. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
-68. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-69. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-70. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-71. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-72. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-73. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-74. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-75. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-76. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-77. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-78. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-79. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-80. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-81. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-82. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-83. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-84. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-85. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-87. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-88. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-89. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-90. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-91. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-92. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-93. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-94. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-95. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-96. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-97. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-98. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-99. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-110. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-111. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-112. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-113. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-114. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-115. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-116. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-117. apps/web/src/app/blocks/notion-like-editor/page.tsx
+47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-date-value.ts
+48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-date.ts
+49. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-date-classes.ts
+50. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-date-element.tsx
+51. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-popover.tsx
+52. packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-calendar.tsx
+53. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-date-ui.ts
+54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+55. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+58. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+59. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+62. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+63. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+64. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
+65. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+69. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+70. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+71. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+72. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+73. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+74. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+75. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+76. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+77. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+78. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+79. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+80. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+81. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+83. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+84. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+85. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+86. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+87. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+88. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+89. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+90. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+91. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+92. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+93. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+94. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+95. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+96. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+97. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+98. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+99. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+100. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+101. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+102. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+103. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+104. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+105. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+106. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+111. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+112. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+113. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+114. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+115. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+116. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+117. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+118. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+119. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+120. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+121. packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
+122. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+123. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+124. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+125. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -2540,6 +2548,7 @@ import {
   storedBookmarkUrl,
 } from "../features/editor-bookmark-url";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
+import { isStoredDate } from "../features/editor-date-value";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
@@ -2817,6 +2826,23 @@ export function checkEquationNode(
     {
       path,
       message: `${formatBlockLabel(path)} has an unsupported texExpression. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
+export function checkDateNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("date" in node && isStoredDate(node.date)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported date. Restore from a backup or remove the block.`,
     },
   ];
 }
@@ -3135,6 +3161,13 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "texExpression"],
     isVoid: true,
     validateChildren: (node, path) => checkEquationNode(node, path),
+  },
+  // Inline date. A calendar date only. Lives where the inline equation and mention live.
+  {
+    type: KEYS.date,
+    attrs: ["id", "date"],
+    isVoid: true,
+    validateChildren: (node, path) => checkDateNode(node, path),
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -3890,7 +3923,8 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     return (
       (childType === KEYS.link ||
         childType === KEYS.mention ||
-        childType === KEYS.inlineEquation) &&
+        childType === KEYS.inlineEquation ||
+        childType === KEYS.date) &&
       parentAllowsInlineLink(parentType)
     );
   }
@@ -4332,6 +4366,8 @@ import {
   mentionInputPlainText,
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
+import { formatStoredDate, isStoredDate } from "../features/editor-date-value";
+import { inlineDateNode } from "../features/editor-inline-date";
 import { inlineEquationNode } from "../features/editor-inline-equation";
 import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
@@ -5180,6 +5216,24 @@ function pastedInlineEquationNodes(node: TElement, allowMarks: boolean): Descend
   return text.length > 0 ? [{ text }] : [];
 }
 
+// A valid inline date keeps its date with a fresh id where inline marks are allowed. Elsewhere
+// (a code line) it becomes the formatted label. An invalid one becomes its raw value as text.
+function pastedInlineDateNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const stored = node.date;
+  if (isStoredDate(stored)) {
+    return allowMarks ? [inlineDateNode(stored)] : [{ text: formatStoredDate(stored) }];
+  }
+
+  const raw = typeof stored === "string" ? stored : "";
+  const text = Array.from(raw)
+    .filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return char === "\t" || char === "\n" || (code > 0x1f && code !== 0x7f);
+    })
+    .join("");
+  return text.length > 0 ? [{ text }] : [];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -5218,6 +5272,11 @@ function expandBlock(
 
   if (node.type === KEYS.inlineEquation) {
     const nodes = pastedInlineEquationNodes(node, true);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === KEYS.date) {
+    const nodes = pastedInlineDateNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -5358,6 +5417,10 @@ function inlineNodes(
 
   if (node.type === KEYS.inlineEquation) {
     return pastedInlineEquationNodes(node, allowMarks);
+  }
+
+  if (node.type === KEYS.date) {
+    return pastedInlineDateNodes(node, allowMarks);
   }
 
   if (node.type === KEYS.link) {
@@ -5561,7 +5624,11 @@ function nodeText(node: TElement): string {
 
 function isInlinePasteType(type: string): boolean {
   return (
-    type === KEYS.link || type === KEYS.mention || type === KEYS.inlineEquation || type === "a"
+    type === KEYS.link ||
+    type === KEYS.mention ||
+    type === KEYS.inlineEquation ||
+    type === KEYS.date ||
+    type === "a"
   );
 }
 
@@ -8331,10 +8398,13 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { InlineDateElement } from "../../components/elements/inline-date-element";
 import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import { inlineDatePlugin } from "../features/editor-inline-date";
 import { inlineEquationPlugin } from "../features/editor-inline-equation";
+import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
 import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
 import {
   SYNCED_REF_KEY,
@@ -9953,6 +10023,20 @@ const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
   },
 });
 
+// Registered after the inline equation, so its setFragmentData override wraps the equation's.
+const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
+  render: { node: InlineDateElement },
+});
+
+// Mod+; inserts today's date, and Enter on a selected inline date opens it.
+const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineDateKeyDown(editor, event);
+    },
+  },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -10242,6 +10326,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionPlatePlugin,
     inlineEquationPlatePlugin,
     inlineEquationUiPlatePlugin,
+    inlineDatePlatePlugin,
+    inlineDateUiPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
@@ -18998,6 +19084,811 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-date-value.ts
+```ts
+// Pure date helpers for the inline date. No React, no Plate, so the static renderer can import them.
+// A stored date is a calendar date only: "YYYY-MM-DD", with no time and no zone. Every conversion
+// below reads and writes plain Y-M-D numbers, so no Date is ever parsed from a string.
+
+export type StoredDateParts = { year: number; month: number; day: number };
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+// Plain arithmetic, not Date.UTC: Date.UTC maps years 0-99 to 1900-1999.
+function daysInMonth(year: number, month: number): number {
+  if (month === 2) {
+    return isLeapYear(year) ? 29 : 28;
+  }
+
+  return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31;
+}
+
+export function parseStoredDate(value: unknown): StoredDateParts | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const match = ISO_DATE.exec(value);
+  if (match === null) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) {
+    return null;
+  }
+
+  return { year, month, day };
+}
+
+export function isStoredDate(value: unknown): value is string {
+  return parseStoredDate(value) !== null;
+}
+
+// Returns the stored form for valid calendar parts, or null for anything else.
+export function toStoredDate(year: number, month: number, day: number): string | null {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+
+  const text = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return isStoredDate(text) ? text : null;
+}
+
+// The absolute label, e.g. "Oct 12, 2026". The date is built in UTC from its parts, so no
+// timezone can shift it. setUTCFullYear keeps years 1-99 from being read as 1900-1999.
+export function formatStoredDate(value: unknown): string {
+  const parts = parseStoredDate(value);
+  if (parts === null) {
+    return "Invalid date";
+  }
+
+  const date = new Date(0);
+  date.setUTCFullYear(parts.year, parts.month - 1, parts.day);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+// The user's local calendar day, as a stored date.
+export function todayStoredDate(now: Date = new Date()): string {
+  const year = String(now.getFullYear()).padStart(4, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// react-day-picker works in local calendar days: a picked day is the Date whose local Y/M/D
+// is the day the user clicked. So a stored date becomes a local Date at noon (no DST edge at
+// midnight), and a picked Date is read back with its local Y/M/D. The result is the same in any TZ.
+export function storedDateToCalendarDate(value: unknown): Date | undefined {
+  const parts = parseStoredDate(value);
+  if (parts === null) {
+    return undefined;
+  }
+
+  const date = new Date(2000, 0, 1, 12);
+  date.setFullYear(parts.year, parts.month - 1, parts.day);
+  return date;
+}
+
+export function calendarDateToStoredDate(date: Date): string | null {
+  return toStoredDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-date.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  PathApi,
+  RangeApi,
+  createSlatePlugin,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type TRange,
+} from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import { elementAllowsMarks } from "../document/editor-document-schema";
+import { formatStoredDate, isStoredDate } from "./editor-date-value";
+
+// Inline date: an inline void holding one stored calendar date. It is not in @platejs/date,
+// so the plugin is defined here the same way as the inline equation.
+export const inlineDatePlugin = createSlatePlugin({
+  key: KEYS.date,
+  node: { isElement: true, isInline: true, isVoid: true },
+}).overrideEditor(({ editor, tf: { setFragmentData } }) => ({
+  transforms: {
+    setFragmentData(data, originEvent) {
+      setFragmentData(data, originEvent);
+      // The inline equation's override runs first (this plugin is registered after it), so a
+      // fragment with both an equation and a date is written here in full.
+      const fragment = editor.api.getFragment();
+      if (!fragment.some((node) => containsInlineDate(node))) {
+        return;
+      }
+
+      data.setData("text/plain", fragment.map((node) => plainText(node)).join("\n"));
+    },
+  },
+}));
+
+function containsInlineDate(node: Descendant): boolean {
+  if (!ElementApi.isElement(node)) {
+    return false;
+  }
+
+  return node.type === KEYS.date || node.children.some((child) => containsInlineDate(child));
+}
+
+// Matches the inline equation's plain text, so a mixed fragment keeps both.
+function plainText(node: Descendant): string {
+  if (!ElementApi.isElement(node)) {
+    return "text" in node ? node.text : "";
+  }
+
+  if (node.type === KEYS.date) {
+    return formatStoredDate(node.date);
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    const tex = typeof node.texExpression === "string" ? node.texExpression : "";
+    return `$${tex}$`;
+  }
+
+  return node.children.map((child) => plainText(child)).join("");
+}
+
+export function inlineDateNode(date: string, id?: string): TElement {
+  return {
+    type: KEYS.date,
+    id: id ?? nanoid(),
+    date,
+    children: [{ text: "" }],
+  };
+}
+
+// Same places as the inline equation: never inside a link, a void, or a block without marks (a code line).
+function inlineDateAllowed(editor: SlateEditor, range: TRange): boolean {
+  if (
+    editor.api.some({
+      at: range,
+      match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+    })
+  ) {
+    return false;
+  }
+
+  if (editor.api.void({ at: range }) !== undefined) {
+    return false;
+  }
+
+  for (const point of [RangeApi.start(range), RangeApi.end(range)]) {
+    const block = editor.api.block({ at: point });
+    if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Returns the new node's id, or null when the selection is missing or cannot hold an inline date.
+// A collapsed caret inserts at the caret; an expanded selection is replaced.
+export function insertInlineDate(editor: SlateEditor, date: string): string | null {
+  const selection = editor.selection;
+  if (selection === null || !isStoredDate(date) || !inlineDateAllowed(editor, selection)) {
+    return null;
+  }
+
+  const id = nanoid();
+  editor.tf.withNewBatch(() => {
+    if (!RangeApi.isCollapsed(selection)) {
+      editor.tf.delete();
+    }
+    editor.tf.insertNodes(inlineDateNode(date, id));
+    for (const [, path] of editor.api.nodes({
+      at: [],
+      voids: true,
+      match: (node) => ElementApi.isElement(node) && node.id === id,
+    })) {
+      const after = editor.api.after(path);
+      if (after !== undefined) {
+        editor.tf.select(after);
+      }
+      break;
+    }
+  });
+  return id;
+}
+
+export type InlineDateRefusal = "span" | "unavailable";
+
+// Why an inline date cannot be inserted over the current selection, or undefined when it can.
+export function inlineDateRefusal(editor: SlateEditor): InlineDateRefusal | undefined {
+  const selection = editor.selection;
+  if (selection === null) {
+    return "unavailable";
+  }
+
+  if (!RangeApi.isCollapsed(selection)) {
+    const start = editor.api.block({ at: RangeApi.start(selection) });
+    const end = editor.api.block({ at: RangeApi.end(selection) });
+    if (!start || !end || !PathApi.equals(start[1], end[1])) {
+      return "span";
+    }
+
+    if (
+      editor.api.some({
+        at: selection,
+        voids: true,
+        match: (node) => ElementApi.isElement(node) && editor.api.isVoid(node),
+      })
+    ) {
+      return "unavailable";
+    }
+  }
+
+  return inlineDateAllowed(editor, selection) ? undefined : "unavailable";
+}
+
+// The node and its path, or undefined when no inline date has this id.
+export function inlineDateEntry(editor: SlateEditor, id: string): [TElement, number[]] | undefined {
+  const entry = editor.api.node({
+    at: [],
+    voids: true,
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.date && node.id === id,
+  });
+  if (entry === undefined || !ElementApi.isElement(entry[0])) {
+    return undefined;
+  }
+
+  return [entry[0], entry[1]];
+}
+
+export const setInlineDate: EditorCommand<{ id: string; date: string }> = {
+  id: "inline.date.set",
+  label: "Set date",
+  group: "action",
+  run: (editor, { id, date }) => {
+    const entry = inlineDateEntry(editor, id);
+    if (entry !== undefined && isStoredDate(date)) {
+      editor.tf.setNodes({ date }, { at: entry[1], voids: true });
+    }
+  },
+};
+
+export const removeInlineDate: EditorCommand<{ id: string }> = {
+  id: "inline.date.remove",
+  label: "Remove date",
+  group: "action",
+  run: (editor, { id }) => {
+    const entry = inlineDateEntry(editor, id);
+    if (entry !== undefined) {
+      editor.tf.removeNodes({ at: entry[1], voids: true });
+    }
+  },
+};
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/inline-date-classes.ts
+```ts
+// Shared by the editor element and the static renderer, so both produce the same markup.
+export const INLINE_DATE_CLASS = "inline align-baseline";
+// A quiet chip: no vertical padding or margin, so the line height of the paragraph does not change.
+export const INLINE_DATE_CHIP_CLASS = "rounded-sm bg-muted px-1 text-foreground";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/inline-date-element.tsx
+```tsx
+import { useEffect } from "react";
+import {
+  PlateElement,
+  useEditorRef,
+  useFocused,
+  usePluginOption,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { formatStoredDate, isStoredDate } from "../../lib/features/editor-date-value";
+import {
+  inlineDateUiPlugin,
+  openInlineDateEditor,
+  resetInlineDateEditor,
+} from "../../lib/plugins/editor-inline-date-ui";
+import { InlineDatePopover } from "../ui/inline-date-popover";
+import { INLINE_DATE_CHIP_CLASS, INLINE_DATE_CLASS } from "./inline-date-classes";
+
+export function InlineDateElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const id = typeof props.element.id === "string" ? props.element.id : "";
+  const editingId = usePluginOption(inlineDateUiPlugin, "editingId");
+  const stored = props.element.date;
+  const valid = isStoredDate(stored);
+
+  // A switch to read-only drops the open popover without writing. Removal is handled in the
+  // plugin's onChange wrapper. This is not an unmount cleanup, so StrictMode cannot reset it.
+  useEffect(() => {
+    if (readOnly && editingId === id) {
+      resetInlineDateEditor(editor);
+    }
+  }, [editingId, editor, id, readOnly]);
+
+  return (
+    <PlateElement {...props} as="span" className={INLINE_DATE_CLASS}>
+      <span
+        contentEditable={false}
+        data-inline-date={valid ? stored : ""}
+        className={cn(
+          INLINE_DATE_CHIP_CLASS,
+          selected && focused && !readOnly && "ring-ring ring-1",
+        )}
+        onClick={
+          readOnly
+            ? undefined
+            : () => {
+                openInlineDateEditor(editor, id);
+              }
+        }
+      >
+        {valid ? (
+          <time dateTime={stored}>{formatStoredDate(stored)}</time>
+        ) : (
+          <span data-inline-date-invalid="" className="text-destructive">
+            Invalid date
+          </span>
+        )}
+      </span>
+      {readOnly ? null : <InlineDatePopover id={id} />}
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-popover.tsx
+```tsx
+import { lazy, Suspense, useEffect } from "react";
+import { CalendarCheck, Trash2 } from "lucide-react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+
+import { todayStoredDate } from "../../lib/features/editor-date-value";
+import { inlineDateEntry } from "../../lib/features/editor-inline-date";
+import {
+  closeInlineDateEditor,
+  inlineDateUiPlugin,
+  pickInlineDate,
+  removeInlineDateFromPopover,
+} from "../../lib/plugins/editor-inline-date-ui";
+import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
+import { EditorIconButton, EditorTextButton } from "./block-toolbar";
+
+const InlineDateCalendar = lazy(() => import("./inline-date-calendar"));
+
+// The node's own chip, found through the editor so no ref is read during render.
+function inlineDateNodeDom(
+  editor: ReturnType<typeof useEditorRef>,
+  id: string,
+): HTMLElement | null {
+  const entry = inlineDateEntry(editor, id);
+  if (entry === undefined) {
+    return null;
+  }
+
+  const dom: unknown = editor.api.toDOMNode(entry[0]);
+  if (!(dom instanceof HTMLElement)) {
+    return null;
+  }
+
+  return dom.querySelector("[data-inline-date]");
+}
+
+// Picks a day, Today, or removes the date. Each choice writes once and closes.
+export function InlineDatePopover({ id }: { id: string }) {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
+  const editingId = usePluginOption(inlineDateUiPlugin, "editingId");
+  const mine = !readOnly && id.length > 0 && editingId === id;
+  const stored = inlineDateEntry(editor, id)?.[0].date;
+  const storedText = typeof stored === "string" ? stored : "";
+  const virtualRef = virtualAnchor(
+    () => elementRect(inlineDateNodeDom(editor, id)),
+    () => anchorContext(inlineDateNodeDom(editor, id)),
+  );
+
+  // A press outside the popover and the chip closes it without writing.
+  useEffect(() => {
+    if (!mine) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (target instanceof Node) {
+        if (inlineDateNodeDom(editor, id)?.contains(target) === true) {
+          return;
+        }
+        if (target instanceof Element && target.closest("[data-inline-date-popover]") !== null) {
+          return;
+        }
+      }
+
+      closeInlineDateEditor(editor);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [editor, id, mine]);
+
+  if (!mine) {
+    return null;
+  }
+
+  return (
+    <Popover open>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        data-inline-date-popover=""
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        hideWhenDetached
+        className="w-auto p-2"
+        // The calendar's own autoFocus moves focus to its day, so the default focus move is skipped.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onKeyDown={(event) => {
+          // The editor must not see keys typed here. Escape is handled in this popover.
+          event.stopPropagation();
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeInlineDateEditor(editor);
+          }
+        }}
+        onKeyUp={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionStart={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionUpdate={(event) => {
+          event.stopPropagation();
+        }}
+        onCompositionEnd={(event) => {
+          event.stopPropagation();
+        }}
+        onPaste={(event) => {
+          event.stopPropagation();
+        }}
+        onCut={(event) => {
+          event.stopPropagation();
+        }}
+        onCopy={(event) => {
+          event.stopPropagation();
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <Suspense fallback={<div aria-hidden="true" className="h-64 w-[212px]" />}>
+            <InlineDateCalendar
+              stored={storedText}
+              onPick={(date) => {
+                pickInlineDate(editor, id, date);
+              }}
+            />
+          </Suspense>
+          <div className="flex items-center justify-between gap-2">
+            <EditorTextButton
+              variant="ghost"
+              label="Today"
+              icon={<CalendarCheck aria-hidden="true" />}
+              onClick={() => {
+                pickInlineDate(editor, id, todayStoredDate());
+              }}
+            />
+            <EditorIconButton
+              variant="destructive"
+              label="Remove date"
+              icon={<Trash2 aria-hidden="true" />}
+              onClick={() => {
+                removeInlineDateFromPopover(editor, id);
+              }}
+            />
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/ui/inline-date-calendar.tsx
+```tsx
+import { Calendar } from "@/components/calendar";
+
+import {
+  calendarDateToStoredDate,
+  storedDateToCalendarDate,
+} from "../../lib/features/editor-date-value";
+
+// The calendar body is loaded on demand, so react-day-picker stays out of the editor's first load.
+// The stored date's month is shown with its day selected. The focus goes to that day (or today).
+export default function InlineDateCalendar({
+  stored,
+  onPick,
+}: {
+  stored: string;
+  onPick: (date: string) => void;
+}) {
+  const selected = storedDateToCalendarDate(stored);
+
+  return (
+    <Calendar
+      mode="single"
+      required
+      autoFocus
+      selected={selected}
+      defaultMonth={selected ?? new Date()}
+      onSelect={(date) => {
+        const next = calendarDateToStoredDate(date);
+        if (next !== null) {
+          onPick(next);
+        }
+      }}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-inline-date-ui.ts
+```ts
+import { ElementApi, KEYS, PathApi, createSlatePlugin, type SlateEditor } from "platejs";
+
+import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
+import {
+  inlineDateEntry,
+  inlineDateRefusal,
+  insertInlineDate,
+  removeInlineDate,
+  setInlineDate,
+} from "../features/editor-inline-date";
+import { todayStoredDate } from "../features/editor-date-value";
+import { blockSelectionActive } from "./editor-block-selection";
+
+// The popover holds only which chip is open. Every choice writes at once, so there is no draft.
+export const inlineDateUiPlugin = createSlatePlugin({
+  key: "inlineDateUi",
+  options: { editingId: "" },
+}).overrideEditor(({ editor }) => {
+  const { onChange } = editor;
+  if (isEditorOnChange(onChange)) {
+    editor.onChange = (options?: { operation?: unknown }) => {
+      onChange(options);
+      // A node removed while open, or a switch to read-only, closes the popover without writing.
+      const id = inlineDateEditingId(editor);
+      if (
+        id.length > 0 &&
+        (editor.dom.readOnly === true || inlineDateEntry(editor, id) === undefined)
+      ) {
+        resetInlineDateEditor(editor);
+      }
+    };
+  }
+  return { transforms: {} };
+});
+
+function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
+  return typeof value === "function";
+}
+
+export function inlineDateEditingId(editor: SlateEditor): string {
+  return editor.getOption(inlineDateUiPlugin, "editingId");
+}
+
+// Drops the popover state without writing the document or moving the selection.
+export function resetInlineDateEditor(editor: SlateEditor): void {
+  editor.setOption(inlineDateUiPlugin, "editingId", "");
+}
+
+// The caret goes right after the chip and the editor takes focus. Used by every close.
+function finishInlineDateEditor(editor: SlateEditor, id: string): void {
+  resetInlineDateEditor(editor);
+  selectAfterInlineDate(editor, id);
+  editor.tf.focus();
+}
+
+function selectAfterInlineDate(editor: SlateEditor, id: string): void {
+  const entry = inlineDateEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  const after = editor.api.after(entry[1]);
+  if (after !== undefined) {
+    editor.tf.select(after);
+  }
+}
+
+// Opens the popover on one chip. Opening another chip closes the open one first, without writing.
+export function openInlineDateEditor(editor: SlateEditor, id: string): void {
+  if (editor.dom.readOnly === true || blockSelectionActive(editor) || id.length === 0) {
+    return;
+  }
+
+  if (inlineDateEditingId(editor) === id) {
+    return;
+  }
+
+  const entry = inlineDateEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  editor.setOption(inlineDateUiPlugin, "editingId", id);
+  editor.tf.select(entry[1]);
+}
+
+// Escape and a press outside. Nothing is written, and the chip stays where it is.
+export function closeInlineDateEditor(editor: SlateEditor): void {
+  const id = inlineDateEditingId(editor);
+  if (id.length === 0) {
+    return;
+  }
+
+  finishInlineDateEditor(editor, id);
+}
+
+// A calendar pick or Today. The write is one undo step, and the same day only closes.
+export function pickInlineDate(editor: SlateEditor, id: string, date: string): void {
+  const entry = inlineDateEntry(editor, id);
+  if (inlineDateEditingId(editor) !== id || entry === undefined) {
+    resetInlineDateEditor(editor);
+    return;
+  }
+
+  if (entry[0].date !== date) {
+    runEditorCommand(editor, setInlineDate, { id, date });
+  }
+  finishInlineDateEditor(editor, id);
+}
+
+// Removes the chip as one undo step and closes the popover.
+export function removeInlineDateFromPopover(editor: SlateEditor, id: string): void {
+  if (inlineDateEditingId(editor) !== id) {
+    return;
+  }
+
+  resetInlineDateEditor(editor);
+  const entry = inlineDateEntry(editor, id);
+  if (entry === undefined) {
+    return;
+  }
+
+  const previous = PathApi.previous(entry[1]);
+  const block = editor.api.block({ at: entry[1] });
+  runEditorCommand(editor, removeInlineDate, { id });
+
+  const target = previous === undefined ? undefined : editor.api.end(previous);
+  if (target !== undefined) {
+    editor.tf.select(target);
+  } else if (block !== undefined) {
+    const start = editor.api.start(block[1]);
+    if (start !== undefined) {
+      editor.tf.select(start);
+    }
+  }
+  editor.tf.focus();
+}
+
+// Creates today's date at the selection and opens its popover. Escape keeps the chip.
+export const insertTodayDate: EditorCommand = {
+  id: "inline.date",
+  label: "Date",
+  group: "insert",
+  isEnabled: (editor) => editor.dom.readOnly !== true && inlineDateRefusal(editor) === undefined,
+  disabledReason: (editor) => {
+    const refusal = inlineDateRefusal(editor);
+    if (refusal === "span") {
+      return "Dates cannot span blocks.";
+    }
+
+    return refusal === undefined ? undefined : "Dates are not available here.";
+  },
+  run: (editor) => {
+    if (editor.selection === null) {
+      return;
+    }
+
+    const id = insertInlineDate(editor, todayStoredDate());
+    if (id !== null) {
+      openInlineDateEditor(editor, id);
+    }
+  },
+};
+
+type InlineDateKeyEvent = {
+  key: string;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean;
+  preventDefault: () => void;
+};
+
+// Mod+; inserts today's date. Enter on a selected inline date opens it.
+export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEvent): void {
+  if (event.defaultPrevented || event.altKey || editor.dom.readOnly === true) {
+    return;
+  }
+
+  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === ";") {
+    if (runEditorCommand(editor, insertTodayDate, undefined)) {
+      event.preventDefault();
+    }
+    return;
+  }
+
+  if (event.key !== "Enter" || event.shiftKey || event.metaKey || event.ctrlKey) {
+    return;
+  }
+
+  if (blockSelectionActive(editor)) {
+    return;
+  }
+
+  const block = editor.api.above({
+    match: (node) => ElementApi.isElement(node) && node.type === KEYS.date,
+  });
+  if (block === undefined || !ElementApi.isElement(block[0])) {
+    return;
+  }
+
+  const id = typeof block[0].id === "string" ? block[0].id : "";
+  if (id.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  openInlineDateEditor(editor, id);
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
 ```ts
 import {
@@ -24837,7 +25728,8 @@ function blockElements(node: TElement): TElement[] {
     if (
       child.type === KEYS.link ||
       child.type === KEYS.mention ||
-      child.type === KEYS.inlineEquation
+      child.type === KEYS.inlineEquation ||
+      child.type === KEYS.date
     ) {
       continue;
     }
@@ -24887,7 +25779,8 @@ function isRich(node: Descendant): boolean {
     if (
       node.type === KEYS.link ||
       node.type === KEYS.mention ||
-      node.type === KEYS.inlineEquation
+      node.type === KEYS.inlineEquation ||
+      node.type === KEYS.date
     ) {
       return true;
     }
@@ -30681,6 +31574,20 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-inline-date-line",
+    children: [
+      { text: "The next review is on " },
+      {
+        type: "date",
+        id: "demo-inline-date",
+        date: "2026-10-12",
+        children: [{ text: "" }],
+      },
+      { text: ". Click the date to change it, or press Cmd+; to insert today." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],
@@ -31258,6 +32165,7 @@ import { ensureStaticCodeLanguages } from "../../components/static/code-highligh
 ensureStaticCodeLanguages();
 import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
 import { EquationStatic } from "../../components/static/equation-static";
+import { InlineDateStatic } from "../../components/static/inline-date-static";
 import { InlineEquationStatic } from "../../components/static/inline-equation-static";
 import { HeadingStatic } from "../../components/static/heading-static";
 import { HrStatic } from "../../components/static/hr-static";
@@ -31356,6 +32264,12 @@ const inlineEquationPlugin = createSlatePlugin({
   render: { node: InlineEquationStatic },
 });
 
+const inlineDatePlugin = createSlatePlugin({
+  key: KEYS.date,
+  node: { isElement: true, isInline: true, isVoid: true },
+  render: { node: InlineDateStatic },
+});
+
 const syncedPlugin = createSlatePlugin({
   key: SYNCED_REF_KEY,
   node: { isElement: true, isVoid: true },
@@ -31448,6 +32362,7 @@ export const editorStaticPlugins = [
   BaseLinkPlugin.configure({ render: { node: LinkStatic } }),
   BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
   inlineEquationPlugin,
+  inlineDatePlugin,
 ];
 ```
 
@@ -32343,6 +33258,38 @@ export function InlineEquationStatic(props: SlateElementProps) {
   return (
     <SlateElement {...props} as="span" className={INLINE_EQUATION_CLASS}>
       <span data-inline-equation="">{body}</span>
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/inline-date-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { formatStoredDate, isStoredDate } from "../../lib/features/editor-date-value";
+import { INLINE_DATE_CHIP_CLASS, INLINE_DATE_CLASS } from "../elements/inline-date-classes";
+
+export function InlineDateStatic(props: SlateElementProps) {
+  const stored = props.element.date;
+  const valid = isStoredDate(stored);
+
+  return (
+    <SlateElement {...props} as="span" className={INLINE_DATE_CLASS}>
+      <span
+        contentEditable={false}
+        data-inline-date={valid ? stored : ""}
+        className={INLINE_DATE_CHIP_CLASS}
+      >
+        {valid ? (
+          <time dateTime={stored}>{formatStoredDate(stored)}</time>
+        ) : (
+          <span data-inline-date-invalid="" className="text-destructive">
+            Invalid date
+          </span>
+        )}
+      </span>
       {props.children}
     </SlateElement>
   );

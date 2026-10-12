@@ -44,6 +44,8 @@ import {
   mentionInputPlainText,
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
+import { formatStoredDate, isStoredDate } from "../features/editor-date-value";
+import { inlineDateNode } from "../features/editor-inline-date";
 import { inlineEquationNode } from "../features/editor-inline-equation";
 import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
@@ -892,6 +894,24 @@ function pastedInlineEquationNodes(node: TElement, allowMarks: boolean): Descend
   return text.length > 0 ? [{ text }] : [];
 }
 
+// A valid inline date keeps its date with a fresh id where inline marks are allowed. Elsewhere
+// (a code line) it becomes the formatted label. An invalid one becomes its raw value as text.
+function pastedInlineDateNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const stored = node.date;
+  if (isStoredDate(stored)) {
+    return allowMarks ? [inlineDateNode(stored)] : [{ text: formatStoredDate(stored) }];
+  }
+
+  const raw = typeof stored === "string" ? stored : "";
+  const text = Array.from(raw)
+    .filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return char === "\t" || char === "\n" || (code > 0x1f && code !== 0x7f);
+    })
+    .join("");
+  return text.length > 0 ? [{ text }] : [];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -930,6 +950,11 @@ function expandBlock(
 
   if (node.type === KEYS.inlineEquation) {
     const nodes = pastedInlineEquationNodes(node, true);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === KEYS.date) {
+    const nodes = pastedInlineDateNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -1070,6 +1095,10 @@ function inlineNodes(
 
   if (node.type === KEYS.inlineEquation) {
     return pastedInlineEquationNodes(node, allowMarks);
+  }
+
+  if (node.type === KEYS.date) {
+    return pastedInlineDateNodes(node, allowMarks);
   }
 
   if (node.type === KEYS.link) {
@@ -1273,7 +1302,11 @@ function nodeText(node: TElement): string {
 
 function isInlinePasteType(type: string): boolean {
   return (
-    type === KEYS.link || type === KEYS.mention || type === KEYS.inlineEquation || type === "a"
+    type === KEYS.link ||
+    type === KEYS.mention ||
+    type === KEYS.inlineEquation ||
+    type === KEYS.date ||
+    type === "a"
   );
 }
 
