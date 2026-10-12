@@ -11,30 +11,16 @@ import type { KatexOptions } from "katex";
 
 import type { EditorCommand } from "../commands/editor-commands";
 
-export const EQUATION_EMPTY_PLACEHOLDER = "Add an equation";
-
-// throwOnError is true so a bad expression throws and this editor shows the
-// message. KaTeX's false setting would emit its own katex-error span instead.
-// strict is "ignore", not "warn": "warn" writes to the page console, and a
-// parse error still throws. trust stays false, so \href, \url, \htmlClass,
-// \htmlId, \htmlStyle, \htmlData, and \includegraphics cannot add links,
-// attributes, or images (katex src/functions/href.js, html.js, includegraphics.js).
-// No macros option: a stored document cannot define macros.
-export const EQUATION_KATEX_OPTIONS = {
-  displayMode: true,
-  throwOnError: true,
-  trust: false,
-  strict: "ignore",
-  maxSize: 10,
-  maxExpand: 1000,
-  output: "htmlAndMathml",
-} as const satisfies KatexOptions;
+export {
+  EQUATION_EMPTY_PLACEHOLDER,
+  EQUATION_KATEX_OPTIONS,
+  renderEquation,
+  type EquationRender,
+} from "./editor-equation-render";
 
 type KatexModule = {
   renderToString: (expression: string, options: KatexOptions) => string;
 };
-
-export type EquationRender = { ok: true; html: string } | { ok: false; message: string };
 
 let katexModule: Promise<KatexModule> | undefined;
 
@@ -43,15 +29,6 @@ let katexModule: Promise<KatexModule> | undefined;
 export function loadKatex(): Promise<KatexModule> {
   katexModule ??= import("katex").then((mod) => mod.default);
   return katexModule;
-}
-
-export function renderEquation(katex: KatexModule, expression: string): EquationRender {
-  try {
-    return { ok: true, html: katex.renderToString(expression, EQUATION_KATEX_OPTIONS) };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "This equation could not be rendered.";
-    return { ok: false, message };
-  }
 }
 
 // The native plugin is not registered: its react entry imports katex statically, which would put KaTeX in the first-load bundle.

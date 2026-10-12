@@ -2463,8 +2463,37 @@ export default function ErrorPageBlockPage() {
 69. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
 70. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
 71. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-72. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-73. apps/web/src/app/blocks/notion-like-editor/page.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+73. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+74. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+75. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+76. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+77. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+78. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+79. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+80. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+81. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+82. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+83. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+86. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+87. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+88. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+89. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+90. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+91. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+92. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+102. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -3644,9 +3673,9 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "../commands/editor-columns";
+import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
-import { syncedRefRepairs } from "../features/editor-synced-block";
+import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -8093,6 +8122,7 @@ import {
   selectionInCodeBlock,
 } from "../features/editor-code";
 import { HeadingElement } from "../../components/elements/heading-element";
+import { codeLeafClassName } from "../static/mark-classes";
 import {
   PasteFallbackPlugin,
   clearHtmlTableWidths,
@@ -8163,8 +8193,6 @@ type MarkPluginOptions = {
 };
 
 // The paragraph is text-base (16px). 0.9em would be 14.4px, under the body-text floor.
-const codeLeafClassName =
-  "border-border bg-muted text-foreground rounded-md border px-1.5 py-0.5 font-mono text-base";
 
 const underlineDecorations = ["underline", "underline line-through", "line-through underline"];
 
@@ -10374,31 +10402,9 @@ export function openNewToggles(editor: SlateEditor, before: ReadonlySet<string>)
 ```tsx
 import { PlateElement, useReadOnly, type PlateElementProps } from "platejs/react";
 
-// A plugin className cannot derive a DOM id from the block id.
-const HEADING_SIZE = {
-  h1: "text-3xl",
-  h2: "text-2xl",
-  h3: "text-xl",
-} as const;
+import { HEADING_STYLES, headingAnchorId, type HeadingTag } from "./heading-styles";
 
-const HEADING_MARGIN = {
-  h1: "mt-8",
-  h2: "mt-6",
-  h3: "mt-4",
-} as const;
-
-// scroll-mt-24 is the in-page anchor offset used on component pages. The site
-// header is sticky top-1 with an h-14 bar, and scrollIntoView({ block: "start" })
-// then keeps a heading below that bar.
-const HEADING_SCROLL = "scroll-mt-24";
-
-export const HEADING_STYLES = {
-  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
-  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
-  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
-} as const;
-
-type HeadingTag = keyof typeof HEADING_STYLES;
+export { HEADING_STYLES, headingAnchorId, type HeadingTag };
 
 function isHeadingTag(type: string): type is HeadingTag {
   return Object.hasOwn(HEADING_STYLES, type);
@@ -10413,10 +10419,6 @@ function headingTag(type: string): HeadingTag {
 }
 
 // The DOM id is derived from the block id. It is not stored on the node.
-export function headingAnchorId(blockId: string): string {
-  return `heading-${blockId}`;
-}
-
 function blockAnchor(element: PlateElementProps["element"]): string | undefined {
   if (!("id" in element)) {
     return undefined;
@@ -10467,6 +10469,9 @@ import { cn } from "@/lib/utils";
 
 import { writeChecked } from "../../lib/commands/editor-commands";
 import { LIST_INDENTS, type ListIndent } from "../../lib/document/editor-document-schema";
+import { LIST_SIBLING_GAP_CLASS, todoTextId } from "./block-list-metrics";
+
+export { LIST_SIBLING_GAP_CLASS, todoTextId };
 
 // Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
 const MARKER_CYCLE = {
@@ -10533,10 +10538,6 @@ function storedListStyle(element: PlateElementProps["element"]): string {
   return typeof element.listStyleType === "string" ? element.listStyleType : "disc";
 }
 
-export function todoTextId(blockId: string): string {
-  return `todo-text-${blockId}`;
-}
-
 function blockIdOf(element: PlateElementProps["element"]): string | undefined {
   if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
     return undefined;
@@ -10592,9 +10593,6 @@ function TodoCheck({
     </span>
   );
 }
-
-// One class plus two attribute selectors, so this margin wins over space-y on the same parent.
-export const LIST_SIBLING_GAP_CLASS = "[&>[data-list-item]:has(+[data-list-item])]:mb-1";
 
 // The gap between items is this sibling rule on the parent. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {
@@ -10663,11 +10661,9 @@ import { cn } from "@/lib/utils";
 
 import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 
-// AGENTS.md keeps the accent for active states, underlines, pills, and the hero.
-// A quote uses the same low-opacity border as the rest of the page. space-y-2 is
-// tighter than the surface space-y-4. The list gap class is the surface's rule.
-export const BLOCKQUOTE_CLASS_NAME =
-  "border-l-2 border-border text-foreground space-y-2 pl-4 font-normal";
+import { BLOCKQUOTE_CLASS_NAME } from "./blockquote-classes";
+
+export { BLOCKQUOTE_CLASS_NAME };
 
 export function BlockquoteElement(props: PlateElementProps) {
   return (
@@ -10728,24 +10724,16 @@ import {
   setCalloutTone,
 } from "../../lib/commands/editor-commands";
 import {
-  CALLOUT_DEFAULT_ICON,
   CALLOUT_ICONS,
   CALLOUT_TONES,
   type CalloutIcon,
-  type CalloutTone,
 } from "../../lib/document/editor-document-schema";
 import { MENU_ITEM_ACTIVE, MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import { Button } from "@/components/button";
 
-// role="note" is an ancillary note. An aside would be a complementary landmark.
-// AGENTS.md keeps the accent for active states. The fill is the tone surface.
-export const CALLOUT_TONE_CLASS_NAME = {
-  default: "border-editor-callout-default-border bg-editor-callout-default-bg text-foreground",
-  info: "border-editor-callout-info-border bg-editor-callout-info-bg text-foreground",
-  success: "border-editor-callout-success-border bg-editor-callout-success-bg text-foreground",
-  warning: "border-editor-callout-warning-border bg-editor-callout-warning-bg text-foreground",
-  danger: "border-editor-callout-danger-border bg-editor-callout-danger-bg text-foreground",
-} as const;
+import { CALLOUT_TONE_CLASS_NAME, calloutIcon, calloutTone } from "./callout-classes";
+
+export { CALLOUT_TONE_CLASS_NAME, calloutIcon, calloutTone };
 
 const TONE_LABEL = {
   default: "Default",
@@ -10777,16 +10765,6 @@ function CalloutIconGlyph({ icon }: { icon: CalloutIcon }) {
   const { Icon } = CALLOUT_ICON_GLYPH[icon];
 
   return <Icon aria-hidden="true" className={CALLOUT_ICON_CLASS} />;
-}
-
-export function calloutIcon(value: unknown): CalloutIcon {
-  const found = CALLOUT_ICONS.find((icon) => icon === value);
-  return found ?? CALLOUT_DEFAULT_ICON;
-}
-
-export function calloutTone(value: unknown): "default" | CalloutTone {
-  const found = CALLOUT_TONES.find((tone) => tone === value);
-  return found ?? "default";
 }
 
 function elementAttr(element: object, key: string): unknown {
@@ -11175,13 +11153,13 @@ import {
   type CodeLang,
 } from "../../lib/document/editor-document-schema";
 
-const CODE_BLOCK_CLASS_NAME =
-  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
+import {
+  CODE_BLOCK_CLASS_NAME,
+  CODE_SCROLL_CLASS_NAME,
+  CODE_TOOLBAR_CLASS_NAME,
+} from "./code-block-classes";
 
-const CODE_SCROLL_CLASS_NAME = "block px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
-
-const TOOLBAR_CLASS_NAME =
-  "absolute top-1.5 right-1.5 z-10 flex items-center gap-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+const TOOLBAR_CLASS_NAME = CODE_TOOLBAR_CLASS_NAME;
 
 function elementLang(element: object): CodeLang | null {
   if (!("lang" in element)) {
@@ -14666,27 +14644,15 @@ import { PlateElement, useEditorRef, usePluginOption, type PlateElementProps } f
 
 import { cn } from "@/lib/utils";
 
-import { LIST_SIBLING_GAP_CLASS } from "./block-list";
 import { toggleOpen, togglePlugin } from "../../lib/plugins/editor-toggle";
 import { EditorIconButton } from "../ui/block-toolbar";
-
-// Tailwind v4 stacks variants (https://tailwindcss.com/docs/hover-focus-and-other-states#variant-groups).
-// The label is the first child. The gutter is contenteditable="false", so closing hides
-// only the content and leaves that button on screen. Children stay in the DOM.
-export const TOGGLE_HIDDEN_CONTENT_CLASS =
-  "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
-
-// The label row is a flex line, so a heading's first:mt-0 no longer matches.
-// Descendant headings are toggle labels. Content headings normalize to paragraphs.
-// pl-9 is the 32px icon button plus the 4px gap, so content starts under the label.
-export const TOGGLE_LABEL_MARGIN_CLASS = "[&_h1]:mt-0 [&_h2]:mt-0 [&_h3]:mt-0";
-
-export const TOGGLE_CLASS_NAME = cn(
-  "space-y-2 [&>:not(:first-child)]:pl-9",
-  LIST_SIBLING_GAP_CLASS,
+import {
+  TOGGLE_CLASS_NAME,
   TOGGLE_HIDDEN_CONTENT_CLASS,
   TOGGLE_LABEL_MARGIN_CLASS,
-);
+} from "./toggle-classes";
+
+export { TOGGLE_CLASS_NAME, TOGGLE_HIDDEN_CONTENT_CLASS, TOGGLE_LABEL_MARGIN_CLASS };
 
 function elementId(element: PlateElementProps["element"]): string | undefined {
   if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
@@ -14793,12 +14759,9 @@ import {
 
 import { cn } from "@/lib/utils";
 
-// A selected void uses the muted surface. The focus ring stays on real buttons.
-// Plate wraps an <hr> the same way (react/index.js FastIntrinsicElement): a div,
-// <hr contentEditable={false}>, then the Slate children. There is no click handler.
-export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
-export const BLOCK_SELECTED_CLASS = "bg-muted";
-export const HR_SELECTED_CLASS_NAME = BLOCK_SELECTED_CLASS;
+import { BLOCK_SELECTED_CLASS, HR_RULE_CLASS_NAME, HR_SELECTED_CLASS_NAME } from "./hr-classes";
+
+export { BLOCK_SELECTED_CLASS, HR_RULE_CLASS_NAME, HR_SELECTED_CLASS_NAME };
 
 export function hrElementClassName(
   selected: boolean,
@@ -15700,15 +15663,13 @@ import { bookmarkDomain, type LinkPreviewAdapter } from "../../lib/features/edit
 import { openBookmarkToolbar } from "../../lib/plugins/editor-bookmark-toolbar";
 import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import { hrElementClassName } from "./hr-element";
+import { BOOKMARK_CARD_CLASS } from "./bookmark-classes";
 import { mediaStringAttr } from "../ui/block-toolbar";
 import { BookmarkToolbarPopover } from "../ui/bookmark-toolbar-popover";
 
+export { BOOKMARK_CARD_CLASS };
+
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
-// One rounded card: the preview image fills the left ~27% at the card's full
-// height; the text column fills the rest. Below 26rem of card width the image
-// is hidden and the text takes the full width, so the card never overflows.
-export const BOOKMARK_CARD_CLASS =
-  "@container/card border-border bg-background flex h-[150px] w-full min-w-0 overflow-hidden rounded-xl border";
 
 const LinkPreviewContext = createContext<LinkPreviewAdapter | null>(null);
 
@@ -16012,60 +15973,60 @@ import {
 } from "platejs";
 
 import type { EditorCommand } from "./editor-commands";
-import { formatBlockLabel } from "../document/editor-document";
-import type { Repair } from "../document/editor-document-ids";
-import { allowedChildTypes } from "../document/editor-document-schema";
 import { pasteRepairsOf, setPasteRepairs } from "../paste/editor-paste-repairs";
-import type { EditorValue } from "../document/editor-value";
 
-export const COLUMN_MIN_PERCENT = 20;
-export const COLUMN_MIN_COUNT = 2;
-export const COLUMN_MAX_COUNT = 3;
+import {
+  COLUMN_BARE,
+  COLUMN_CHILD_LIFTED,
+  COLUMN_EMPTY,
+  COLUMN_FOLDED,
+  COLUMN_LIFT_CALLOUT,
+  COLUMN_LIFT_QUOTE,
+  COLUMN_LIFT_TABLE,
+  COLUMN_LIFT_TOGGLE,
+  COLUMN_LIFTED,
+  COLUMN_MAX_COUNT,
+  COLUMN_MIN_COUNT,
+  COLUMN_MIN_PERCENT,
+  COLUMN_NESTED,
+  COLUMN_UNWRAPPED,
+  COLUMN_WIDTH_EQUAL,
+  COLUMN_WIDTH_NORMALIZED,
+  clampAndNormalizeWidths,
+  equalColumnWidths,
+  emptyParagraph,
+  formatColumnWidth,
+  isEditorValue,
+  repairColumnContent,
+} from "../document/editor-column-repair";
 
-export const COLUMN_WIDTH_EQUAL =
-  "Column widths were split equally because a width was missing, invalid, or below 20%.";
-export const COLUMN_WIDTH_NORMALIZED = "Column widths were normalized so the group sums to 100%.";
-export const COLUMN_UNWRAPPED = "A column group with one column was turned into blocks.";
-export const COLUMN_NESTED = "A nested column group was moved out after its parent column group.";
-export const COLUMN_LIFT_TOGGLE = "A column group inside a toggle was moved out after the toggle.";
-export const COLUMN_LIFT_QUOTE = "A column group inside a quote was moved out after the quote.";
-export const COLUMN_LIFT_CALLOUT =
-  "A column group inside a callout was moved out after the callout.";
-export const COLUMN_LIFT_TABLE = "A column group inside a table was moved out after the table.";
-export const COLUMN_LIFTED = "A column group was moved out because columns are top-level only.";
-export const COLUMN_CHILD_LIFTED =
-  "A block that cannot sit in a column was moved out of the column group.";
-export const COLUMN_FOLDED = "Columns after the third were folded into the third column.";
-export const COLUMN_EMPTY = "An empty column was given an empty paragraph.";
-export const COLUMN_BARE = "A column outside a column group was unwrapped.";
+export {
+  COLUMN_BARE,
+  COLUMN_CHILD_LIFTED,
+  COLUMN_EMPTY,
+  COLUMN_FOLDED,
+  COLUMN_LIFT_CALLOUT,
+  COLUMN_LIFT_QUOTE,
+  COLUMN_LIFT_TABLE,
+  COLUMN_LIFT_TOGGLE,
+  COLUMN_LIFTED,
+  COLUMN_MAX_COUNT,
+  COLUMN_MIN_COUNT,
+  COLUMN_MIN_PERCENT,
+  COLUMN_NESTED,
+  COLUMN_UNWRAPPED,
+  COLUMN_WIDTH_EQUAL,
+  COLUMN_WIDTH_NORMALIZED,
+  clampAndNormalizeWidths,
+  equalColumnWidths,
+  formatColumnWidth,
+  repairColumnContent,
+};
 
 const COLUMN_MOVE_FORWARD = "forward";
 const COLUMN_MOVE_BACKWARD = "backward";
 
 type ColumnMove = typeof COLUMN_MOVE_FORWARD | typeof COLUMN_MOVE_BACKWARD;
-
-type ParentKind =
-  "root" | "group" | "column" | "toggle" | "quote" | "callout" | "table" | "row" | "cell" | "other";
-
-type BlockResult = {
-  blocks: Descendant[];
-  escape: Descendant[];
-  repairs: Repair[];
-  changed: boolean;
-};
-
-type ListResult = {
-  children: Descendant[];
-  escape: Descendant[];
-  repairs: Repair[];
-  changed: boolean;
-};
-
-export type ColumnRepairResult = {
-  content: EditorValue;
-  repairs: Repair[];
-  changed: boolean;
-};
 
 type ColumnKeyEvent = {
   key: string;
@@ -16075,489 +16036,6 @@ type ColumnKeyEvent = {
   shiftKey: boolean;
   preventDefault: () => void;
 };
-
-function emptyParagraph(): TElement {
-  return { type: KEYS.p, children: [{ text: "" }] };
-}
-
-function isEditorValue(value: readonly Descendant[]): value is EditorValue {
-  return value.every((node) => ElementApi.isElement(node));
-}
-
-export function formatColumnWidth(value: number): string {
-  const rounded = Math.round(value * 100) / 100;
-  if (Number.isInteger(rounded)) {
-    return `${rounded}%`;
-  }
-
-  return `${rounded.toFixed(2)}%`;
-}
-
-export function equalColumnWidths(count: number): string[] {
-  const safe = Math.max(count, 1);
-  const share = Math.round((100 / safe) * 100) / 100;
-  const widths: number[] = [];
-  let used = 0;
-  for (let index = 0; index < safe - 1; index += 1) {
-    widths.push(share);
-    used += share;
-  }
-  widths.push(Math.round((100 - used) * 100) / 100);
-  return widths.map(formatColumnWidth);
-}
-
-function parseColumnWidth(value: unknown): number | undefined {
-  if (typeof value !== "string" || !value.endsWith("%")) {
-    return undefined;
-  }
-
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed)) {
-    return undefined;
-  }
-
-  return parsed;
-}
-
-export function clampAndNormalizeWidths(input: readonly number[]): string[] {
-  const count = input.length;
-  if (count === 0) {
-    return [];
-  }
-
-  const max = 100 - COLUMN_MIN_PERCENT * (count - 1);
-  let values = input.map((value) => {
-    if (!Number.isFinite(value)) {
-      return 100 / count;
-    }
-
-    return Math.min(max, Math.max(COLUMN_MIN_PERCENT, value));
-  });
-
-  for (let guard = 0; guard < 8; guard += 1) {
-    const sum = values.reduce((total, value) => total + value, 0);
-    const diff = 100 - sum;
-    if (Math.abs(diff) < 0.001) {
-      break;
-    }
-
-    const room = values.map((value) => (diff > 0 ? max - value : value - COLUMN_MIN_PERCENT));
-    const roomSum = room.reduce((total, value) => total + value, 0);
-    if (roomSum <= 0.001) {
-      break;
-    }
-
-    values = values.map((value, index) => value + (diff * (room[index] ?? 0)) / roomSum);
-  }
-
-  const formatted: number[] = [];
-  let used = 0;
-  for (let index = 0; index < count - 1; index += 1) {
-    const rounded = Math.round((values[index] ?? 0) * 100) / 100;
-    const clamped = Math.min(max, Math.max(COLUMN_MIN_PERCENT, rounded));
-    formatted.push(clamped);
-    used += clamped;
-  }
-  const last = Math.round((100 - used) * 100) / 100;
-  if (last < COLUMN_MIN_PERCENT || last > max) {
-    return equalColumnWidths(count);
-  }
-  formatted.push(last);
-  return formatted.map(formatColumnWidth);
-}
-
-function parentKind(type: string): ParentKind {
-  if (type === KEYS.columnGroup) {
-    return "group";
-  }
-  if (type === KEYS.column) {
-    return "column";
-  }
-  if (type === KEYS.toggle) {
-    return "toggle";
-  }
-  if (type === KEYS.blockquote) {
-    return "quote";
-  }
-  if (type === KEYS.callout) {
-    return "callout";
-  }
-  if (type === KEYS.table) {
-    return "table";
-  }
-  if (type === KEYS.tr) {
-    return "row";
-  }
-  if (type === KEYS.td || type === KEYS.th) {
-    return "cell";
-  }
-  return "other";
-}
-
-function liftMessage(kind: ParentKind, block: Descendant): string {
-  if (!ElementApi.isElement(block) || block.type !== KEYS.columnGroup) {
-    return COLUMN_CHILD_LIFTED;
-  }
-
-  if (kind === "column") {
-    return COLUMN_NESTED;
-  }
-  if (kind === "toggle") {
-    return COLUMN_LIFT_TOGGLE;
-  }
-  if (kind === "quote") {
-    return COLUMN_LIFT_QUOTE;
-  }
-  if (kind === "callout") {
-    return COLUMN_LIFT_CALLOUT;
-  }
-  if (kind === "cell" || kind === "row" || kind === "table") {
-    return COLUMN_LIFT_TABLE;
-  }
-  return COLUMN_LIFTED;
-}
-
-function placeBlock(kind: ParentKind, block: Descendant): "keep" | "escape" | "unwrap" {
-  if (!ElementApi.isElement(block) || typeof block.type !== "string") {
-    return "keep";
-  }
-
-  if (block.type === KEYS.column && kind !== "group") {
-    return "unwrap";
-  }
-
-  if (block.type === KEYS.columnGroup && kind !== "root") {
-    return "escape";
-  }
-
-  if (kind === "column" || kind === "group") {
-    const parentType = kind === "column" ? KEYS.column : KEYS.columnGroup;
-    const allowed = allowedChildTypes(parentType);
-    if (allowed !== undefined && !allowed.some((type) => type === block.type)) {
-      return "escape";
-    }
-  }
-
-  return "keep";
-}
-
-function unchanged(block: Descendant): BlockResult {
-  return { blocks: [block], escape: [], repairs: [], changed: false };
-}
-
-function repairChildList(children: Descendant[], kind: ParentKind, path: number[]): ListResult {
-  let changed = false;
-  const next: Descendant[] = [];
-  const escape: Descendant[] = [];
-  const repairs: Repair[] = [];
-
-  for (let index = 0; index < children.length; index += 1) {
-    const child = children[index];
-    if (child === undefined) {
-      continue;
-    }
-
-    const result = repairNode(child, path.concat(index));
-    if (result.changed || result.blocks.length !== 1 || result.blocks[0] !== child) {
-      changed = true;
-    }
-    if (result.repairs.length > 0) {
-      repairs.push(...result.repairs);
-    }
-
-    for (const block of result.blocks) {
-      const action = placeBlock(kind, block);
-      if (action === "escape") {
-        escape.push(block);
-        changed = true;
-        repairs.push({ path: path.concat(index), message: liftMessage(kind, block) });
-        continue;
-      }
-
-      if (action === "unwrap" && ElementApi.isElement(block)) {
-        next.push(...block.children);
-        changed = true;
-        repairs.push({ path: path.concat(index), message: COLUMN_BARE });
-        continue;
-      }
-
-      next.push(block);
-    }
-
-    if (result.escape.length > 0) {
-      changed = true;
-      if (kind === "root") {
-        next.push(...result.escape);
-      } else {
-        escape.push(...result.escape);
-      }
-    }
-  }
-
-  if (!changed) {
-    return { children, escape: [], repairs: [], changed: false };
-  }
-
-  return { children: next, escape, repairs, changed: true };
-}
-
-function withColumnChildren(node: TElement, children: Descendant[]): TElement {
-  if (node.children === children) {
-    return node;
-  }
-
-  return { ...node, children };
-}
-
-function columnElement(node: TElement, children: Descendant[], width: string): TElement {
-  if (node.width === width && node.children === children) {
-    return node;
-  }
-
-  return { ...node, width, children };
-}
-
-function repairColumn(node: TElement, path: number[]): BlockResult {
-  const children = Array.isArray(node.children) ? node.children : [];
-  const listed = repairChildList(children, "column", path);
-  const elements: Descendant[] = [];
-  const looseText: Descendant[] = [];
-  for (const child of listed.children) {
-    if (ElementApi.isElement(child)) {
-      elements.push(child);
-    } else {
-      looseText.push(child);
-    }
-  }
-
-  const repairs = [...listed.repairs];
-  let changed = listed.changed || looseText.length > 0;
-  if (looseText.length > 0) {
-    elements.unshift({ type: KEYS.p, children: looseText });
-    repairs.push({
-      path,
-      message: `${formatBlockLabel(path)} had loose text. It was wrapped in a paragraph.`,
-    });
-  }
-
-  if (elements.length === 0) {
-    elements.push(emptyParagraph());
-    changed = true;
-    repairs.push({ path, message: COLUMN_EMPTY });
-  }
-
-  const next = withColumnChildren(node, changed ? elements : node.children);
-  if (!changed && next === node) {
-    return {
-      blocks: [node],
-      escape: listed.escape,
-      repairs,
-      changed: listed.escape.length > 0,
-    };
-  }
-
-  return { blocks: [next], escape: listed.escape, repairs, changed: true };
-}
-
-function widthsForColumns(columns: readonly TElement[]): { widths: string[]; message?: string } {
-  const raw = columns.map((column) => column.width);
-  const invalid = raw.some((value) => {
-    const parsed = parseColumnWidth(value);
-    return parsed === undefined || parsed < COLUMN_MIN_PERCENT;
-  });
-  if (invalid) {
-    return { widths: equalColumnWidths(columns.length), message: COLUMN_WIDTH_EQUAL };
-  }
-
-  const numbers = raw.map((value) => parseColumnWidth(value) ?? 0);
-  const fitted = clampAndNormalizeWidths(numbers);
-  const same = fitted.every((width, index) => width === raw[index]);
-  if (same) {
-    return { widths: fitted };
-  }
-
-  return { widths: fitted, message: COLUMN_WIDTH_NORMALIZED };
-}
-
-function repairGroup(node: TElement, path: number[]): BlockResult {
-  const repairs: Repair[] = [];
-  const columns: TElement[] = [];
-  const after: Descendant[] = [];
-  let changed = false;
-  const children = Array.isArray(node.children) ? node.children : [];
-
-  for (let index = 0; index < children.length; index += 1) {
-    const child = children[index];
-    if (child === undefined) {
-      continue;
-    }
-
-    if (!ElementApi.isElement(child) || child.type !== KEYS.column) {
-      const lifted = repairNode(child, path.concat(index));
-      after.push(...lifted.blocks, ...lifted.escape);
-      repairs.push(...lifted.repairs);
-      repairs.push({ path: path.concat(index), message: COLUMN_CHILD_LIFTED });
-      changed = true;
-      continue;
-    }
-
-    const repaired = repairColumn(child, path.concat(columns.length));
-    const column = repaired.blocks[0];
-    if (ElementApi.isElement(column) && column.type === KEYS.column) {
-      if (column !== child || repaired.changed) {
-        changed = true;
-      }
-      columns.push(column);
-    }
-    if (repaired.escape.length > 0) {
-      after.push(...repaired.escape);
-      changed = true;
-    }
-    repairs.push(...repaired.repairs);
-    for (const extra of repaired.blocks.slice(1)) {
-      after.push(extra);
-      changed = true;
-    }
-  }
-
-  if (columns.length === 0) {
-    return { blocks: after, escape: [], repairs, changed: true };
-  }
-
-  if (columns.length === 1) {
-    const only = columns[0];
-    repairs.push({ path, message: COLUMN_UNWRAPPED });
-    return {
-      blocks: [...(only ? only.children : []), ...after],
-      escape: [],
-      repairs,
-      changed: true,
-    };
-  }
-
-  let kept = columns;
-  if (columns.length > COLUMN_MAX_COUNT) {
-    const third = columns[COLUMN_MAX_COUNT - 1];
-    const extras = columns.slice(COLUMN_MAX_COUNT);
-    if (third) {
-      const folded = [...third.children];
-      for (const extra of extras) {
-        folded.push(...extra.children);
-      }
-      kept = [...columns.slice(0, COLUMN_MAX_COUNT - 1), { ...third, children: folded }];
-    }
-    repairs.push({ path, message: COLUMN_FOLDED });
-    changed = true;
-  }
-
-  const fitted = widthsForColumns(kept);
-  if (fitted.message !== undefined) {
-    repairs.push({ path, message: fitted.message });
-    changed = true;
-  }
-
-  const nextColumns = kept.map((column, index) =>
-    columnElement(
-      column,
-      column.children,
-      fitted.widths[index] ?? equalColumnWidths(kept.length)[index] ?? "50%",
-    ),
-  );
-  if (nextColumns.some((column, index) => column !== kept[index])) {
-    changed = true;
-  }
-
-  if (!changed && after.length === 0) {
-    return unchanged(node);
-  }
-
-  const group: TElement = { ...node, children: nextColumns };
-  return { blocks: [group, ...after], escape: [], repairs, changed: true };
-}
-
-function repairElement(node: TElement, path: number[]): BlockResult {
-  const kind = parentKind(node.type);
-  if (kind === "group") {
-    return repairGroup(node, path);
-  }
-  if (kind === "column") {
-    return repairColumn(node, path);
-  }
-
-  if (!Array.isArray(node.children)) {
-    return unchanged(node);
-  }
-
-  const listed = repairChildList(node.children, kind, path);
-  const needsParagraph =
-    kind === "quote" || kind === "callout" || kind === "toggle" || kind === "cell";
-  let nextChildren = listed.children;
-  const repairs = [...listed.repairs];
-  if (needsParagraph && listed.changed && nextChildren.length === 0) {
-    nextChildren = [emptyParagraph()];
-    repairs.push({ path, message: COLUMN_EMPTY });
-  }
-
-  if (!listed.changed && nextChildren === listed.children) {
-    return {
-      blocks: [node],
-      escape: listed.escape,
-      repairs,
-      changed: listed.escape.length > 0 || repairs.length > 0,
-    };
-  }
-
-  return {
-    blocks: [{ ...node, children: nextChildren }],
-    escape: listed.escape,
-    repairs,
-    changed: true,
-  };
-}
-
-function repairNode(value: Descendant, path: number[]): BlockResult {
-  if (!ElementApi.isElement(value)) {
-    return unchanged(value);
-  }
-
-  return repairElement(value, path);
-}
-
-export function repairColumnContent(content: EditorValue): ColumnRepairResult {
-  const listed = repairChildList(content, "root", []);
-  let blocks = listed.children;
-  const repairs = [...listed.repairs];
-  let changed = listed.changed;
-  if (listed.escape.length > 0) {
-    blocks = [...blocks, ...listed.escape];
-    changed = true;
-  }
-
-  if (blocks.length === 0) {
-    if (!changed) {
-      return { content, repairs: [], changed: false };
-    }
-
-    return {
-      content: [emptyParagraph()],
-      repairs: [
-        ...repairs,
-        { path: [], message: "An empty column group was replaced with an empty paragraph." },
-      ],
-      changed: true,
-    };
-  }
-
-  if (!changed) {
-    return { content, repairs: [], changed: false };
-  }
-
-  if (!isEditorValue(blocks)) {
-    return { content, repairs: [], changed: false };
-  }
-
-  return { content: blocks, repairs, changed: true };
-}
 
 let columnRepairDepth = 0;
 
@@ -17074,8 +16552,9 @@ import {
 
 import { clampAndNormalizeWidths, setColumnWidths } from "../../lib/commands/editor-columns";
 
-export const COLUMN_GROUP_LAYOUT_CLASS =
-  "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
+import { COLUMN_GROUP_LAYOUT_CLASS } from "./column-classes";
+
+export { COLUMN_GROUP_LAYOUT_CLASS };
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
@@ -17291,39 +16770,31 @@ export function ColumnGroupElement(props: PlateElementProps) {
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc.ts
 ```ts
-import { ElementApi, KEYS, NodeApi, PathApi, type SlateEditor, type TElement } from "platejs";
+import { ElementApi, KEYS, PathApi, type SlateEditor, type TElement } from "platejs";
 
 import type { EditorCommand } from "../commands/editor-commands";
-import { headingAnchorId } from "../../components/elements/heading-element";
+import { headingAnchorId } from "../../components/elements/heading-styles";
 import { toggleOpen } from "../plugins/editor-toggle";
+import {
+  TOC_DEFAULT_DEPTH,
+  headingPlainText,
+  isTocDepth,
+  type TocDepth,
+  type TocEntry,
+} from "./editor-toc-outline";
 
-export const TOC_DEPTHS = [1, 2, 3] as const;
-export type TocDepth = (typeof TOC_DEPTHS)[number];
-export const TOC_DEFAULT_DEPTH: TocDepth = 3;
-export const TOC_EMPTY_PLACEHOLDER = "Add headings to build a table of contents.";
-export const TOC_UNTITLED = "Untitled";
-
-export type TocEntry = {
-  id: string;
-  depth: TocDepth;
-  title: string;
-  path: number[];
-};
-
-// @platejs/toc 53.0.0 getHeadingList drops an empty title, keeps raw NodeApi.string,
-// and lists h4–h6. onContentScroll uses behavior "instant" and does not move the
-// caret or open a toggle. This outline is the document's h1–h3 blocks instead.
-export function isTocDepth(value: unknown): value is TocDepth {
-  return value === 1 || value === 2 || value === 3;
-}
-
-export function storedTocDepth(node: TElement): TocDepth {
-  return isTocDepth(node.maxDepth) ? node.maxDepth : TOC_DEFAULT_DEPTH;
-}
-
-export function headingPlainText(node: TElement): string {
-  return NodeApi.string(node).replace(/\s+/g, " ").trim();
-}
+export {
+  TOC_DEFAULT_DEPTH,
+  TOC_DEPTHS,
+  TOC_EMPTY_PLACEHOLDER,
+  TOC_UNTITLED,
+  headingPlainText,
+  isTocDepth,
+  shallowestDepth,
+  storedTocDepth,
+  type TocDepth,
+  type TocEntry,
+} from "./editor-toc-outline";
 
 function headingDepth(type: string): TocDepth | undefined {
   if (type === KEYS.h1) {
@@ -17366,16 +16837,6 @@ export function tocEntries(editor: SlateEditor, maxDepth: TocDepth): TocEntry[] 
     });
   }
   return entries;
-}
-
-export function shallowestDepth(entries: readonly TocEntry[]): TocDepth {
-  let shallowest: TocDepth = TOC_DEFAULT_DEPTH;
-  for (const entry of entries) {
-    if (entry.depth < shallowest) {
-      shallowest = entry.depth;
-    }
-  }
-  return shallowest;
 }
 
 export function prefersReducedMotion(): boolean {
@@ -17822,30 +17283,16 @@ import type { KatexOptions } from "katex";
 
 import type { EditorCommand } from "../commands/editor-commands";
 
-export const EQUATION_EMPTY_PLACEHOLDER = "Add an equation";
-
-// throwOnError is true so a bad expression throws and this editor shows the
-// message. KaTeX's false setting would emit its own katex-error span instead.
-// strict is "ignore", not "warn": "warn" writes to the page console, and a
-// parse error still throws. trust stays false, so \href, \url, \htmlClass,
-// \htmlId, \htmlStyle, \htmlData, and \includegraphics cannot add links,
-// attributes, or images (katex src/functions/href.js, html.js, includegraphics.js).
-// No macros option: a stored document cannot define macros.
-export const EQUATION_KATEX_OPTIONS = {
-  displayMode: true,
-  throwOnError: true,
-  trust: false,
-  strict: "ignore",
-  maxSize: 10,
-  maxExpand: 1000,
-  output: "htmlAndMathml",
-} as const satisfies KatexOptions;
+export {
+  EQUATION_EMPTY_PLACEHOLDER,
+  EQUATION_KATEX_OPTIONS,
+  renderEquation,
+  type EquationRender,
+} from "./editor-equation-render";
 
 type KatexModule = {
   renderToString: (expression: string, options: KatexOptions) => string;
 };
-
-export type EquationRender = { ok: true; html: string } | { ok: false; message: string };
 
 let katexModule: Promise<KatexModule> | undefined;
 
@@ -17854,15 +17301,6 @@ let katexModule: Promise<KatexModule> | undefined;
 export function loadKatex(): Promise<KatexModule> {
   katexModule ??= import("katex").then((mod) => mod.default);
   return katexModule;
-}
-
-export function renderEquation(katex: KatexModule, expression: string): EquationRender {
-  try {
-    return { ok: true, html: katex.renderToString(expression, EQUATION_KATEX_OPTIONS) };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "This equation could not be rendered.";
-    return { ok: false, message };
-  }
 }
 
 // The native plugin is not registered: its react entry imports katex statically, which would put KaTeX in the first-load bundle.
@@ -18069,6 +17507,7 @@ import {
   retainScroll,
 } from "../ui/block-toolbar";
 import { ScrollFadeArea } from "../ui/editor-scroll";
+import { EQUATION_BLOCK_CLASS } from "./equation-classes";
 
 import "katex/dist/katex.min.css";
 
@@ -18249,10 +17688,7 @@ export function EquationElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className={cn(
-        "group bg-muted relative my-2 max-w-full min-w-0 rounded-md px-3 py-2",
-        selected && focused && !readOnly && "bg-muted",
-      )}
+      className={cn(EQUATION_BLOCK_CLASS, selected && focused && !readOnly && "bg-muted")}
     >
       <Popover
         open={open}
@@ -18372,6 +17808,10 @@ import type { EditorCommand } from "../commands/editor-commands";
 import { formatBlockLabel } from "../document/editor-document";
 import type { Repair } from "../document/editor-document-ids";
 import { SYNCED_REF_KEY, isStoredSyncedTargetId } from "../document/editor-document-schema";
+import { syncedTargetStatus } from "./editor-synced-repair";
+
+export { syncedRefRepairs } from "./editor-synced-repair";
+export type { SyncedTargetStatus } from "./editor-synced-repair";
 import { prefersReducedMotion } from "./editor-toc";
 import { toggleOpen } from "../plugins/editor-toggle";
 import type { EditorValue } from "../document/editor-value";
@@ -18389,7 +17829,6 @@ export const SYNCED_REMOVE_LABEL = "Delete";
 export const SYNCED_SELECT_REASON = "Select a block to sync.";
 export const SYNCED_REJECT_REASON = "This block cannot be synced.";
 
-export type SyncedTargetStatus = "live" | "missing" | "invalid";
 export type SyncedDirection = "above" | "below";
 
 type BlockEntry = [TElement, number[]];
@@ -18402,43 +17841,7 @@ function isElement(node: Descendant): node is TElement {
   return ElementApi.isElement(node);
 }
 
-// Descendants only. The node itself is checked by its type.
-function containsSyncedRef(node: TElement): boolean {
-  for (const child of node.children) {
-    if (!isElement(child)) {
-      continue;
-    }
-    if (child.type === SYNCED_REF_KEY || containsSyncedRef(child)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-export function syncedTargetStatus(
-  target: TElement | undefined,
-  targetId: string,
-): SyncedTargetStatus {
-  if (!isStoredSyncedTargetId(targetId)) {
-    return "invalid";
-  }
-
-  if (!target) {
-    return "missing";
-  }
-
-  if (
-    target.type === SYNCED_REF_KEY ||
-    target.type === KEYS.toc ||
-    target.type === KEYS.columnGroup ||
-    containsSyncedRef(target)
-  ) {
-    return "invalid";
-  }
-
-  return "live";
-}
+export { syncedTargetStatus };
 
 export function syncedDirection(targetPath: number[], refPath: number[]): SyncedDirection {
   return PathApi.compare(targetPath, refPath) < 0 ? "above" : "below";
@@ -18495,42 +17898,6 @@ function emptyParagraph(used: Set<string>): TElement {
 
 function targetIdOf(node: TElement): string {
   return typeof node.targetBlockId === "string" ? node.targetBlockId : "";
-}
-
-// Invalid targets are repairs. A missing target stays a runtime placeholder, so the
-// document still opens and undo can bring the original back.
-export function syncedRefRepairs(value: EditorValue): Repair[] {
-  const index = indexElements(value);
-  const repairs: Repair[] = [];
-
-  const visit = (node: Descendant, path: number[]): void => {
-    if (!isElement(node)) {
-      return;
-    }
-
-    if (node.type === SYNCED_REF_KEY) {
-      const targetId = targetIdOf(node);
-      if (isStoredSyncedTargetId(targetId)) {
-        const status = syncedTargetStatus(index.get(targetId), targetId);
-        if (status === "invalid") {
-          repairs.push({
-            path,
-            message: `${formatBlockLabel(path)} points at a block that cannot be synced. The reference is kept.`,
-          });
-        }
-      }
-    }
-
-    node.children.forEach((child, childIndex) => {
-      visit(child, [...path, childIndex]);
-    });
-  };
-
-  value.forEach((node, nodeIndex) => {
-    visit(node, [nodeIndex]);
-  });
-
-  return repairs;
 }
 
 function materializeElement(
@@ -28852,11 +28219,1494 @@ export const demoMentionProvider: MentionProvider = {
 };
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+```ts
+// A plugin className cannot derive a DOM id from the block id.
+const HEADING_SIZE = {
+  h1: "text-3xl",
+  h2: "text-2xl",
+  h3: "text-xl",
+} as const;
+
+const HEADING_MARGIN = {
+  h1: "mt-8",
+  h2: "mt-6",
+  h3: "mt-4",
+} as const;
+
+// scroll-mt-24 is the in-page anchor offset used on component pages. The site
+// header is sticky top-1 with an h-14 bar, and scrollIntoView({ block: "start" })
+// then keeps a heading below that bar.
+const HEADING_SCROLL = "scroll-mt-24";
+
+export const HEADING_STYLES = {
+  h1: `${HEADING_MARGIN.h1} ${HEADING_SIZE.h1} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h2: `${HEADING_MARGIN.h2} ${HEADING_SIZE.h2} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+  h3: `${HEADING_MARGIN.h3} ${HEADING_SIZE.h3} font-medium leading-tight text-foreground first:mt-0 ${HEADING_SCROLL}`,
+} as const;
+
+export type HeadingTag = keyof typeof HEADING_STYLES;
+
+// The DOM id is derived from the block id. It is not stored on the node.
+export function headingAnchorId(blockId: string): string {
+  return `heading-${blockId}`;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+```ts
+export const LIST_SIBLING_GAP_CLASS = "[&>[data-list-item]:has(+[data-list-item])]:mb-1";
+
+export function todoTextId(blockId: string): string {
+  return `todo-text-${blockId}`;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+```ts
+export const BLOCKQUOTE_CLASS_NAME =
+  "border-l-2 border-border text-foreground space-y-2 pl-4 font-normal";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+```ts
+export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
+export const BLOCK_SELECTED_CLASS = "bg-muted";
+export const HR_SELECTED_CLASS_NAME = BLOCK_SELECTED_CLASS;
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+```ts
+import {
+  CALLOUT_DEFAULT_ICON,
+  CALLOUT_ICONS,
+  CALLOUT_TONES,
+  type CalloutIcon,
+  type CalloutTone,
+} from "../../lib/document/editor-document-schema";
+
+export const CALLOUT_TONE_CLASS_NAME = {
+  default: "border-editor-callout-default-border bg-editor-callout-default-bg text-foreground",
+  info: "border-editor-callout-info-border bg-editor-callout-info-bg text-foreground",
+  success: "border-editor-callout-success-border bg-editor-callout-success-bg text-foreground",
+  warning: "border-editor-callout-warning-border bg-editor-callout-warning-bg text-foreground",
+  danger: "border-editor-callout-danger-border bg-editor-callout-danger-bg text-foreground",
+} as const;
+
+export function calloutIcon(value: unknown): CalloutIcon {
+  const found = CALLOUT_ICONS.find((icon) => icon === value);
+  return found ?? CALLOUT_DEFAULT_ICON;
+}
+
+export function calloutTone(value: unknown): "default" | CalloutTone {
+  const found = CALLOUT_TONES.find((tone) => tone === value);
+  return found ?? "default";
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+```ts
+import { cn } from "@/lib/utils";
+
+import { LIST_SIBLING_GAP_CLASS } from "./block-list-metrics";
+
+export const TOGGLE_HIDDEN_CONTENT_CLASS =
+  "data-[open=false]:[&>:not(:first-child):not([contenteditable=false])]:hidden";
+
+export const TOGGLE_LABEL_MARGIN_CLASS = "[&_h1]:mt-0 [&_h2]:mt-0 [&_h3]:mt-0";
+
+export const TOGGLE_CLASS_NAME = cn(
+  "space-y-2 [&>:not(:first-child)]:pl-9",
+  LIST_SIBLING_GAP_CLASS,
+  TOGGLE_HIDDEN_CONTENT_CLASS,
+  TOGGLE_LABEL_MARGIN_CLASS,
+);
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+```ts
+export const COLUMN_GROUP_LAYOUT_CLASS =
+  "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+```ts
+export const BOOKMARK_CARD_CLASS =
+  "@container/card border-border bg-background flex h-[150px] w-full min-w-0 overflow-hidden rounded-xl border";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+```ts
+import { ElementApi, KEYS, NodeApi, type Descendant, type TElement } from "platejs";
+
+export const TOC_DEPTHS = [1, 2, 3] as const;
+export type TocDepth = (typeof TOC_DEPTHS)[number];
+export const TOC_DEFAULT_DEPTH: TocDepth = 3;
+export const TOC_EMPTY_PLACEHOLDER = "Add headings to build a table of contents.";
+export const TOC_UNTITLED = "Untitled";
+
+export type TocEntry = {
+  id: string;
+  depth: TocDepth;
+  title: string;
+  path: number[];
+};
+
+export function isTocDepth(value: unknown): value is TocDepth {
+  return value === 1 || value === 2 || value === 3;
+}
+
+export function storedTocDepth(node: TElement): TocDepth {
+  return isTocDepth(node.maxDepth) ? node.maxDepth : TOC_DEFAULT_DEPTH;
+}
+
+export function headingPlainText(node: TElement): string {
+  return NodeApi.string(node).replace(/\s+/g, " ").trim();
+}
+
+function headingDepth(type: string): TocDepth | undefined {
+  if (type === KEYS.h1) return 1;
+  if (type === KEYS.h2) return 2;
+  if (type === KEYS.h3) return 3;
+  return undefined;
+}
+
+export function tocEntriesFromValue(value: readonly Descendant[], maxDepth: TocDepth): TocEntry[] {
+  const entries: TocEntry[] = [];
+  const visit = (node: Descendant, path: number[]): void => {
+    if (!ElementApi.isElement(node) || typeof node.type !== "string") {
+      return;
+    }
+    const depth = headingDepth(node.type);
+    if (
+      depth !== undefined &&
+      depth <= maxDepth &&
+      typeof node.id === "string" &&
+      node.id.length > 0
+    ) {
+      entries.push({
+        id: node.id,
+        depth,
+        title: headingPlainText(node),
+        path: [...path],
+      });
+    }
+    node.children.forEach((child, index) => {
+      visit(child, path.concat(index));
+    });
+  };
+  value.forEach((node, index) => {
+    visit(node, [index]);
+  });
+  return entries;
+}
+
+export function shallowestDepth(entries: readonly { depth: TocDepth }[]): TocDepth {
+  let shallowest: TocDepth = TOC_DEFAULT_DEPTH;
+  for (const entry of entries) {
+    if (entry.depth < shallowest) {
+      shallowest = entry.depth;
+    }
+  }
+  return shallowest;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+```ts
+// The paragraph is text-base (16px). 0.9em would be 14.4px, under the body-text floor.
+export const codeLeafClassName =
+  "border-border bg-muted text-foreground rounded-md border px-1.5 py-0.5 font-mono text-base";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+```ts
+import { createEditorDocument } from "../document/editor-document";
+import { migrateEditorDocument } from "../document/editor-document-migrate";
+import {
+  EDITOR_ELEMENT_RULES,
+  isAllowedElementAttrValue,
+} from "../document/editor-document-schema";
+import { sanitizeLinkUrl } from "../features/editor-link-url";
+import { parseEditorDocument } from "../document/editor-document-validate";
+import type { EditorValue } from "../document/editor-value";
+
+const KNOWN_TYPES = new Set<string>(EDITOR_ELEMENT_RULES.map((rule) => rule.type));
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function plainText(value: unknown): string {
+  if (!isRecord(value)) {
+    return "";
+  }
+  if (typeof value.text === "string" && !("children" in value)) {
+    return value.text;
+  }
+  if (!Array.isArray(value.children)) {
+    return "";
+  }
+  return value.children.map((child) => plainText(child)).join("");
+}
+
+// An unknown type still shows its text. Known nodes keep their children.
+function softenNode(value: unknown): Record<string, unknown> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (typeof value.text === "string" && !("type" in value)) {
+    return value;
+  }
+  const type = typeof value.type === "string" ? value.type : "";
+  const children = Array.isArray(value.children)
+    ? value.children.map((child) => softenNode(child) ?? { text: "" })
+    : [{ text: plainText(value) }];
+  if (type.length === 0 || !KNOWN_TYPES.has(type)) {
+    return {
+      type: "p",
+      id: typeof value.id === "string" ? value.id : undefined,
+      children: [{ text: plainText(value) }],
+    };
+  }
+  const next: Record<string, unknown> = { ...value, children };
+  for (const key of Object.keys(next)) {
+    if (key === "type" || key === "children") continue;
+    if (
+      key === "url" &&
+      typeof next.url === "string" &&
+      sanitizeLinkUrl(next.url) === undefined &&
+      type !== "bookmark"
+    ) {
+      delete next.url;
+    }
+    if (
+      !isAllowedElementAttrValue(
+        type as Parameters<typeof isAllowedElementAttrValue>[0],
+        key,
+        next[key],
+      ) &&
+      key !== "url" &&
+      key !== "texExpression" &&
+      key !== "targetBlockId" &&
+      key !== "width" &&
+      key !== "colSizes"
+    ) {
+      delete next[key];
+    }
+  }
+  return next;
+}
+
+function soften(content: EditorValue): EditorValue {
+  return content.map(
+    (node) => softenNode(node) ?? { type: "p", children: [{ text: "" }] },
+  ) as EditorValue;
+}
+
+/**
+ * The editor loads through migrateEditorDocument then parseEditorDocument.
+ * A future version, a non-document, or a value that cannot be read renders nothing.
+ * Unsupported nodes stay visible as paragraphs instead of throwing.
+ */
+export function readStaticValue(value: unknown): EditorValue | null {
+  try {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    const migrated = migrateEditorDocument(
+      createEditorDocument("static", value as EditorValue),
+      "static",
+    );
+    const parsed = parseEditorDocument(migrated);
+    if (parsed.status === "ok") {
+      return soften(parsed.document.content);
+    }
+    if (parsed.status === "unsupported") {
+      return soften(value as EditorValue);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+```ts
+import {
+  BaseBlockquotePlugin,
+  BaseBoldPlugin,
+  BaseCodePlugin,
+  BaseH1Plugin,
+  BaseH2Plugin,
+  BaseH3Plugin,
+  BaseHorizontalRulePlugin,
+  BaseItalicPlugin,
+  BaseStrikethroughPlugin,
+  BaseSubscriptPlugin,
+  BaseSuperscriptPlugin,
+  BaseUnderlinePlugin,
+} from "@platejs/basic-nodes";
+import {
+  BaseFontBackgroundColorPlugin,
+  BaseFontColorPlugin,
+  BaseFontFamilyPlugin,
+  BaseFontSizePlugin,
+  BaseLineHeightPlugin,
+  BaseTextAlignPlugin,
+} from "@platejs/basic-styles";
+import { BaseCalloutPlugin } from "@platejs/callout";
+import { BaseCodeBlockPlugin, BaseCodeLinePlugin, BaseCodeSyntaxPlugin } from "@platejs/code-block";
+import { BaseColumnItemPlugin, BaseColumnPlugin } from "@platejs/layout";
+import { BaseListPlugin } from "@platejs/list";
+import { BaseLinkPlugin } from "@platejs/link";
+import { BaseMentionPlugin } from "@platejs/mention";
+import {
+  BaseTableCellHeaderPlugin,
+  BaseTableCellPlugin,
+  BaseTablePlugin,
+  BaseTableRowPlugin,
+} from "@platejs/table";
+import { BaseTocPlugin } from "@platejs/toc";
+import { KEYS, createSlatePlugin } from "platejs";
+
+import { BlockquoteStatic } from "../../components/static/blockquote-static";
+import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { CalloutStatic } from "../../components/static/callout-static";
+import {
+  CodeBlockStatic,
+  CodeLineStatic,
+  CodeSyntaxStatic,
+} from "../../components/static/code-block-static";
+import { codeLowlight } from "../features/editor-code";
+import { ensureStaticCodeLanguages } from "../../components/static/code-highlight";
+
+ensureStaticCodeLanguages();
+import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
+import { EquationStatic } from "../../components/static/equation-static";
+import { HeadingStatic } from "../../components/static/heading-static";
+import { HrStatic } from "../../components/static/hr-static";
+import { LinkStatic } from "../../components/static/link-static";
+import { ListParagraphStatic, listBelowNodes } from "../../components/static/list-static";
+import { MentionStatic } from "../../components/static/mention-static";
+import { SyncedStatic } from "../../components/static/synced-static";
+import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/static/table-static";
+import { TocStatic } from "../../components/static/toc-static";
+import { ToggleStatic } from "../../components/static/toggle-static";
+import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { SYNCED_REF_KEY } from "../document/editor-document-schema";
+import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
+import { codeLeafClassName } from "./mark-classes";
+import { BaseParagraphPlugin } from "platejs";
+
+function tokenProps(
+  nodeKey: string,
+  cssProperty: "color" | "backgroundColor" | "fontFamily",
+  variablePrefix: "--editor-text" | "--editor-bg" | "--editor-font",
+  isToken: (value: unknown) => boolean,
+) {
+  return {
+    nodeKey,
+    transformProps: ({
+      nodeValue,
+      props,
+    }: {
+      nodeValue?: unknown;
+      props: Record<string, unknown>;
+    }) => {
+      if (!isToken(nodeValue)) {
+        return {};
+      }
+      return { ...props, style: { [cssProperty]: `var(${variablePrefix}-${String(nodeValue)})` } };
+    },
+  };
+}
+
+const paragraphPlugin = BaseParagraphPlugin.configure({
+  render: { node: ListParagraphStatic },
+});
+
+const listPlugin = BaseListPlugin.configure({
+  render: { belowNodes: listBelowNodes },
+});
+
+const bookmarkPlugin = createSlatePlugin({
+  key: BOOKMARK_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: BookmarkStatic },
+});
+
+const equationPlugin = createSlatePlugin({
+  key: KEYS.equation,
+  node: { isElement: true, isVoid: true },
+  render: { node: EquationStatic },
+});
+
+const syncedPlugin = createSlatePlugin({
+  key: SYNCED_REF_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: SyncedStatic },
+});
+
+const togglePlugin = createSlatePlugin({
+  key: KEYS.toggle,
+  node: { isElement: true },
+  render: { node: ToggleStatic },
+});
+
+export const editorStaticPlugins = [
+  paragraphPlugin,
+  BaseH1Plugin.configure({ render: { node: HeadingStatic } }),
+  BaseH2Plugin.configure({ render: { node: HeadingStatic } }),
+  BaseH3Plugin.configure({ render: { node: HeadingStatic } }),
+  BaseBlockquotePlugin.configure({ render: { node: BlockquoteStatic } }),
+  BaseHorizontalRulePlugin.configure({ render: { node: HrStatic } }),
+  BaseBoldPlugin,
+  BaseItalicPlugin,
+  BaseUnderlinePlugin,
+  BaseStrikethroughPlugin,
+  BaseCodePlugin.configure({ node: { props: { className: codeLeafClassName } } }),
+  BaseSubscriptPlugin,
+  BaseSuperscriptPlugin,
+  BaseFontColorPlugin.configure({
+    inject: { nodeProps: tokenProps(KEYS.color, "color", "--editor-text", isPaletteToken) },
+  }),
+  BaseFontBackgroundColorPlugin.configure({
+    inject: {
+      nodeProps: tokenProps(KEYS.backgroundColor, "backgroundColor", "--editor-bg", isPaletteToken),
+    },
+  }),
+  BaseFontSizePlugin,
+  BaseFontFamilyPlugin.configure({
+    inject: {
+      nodeProps: tokenProps(KEYS.fontFamily, "fontFamily", "--editor-font", (value) =>
+        isAllowedValue(value, FONT_FAMILIES),
+      ),
+    },
+  }),
+  BaseTextAlignPlugin.configure({
+    inject: { targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3] },
+  }),
+  BaseLineHeightPlugin.configure({
+    inject: {
+      nodeProps: { nodeKey: "lineHeight", defaultNodeValue: 0 },
+      targetPlugins: [KEYS.p],
+    },
+  }),
+  listPlugin,
+  BaseCalloutPlugin.configure({ render: { node: CalloutStatic } }),
+  togglePlugin,
+  BaseCodeBlockPlugin.configurePlugin(BaseCodeSyntaxPlugin, {
+    render: { node: CodeSyntaxStatic },
+  }).configure({
+    options: { defaultLanguage: null, lowlight: codeLowlight },
+    render: { node: CodeBlockStatic },
+  }),
+  BaseCodeLinePlugin.configure({ render: { node: CodeLineStatic } }),
+  BaseTablePlugin.configure({ render: { node: TableStatic } }),
+  BaseTableRowPlugin.configure({ render: { node: TableRowStatic } }),
+  BaseTableCellPlugin.configure({ render: { node: TableCellStatic } }),
+  BaseTableCellHeaderPlugin.configure({ render: { node: TableCellStatic } }),
+  BaseColumnPlugin.configure({ render: { node: ColumnGroupStatic } }),
+  BaseColumnItemPlugin.configure({ render: { node: ColumnStatic } }),
+  bookmarkPlugin,
+  BaseTocPlugin.configure({ render: { node: TocStatic } }),
+  equationPlugin,
+  syncedPlugin,
+  BaseLinkPlugin.configure({ render: { node: LinkStatic } }),
+  BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
+];
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+```ts
+import bash from "highlight.js/lib/languages/bash";
+import css from "highlight.js/lib/languages/css";
+import diff from "highlight.js/lib/languages/diff";
+import go from "highlight.js/lib/languages/go";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import python from "highlight.js/lib/languages/python";
+import rust from "highlight.js/lib/languages/rust";
+import sql from "highlight.js/lib/languages/sql";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
+type HastNode = {
+  type: string;
+  value?: string;
+  children?: HastNode[];
+  properties?: { className?: string | string[] };
+};
+
+import { codeLowlight } from "../../lib/features/editor-code";
+import { CODE_LANGS, type CodeLang } from "../../lib/document/editor-document-schema";
+
+const GRAMMARS = {
+  typescript,
+  tsx: typescript,
+  javascript,
+  jsx: javascript,
+  json,
+  html: xml,
+  css,
+  bash,
+  python,
+  go,
+  rust,
+  sql,
+  markdown,
+  yaml,
+  diff,
+} as const satisfies Record<CodeLang, typeof typescript>;
+
+let registered = false;
+
+// The editor loads these grammars on demand. A server render cannot await that,
+// so the same codeLowlight instance receives the same grammars up front.
+export function ensureStaticCodeLanguages(): void {
+  if (registered) {
+    return;
+  }
+  registered = true;
+  for (const lang of CODE_LANGS) {
+    if (!codeLowlight.registered(lang)) {
+      codeLowlight.register(lang, GRAMMARS[lang]);
+    }
+  }
+}
+
+export type HighlightSpan = { text: string; className?: string };
+
+function classNameOf(node: HastNode): string | undefined {
+  if (node.type !== "element") {
+    return undefined;
+  }
+  const value = node.properties?.className;
+  if (Array.isArray(value)) {
+    return value.join(" ");
+  }
+  return typeof value === "string" ? value : undefined;
+}
+
+function walk(node: HastNode, className: string | undefined, spans: HighlightSpan[]): void {
+  if (node.type === "text") {
+    spans.push({ text: node.value ?? "", className });
+    return;
+  }
+  if (node.type !== "element") {
+    return;
+  }
+  const next = classNameOf(node) ?? className;
+  for (const child of node.children ?? []) {
+    walk(child, next, spans);
+  }
+}
+
+export function highlightCode(lang: string | null, text: string): HighlightSpan[] {
+  ensureStaticCodeLanguages();
+  const language = lang !== null && codeLowlight.registered(lang) ? lang : "plaintext";
+  const tree = codeLowlight.highlight(language, text) as { children: HastNode[] };
+  const spans: HighlightSpan[] = [];
+  for (const child of tree.children) {
+    walk(child, undefined, spans);
+  }
+  if (spans.length === 0) {
+    spans.push({ text });
+  }
+  return spans;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { HEADING_STYLES, headingAnchorId, type HeadingTag } from "../elements/heading-styles";
+
+function headingTag(type: string): HeadingTag {
+  if (type === "h1" || type === "h2" || type === "h3") {
+    return type;
+  }
+  return "h1";
+}
+
+export function HeadingStatic(props: SlateElementProps) {
+  const tag = headingTag(props.element.type);
+  const id = typeof props.element.id === "string" ? props.element.id : "";
+  return (
+    <SlateElement
+      {...props}
+      as={tag}
+      className={HEADING_STYLES[tag]}
+      attributes={{
+        ...props.attributes,
+        id: id.length > 0 ? headingAnchorId(id) : undefined,
+      }}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+```tsx
+import { isOrderedList } from "@platejs/list";
+import { KEYS } from "platejs";
+import { Check } from "lucide-react";
+import { type ReactNode } from "react";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { LIST_INDENTS, type ListIndent } from "../../lib/document/editor-document-schema";
+import { todoTextId } from "../elements/block-list-metrics";
+
+const MARKER_CYCLE = {
+  disc: ["disc", "circle", "square"],
+  decimal: ["decimal", "lower-alpha", "lower-roman"],
+} as const;
+
+const LIST_INDENT_CLASS = {
+  disc: { 1: "pl-6", 2: "pl-12", 3: "pl-18", 4: "pl-24", 5: "pl-30", 6: "pl-36" },
+  decimal: { 1: "pl-10", 2: "pl-16", 3: "pl-22", 4: "pl-28", 5: "pl-34", 6: "pl-40" },
+} as const;
+
+type MarkerStyle = keyof typeof MARKER_CYCLE;
+
+function listMarker(style: MarkerStyle, indent: number): string {
+  const cycle = MARKER_CYCLE[style];
+  const level = indent >= 1 ? indent : 1;
+  return cycle[(level - 1) % cycle.length] ?? cycle[0];
+}
+
+function indentClass(style: string, indent: number): string {
+  const classes = style === "decimal" ? LIST_INDENT_CLASS.decimal : LIST_INDENT_CLASS.disc;
+  const level = LIST_INDENTS.find((item) => item === indent);
+  return level === undefined ? classes[1] : classes[level as ListIndent];
+}
+
+const CHECKBOX_CLASS =
+  "border-input relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground";
+
+function TodoBox({ checked }: { checked: boolean }) {
+  return (
+    <span className="absolute top-1 -left-5 flex">
+      <span
+        role="checkbox"
+        aria-checked={checked}
+        aria-disabled="true"
+        data-checked={checked ? "" : undefined}
+        className={`${CHECKBOX_CLASS} pointer-events-none`}
+      >
+        {checked ? <Check aria-hidden="true" className="size-3.5" /> : null}
+      </span>
+    </span>
+  );
+}
+
+export function ListParagraphStatic(props: SlateElementProps) {
+  const listStyleType = props.element.listStyleType;
+  const attributes =
+    typeof listStyleType === "string"
+      ? { ...props.attributes, "data-list-item": listStyleType }
+      : props.attributes;
+  return <SlateElement {...props} attributes={attributes} />;
+}
+
+export function listBelowNodes(props: { element: SlateElementProps["element"] }) {
+  if (typeof props.element.listStyleType !== "string") {
+    return;
+  }
+
+  return function List(nodeProps: { children?: ReactNode; element: SlateElementProps["element"] }) {
+    const element = nodeProps.element;
+    const stored = typeof element.listStyleType === "string" ? element.listStyleType : "disc";
+    const indent = typeof element.indent === "number" ? element.indent : 1;
+    if (stored === KEYS.listTodo) {
+      const checked = element.checked === true;
+      const blockId = typeof element.id === "string" ? element.id : "";
+      return (
+        <ul className={`relative m-0 list-none py-0 pr-0 ${indentClass(stored, indent)}`}>
+          <li className="relative">
+            <TodoBox checked={checked} />
+            <span
+              id={blockId.length > 0 ? todoTextId(blockId) : undefined}
+              data-checked={checked ? "" : undefined}
+              className="data-checked:text-muted-foreground data-checked:line-through"
+            >
+              {nodeProps.children}
+            </span>
+          </li>
+        </ul>
+      );
+    }
+
+    const ordered = isOrderedList(element);
+    const Tag = ordered ? "ol" : "ul";
+    const marker = stored === "disc" || stored === "decimal" ? listMarker(stored, indent) : stored;
+    const listStart = element.listStart;
+    return (
+      <Tag
+        className={`relative m-0 list-outside py-0 pr-0 ${indentClass(stored, indent)}`}
+        style={{ listStyleType: marker }}
+        start={ordered && typeof listStart === "number" ? listStart : undefined}
+      >
+        <li>{nodeProps.children}</li>
+      </Tag>
+    );
+  };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { LIST_SIBLING_GAP_CLASS } from "../elements/block-list-metrics";
+import { BLOCKQUOTE_CLASS_NAME } from "../elements/blockquote-classes";
+
+export function BlockquoteStatic(props: SlateElementProps) {
+  return (
+    <SlateElement
+      {...props}
+      as="blockquote"
+      className={`${BLOCKQUOTE_CLASS_NAME} ${LIST_SIBLING_GAP_CLASS}`}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { HR_RULE_CLASS_NAME } from "../elements/hr-classes";
+
+export function HrStatic(props: SlateElementProps) {
+  return (
+    <SlateElement {...props} className="py-2">
+      <hr
+        contentEditable={false}
+        className={HR_RULE_CLASS_NAME}
+        data-block-handle-anchor="center"
+      />
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+```tsx
+import {
+  Ban,
+  CircleCheck,
+  CircleHelp,
+  Flame,
+  Info,
+  Lightbulb,
+  MessageCircle,
+  NotebookPen,
+  Pin,
+  Star,
+  Target,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import type { CalloutIcon } from "../../lib/document/editor-document-schema";
+import { LIST_SIBLING_GAP_CLASS } from "../elements/block-list-metrics";
+import { CALLOUT_TONE_CLASS_NAME, calloutIcon, calloutTone } from "../elements/callout-classes";
+
+const CALLOUT_ICON_CLASS = "size-5 text-muted-foreground";
+
+const GLYPH: Record<CalloutIcon, LucideIcon> = {
+  lightbulb: Lightbulb,
+  info: Info,
+  "circle-check": CircleCheck,
+  "triangle-alert": TriangleAlert,
+  ban: Ban,
+  pin: Pin,
+  "notebook-pen": NotebookPen,
+  flame: Flame,
+  "circle-help": CircleHelp,
+  star: Star,
+  target: Target,
+  "message-circle": MessageCircle,
+};
+
+export function CalloutStatic(props: SlateElementProps) {
+  const icon = calloutIcon(props.element.icon);
+  const tone = calloutTone(props.element.variant);
+  const Icon = GLYPH[icon];
+  return (
+    <SlateElement
+      {...props}
+      attributes={{ ...props.attributes, role: "note" }}
+      className={`my-0 flex items-start gap-2 rounded-md border px-3 py-2 ${CALLOUT_TONE_CLASS_NAME[tone]}`}
+    >
+      <div className="flex h-[1lh] min-h-0 w-8 shrink-0 items-center justify-center overflow-visible select-none">
+        <span className="inline-flex size-7 items-center justify-center text-base leading-none">
+          <Icon aria-hidden="true" className={CALLOUT_ICON_CLASS} />
+        </span>
+      </div>
+      <div className={`min-w-0 flex-1 space-y-2 ${LIST_SIBLING_GAP_CLASS}`}>{props.children}</div>
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+```tsx
+import { Children, createElement, type ReactElement, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { buttonVariants } from "@/components/button";
+import { cn } from "@/lib/utils";
+
+import { TOGGLE_CLASS_NAME } from "../elements/toggle-classes";
+
+function isElement(value: unknown): value is ReactElement<{ children?: unknown }> {
+  const record = value as { $$typeof?: unknown } | null;
+  return Boolean(record && typeof record === "object" && "$$typeof" in record);
+}
+
+function withChildren(element: ReactElement<{ children?: unknown }>, children: unknown): ReactNode {
+  const { children: _ignored, ...rest } = element.props;
+  return createElement(element.type, rest, children as ReactNode);
+}
+
+function split(children: ReactNode): { label: ReactNode; content: ReactNode } {
+  const nodes = Children.toArray(children);
+  const only = nodes[0];
+  if (nodes.length !== 1 || !isElement(only)) {
+    return { label: nodes[0] ?? children, content: nodes.slice(1) };
+  }
+
+  const slateChildren = only.props.children;
+  if (!Array.isArray(slateChildren) || slateChildren.length <= 1) {
+    return { label: only, content: null };
+  }
+
+  return {
+    label: withChildren(only, [slateChildren[0]]),
+    content: withChildren(only, slateChildren.slice(1)),
+  };
+}
+
+export function ToggleStatic(props: SlateElementProps) {
+  const { label, content } = split(props.children);
+  return (
+    <SlateElement {...props} className={TOGGLE_CLASS_NAME}>
+      <details className="space-y-2 [&>:not(summary)]:pl-9">
+        <summary className="flex list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
+          <div className="shrink-0">
+            <span
+              aria-hidden="true"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "icon" }),
+                "pointer-events-none",
+              )}
+            >
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 transition-transform duration-150 ease-out motion-reduce:transition-none [details[open]_&]:rotate-90"
+              />
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">{label}</div>
+        </summary>
+        {content}
+      </details>
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+```tsx
+import {
+  SlateElement,
+  SlateLeaf,
+  type SlateElementProps,
+  type SlateLeafProps,
+} from "platejs/static";
+
+import {
+  CODE_LANGS,
+  CODE_LANG_LABELS,
+  type CodeLang,
+} from "../../lib/document/editor-document-schema";
+import {
+  CODE_BLOCK_CLASS_NAME,
+  CODE_SCROLL_CLASS_NAME,
+  CODE_TOOLBAR_CLASS_NAME,
+} from "../elements/code-block-classes";
+
+function elementLang(element: SlateElementProps["element"]): CodeLang | null {
+  const stored = CODE_LANGS.find((lang) => lang === element.lang);
+  return stored ?? null;
+}
+
+function languageLabel(lang: CodeLang | null): string {
+  return lang === null ? CODE_LANG_LABELS.plaintext : CODE_LANG_LABELS[lang];
+}
+
+export function CodeBlockStatic(props: SlateElementProps) {
+  const lang = elementLang(props.element);
+  return (
+    <SlateElement {...props} as="pre" className={CODE_BLOCK_CLASS_NAME}>
+      <div className={CODE_TOOLBAR_CLASS_NAME}>
+        <span className="text-muted-foreground px-1.5 py-1 text-xs">{languageLabel(lang)}</span>
+      </div>
+      <code className={CODE_SCROLL_CLASS_NAME}>{props.children}</code>
+    </SlateElement>
+  );
+}
+
+export function CodeLineStatic(props: SlateElementProps) {
+  return <SlateElement {...props} as="div" />;
+}
+
+export function CodeSyntaxStatic(props: SlateLeafProps) {
+  const className = typeof props.leaf.className === "string" ? props.leaf.className : undefined;
+  return <SlateLeaf {...props} className={className} />;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+```tsx
+import type { CSSProperties } from "react";
+import { KEYS, type TElement } from "platejs";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { isPaletteToken, TEXT_ALIGNS } from "../../lib/document/editor-document-schema";
+
+const CELL_BORDER_CLASS = "min-w-12 border-r border-b border-border";
+const ROW_CLASS =
+  "hover:bg-muted/50 border-b border-0 bg-transparent transition-colors hover:bg-transparent data-[state=selected]:bg-transparent";
+const HEAD_CLASS = "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap";
+const CELL_CLASS = "p-2 align-middle whitespace-nowrap";
+
+function spanOf(value: unknown): number | undefined {
+  return typeof value === "number" && value > 1 ? value : undefined;
+}
+
+function cellStyle(element: TElement): CSSProperties | undefined {
+  const style: React.CSSProperties = {};
+  if (typeof element.align === "string" && TEXT_ALIGNS.some((item) => item === element.align)) {
+    style.textAlign = element.align as CSSProperties["textAlign"];
+  }
+  if (isPaletteToken(element.background)) {
+    style.backgroundColor = `var(--editor-bg-${element.background})`;
+  }
+  return Object.keys(style).length > 0 ? style : undefined;
+}
+
+export function TableStatic(props: SlateElementProps) {
+  const sizes = Array.isArray(props.element.colSizes) ? props.element.colSizes : [];
+  const width = sizes.reduce<number>(
+    (total, size) => total + (typeof size === "number" ? size : 0),
+    0,
+  );
+  const tableWidth = width > 0 ? width : undefined;
+  return (
+    <SlateElement
+      {...props}
+      className="group [&_[data-slot=table-container]]:scroll-fade-x relative my-2 max-w-full"
+    >
+      <div data-slot="table-container" className="scroll-fade-x relative w-full">
+        <table
+          data-slot="table"
+          className="w-full caption-bottom border-separate border-spacing-0 text-sm"
+          style={
+            tableWidth === undefined
+              ? undefined
+              : { width: tableWidth, minWidth: tableWidth, borderCollapse: "separate" }
+          }
+        >
+          {sizes.length > 0 ? (
+            <colgroup>
+              {sizes.map((size, index) => (
+                <col key={index} style={typeof size === "number" ? { width: size } : undefined} />
+              ))}
+            </colgroup>
+          ) : null}
+          <tbody data-slot="table-body">{props.children}</tbody>
+        </table>
+      </div>
+    </SlateElement>
+  );
+}
+
+function structuralElement(element: TElement): TElement {
+  if (typeof element.id !== "string") {
+    return element;
+  }
+  const { id: _id, ...rest } = element;
+  return rest as TElement;
+}
+
+export function TableRowStatic(props: SlateElementProps) {
+  return (
+    <SlateElement
+      {...props}
+      element={structuralElement(props.element)}
+      as="tr"
+      className={ROW_CLASS}
+    />
+  );
+}
+
+export function TableCellStatic(props: SlateElementProps) {
+  const header = props.element.type === KEYS.th;
+  const column = props.path.at(-1) ?? 0;
+  const row = props.path.at(-2) ?? 0;
+  const edge = `${column === 0 ? "border-l" : ""} ${row === 0 ? "border-t" : ""}`;
+  return (
+    <SlateElement
+      {...props}
+      element={structuralElement(props.element)}
+      as={header ? "th" : "td"}
+      className={`${header ? HEAD_CLASS : CELL_CLASS} ${CELL_BORDER_CLASS} ${edge}`}
+      style={cellStyle(props.element)}
+      attributes={{
+        ...props.attributes,
+        colSpan: spanOf(props.element.colSpan),
+        rowSpan: spanOf(props.element.rowSpan),
+      }}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+```tsx
+import type { CSSProperties } from "react";
+import { KEYS, type TElement } from "platejs";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { COLUMN_GROUP_LAYOUT_CLASS } from "../elements/column-classes";
+
+function widths(element: TElement): string[] {
+  return element.children.flatMap((child) => {
+    if (
+      typeof child !== "object" ||
+      child === null ||
+      !("type" in child) ||
+      child.type !== KEYS.column
+    ) {
+      return [];
+    }
+    return [typeof child.width === "string" ? child.width : "1fr"];
+  });
+}
+
+export function ColumnStatic(props: SlateElementProps) {
+  return (
+    <SlateElement {...props} className="min-w-0">
+      <div className="min-w-0">{props.children}</div>
+    </SlateElement>
+  );
+}
+
+export function ColumnGroupStatic(props: SlateElementProps) {
+  const template = widths(props.element)
+    .map((width) => {
+      const parsed = Number.parseFloat(width);
+      return `${Number.isFinite(parsed) ? parsed : 1}fr`;
+    })
+    .join(" ");
+  return (
+    <SlateElement {...props} className="relative my-2">
+      <div
+        data-column-layout="stack"
+        className={COLUMN_GROUP_LAYOUT_CLASS}
+        style={{ "--column-widths": template } as CSSProperties}
+      >
+        {props.children}
+      </div>
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { storedBookmark } from "../../lib/features/editor-bookmark-url";
+import { BOOKMARK_CARD_CLASS } from "../elements/bookmark-classes";
+
+export function BookmarkStatic(props: SlateElementProps) {
+  const fields = storedBookmark(props.element);
+  if (!fields) {
+    const raw = typeof props.element.url === "string" ? props.element.url : "";
+    return (
+      <SlateElement {...props} className="relative py-1">
+        <p>{raw}</p>
+        {props.children}
+      </SlateElement>
+    );
+  }
+
+  const heading = fields.title ?? fields.siteName ?? fields.url;
+  return (
+    <SlateElement {...props} className="relative py-1">
+      <div className="relative" data-block-handle-anchor="">
+        <a
+          href={fields.url}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          data-bookmark-card=""
+          data-bookmark-url={fields.url}
+          className={`${BOOKMARK_CARD_CLASS} text-foreground no-underline`}
+        >
+          {fields.imageUrl ? (
+            <div
+              data-bookmark-thumbnail=""
+              className="bg-muted hidden h-full w-[27%] shrink-0 overflow-hidden @[26rem]/card:block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- remote preview, same as the editor card */}
+              <img src={fields.imageUrl} alt="" className="size-full object-cover" />
+            </div>
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col p-4">
+            <p className="text-foreground min-w-0 truncate text-base font-semibold">{heading}</p>
+            {fields.description ? (
+              <p className="text-muted-foreground mt-1 line-clamp-2 min-w-0 text-sm">
+                {fields.description}
+              </p>
+            ) : null}
+            <p className="text-muted-foreground mt-auto min-w-0 truncate pt-3 text-sm">
+              {fields.url}
+            </p>
+          </div>
+        </a>
+      </div>
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { isExternalLinkUrl, sanitizeLinkUrl } from "../../lib/features/editor-link-url";
+
+export function LinkStatic(props: SlateElementProps) {
+  const url = typeof props.element.url === "string" ? props.element.url : "";
+  const safe = sanitizeLinkUrl(url);
+  if (safe === undefined) {
+    return <span {...props.attributes}>{props.children}</span>;
+  }
+  const external = isExternalLinkUrl(safe);
+  return (
+    <SlateElement
+      {...props}
+      as="a"
+      className="link-underline"
+      attributes={{
+        ...props.attributes,
+        href: safe,
+        target: external ? "_blank" : undefined,
+        rel: external ? "noopener noreferrer nofollow" : undefined,
+      }}
+    />
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+export function MentionStatic(props: SlateElementProps) {
+  const label = typeof props.element.label === "string" ? props.element.label : "";
+  const entityType = typeof props.element.entityType === "string" ? props.element.entityType : "";
+  const entityId = typeof props.element.entityId === "string" ? props.element.entityId : "";
+  return (
+    <SlateElement
+      {...props}
+      as="span"
+      className="text-foreground inline align-baseline font-medium"
+      attributes={{
+        ...props.attributes,
+        "data-mention-entity-type": entityType,
+        "data-mention-entity-id": entityId,
+        "data-mention-state": "known",
+      }}
+    >
+      @{label}
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+```tsx
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import { buttonVariants } from "@/components/button";
+import { cn } from "@/lib/utils";
+
+import { headingAnchorId } from "../elements/heading-styles";
+import {
+  TOC_UNTITLED,
+  shallowestDepth,
+  storedTocDepth,
+  tocEntriesFromValue,
+} from "../../lib/features/editor-toc-outline";
+
+const TOC_INDENT_CLASS = ["ps-0", "ps-4", "ps-8"] as const;
+
+function indentClass(level: number): string {
+  if (level === 1) return TOC_INDENT_CLASS[1];
+  if (level >= 2) return TOC_INDENT_CLASS[2];
+  return TOC_INDENT_CLASS[0];
+}
+
+export function TocStatic(props: SlateElementProps) {
+  const depth = storedTocDepth(props.element);
+  const entries = tocEntriesFromValue(props.editor.children, depth);
+  const shallowest = shallowestDepth(entries);
+  return (
+    <SlateElement {...props} className="group relative my-2 rounded-md">
+      {entries.length === 0 ? null : (
+        <nav aria-label="Table of contents" data-toc-depth={depth}>
+          <ol className="m-0 list-none space-y-1 p-0">
+            {entries.map((entry) => {
+              const untitled = entry.title.length === 0;
+              const label = untitled ? TOC_UNTITLED : entry.title;
+              return (
+                <li key={entry.id} className={indentClass(entry.depth - shallowest)}>
+                  <a
+                    href={`#${headingAnchorId(entry.id)}`}
+                    data-slot="button"
+                    data-variant="ghost"
+                    data-size="sm"
+                    data-toc-target={entry.id}
+                    data-toc-indent={entry.depth - shallowest}
+                    data-toc-untitled={untitled ? "true" : undefined}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "sm" }),
+                      "h-auto w-full justify-start px-1 whitespace-normal",
+                      untitled && "text-muted-foreground",
+                    )}
+                  >
+                    {label}
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+```tsx
+import katex from "katex";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+
+import {
+  EQUATION_EMPTY_PLACEHOLDER,
+  renderEquation,
+} from "../../lib/features/editor-equation-render";
+import { EQUATION_BLOCK_CLASS } from "../elements/equation-classes";
+
+import "katex/dist/katex.min.css";
+
+export function EquationStatic(props: SlateElementProps) {
+  const expression =
+    typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  let body = null;
+  if (expression.length === 0) {
+    body = (
+      <p data-equation-empty className="text-muted-foreground text-center text-sm">
+        {EQUATION_EMPTY_PLACEHOLDER}
+      </p>
+    );
+  } else {
+    const rendered = renderEquation(katex, expression);
+    body = rendered.ok ? (
+      <div
+        data-equation-math
+        className="text-foreground"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    ) : (
+      <div data-equation-error className="max-w-full min-w-0">
+        <p className="text-destructive/70 text-sm">{rendered.message}</p>
+        <pre className="font-mono text-sm whitespace-pre">{expression}</pre>
+      </div>
+    );
+  }
+
+  return (
+    <SlateElement {...props} className={EQUATION_BLOCK_CLASS}>
+      <div className="max-w-full min-w-0">
+        <div data-equation-scroll className="scroll-fade-x relative max-w-full min-w-0">
+          <div className="flex w-max min-w-full justify-center">{body}</div>
+        </div>
+      </div>
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+```tsx
+import { ElementApi, PathApi, type Descendant, type TElement } from "platejs";
+import {
+  createStaticEditor,
+  PlateStatic,
+  SlateElement,
+  type SlateElementProps,
+} from "platejs/static";
+
+import { syncedTargetStatus } from "../../lib/features/editor-synced-repair";
+import { editorStaticPlugins } from "../../lib/static/editor-static-plugins";
+
+const FROM_ABOVE = "Synced from above";
+const FROM_BELOW = "Synced from below";
+const MISSING = "The original block was deleted.";
+const INVALID = "Invalid reference";
+
+function indexElements(value: readonly Descendant[]): Map<string, TElement> {
+  const index = new Map<string, TElement>();
+  const visit = (node: Descendant): void => {
+    if (!ElementApi.isElement(node)) return;
+    if (typeof node.id === "string" && node.id.length > 0 && !index.has(node.id)) {
+      index.set(node.id, node);
+    }
+    node.children.forEach(visit);
+  };
+  value.forEach(visit);
+  return index;
+}
+
+function pathOf(value: readonly Descendant[], id: string, path: number[] = []): number[] | null {
+  for (let index = 0; index < value.length; index += 1) {
+    const node = value[index];
+    if (!ElementApi.isElement(node)) continue;
+    const here = [...path, index];
+    if (node.id === id) return here;
+    const nested = pathOf(node.children, id, here);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function previewTree(node: Descendant): Descendant {
+  if (!ElementApi.isElement(node)) return node;
+  const children = node.children.map((child) => previewTree(child));
+  const copy: TElement = { ...node, children };
+  if (
+    (node.type === "h1" || node.type === "h2" || node.type === "h3") &&
+    typeof node.id === "string" &&
+    node.id.length > 0
+  ) {
+    copy.id = `preview-${node.id}`;
+  }
+  return copy;
+}
+
+export function SyncedStatic(props: SlateElementProps) {
+  const targetId =
+    typeof props.element.targetBlockId === "string" ? props.element.targetBlockId : "";
+  const value = props.editor.children;
+  const index = indexElements(value);
+  const target = index.get(targetId);
+  const status = syncedTargetStatus(target, targetId);
+  const refId = typeof props.element.id === "string" ? props.element.id : "";
+  const refPath = pathOf(value, refId) ?? [];
+  const targetPath = pathOf(value, targetId);
+  const label =
+    status === "live" && targetPath
+      ? PathApi.compare(targetPath, refPath) < 0
+        ? FROM_ABOVE
+        : FROM_BELOW
+      : undefined;
+  const preview =
+    status === "live" && target && ElementApi.isElement(previewTree(target))
+      ? (previewTree(target) as TElement)
+      : null;
+  const previewEditor = preview
+    ? createStaticEditor({ plugins: editorStaticPlugins, value: [preview] })
+    : null;
+
+  return (
+    <SlateElement
+      {...props}
+      className="group border-border relative my-2 max-w-full min-w-0 rounded-md border-s ps-3"
+    >
+      <div data-synced-ref="" data-synced-state={status}>
+        {label === undefined ? null : (
+          <p data-synced-label className="text-muted-foreground text-xs">
+            {label}
+          </p>
+        )}
+        {previewEditor ? (
+          <div data-synced-preview className="pointer-events-none max-w-full min-w-0">
+            <PlateStatic editor={previewEditor} className="contents" />
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            {status === "missing" ? MISSING : INVALID}
+          </p>
+        )}
+      </div>
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+```tsx
+import { createStaticEditor, PlateStatic } from "platejs/static";
+
+import type { EditorValue } from "./lib/document/editor-value";
+import { editorStaticPlugins } from "./lib/static/editor-static-plugins";
+import { readStaticValue } from "./lib/static/read-static-value";
+
+export type NotionLikeEditorStaticProps = {
+  value: EditorValue;
+  className?: string;
+};
+
+export function NotionLikeEditorStatic({ value, className }: NotionLikeEditorStaticProps) {
+  const content = readStaticValue(value);
+  if (content === null) {
+    return <div className={className} />;
+  }
+
+  const editor = createStaticEditor({
+    plugins: editorStaticPlugins,
+    value: content,
+  });
+
+  const surface = className ? `${className} whitespace-pre-wrap` : "whitespace-pre-wrap";
+  return <PlateStatic editor={editor} className={surface} />;
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
 ```tsx
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { lazy, Suspense, useSyncExternalStore } from "react";
 
 import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
@@ -28868,6 +29718,22 @@ import {
   removeStaleDemoDocuments,
 } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
+import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
+
+const StaticDocument = lazy(() =>
+  import("./notion-like-editor-static").then((mod) => ({
+    default: function StaticDocumentView() {
+      return (
+        <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+          <mod.NotionLikeEditorStatic
+            value={DEMO_DOCUMENT_VALUE}
+            className={`text-foreground min-h-full w-full min-w-0 space-y-4 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12 ${LIST_SIBLING_GAP_CLASS}`}
+          />
+        </div>
+      );
+    },
+  })),
+);
 
 let demoAdapter: EditorPersistenceAdapter | undefined;
 
@@ -28902,9 +29768,28 @@ function readReadonlyServer(): boolean {
   return false;
 }
 
+function readStaticFlag(): boolean {
+  return new URLSearchParams(window.location.search).get("static") === "1";
+}
+
+function readStaticServer(): boolean {
+  return false;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
   const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
+  const staticView = useSyncExternalStore(subscribe, readStaticFlag, readStaticServer);
+
+  if (staticView) {
+    return (
+      <div className="bg-background h-full min-h-full w-full min-w-0 px-4">
+        <Suspense fallback={null}>
+          <StaticDocument />
+        </Suspense>
+      </div>
+    );
+  }
 
   if (!adapter) {
     return (
@@ -29233,6 +30118,122 @@ const BLOCK_FILES = [
   {
     path: "components/blocks/notion-like-editor/demo/demo-mention.ts",
     code: readSource(`${BLOCK_DIR}/demo/demo-mention.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/heading-styles.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/heading-styles.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/block-list-metrics.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/block-list-metrics.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/blockquote-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/blockquote-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/hr-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/hr-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/callout-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/callout-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/toggle-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/toggle-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/column-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/column-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/bookmark-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/bookmark-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-toc-outline.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/mark-classes.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/mark-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/read-static-value.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/read-static-value.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/editor-static-plugins.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/code-highlight.ts",
+    code: readSource(`${BLOCK_DIR}/components/static/code-highlight.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/heading-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/heading-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/list-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/list-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/blockquote-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/blockquote-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/hr-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/hr-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/callout-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/callout-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/toggle-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/toggle-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/code-block-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/code-block-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/table-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/table-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/column-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/column-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/bookmark-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/bookmark-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/link-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/link-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/mention-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/mention-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/toc-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/toc-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/equation-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/equation-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/synced-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/synced-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/notion-like-editor-static.tsx",
+    code: readSource(`${BLOCK_DIR}/notion-like-editor-static.tsx`),
   },
   {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",

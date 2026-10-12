@@ -38,6 +38,7 @@ import {
   retainScroll,
 } from "../ui/block-toolbar";
 import { ScrollFadeArea } from "../ui/editor-scroll";
+import { EQUATION_BLOCK_CLASS } from "./equation-classes";
 
 import "katex/dist/katex.min.css";
 
@@ -218,10 +219,7 @@ export function EquationElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className={cn(
-        "group bg-muted relative my-2 max-w-full min-w-0 rounded-md px-3 py-2",
-        selected && focused && !readOnly && "bg-muted",
-      )}
+      className={cn(EQUATION_BLOCK_CLASS, selected && focused && !readOnly && "bg-muted")}
     >
       <Popover
         open={open}

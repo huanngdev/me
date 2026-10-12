@@ -16,15 +16,13 @@ import { bookmarkDomain, type LinkPreviewAdapter } from "../../lib/features/edit
 import { openBookmarkToolbar } from "../../lib/plugins/editor-bookmark-toolbar";
 import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import { hrElementClassName } from "./hr-element";
+import { BOOKMARK_CARD_CLASS } from "./bookmark-classes";
 import { mediaStringAttr } from "../ui/block-toolbar";
 import { BookmarkToolbarPopover } from "../ui/bookmark-toolbar-popover";
 
+export { BOOKMARK_CARD_CLASS };
+
 export const BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
-// One rounded card: the preview image fills the left ~27% at the card's full
-// height; the text column fills the rest. Below 26rem of card width the image
-// is hidden and the text takes the full width, so the card never overflows.
-export const BOOKMARK_CARD_CLASS =
-  "@container/card border-border bg-background flex h-[150px] w-full min-w-0 overflow-hidden rounded-xl border";
 
 const LinkPreviewContext = createContext<LinkPreviewAdapter | null>(null);
 

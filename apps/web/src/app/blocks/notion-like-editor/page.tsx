@@ -304,6 +304,122 @@ const BLOCK_FILES = [
     code: readSource(`${BLOCK_DIR}/demo/demo-mention.ts`),
   },
   {
+    path: "components/blocks/notion-like-editor/components/elements/heading-styles.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/heading-styles.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/block-list-metrics.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/block-list-metrics.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/blockquote-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/blockquote-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/hr-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/hr-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/callout-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/callout-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/toggle-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/toggle-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/column-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/column-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/elements/bookmark-classes.ts",
+    code: readSource(`${BLOCK_DIR}/components/elements/bookmark-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts",
+    code: readSource(`${BLOCK_DIR}/lib/features/editor-toc-outline.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/mark-classes.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/mark-classes.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/read-static-value.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/read-static-value.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts",
+    code: readSource(`${BLOCK_DIR}/lib/static/editor-static-plugins.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/code-highlight.ts",
+    code: readSource(`${BLOCK_DIR}/components/static/code-highlight.ts`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/heading-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/heading-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/list-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/list-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/blockquote-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/blockquote-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/hr-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/hr-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/callout-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/callout-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/toggle-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/toggle-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/code-block-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/code-block-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/table-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/table-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/column-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/column-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/bookmark-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/bookmark-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/link-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/link-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/mention-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/mention-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/toc-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/toc-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/equation-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/equation-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/components/static/synced-static.tsx",
+    code: readSource(`${BLOCK_DIR}/components/static/synced-static.tsx`),
+  },
+  {
+    path: "components/blocks/notion-like-editor/notion-like-editor-static.tsx",
+    code: readSource(`${BLOCK_DIR}/notion-like-editor-static.tsx`),
+  },
+  {
     path: "components/blocks/notion-like-editor/notion-like-editor-demo.tsx",
     code: readSource(`${BLOCK_DIR}/notion-like-editor-demo.tsx`),
   },

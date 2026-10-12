@@ -26,9 +26,9 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "../commands/editor-columns";
+import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
-import { syncedRefRepairs } from "../features/editor-synced-block";
+import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {

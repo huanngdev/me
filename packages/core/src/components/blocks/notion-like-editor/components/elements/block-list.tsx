@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 
 import { writeChecked } from "../../lib/commands/editor-commands";
 import { LIST_INDENTS, type ListIndent } from "../../lib/document/editor-document-schema";
+import { LIST_SIBLING_GAP_CLASS, todoTextId } from "./block-list-metrics";
+
+export { LIST_SIBLING_GAP_CLASS, todoTextId };
 
 // Rendering only. The stored listStyleType stays "disc" or "decimal" at every depth.
 const MARKER_CYCLE = {
@@ -78,10 +81,6 @@ function storedListStyle(element: PlateElementProps["element"]): string {
   return typeof element.listStyleType === "string" ? element.listStyleType : "disc";
 }
 
-export function todoTextId(blockId: string): string {
-  return `todo-text-${blockId}`;
-}
-
 function blockIdOf(element: PlateElementProps["element"]): string | undefined {
   if (!("id" in element) || typeof element.id !== "string" || element.id.length === 0) {
     return undefined;
@@ -137,9 +136,6 @@ function TodoCheck({
     </span>
   );
 }
-
-// One class plus two attribute selectors, so this margin wins over space-y on the same parent.
-export const LIST_SIBLING_GAP_CLASS = "[&>[data-list-item]:has(+[data-list-item])]:mb-1";
 
 // The gap between items is this sibling rule on the parent. This render reads only its own element.
 export function ListParagraph({ attributes, element, ...props }: PlateElementProps) {

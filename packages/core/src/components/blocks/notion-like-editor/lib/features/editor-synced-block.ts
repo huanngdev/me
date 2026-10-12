@@ -12,6 +12,10 @@ import type { EditorCommand } from "../commands/editor-commands";
 import { formatBlockLabel } from "../document/editor-document";
 import type { Repair } from "../document/editor-document-ids";
 import { SYNCED_REF_KEY, isStoredSyncedTargetId } from "../document/editor-document-schema";
+import { syncedTargetStatus } from "./editor-synced-repair";
+
+export { syncedRefRepairs } from "./editor-synced-repair";
+export type { SyncedTargetStatus } from "./editor-synced-repair";
 import { prefersReducedMotion } from "./editor-toc";
 import { toggleOpen } from "../plugins/editor-toggle";
 import type { EditorValue } from "../document/editor-value";
@@ -29,7 +33,6 @@ export const SYNCED_REMOVE_LABEL = "Delete";
 export const SYNCED_SELECT_REASON = "Select a block to sync.";
 export const SYNCED_REJECT_REASON = "This block cannot be synced.";
 
-export type SyncedTargetStatus = "live" | "missing" | "invalid";
 export type SyncedDirection = "above" | "below";
 
 type BlockEntry = [TElement, number[]];
@@ -42,43 +45,7 @@ function isElement(node: Descendant): node is TElement {
   return ElementApi.isElement(node);
 }
 
-// Descendants only. The node itself is checked by its type.
-function containsSyncedRef(node: TElement): boolean {
-  for (const child of node.children) {
-    if (!isElement(child)) {
-      continue;
-    }
-    if (child.type === SYNCED_REF_KEY || containsSyncedRef(child)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-export function syncedTargetStatus(
-  target: TElement | undefined,
-  targetId: string,
-): SyncedTargetStatus {
-  if (!isStoredSyncedTargetId(targetId)) {
-    return "invalid";
-  }
-
-  if (!target) {
-    return "missing";
-  }
-
-  if (
-    target.type === SYNCED_REF_KEY ||
-    target.type === KEYS.toc ||
-    target.type === KEYS.columnGroup ||
-    containsSyncedRef(target)
-  ) {
-    return "invalid";
-  }
-
-  return "live";
-}
+export { syncedTargetStatus };
 
 export function syncedDirection(targetPath: number[], refPath: number[]): SyncedDirection {
   return PathApi.compare(targetPath, refPath) < 0 ? "above" : "below";
@@ -135,42 +102,6 @@ function emptyParagraph(used: Set<string>): TElement {
 
 function targetIdOf(node: TElement): string {
   return typeof node.targetBlockId === "string" ? node.targetBlockId : "";
-}
-
-// Invalid targets are repairs. A missing target stays a runtime placeholder, so the
-// document still opens and undo can bring the original back.
-export function syncedRefRepairs(value: EditorValue): Repair[] {
-  const index = indexElements(value);
-  const repairs: Repair[] = [];
-
-  const visit = (node: Descendant, path: number[]): void => {
-    if (!isElement(node)) {
-      return;
-    }
-
-    if (node.type === SYNCED_REF_KEY) {
-      const targetId = targetIdOf(node);
-      if (isStoredSyncedTargetId(targetId)) {
-        const status = syncedTargetStatus(index.get(targetId), targetId);
-        if (status === "invalid") {
-          repairs.push({
-            path,
-            message: `${formatBlockLabel(path)} points at a block that cannot be synced. The reference is kept.`,
-          });
-        }
-      }
-    }
-
-    node.children.forEach((child, childIndex) => {
-      visit(child, [...path, childIndex]);
-    });
-  };
-
-  value.forEach((node, nodeIndex) => {
-    visit(node, [nodeIndex]);
-  });
-
-  return repairs;
 }
 
 function materializeElement(

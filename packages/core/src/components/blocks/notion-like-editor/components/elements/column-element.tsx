@@ -10,8 +10,9 @@ import {
 
 import { clampAndNormalizeWidths, setColumnWidths } from "../../lib/commands/editor-columns";
 
-export const COLUMN_GROUP_LAYOUT_CLASS =
-  "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
+import { COLUMN_GROUP_LAYOUT_CLASS } from "./column-classes";
+
+export { COLUMN_GROUP_LAYOUT_CLASS };
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
