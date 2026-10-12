@@ -289,6 +289,9 @@ export function stripPreviewChrome(root: HTMLElement): void {
     node.remove();
   }
   root.removeAttribute("data-block-selected");
+  for (const node of root.querySelectorAll("[data-block-selected]")) {
+    node.removeAttribute("data-block-selected");
+  }
   for (const node of [root, ...root.querySelectorAll("*")]) {
     if (!(node instanceof HTMLElement) || node === root) {
       continue;

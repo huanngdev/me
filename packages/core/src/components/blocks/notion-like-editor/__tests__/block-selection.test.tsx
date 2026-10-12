@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { ElementApi, KEYS, type Descendant, type SlateEditor, type TElement } from "platejs";
+import { createPlateEditor } from "platejs/react";
 
 import { createEditorDocument } from "../lib/document/editor-document";
 import { parseEditorDocument } from "../lib/document/editor-document-validate";
@@ -29,6 +32,8 @@ import {
   setBlockSelection,
   writeBlockFragment,
 } from "../lib/plugins/editor-block-selection";
+import { EditorSurface } from "../components/editor/editor-surface";
+import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { slashUiPlugin } from "../lib/plugins/editor-slash";
 import { blockIds, caret, createEditor, expectOk } from "./test-utils";
 
@@ -466,7 +471,62 @@ describe("block selection mutations", () => {
     const copy = block.cloneNode(true) as HTMLElement;
     stripPreviewChrome(copy);
     expect(copy.querySelector("[data-block-selection-tint]")).toBeNull();
+    expect(copy.hasAttribute("data-block-selected")).toBe(false);
     expect(copy.textContent).toBe("Alpha");
+  });
+
+  test("the selected look is a style rule on the blocks, including a nested list unit", async () => {
+    const editor = createPlateEditor({
+      plugins: createEditorPlugins(),
+      value: [
+        paragraph("a", "Alpha"),
+        paragraph("item", "Item", { listStyleType: "disc", indent: 1 }),
+        paragraph("nested", "Nested", { listStyleType: "disc", indent: 2 }),
+      ] as EditorValue,
+    });
+    setBlockSelection(editor, ["a", "item"]);
+    expect([...blockSelectionIds(editor)]).toEqual(["a", "item"]);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root: Root = createRoot(host);
+    await act(async () => {
+      root.render(
+        <EditorSurface editor={editor} readOnly={false} placeholder="" className="editor" />,
+      );
+    });
+    const style = host.querySelector("style")?.textContent ?? "";
+    expect(style).toContain("[data-block-selected]");
+    expect(style).toContain("box-shadow: 0 0 0 3px");
+    expect(style).toContain("color-mix(in oklab, var(--primary) 10%, transparent)");
+    expect(style).toContain("body[data-block-dragging] [data-block-selected]");
+    expect(host.querySelector("[data-block-selection-tint]")).toBeNull();
+    const fixed = [...host.querySelectorAll<HTMLElement>("*")].filter(
+      (node) => node.style.position === "fixed",
+    );
+    expect(fixed).toEqual([]);
+    expect(host.querySelector("[data-block-id='a']")?.hasAttribute("data-block-selected")).toBe(
+      true,
+    );
+    expect(host.querySelector("[data-block-id='item']")?.hasAttribute("data-block-selected")).toBe(
+      true,
+    );
+    expect(
+      host.querySelector("[data-block-id='nested']")?.hasAttribute("data-block-selected"),
+    ).toBe(true);
+    document.body.setAttribute("data-block-dragging", "");
+    expect(style).toContain("body[data-block-dragging]");
+    document.body.removeAttribute("data-block-dragging");
+    await act(async () => {
+      root.render(
+        <EditorSurface editor={editor} readOnly={true} placeholder="" className="editor" />,
+      );
+    });
+    expect(host.querySelector("style")).toBeNull();
+    expect(host.querySelector("[data-block-selected]")).toBeNull();
+    await act(async () => {
+      root.unmount();
+    });
+    host.remove();
   });
 
   test("a run cannot be dropped inside itself", () => {

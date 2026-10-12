@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useEditorRef, useEditorSelector, usePluginOption, useReadOnly } from "platejs/react";
+import { createPortal } from "react-dom";
+import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
 
 import { listItemUnit } from "../../lib/features/editor-block-drop";
 import {
@@ -17,11 +18,48 @@ import {
 } from "../../lib/plugins/editor-block-selection";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 
-type Box = { id: string; top: number; left: number; width: number; height: number };
 type Marquee = { left: number; top: number; width: number; height: number };
+
+// Painted on the selected blocks themselves. A fixed overlay measured from
+// getBoundingClientRect drifts inside a transformed preview frame.
+const SELECTION_STYLE = [
+  "[data-block-selection-count], [data-block-selection-count] * { caret-color: transparent; }",
+  "[data-block-selection-count] *::selection { background: transparent; }",
+  "[data-block-selected] {",
+  "border-radius: 0.375rem;",
+  "background-color: color-mix(in oklab, var(--primary) 10%, transparent);",
+  "box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent);",
+  "}",
+  "body[data-block-dragging] [data-block-selected] { background-color: transparent; box-shadow: none; }",
+].join(" ");
 
 const CONTROL =
   "[data-block-handle], [data-block-menu], [data-block-menu-portal], [data-block-add-menu], button, a, input, textarea, select, [role='menu']";
+
+function unitIds(editor: ReturnType<typeof useEditorRef>, ids: readonly string[]): string[] {
+  const selected = new Set(ids);
+  const marked: string[] = [];
+  let cursor = 0;
+  while (cursor < editor.children.length) {
+    const [start, end] = listItemUnit(editor.children, cursor);
+    if (start !== cursor || end <= start) {
+      cursor += 1;
+      continue;
+    }
+    const head = editor.children[start];
+    const headId = head && "id" in head && typeof head.id === "string" ? head.id : "";
+    if (headId.length > 0 && selected.has(headId)) {
+      for (let index = start; index < end; index += 1) {
+        const node = editor.children[index];
+        if (node && "id" in node && typeof node.id === "string") {
+          marked.push(node.id);
+        }
+      }
+    }
+    cursor = end;
+  }
+  return marked.length > 0 ? marked : [...ids];
+}
 
 function editorElement(): HTMLElement | null {
   const found = document.querySelector("[data-slate-editor]");
@@ -69,13 +107,11 @@ function topLevelBoxes(
 
 export function BlockSelection() {
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const ids = usePluginOption(blockSelectionPlugin, "ids");
   const revision = useEditorSelector((instance) => instance.operations.length, []);
-  const [boxes, setBoxes] = useState<Box[]>([]);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [announce, setAnnounce] = useState("");
-  const [dragging, setDragging] = useState(false);
   const previousCount = useRef(0);
   const idsRef = useRef(ids);
   useEffect(() => {
@@ -109,85 +145,17 @@ export function BlockSelection() {
       return;
     }
     if (readOnly || ids.length === 0) {
+      if (readOnly && ids.length > 0) {
+        clearBlockSelection(editor, false);
+      }
       editable.removeAttribute("data-block-selection-count");
       for (const node of editable.querySelectorAll("[data-block-selected]")) {
         node.removeAttribute("data-block-selected");
       }
-      const frame = requestAnimationFrame(() => {
-        setBoxes([]);
-      });
-      return () => {
-        cancelAnimationFrame(frame);
-      };
-    }
-    applySelectionMarks(editable, ids);
-    const selected = new Set(ids);
-    const next: Box[] = [];
-    for (const node of editable.querySelectorAll("[data-block-selected]")) {
-      if (!(node instanceof HTMLElement)) {
-        continue;
-      }
-      const id = node.getAttribute("data-block-id") ?? "";
-      if (!selected.has(id)) {
-        continue;
-      }
-      const rect = node.getBoundingClientRect();
-      next.push({ id, top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-    }
-    const frame = requestAnimationFrame(() => {
-      setBoxes(next);
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-    };
-  }, [editor, ids, readOnly, revision]);
-
-  useEffect(() => {
-    if (readOnly || ids.length === 0) {
       return;
     }
-    const measure = (): void => {
-      const editable = editorElement();
-      if (!editable) {
-        return;
-      }
-      const selected = new Set(ids);
-      const next: Box[] = [];
-      for (const node of editable.querySelectorAll("[data-block-selected]")) {
-        if (!(node instanceof HTMLElement)) {
-          continue;
-        }
-        const id = node.getAttribute("data-block-id") ?? "";
-        if (!selected.has(id)) {
-          continue;
-        }
-        const rect = node.getBoundingClientRect();
-        next.push({ id, top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-      }
-      setBoxes(next);
-    };
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("scroll", measure, true);
-      window.removeEventListener("resize", measure);
-    };
-  }, [ids, readOnly]);
-
-  useEffect(() => {
-    const sync = (): void => {
-      setDragging(document.body.hasAttribute("data-block-dragging"));
-    };
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["data-block-dragging"],
-    });
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
+    applySelectionMarks(editable, unitIds(editor, ids));
+  }, [editor, ids, readOnly, revision]);
 
   useEffect(() => {
     if (readOnly) {
@@ -380,40 +348,26 @@ export function BlockSelection() {
 
   return (
     <>
-      <style>
-        {`[data-block-selection-count], [data-block-selection-count] * { caret-color: transparent; } [data-block-selection-count] *::selection { background: transparent; }`}
-      </style>
+      <style>{SELECTION_STYLE}</style>
       <div className="sr-only" aria-live="polite">
         {announce}
       </div>
-      {!dragging &&
-        boxes.map((box) => (
-          <div
-            key={box.id}
-            data-block-selection-tint=""
-            aria-hidden="true"
-            className="bg-primary/10 pointer-events-none fixed z-20 rounded-md"
-            style={{
-              top: box.top - 3,
-              left: box.left - 3,
-              width: box.width + 6,
-              height: box.height + 6,
-            }}
-          />
-        ))}
-      {marquee ? (
-        <div
-          data-block-marquee=""
-          aria-hidden="true"
-          className="bg-primary/10 pointer-events-none fixed z-30 rounded-sm"
-          style={{
-            top: marquee.top,
-            left: marquee.left,
-            width: marquee.width,
-            height: marquee.height,
-          }}
-        />
-      ) : null}
+      {marquee
+        ? createPortal(
+            <div
+              data-block-marquee=""
+              aria-hidden="true"
+              className="bg-primary/10 pointer-events-none fixed z-30 rounded-sm"
+              style={{
+                top: marquee.top,
+                left: marquee.left,
+                width: marquee.width,
+                height: marquee.height,
+              }}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 }

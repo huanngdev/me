@@ -3321,19 +3321,20 @@ export function subscribePasteRepairs(editor: SlateEditor, listener: () => void)
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { useEditorRef } from "platejs/react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { pasteRepairsOf, subscribePasteRepairs } from "../../lib/paste/editor-paste-repairs";
 
 export function PasteRepairNotice() {
   const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
   const repairs = useSyncExternalStore(
     (onStoreChange) => subscribePasteRepairs(editor, onStoreChange),
     () => pasteRepairsOf(editor),
     () => pasteRepairsOf(editor),
   );
 
-  if (repairs.length === 0) {
+  if (readOnly || repairs.length === 0) {
     return null;
   }
 
@@ -8183,6 +8184,9 @@ function TodoCheck({
       <Checkbox
         checked={checked}
         disabled={readOnly}
+        aria-disabled={readOnly || undefined}
+        tabIndex={readOnly ? -1 : undefined}
+        className={readOnly ? "pointer-events-none" : undefined}
         aria-labelledby={blockId ? todoTextId(blockId) : undefined}
         aria-label={blockId ? undefined : "To-do"}
         onMouseDown={(event) => {
@@ -15952,7 +15956,7 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverContent>
       </Popover>
       {readOnly && expression.length > 0 ? (
-        <div className="mt-1 flex justify-end" contentEditable={false}>
+        <div className="absolute right-3 bottom-2" contentEditable={false}>
           <EditorIconButton
             label="Copy source"
             icon={<Copy aria-hidden="true" />}
@@ -17618,6 +17622,7 @@ import { useEffect } from "react";
 import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
+  useEditorReadOnly,
   useEditorRef,
   useEditorSelector,
   usePluginOption,
@@ -17702,7 +17707,7 @@ export function LinkToolbar() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const mode = usePluginOption(linkUiPlugin, "mode");
   const hoverId = usePluginOption(linkUiPlugin, "hoverId");
   const selection = useEditorSelector((current) => current.selection, []);
@@ -17879,7 +17884,7 @@ function selectedOrHoveredLink(
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
 ```tsx
 import { useEffect, useState } from "react";
-import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { ExternalLink, Save, Unlink } from "lucide-react";
 import { Input } from "@/components/input";
@@ -17902,7 +17907,7 @@ export function LinkPopover() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const mode = usePluginOption(linkUiPlugin, "mode");
   const error = usePluginOption(linkUiPlugin, "error");
   const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");
@@ -19255,7 +19260,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
 ```tsx
 import { useEffect, type ReactNode } from "react";
 import { Bookmark, Link } from "lucide-react";
-import { useEditorRef, usePluginOption } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
@@ -19272,6 +19277,7 @@ import {
 
 export function PasteUrlMenu() {
   const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
   const offer = usePluginOption(pasteUrlPlugin, "offer");
   const actions =
     offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
@@ -19281,7 +19287,13 @@ export function PasteUrlMenu() {
   );
 
   useEffect(() => {
-    if (offer === undefined) {
+    if (readOnly && offer !== undefined) {
+      clearPasteUrlOffer(editor);
+    }
+  }, [editor, offer, readOnly]);
+
+  useEffect(() => {
+    if (readOnly || offer === undefined) {
       return;
     }
 
@@ -19304,9 +19316,9 @@ export function PasteUrlMenu() {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [editor, offer]);
+  }, [editor, offer, readOnly]);
 
-  if (offer === undefined || actions.length === 0) {
+  if (readOnly || offer === undefined || actions.length === 0) {
     return null;
   }
 
@@ -23186,7 +23198,11 @@ export function runEditorCommand<Payload>(
   payload: Payload,
   options?: RunEditorCommandOptions,
 ): boolean {
-  if (options?.readOnly === true || command.isEnabled?.(editor) === false) {
+  if (
+    options?.readOnly === true ||
+    editor.dom.readOnly === true ||
+    command.isEnabled?.(editor) === false
+  ) {
     return false;
   }
 
@@ -24701,6 +24717,7 @@ export function EditorSurface({
             <BookmarkUrlPopover />
             <SelectionToolbar />
             <PlateContent
+              aria-readonly={readOnly ? true : undefined}
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
               // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
@@ -26493,8 +26510,17 @@ function getServerDemoAdapter(): undefined {
   return undefined;
 }
 
+function readReadonlyFlag(): boolean {
+  return new URLSearchParams(window.location.search).get("readonly") === "1";
+}
+
+function readReadonlyServer(): boolean {
+  return false;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
+  const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
 
   if (!adapter) {
     return (
@@ -26511,6 +26537,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       linkPreview={demoLinkPreviewAdapter}
       mentionProvider={demoMentionProvider}
+      readOnly={readOnly}
     />
   );
 }
