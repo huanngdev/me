@@ -62,8 +62,17 @@ describe("isLoadableFileUrl", () => {
     expect(isLoadableFileUrl("local-file:abc")).toBe(false);
     expect(isLoadableFileUrl("javascript:alert(1)")).toBe(false);
     expect(isLoadableFileUrl("data:text/plain,hi")).toBe(false);
-    expect(isLoadableFileUrl("/relative/path.png")).toBe(false);
     expect(isLoadableFileUrl("not a url")).toBe(false);
+  });
+
+  test("accepts a root-relative path and refuses protocol-relative and backslash forms", () => {
+    expect(sanitizeStoredFileUrl("/a.png")).toBe("/a.png");
+    expect(isLoadableFileUrl("/a.png")).toBe(true);
+    expect(isLoadableFileUrl("/relative/path.png")).toBe(true);
+    expect(isLoadableFileUrl("//evil.example/a.png")).toBe(false);
+    expect(isLoadableFileUrl("/\\evil")).toBe(false);
+    expect(isLoadableFileUrl("/a b.png")).toBe(false);
+    expect(isLoadableFileUrl("/a\u0007.png")).toBe(false);
   });
 });
 

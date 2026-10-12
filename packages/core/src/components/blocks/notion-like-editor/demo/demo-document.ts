@@ -1252,6 +1252,22 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "h3",
+    id: "demo-images",
+    children: [{ text: "Images" }],
+  },
+  {
+    type: "image",
+    id: "demo-image",
+    url: "/blocks/notion-like-editor/image-demo.svg",
+    name: "image-demo.svg",
+    mime: "image/svg+xml",
+    width: 60,
+    align: "center",
+    caption: "A violet card with a pale circle.",
+    children: [{ text: "" }],
+  },
+  {
     type: "footnote_def",
     id: "demo-footnote-def",
     footnoteId: "demo-footnote",

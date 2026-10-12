@@ -148,6 +148,21 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     ],
   },
   {
+    key: "image",
+    kind: "block",
+    label: "Image",
+    entry: [{ via: "host", note: "Insert command only, until the image block UI is added" }],
+    static: "rendered",
+    demoBlockId: "demo-image",
+    limits: [
+      "Embed links are http or https only",
+      "Width is 10 to 100 percent of the column, or the natural size",
+      "Mime type must start with image/",
+      "Caption up to 500 characters",
+      "Without a file adapter, only http, https and root-relative urls show an image",
+    ],
+  },
+  {
     key: "page_link",
     kind: "block",
     label: "Page link",

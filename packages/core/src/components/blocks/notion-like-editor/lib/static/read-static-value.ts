@@ -4,6 +4,7 @@ import {
   EDITOR_ELEMENT_RULES,
   isAllowedElementAttrValue,
 } from "../document/editor-document-schema";
+import { IMAGE_KEY } from "../features/editor-image";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { parseEditorDocument } from "../document/editor-document-validate";
 import type { EditorValue } from "../document/editor-value";
@@ -53,7 +54,8 @@ function softenNode(value: unknown): Record<string, unknown> | null {
       key === "url" &&
       typeof next.url === "string" &&
       sanitizeLinkUrl(next.url) === undefined &&
-      type !== "bookmark"
+      type !== "bookmark" &&
+      type !== IMAGE_KEY
     ) {
       delete next.url;
     }

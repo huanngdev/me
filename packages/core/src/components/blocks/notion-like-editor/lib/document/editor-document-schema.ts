@@ -14,6 +14,7 @@ import {
 import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
+import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
@@ -489,6 +490,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
   },
+  // Custom void, like the bookmark. A file or embed link with its own width, alignment and caption.
+  // An invalid attribute is dropped with a repair, so the block stays. A bad url makes a placeholder.
+  {
+    type: IMAGE_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "width", "align", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -545,6 +554,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       BOOKMARK_KEY,
+      IMAGE_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -630,6 +640,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.codeBlock,
       BOOKMARK_KEY,
+      IMAGE_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -980,6 +991,10 @@ export function allowedElementAttrValues(
 }
 
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  if (type === IMAGE_KEY) {
+    return isStoredImageAttr(attr, value);
+  }
+
   if (type === KEYS.link && attr === "url") {
     return typeof value === "string" && sanitizeLinkUrl(value) === value;
   }

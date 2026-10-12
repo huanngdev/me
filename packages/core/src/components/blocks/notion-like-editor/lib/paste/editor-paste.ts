@@ -56,6 +56,12 @@ import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
+  IMAGE_ATTRS_CLEANED,
+  IMAGE_KEY,
+  cleanImageFields,
+  imageElement,
+} from "../features/editor-image";
+import {
   BOOKMARK_KEY,
   BOOKMARK_PASTE_DROPPED,
   bookmarkElement,
@@ -366,6 +372,17 @@ function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [bookmarkElement(stored, nanoid())];
+}
+
+// Keeps the image and its valid fields. A field that cannot be cleaned is left out, and the repair
+// says so. The url is the only field whose loss makes the image a placeholder.
+function pastedImage(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanImageFields(node);
+  if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: IMAGE_ATTRS_CLEANED });
+  }
+
+  return [imageElement(cleaned.fields, takeId(node, seen))];
 }
 
 function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
@@ -1003,6 +1020,10 @@ function expandBlock(
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === BOOKMARK_KEY) {
       return pastedBookmark(node, seen);
+    }
+
+    if (node.type === IMAGE_KEY) {
+      return pastedImage(node, seen);
     }
 
     if (node.type === PAGE_LINK_KEY) {

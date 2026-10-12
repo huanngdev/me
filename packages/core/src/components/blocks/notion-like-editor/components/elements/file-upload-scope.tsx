@@ -13,7 +13,7 @@ import {
 } from "react";
 
 import {
-  isHttpFileUrl,
+  isDirectFileUrl,
   resolveFileUrl,
   sanitizeStoredFileUrl,
 } from "../../lib/features/editor-file-url";
@@ -104,10 +104,11 @@ export function useUploadState(blockId: string): UploadState | undefined {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-// The http or https form of a stored url, which loads without the adapter. Null for anything else.
+// The http, https or root-relative form of a stored url, which loads without the adapter.
+// Null for anything else.
 function directFileUrl(stored: string): string | null {
   const clean = sanitizeStoredFileUrl(stored);
-  return clean !== null && isHttpFileUrl(clean) ? clean : null;
+  return clean !== null && isDirectFileUrl(clean) ? clean : null;
 }
 
 export function useResolvedFileUrl(stored: string | undefined): ResolvedFileUrl {

@@ -59,6 +59,7 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { ImageElement } from "../../components/elements/image-element";
 import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
@@ -87,6 +88,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { IMAGE_KEY } from "../features/editor-image";
 import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
@@ -759,6 +761,7 @@ function normalizeDisallowedChild(
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
       (child.type === BOOKMARK_KEY ||
+        child.type === IMAGE_KEY ||
         child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
@@ -1650,6 +1653,12 @@ const bookmarkPlugin = createSlatePlugin({
   render: { node: BookmarkElement },
 });
 
+const imagePlugin = createSlatePlugin({
+  key: IMAGE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: ImageElement },
+});
+
 // toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
 // Enter on the selected bookmark opens its action popover.
 const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
@@ -2082,6 +2091,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listKeyboardPlugin,
     codeBlockPlugin,
     bookmarkPlugin,
+    imagePlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,

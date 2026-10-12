@@ -55,8 +55,24 @@ function parseUrl(url: string): URL | null {
   }
 }
 
-// Only http, https and blob URLs can reach `src` or `href`.
+// A root-relative path such as /a.png names a same-origin asset. "//host/a" is protocol-relative
+// and "/\host" can be read as one by a browser, so both are refused.
+export function isRootRelativeFileUrl(url: string): boolean {
+  return (
+    url.startsWith("/") &&
+    !url.startsWith("//") &&
+    !url.includes("\\") &&
+    !CONTROL_CHAR.test(url) &&
+    !WHITESPACE.test(url)
+  );
+}
+
+// Only http, https, blob and root-relative URLs can reach `src` or `href`.
 export function isLoadableFileUrl(url: string): boolean {
+  if (isRootRelativeFileUrl(url)) {
+    return true;
+  }
+
   const parsed = parseUrl(url);
   if (parsed === null) {
     return false;
@@ -70,7 +86,12 @@ export function isHttpFileUrl(url: string): boolean {
   return parsed !== null && (parsed.protocol === "http:" || parsed.protocol === "https:");
 }
 
-// An http or https url loads without the adapter. Anything else goes through `resolveUrl`.
+// A url that loads without the adapter: http, https, or root-relative.
+export function isDirectFileUrl(url: string): boolean {
+  return isHttpFileUrl(url) || isRootRelativeFileUrl(url);
+}
+
+// A direct url loads without the adapter. Anything else goes through `resolveUrl`.
 // Any throw, abort or unloadable result gives null.
 export async function resolveFileUrl(
   adapter: FileUploadAdapter | null,
@@ -82,7 +103,7 @@ export async function resolveFileUrl(
     return null;
   }
 
-  if (isHttpFileUrl(clean)) {
+  if (isDirectFileUrl(clean)) {
     return clean;
   }
 

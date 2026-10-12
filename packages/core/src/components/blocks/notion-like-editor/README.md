@@ -64,7 +64,7 @@ export function NotesView({ value }: { value: Value }) {
 - `mentionProvider?: MentionProvider | null` — searches and resolves people for mentions. Defaults to `null`.
 - `pageProvider?: PageProvider | null` — searches and resolves pages for page links. Defaults to `null`.
 - `onOpenPage?: (request: PageOpenRequest) => void` — called when a user opens a page link.
-- `fileUpload?: FileUploadAdapter | null` — uploads files and resolves their stored URLs. Defaults to `null`. No block uses it yet.
+- `fileUpload?: FileUploadAdapter | null` — uploads files and resolves their stored URLs. Defaults to `null`. The image block uses it to show a stored URL that is not http, https or root-relative.
 
 `NotionLikeEditorStatic` (`NotionLikeEditorStaticProps`, `notion-like-editor-static.tsx`):
 
@@ -165,7 +165,7 @@ export type FileUploadAdapter = {
 };
 ```
 
-`upload` receives the file. Its `signal` fires when the user cancels the upload or the block is removed. It resolves to the URL the document stores, usually an https URL, and only `url` is required. `onProgress` takes a fraction from 0 to 1. Calling it is optional. `resolveUrl` is optional. It turns a stored URL into one the browser can load, and the editor calls it only for a stored URL that is not http or https, such as the demo's `local-file:<id>`. Without a `fileUpload` adapter, the editor has no upload function. No block uses the adapter yet, so the editor behaves as it did before.
+`upload` receives the file. Its `signal` fires when the user cancels the upload or the block is removed. It resolves to the URL the document stores, usually an https URL, and only `url` is required. `onProgress` takes a fraction from 0 to 1. Calling it is optional. `resolveUrl` is optional. It turns a stored URL into one the browser can load, and the editor calls it only for a stored URL that is not http or https, such as the demo's `local-file:<id>`. Without a `fileUpload` adapter, the editor has no upload function. The image block calls `resolveUrl` for its stored URL. Without an adapter, an image shows only when its URL is http, https or root-relative.
 
 Each block gets at most one upload at a time. Starting a second upload on the same block cancels the first. A failed upload shows the error message, cleaned to one line and cut to 200 characters, or "Upload failed." when there is none. Retry uploads the same file again.
 
@@ -208,6 +208,7 @@ The allow lists are `EDITOR_ELEMENT_RULES` and `EDITOR_MARK_RULES` in `lib/docum
 - **Quote** — `blockquote`. Entry: Slash "Quote"; Block menu "Quote"; Input rule "> + space". Static: yes. Limits: Children are paragraphs only.
 - **Divider** — `hr`. Entry: Slash "Divider"; Input rule "---". Static: yes. Limits: Stores only its id, with no alignment or indent.
 - **Bookmark** — `bookmark`. Entry: Slash "Bookmark"; Paste (Bookmark in the link paste menu); Host (LinkPreviewAdapter fills the preview). Static: yes. Limits: Only http and https links; Link up to 2048 characters; Title up to 300, description up to 500, site name up to 100 characters; Without a LinkPreviewAdapter the card shows the domain.
+- **Image** — `image`. Entry: Host (Insert command only, until the image block UI is added). Static: yes. Limits: Embed links are http or https only; Width is 10 to 100 percent of the column, or the natural size; Mime type must start with image/; Caption up to 500 characters; Without a file adapter, only http, https and root-relative urls show an image.
 - **Page link** — `page_link`. Entry: Slash "Page link"; Host (onOpenPage receives the page id and kind). Static: yes. Limits: The slash item is offered only with a PageProvider; Title up to 200 characters; Static output has no link.
 - **Table of contents** — `toc`. Entry: Slash "Table of contents"; Toolbar "Table of contents depth". Static: yes. Limits: Depth 1 to 3, default 3.
 - **Equation** — `equation`. Entry: Slash "Equation". Static: yes. Limits: Expression up to 4000 characters; Control characters other than tab and newline are refused; Rendered with KaTeX.

@@ -230,6 +230,7 @@ describe("toggle schema", () => {
       "callout",
       "hr",
       "bookmark",
+      "image",
       "page_link",
       "code_block",
       "table",

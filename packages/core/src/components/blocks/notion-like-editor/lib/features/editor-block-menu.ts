@@ -10,6 +10,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { IMAGE_KEY } from "./editor-image";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
@@ -115,6 +116,7 @@ const STRUCTURAL = new Set<string>([
   KEYS.th,
   KEYS.hr,
   BOOKMARK_KEY,
+  IMAGE_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -587,6 +589,9 @@ function article(type: string): string {
   }
   if (type === KEYS.hr) {
     return "a divider";
+  }
+  if (type === IMAGE_KEY) {
+    return "an image";
   }
   return "that block";
 }

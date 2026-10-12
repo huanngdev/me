@@ -30,9 +30,7 @@ import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
-
-// The media blocks will supply the real handler. Until then, a finished upload writes nothing.
-function acceptUpload(): void {}
+import { applyFinishedUpload } from "../../lib/features/editor-media";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -74,7 +72,15 @@ export function EditorSurface({
         }}
       >
         <MentionScope provider={mentionProvider}>
-          <FileUploadScope adapter={fileUpload} onDone={acceptUpload}>
+          <FileUploadScope
+            adapter={fileUpload}
+            onDone={(blockId, file) => {
+              // Refused in read-only mode, and when the block is gone or already has a file.
+              if (editor !== null) {
+                applyFinishedUpload(editor, blockId, file);
+              }
+            }}
+          >
             <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
               <LinkPreviewProvider adapter={linkPreview}>
                 <PasteRepairNotice />
