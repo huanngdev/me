@@ -23,6 +23,7 @@ import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
+import { EmojiSuggest } from "../ui/emoji-suggest";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -60,6 +61,7 @@ export function EditorSurface({
             <PasteRepairNotice />
             <PasteUrlMenu />
             <SlashMenu />
+            <EmojiSuggest />
             <LinkToolbar />
             <LinkPopover />
             <BookmarkUrlPopover />

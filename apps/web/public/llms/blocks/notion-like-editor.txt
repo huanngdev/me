@@ -64,63 +64,67 @@
 54. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
 55. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
 56. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
-63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-65. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-66. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-67. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-68. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-69. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-70. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-73. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-74. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-75. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-76. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-77. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-78. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-79. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-80. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-81. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-88. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-89. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-90. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-91. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-92. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-93. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-94. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-95. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-110. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-111. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-112. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-113. apps/web/src/app/blocks/notion-like-editor/page.tsx
+57. packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
+60. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+63. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+64. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+65. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+69. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+70. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+71. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+72. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+73. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+74. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+75. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+76. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+77. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+78. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+79. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+80. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+81. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+82. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+83. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+84. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+85. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+88. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+89. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+90. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+91. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+92. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+93. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+94. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+95. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+96. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+97. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+98. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+99. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+111. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+112. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+113. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+114. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+115. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+116. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+117. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -5980,6 +5984,7 @@ import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
+import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
 import {
   blockSelectionEnterPlugin,
   blockSelectionPlugin,
@@ -7856,6 +7861,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
+    emojiUiPlugin,
+    emojiWatchPlugin,
     bookmarkUrlPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
@@ -19956,6 +19963,930 @@ function pasteActionIcon(id: string): ReactNode {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/components/ui/emoji-suggest.tsx
+```tsx
+import { useEffect } from "react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { cn } from "@/lib/utils";
+
+import { readEmojiSession } from "../../lib/features/editor-emoji";
+import { pointAtBlockOffset } from "../../lib/features/editor-slash";
+import {
+  chooseEmojiSuggestion,
+  closeEmojiMenu,
+  emojiMenuItems,
+  emojiUiPlugin,
+} from "../../lib/plugins/editor-emoji";
+import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
+
+export function EmojiSuggest() {
+  const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
+  const open = usePluginOption(emojiUiPlugin, "open");
+  const activeIndex = usePluginOption(emojiUiPlugin, "activeIndex");
+  // Re-renders on every token change and when the emoji data finishes loading.
+  // Rows are still read from the document at render time, never stored.
+  usePluginOption(emojiUiPlugin, "query");
+  usePluginOption(emojiUiPlugin, "ready");
+  const items = open ? emojiMenuItems(editor) : [];
+  const active = items.length === 0 ? -1 : Math.min(activeIndex, items.length - 1);
+  const virtualRef = virtualAnchor(
+    () => rangeRect(colonRange(editor)),
+    () => anchorContext(rangeContextElement(colonRange(editor))),
+  );
+
+  useEffect(() => {
+    if (!open || !readOnly) {
+      return;
+    }
+    closeEmojiMenu(editor);
+  }, [editor, open, readOnly]);
+
+  if (!open || items.length === 0) {
+    return null;
+  }
+
+  return (
+    <Popover open modal={false}>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        data-emoji-suggest=""
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        hideWhenDetached
+        className="w-auto min-w-44 gap-0 p-1"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+      >
+        <div role="listbox" aria-label="Emoji suggestions" className="flex flex-col">
+          {items.map((item, index) => (
+            <div
+              key={item.name}
+              role="option"
+              aria-selected={index === active}
+              data-emoji-option={item.name}
+              className={cn(
+                "flex cursor-default items-center gap-2 rounded-sm px-2 py-1 text-sm",
+                index === active && "bg-accent text-accent-foreground",
+              )}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onMouseEnter={() => {
+                editor.setOption(emojiUiPlugin, "activeIndex", index);
+              }}
+              onClick={() => {
+                chooseEmojiSuggestion(editor, item.emoji);
+              }}
+            >
+              <span aria-hidden="true">{item.emoji}</span>
+              <span className="text-muted-foreground font-mono text-xs">:{item.name}:</span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// The anchor is the colon, so the popover sits under the trigger like the slash menu.
+function colonRange(editor: ReturnType<typeof useEditorRef>): Range | null {
+  const session = readEmojiSession(editor);
+  if (session === null) {
+    return null;
+  }
+  const start = pointAtBlockOffset(editor, session.blockPath, session.colon);
+  const end = pointAtBlockOffset(editor, session.blockPath, session.colon + 1);
+  if (start === null || end === null) {
+    return null;
+  }
+  try {
+    return editor.api.toDOMRange({ anchor: start, focus: end }) ?? null;
+  } catch {
+    return null;
+  }
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-emoji.ts
+```ts
+import { ElementApi, KEYS, NodeApi, type SlateEditor } from "platejs";
+
+import { editorIsComposing } from "../plugins/editor-mention";
+import { selectionInCodeBlock } from "./editor-code";
+import { blockTextOffset } from "./editor-slash";
+import type { EmojiEntry } from "./emoji-data";
+
+export const EMOJI_SUGGEST_LIMIT = 8;
+
+// The colon must start the block or follow whitespace, so 10:30, http://x and a:sm never match.
+const TRIGGER_PATTERN = /(^|\s):([a-z0-9_+-]{2,})$/i;
+const CLOSING_PATTERN = /(^|\s):([a-z0-9_+-]{2,}):$/i;
+
+export type EmojiSession = {
+  blockId: string;
+  blockPath: number[];
+  // Block text offsets of the colon and of the caret. The token is the text between them, without the colon.
+  colon: number;
+  caret: number;
+  token: string;
+};
+
+export type EmojiReplacement = {
+  emoji: string;
+  blockPath: number[];
+  start: number;
+  end: number;
+};
+
+let loadedEntries: readonly EmojiEntry[] | null = null;
+let pendingLoad: Promise<readonly EmojiEntry[]> | null = null;
+
+// The data is a dynamic import, so the editor's first-load chunk does not carry it.
+export function loadedEmojiEntries(): readonly EmojiEntry[] | null {
+  return loadedEntries;
+}
+
+// Test hook: forget the loaded data so a test can observe a late load.
+export function resetEmojiDataForTests(): void {
+  loadedEntries = null;
+  pendingLoad = null;
+}
+
+export function loadEmojiEntries(): Promise<readonly EmojiEntry[]> {
+  if (pendingLoad === null) {
+    pendingLoad = import("./emoji-data").then(({ EMOJI_ENTRIES }) => {
+      loadedEntries = EMOJI_ENTRIES;
+      return EMOJI_ENTRIES;
+    });
+  }
+  return pendingLoad;
+}
+
+function emojiMatchRank(entry: EmojiEntry, needle: string): number | null {
+  if (entry.name === needle) {
+    return 0;
+  }
+  if (entry.name.startsWith(needle)) {
+    return 1;
+  }
+  if (entry.keywords.some((keyword) => keyword.startsWith(needle))) {
+    return 2;
+  }
+  if (entry.name.includes(needle)) {
+    return 3;
+  }
+  return null;
+}
+
+export function searchEmoji(
+  entries: readonly EmojiEntry[],
+  query: string,
+  limit: number = EMOJI_SUGGEST_LIMIT,
+): EmojiEntry[] {
+  const needle = query.toLowerCase();
+  if (needle.length < 2) {
+    return [];
+  }
+
+  const ranked: { entry: EmojiEntry; rank: number; order: number }[] = [];
+  entries.forEach((entry, order) => {
+    const rank = emojiMatchRank(entry, needle);
+    if (rank !== null) {
+      ranked.push({ entry, rank, order });
+    }
+  });
+  return ranked
+    .sort((left, right) => left.rank - right.rank || left.order - right.order)
+    .slice(0, limit)
+    .map((item) => item.entry);
+}
+
+// Shared gate for the trigger and the closing colon. Read-only, composition, code blocks,
+// mention input and void blocks never convert text. Links and code marks do not block.
+function readEmojiBlock(
+  editor: SlateEditor,
+): { blockId: string; blockPath: number[]; caret: number; before: string } | null {
+  if (
+    editor.dom.readOnly === true ||
+    editor.selection === null ||
+    !editor.api.isCollapsed() ||
+    editorIsComposing(editor)
+  ) {
+    return null;
+  }
+  if (
+    selectionInCodeBlock(editor) ||
+    editor.api.above({ match: { type: editor.getType(KEYS.mentionInput) } }) !== undefined
+  ) {
+    return null;
+  }
+  const block = editor.api.block();
+  if (!block || !ElementApi.isElement(block[0]) || typeof block[0].id !== "string") {
+    return null;
+  }
+  if (editor.api.isVoid(block[0])) {
+    return null;
+  }
+  const caret = blockTextOffset(editor, block[1], editor.selection.anchor);
+  if (caret === null) {
+    return null;
+  }
+  return {
+    blockId: block[0].id,
+    blockPath: block[1],
+    caret,
+    before: NodeApi.string(block[0]).slice(0, caret),
+  };
+}
+
+export function readEmojiSession(editor: SlateEditor): EmojiSession | null {
+  const block = readEmojiBlock(editor);
+  if (block === null) {
+    return null;
+  }
+  const match = TRIGGER_PATTERN.exec(block.before);
+  const token = match?.[2];
+  if (token === undefined) {
+    return null;
+  }
+  return {
+    blockId: block.blockId,
+    blockPath: block.blockPath,
+    colon: block.caret - token.length - 1,
+    caret: block.caret,
+    token,
+  };
+}
+
+// The closing colon converts only an exact entry name, so :+1: and :Smile: stay text.
+export function readClosingEmoji(
+  editor: SlateEditor,
+  entries: readonly EmojiEntry[],
+): EmojiReplacement | null {
+  const block = readEmojiBlock(editor);
+  if (block === null) {
+    return null;
+  }
+  const name = CLOSING_PATTERN.exec(block.before)?.[2];
+  if (name === undefined) {
+    return null;
+  }
+  const entry = entries.find((item) => item.name === name);
+  if (entry === undefined) {
+    return null;
+  }
+  return {
+    emoji: entry.emoji,
+    blockPath: block.blockPath,
+    start: block.caret - name.length - 2,
+    end: block.caret,
+  };
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/emoji-data.ts
+```ts
+// Loaded by dynamic import from the emoji suggestion plugin, so the editor's first-load chunk stays small.
+// Every emoji is one grapheme in its fully-qualified form. Names are Slack and GitHub style aliases.
+
+export type EmojiEntry = {
+  emoji: string;
+  name: string;
+  keywords: readonly string[];
+};
+
+function entry(emoji: string, name: string, ...keywords: string[]): EmojiEntry {
+  return { emoji, name, keywords };
+}
+
+export const EMOJI_ENTRIES: readonly EmojiEntry[] = [
+  // Smileys and emotion
+  entry("😀", "grinning", "smile", "happy"),
+  entry("😃", "smiley", "happy", "joy"),
+  entry("😄", "smile", "happy", "joy", "laugh"),
+  entry("😁", "grin", "teeth"),
+  entry("😆", "laughing", "satisfied", "haha"),
+  entry("😅", "sweat_smile", "hot"),
+  entry("🤣", "rofl", "rolling", "floor"),
+  entry("😂", "joy", "tears", "laugh", "lol"),
+  entry("🙂", "slightly_smiling_face", "smile"),
+  entry("😉", "wink", "flirt"),
+  entry("😊", "blush", "proud", "shy"),
+  entry("😇", "innocent", "angel", "halo"),
+  entry("🥰", "smiling_face_with_hearts", "love", "adore"),
+  entry("😍", "heart_eyes", "love", "crush"),
+  entry("🤩", "star_struck", "eyes", "wow"),
+  entry("😘", "kissing_heart", "love", "kiss"),
+  entry("😋", "yum", "tongue", "delicious"),
+  entry("😛", "stuck_out_tongue", "tongue"),
+  entry("😜", "stuck_out_tongue_winking_eye", "wink", "tongue"),
+  entry("🤗", "hugging_face", "hug"),
+  entry("🤫", "shushing_face", "quiet", "shh"),
+  entry("🤔", "thinking", "hmm", "consider"),
+  entry("😐", "neutral_face", "meh"),
+  entry("😑", "expressionless"),
+  entry("😏", "smirk", "smug"),
+  entry("🙄", "roll_eyes", "rolling_eyes"),
+  entry("😌", "relieved", "calm"),
+  entry("😔", "pensive", "sad"),
+  entry("😪", "sleepy", "tired"),
+  entry("😴", "sleeping", "zzz"),
+  entry("😷", "mask", "sick"),
+  entry("🤒", "face_with_thermometer", "sick", "ill"),
+  entry("🥵", "hot_face", "heat"),
+  entry("🥶", "cold_face", "freezing"),
+  entry("😵", "dizzy_face", "dazed"),
+  entry("🤯", "exploding_head", "mind_blown"),
+  entry("🤠", "cowboy_hat_face", "cowboy"),
+  entry("🥳", "partying_face", "party", "celebrate"),
+  entry("😎", "sunglasses", "cool"),
+  entry("🤓", "nerd_face", "nerd", "geek"),
+  entry("☹️", "frowning_face", "sad"),
+  entry("😮", "open_mouth", "surprised", "wow"),
+  entry("😲", "astonished", "shocked"),
+  entry("😳", "flushed", "embarrassed"),
+  entry("🥺", "pleading_face", "puppy_eyes", "please"),
+  entry("😨", "fearful", "scared"),
+  entry("😰", "cold_sweat", "anxious"),
+  entry("😢", "cry", "sad", "tear"),
+  entry("😭", "sob", "crying", "sad"),
+  entry("😱", "scream", "shocked", "horror"),
+  entry("😞", "disappointed", "sad"),
+  entry("😓", "sweat", "downcast"),
+  entry("😫", "tired_face", "exhausted"),
+  entry("🥱", "yawning_face", "yawn", "bored"),
+  entry("😤", "triumph", "huff"),
+  entry("😡", "rage", "angry", "mad"),
+  entry("😠", "angry", "mad"),
+  entry("🤬", "cursing_face", "swearing"),
+  entry("😈", "smiling_imp", "devil"),
+  entry("💀", "skull", "dead"),
+  entry("☠️", "skull_and_crossbones", "danger"),
+  entry("💩", "poop", "poo"),
+  entry("🤡", "clown_face", "clown"),
+  entry("👻", "ghost", "halloween", "boo"),
+  entry("👽", "alien", "ufo"),
+  entry("👾", "space_invader", "alien_monster"),
+  entry("🤖", "robot", "bot"),
+  entry("😺", "smiley_cat"),
+  entry("💯", "100", "hundred", "score"),
+  entry("💥", "boom", "collision", "explosion"),
+  entry("💫", "dizzy", "star"),
+  entry("💦", "sweat_drops", "splash"),
+  entry("💬", "speech_balloon", "comment"),
+  entry("💤", "zzz", "sleep"),
+
+  // People and gestures
+  entry("👋", "wave", "hello", "hi", "bye"),
+  entry("🖐️", "raised_hand_with_fingers_splayed", "hand"),
+  entry("✋", "hand", "raised_hand", "high_five", "stop"),
+  entry("👌", "ok_hand", "ok"),
+  entry("🤌", "pinched_fingers", "italian"),
+  entry("✌️", "v", "peace", "victory"),
+  entry("🤞", "crossed_fingers", "luck", "hopeful"),
+  entry("🤘", "metal", "rock"),
+  entry("👈", "point_left"),
+  entry("👉", "point_right"),
+  entry("👆", "point_up_2"),
+  entry("👇", "point_down"),
+  entry("☝️", "point_up"),
+  entry("👍", "thumbsup", "+1", "thumbs_up", "like", "yes"),
+  entry("👎", "thumbsdown", "-1", "thumbs_down", "dislike", "no"),
+  entry("✊", "fist", "raised_fist"),
+  entry("👊", "facepunch", "punch", "fist_oncoming"),
+  entry("👏", "clap", "applause"),
+  entry("🙌", "raised_hands", "hooray"),
+  entry("🤝", "handshake", "deal"),
+  entry("🙏", "pray", "please", "thanks", "namaste"),
+  entry("✍️", "writing_hand", "write"),
+  entry("💪", "muscle", "strong", "flex", "biceps"),
+  entry("👂", "ear", "listen"),
+  entry("🧠", "brain", "smart"),
+  entry("👀", "eyes", "look", "watch"),
+  entry("👁️", "eye", "see"),
+  entry("👶", "baby", "infant"),
+  entry("👦", "boy"),
+  entry("👧", "girl"),
+  entry("🧑", "adult", "person"),
+  entry("👨", "man"),
+  entry("👩", "woman"),
+  entry("👴", "older_man", "grandpa"),
+  entry("👨‍💻", "man_technologist", "developer", "coder"),
+  entry("👩‍💻", "woman_technologist", "developer", "coder"),
+  entry("🧑‍💻", "technologist", "developer", "coder"),
+  entry("👨‍👩‍👧‍👦", "family", "parents", "kids"),
+  entry("🧑‍🤝‍🧑", "people_holding_hands", "friends"),
+  entry("🙋", "raising_hand", "question"),
+
+  // Hearts
+  entry("❤️", "heart", "love"),
+  entry("🧡", "orange_heart"),
+  entry("💛", "yellow_heart"),
+  entry("💚", "green_heart"),
+  entry("💙", "blue_heart"),
+  entry("💜", "purple_heart"),
+  entry("🖤", "black_heart"),
+  entry("🤍", "white_heart"),
+  entry("🤎", "brown_heart"),
+  entry("💔", "broken_heart", "heartbreak"),
+  entry("💕", "two_hearts"),
+  entry("💖", "sparkling_heart"),
+
+  // Animals and nature
+  entry("🐶", "dog", "puppy"),
+  entry("🐱", "cat", "kitty"),
+  entry("🐰", "rabbit"),
+  entry("🦊", "fox_face", "fox"),
+  entry("🐻", "bear"),
+  entry("🐼", "panda_face", "panda"),
+  entry("🐯", "tiger"),
+  entry("🦁", "lion"),
+  entry("🐮", "cow"),
+  entry("🐵", "monkey_face", "monkey"),
+  entry("🐧", "penguin"),
+  entry("🐣", "hatching_chick", "chick"),
+  entry("🦅", "eagle"),
+  entry("🦉", "owl"),
+  entry("🐴", "horse"),
+  entry("🦄", "unicorn"),
+  entry("🐝", "honeybee", "bee"),
+  entry("🦋", "butterfly"),
+  entry("🐢", "turtle"),
+  entry("🐍", "snake"),
+  entry("🦀", "crab"),
+  entry("🐟", "fish"),
+  entry("🐬", "dolphin"),
+  entry("🐳", "whale"),
+  entry("🐘", "elephant"),
+  entry("🦒", "giraffe"),
+  entry("🕊️", "dove", "peace"),
+  entry("🌸", "cherry_blossom", "flower"),
+  entry("🌹", "rose", "flower"),
+  entry("🌱", "seedling", "plant", "grow"),
+  entry("🌳", "deciduous_tree", "tree"),
+  entry("🌴", "palm_tree", "tree", "beach"),
+  entry("🍀", "four_leaf_clover", "luck", "lucky"),
+  entry("🍁", "maple_leaf", "autumn"),
+  entry("🍂", "fallen_leaf", "autumn"),
+
+  // Sky and weather
+  entry("🌍", "earth_africa", "world", "globe"),
+  entry("🌎", "earth_americas", "world", "globe"),
+  entry("🌏", "earth_asia", "world", "globe"),
+  entry("⭐", "star"),
+  entry("✨", "sparkles", "shiny"),
+  entry("⚡", "zap", "lightning", "bolt"),
+  entry("☀️", "sunny", "sun"),
+  entry("⛅", "partly_sunny", "weather"),
+  entry("☁️", "cloud", "weather"),
+  entry("🌧️", "rain_cloud", "rain"),
+  entry("❄️", "snowflake", "snow"),
+  entry("☃️", "snowman", "snow"),
+  entry("🌈", "rainbow"),
+  entry("☂️", "umbrella", "rain"),
+  entry("🌊", "ocean", "wave", "sea"),
+  entry("🔥", "fire", "hot", "lit"),
+  entry("💧", "droplet", "water"),
+
+  // Food and drink
+  entry("🍏", "green_apple", "fruit"),
+  entry("🍎", "apple", "fruit"),
+  entry("🍐", "pear", "fruit"),
+  entry("🍊", "tangerine", "orange", "fruit"),
+  entry("🍋", "lemon", "fruit"),
+  entry("🍌", "banana", "fruit"),
+  entry("🍉", "watermelon", "fruit"),
+  entry("🍇", "grapes", "fruit"),
+  entry("🍓", "strawberry", "fruit"),
+  entry("🫐", "blueberries", "fruit"),
+  entry("🍒", "cherries", "fruit"),
+  entry("🍑", "peach", "fruit"),
+  entry("🥭", "mango", "fruit"),
+  entry("🍍", "pineapple", "fruit"),
+  entry("🥝", "kiwi_fruit", "kiwi"),
+  entry("🍞", "bread", "toast"),
+  entry("🍔", "hamburger", "burger"),
+  entry("🍟", "fries", "chips"),
+  entry("🍕", "pizza"),
+  entry("🥚", "egg"),
+  entry("🍳", "cooking", "frying_pan", "egg"),
+  entry("🥗", "green_salad", "salad"),
+  entry("🍦", "icecream", "soft_serve"),
+  entry("🍩", "doughnut", "donut"),
+  entry("🍪", "cookie"),
+  entry("🎂", "birthday", "cake"),
+  entry("🍰", "cake", "shortcake"),
+  entry("🍭", "lollipop", "candy"),
+  entry("☕", "coffee", "tea", "cafe"),
+  entry("🍾", "champagne", "celebration"),
+  entry("🍷", "wine_glass", "wine"),
+  entry("🍸", "cocktail", "martini"),
+  entry("🍺", "beer"),
+
+  // Activities
+  entry("⚽", "soccer", "football"),
+  entry("🏀", "basketball"),
+  entry("🏈", "football", "american_football"),
+  entry("⚾", "baseball"),
+  entry("🎾", "tennis"),
+  entry("🏐", "volleyball"),
+  entry("🎱", "8ball", "billiards"),
+  entry("🏓", "ping_pong", "table_tennis"),
+  entry("🥊", "boxing_glove", "boxing"),
+  entry("🏆", "trophy", "win", "winner"),
+  entry("🥇", "first_place_medal", "gold"),
+  entry("🥈", "second_place_medal", "silver"),
+  entry("🥉", "third_place_medal", "bronze"),
+  entry("🎨", "art", "palette"),
+  entry("🎤", "microphone", "sing"),
+  entry("🎧", "headphones", "music"),
+  entry("🎸", "guitar", "music"),
+  entry("🎲", "game_die", "dice"),
+  entry("🎮", "video_game", "gaming", "controller"),
+  entry("♟️", "chess_pawn", "chess"),
+
+  // Travel and places
+  entry("🚗", "car", "automobile"),
+  entry("🚕", "taxi", "cab"),
+  entry("🚌", "bus"),
+  entry("🚓", "police_car"),
+  entry("🚑", "ambulance"),
+  entry("🚒", "fire_engine"),
+  entry("🚲", "bike", "bicycle"),
+  entry("🚨", "rotating_light", "alert"),
+  entry("🚆", "train"),
+  entry("✈️", "airplane", "flight", "plane"),
+  entry("⛵", "sailboat", "boat"),
+  entry("🚦", "vertical_traffic_light", "traffic"),
+  entry("🗺️", "world_map", "map"),
+  entry("🏰", "european_castle", "castle"),
+  entry("⛺", "tent", "camping"),
+  entry("🏠", "house", "home"),
+  entry("🏢", "office", "building"),
+  entry("🏥", "hospital"),
+  entry("🏫", "school"),
+  entry("🗾", "japan"),
+
+  // Objects
+  entry("⌚", "watch", "time"),
+  entry("📱", "iphone", "mobile", "phone"),
+  entry("💻", "computer", "laptop"),
+  entry("📷", "camera", "photo"),
+  entry("☎️", "phone", "telephone"),
+  entry("💡", "bulb", "idea", "light"),
+  entry("💰", "moneybag", "money"),
+  entry("🎁", "gift", "present"),
+  entry("🎉", "tada", "party", "celebrate"),
+  entry("✉️", "envelope", "email", "mail"),
+  entry("🔗", "link", "url"),
+  entry("🔒", "lock", "secure", "private"),
+
+  // Symbols
+  entry("✅", "white_check_mark", "done", "yes"),
+  entry("❌", "x", "no", "cross"),
+  entry("⭕", "o", "circle"),
+  entry("🛑", "stop_sign", "stop"),
+  entry("⛔", "no_entry", "stop"),
+  entry("🚫", "no_entry_sign", "forbidden", "ban"),
+  entry("❗", "exclamation", "warning", "important"),
+  entry("❓", "question", "help"),
+  entry("➕", "heavy_plus_sign", "plus", "add"),
+  entry("➖", "heavy_minus_sign", "minus", "subtract"),
+  entry("➗", "heavy_division_sign", "divide"),
+  entry("✖️", "heavy_multiplication_x", "multiply", "times"),
+  entry("✔️", "heavy_check_mark", "check"),
+  entry("🔴", "red_circle", "red"),
+  entry("🔵", "large_blue_circle", "blue"),
+  entry("💠", "diamond_shape_with_a_dot_inside", "diamond"),
+  entry("🔔", "bell", "notification"),
+  entry("⬆️", "arrow_up", "up"),
+  entry("⬇️", "arrow_down", "down"),
+  entry("➡️", "arrow_right", "right"),
+  entry("⬅️", "arrow_left", "left"),
+  entry("🆘", "sos", "help"),
+  entry("0️⃣", "zero", "keycap"),
+  entry("1️⃣", "one", "keycap"),
+  entry("2️⃣", "two", "keycap"),
+
+  // Flags
+  entry("🏁", "checkered_flag", "race", "finish"),
+  entry("🚩", "triangular_flag_on_post", "flag"),
+  entry("🇺🇸", "us", "flag", "america"),
+  entry("🇬🇧", "gb", "flag", "uk"),
+  entry("🇯🇵", "jp", "flag", "japan"),
+  entry("🇻🇳", "vn", "flag", "vietnam"),
+  entry("🇩🇪", "de", "flag", "germany"),
+  entry("🇫🇷", "fr", "flag", "france"),
+  entry("🇰🇷", "kr", "flag", "korea"),
+  entry("🇨🇳", "cn", "flag", "china"),
+  entry("🇧🇷", "br", "flag", "brazil"),
+  entry("🇨🇦", "ca", "flag", "canada"),
+];
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-emoji.ts
+```ts
+import { createSlatePlugin, type SlateEditor } from "platejs";
+import { toPlatePlugin } from "platejs/react";
+
+import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
+import {
+  EMOJI_SUGGEST_LIMIT,
+  loadEmojiEntries,
+  loadedEmojiEntries,
+  readClosingEmoji,
+  readEmojiSession,
+  searchEmoji,
+  type EmojiReplacement,
+} from "../features/editor-emoji";
+import type { EmojiEntry } from "../features/emoji-data";
+import { pointAtBlockOffset } from "../features/editor-slash";
+import { slashMenuOpen } from "./editor-slash";
+
+// Below the slash menu (2000), so an open slash menu handles its keys first.
+// Above the list, table and indent handlers (0), so Tab chooses an emoji instead of indenting.
+export const EMOJI_HANDLER_PRIORITY = 1000;
+
+type EmojiOptions = {
+  open: boolean;
+  activeIndex: number;
+  ready: boolean;
+  // The token the menu is for. The popover subscribes to it, so every token change re-renders.
+  query: string;
+};
+
+type EmojiKeyEvent = {
+  key: string;
+  shiftKey?: boolean;
+  metaKey?: boolean;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+  preventDefault: () => void;
+};
+
+function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
+  return typeof value === "function";
+}
+
+// Escape hides one token. The key is the block, the colon offset and the token, so editing the token reopens it.
+const lastTokenKey = new WeakMap<SlateEditor, string>();
+const dismissedToken = new WeakSet<SlateEditor>();
+const requestedData = new WeakSet<SlateEditor>();
+
+function emojiOptions(): EmojiOptions {
+  return { open: false, activeIndex: 0, ready: false, query: "" };
+}
+
+export function emojiMenuOpen(editor: SlateEditor): boolean {
+  return editor.getOption(emojiUiPlugin, "open") === true;
+}
+
+export function closeEmojiMenu(editor: SlateEditor): void {
+  if (emojiMenuOpen(editor)) {
+    editor.setOption(emojiUiPlugin, "open", false);
+  }
+  if (editor.getOption(emojiUiPlugin, "activeIndex") !== 0) {
+    editor.setOption(emojiUiPlugin, "activeIndex", 0);
+  }
+}
+
+function dismissEmojiMenu(editor: SlateEditor): void {
+  dismissedToken.add(editor);
+  closeEmojiMenu(editor);
+}
+
+function activeEmojiIndex(editor: SlateEditor, count: number): number {
+  return Math.min(editor.getOption(emojiUiPlugin, "activeIndex"), count - 1);
+}
+
+// Rows are empty while the data loads, when the menu is closed, or when a slash menu is open.
+export function emojiMenuItems(editor: SlateEditor): EmojiEntry[] {
+  if (!emojiMenuOpen(editor) || slashMenuOpen(editor)) {
+    return [];
+  }
+  const session = readEmojiSession(editor);
+  const entries = loadedEmojiEntries();
+  if (session === null || entries === null) {
+    return [];
+  }
+  return searchEmoji(entries, session.token, EMOJI_SUGGEST_LIMIT);
+}
+
+export function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
+  const count = emojiMenuItems(editor).length;
+  if (count === 0) {
+    return;
+  }
+  const current = activeEmojiIndex(editor, count);
+  editor.setOption(emojiUiPlugin, "activeIndex", (current + delta + count) % count);
+}
+
+function requestEmojiData(editor: SlateEditor): void {
+  if (loadedEmojiEntries() !== null || requestedData.has(editor)) {
+    return;
+  }
+  requestedData.add(editor);
+  loadEmojiEntries()
+    .then(() => {
+      requestedData.delete(editor);
+      // Changing an option re-renders the popover, which then reads the loaded data.
+      editor.setOption(emojiUiPlugin, "ready", true);
+      syncEmojiMenu(editor);
+    })
+    .catch(() => {
+      requestedData.delete(editor);
+    });
+}
+
+function setEmojiQuery(editor: SlateEditor, query: string): void {
+  if (editor.getOption(emojiUiPlugin, "query") !== query) {
+    editor.setOption(emojiUiPlugin, "query", query);
+  }
+}
+
+export function syncEmojiMenu(editor: SlateEditor): void {
+  const session = slashMenuOpen(editor) ? null : readEmojiSession(editor);
+  setEmojiQuery(editor, session?.token ?? "");
+  if (session === null) {
+    lastTokenKey.delete(editor);
+    dismissedToken.delete(editor);
+    closeEmojiMenu(editor);
+    return;
+  }
+
+  const key = `${session.blockId}:${session.colon}:${session.token}`;
+  if (lastTokenKey.get(editor) !== key) {
+    lastTokenKey.set(editor, key);
+    dismissedToken.delete(editor);
+    if (editor.getOption(emojiUiPlugin, "activeIndex") !== 0) {
+      editor.setOption(emojiUiPlugin, "activeIndex", 0);
+    }
+  }
+
+  if (dismissedToken.has(editor)) {
+    closeEmojiMenu(editor);
+    return;
+  }
+  if (!emojiMenuOpen(editor)) {
+    editor.setOption(emojiUiPlugin, "open", true);
+  }
+  requestEmojiData(editor);
+}
+
+// One command for the popover choice and the closing colon, so one undo restores the typed text.
+export const insertEmojiText: EditorCommand<EmojiReplacement> = {
+  id: "insert.emoji",
+  label: "Emoji",
+  group: "insert",
+  isEnabled: (editor) => editor.dom.readOnly !== true,
+  run: (editor, replacement) => {
+    const start = pointAtBlockOffset(editor, replacement.blockPath, replacement.start);
+    const end = pointAtBlockOffset(editor, replacement.blockPath, replacement.end);
+    if (start === null || end === null) {
+      return;
+    }
+    // Insert by range so the token is never selected. The undo then restores a collapsed caret.
+    editor.tf.insertText(replacement.emoji, { at: { anchor: start, focus: end } });
+    const after = pointAtBlockOffset(
+      editor,
+      replacement.blockPath,
+      replacement.start + replacement.emoji.length,
+    );
+    if (after !== null) {
+      editor.tf.select(after);
+    }
+  },
+};
+
+export function chooseEmojiSuggestion(editor: SlateEditor, emoji: string): void {
+  const session = readEmojiSession(editor);
+  closeEmojiMenu(editor);
+  if (session === null) {
+    return;
+  }
+  runEditorCommand(editor, insertEmojiText, {
+    emoji,
+    blockPath: session.blockPath,
+    start: session.colon,
+    end: session.caret,
+  });
+}
+
+function convertClosingEmoji(editor: SlateEditor): void {
+  if (slashMenuOpen(editor)) {
+    return;
+  }
+  const entries = loadedEmojiEntries();
+  if (entries === null) {
+    requestEmojiData(editor);
+    return;
+  }
+  const replacement = readClosingEmoji(editor, entries);
+  if (replacement === null) {
+    return;
+  }
+  closeEmojiMenu(editor);
+  runEditorCommand(editor, insertEmojiText, replacement);
+}
+
+export function onEmojiKeyDown(editor: SlateEditor, event: EmojiKeyEvent): boolean {
+  if (event.metaKey === true || event.ctrlKey === true || event.altKey === true) {
+    return false;
+  }
+  const items = emojiMenuItems(editor);
+  if (items.length === 0) {
+    return false;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    moveEmojiHighlight(editor, event.key === "ArrowDown" ? 1 : -1);
+    return true;
+  }
+  if ((event.key === "Enter" || event.key === "Tab") && event.shiftKey !== true) {
+    event.preventDefault();
+    const item = items[activeEmojiIndex(editor, items.length)];
+    if (item !== undefined) {
+      chooseEmojiSuggestion(editor, item.emoji);
+    }
+    return true;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    dismissEmojiMenu(editor);
+    return true;
+  }
+  return false;
+}
+
+const emojiBase = createSlatePlugin({
+  key: "emojiUi",
+  priority: EMOJI_HANDLER_PRIORITY,
+  options: emojiOptions(),
+}).overrideEditor(({ editor, tf: { insertText } }) => {
+  return {
+    transforms: {
+      insertText(text, options) {
+        insertText(text, options);
+        // A multi-character insert ending in a colon counts too, so a paste of :name: converts.
+        if (text.endsWith(":") && (options === undefined || options.at === undefined)) {
+          convertClosingEmoji(editor);
+        }
+        // Slate's onChange runs later, so typing opens or closes the menu at once.
+        syncEmojiMenu(editor);
+      },
+    },
+  };
+});
+
+export const emojiWatchPlugin = createSlatePlugin({
+  key: "emojiWatch",
+  priority: -1,
+}).overrideEditor(({ editor }) => {
+  const { onChange } = editor;
+  if (isEditorOnChange(onChange)) {
+    editor.onChange = (options?: { operation?: unknown }) => {
+      onChange(options);
+      syncEmojiMenu(editor);
+    };
+  }
+  return { transforms: {} };
+});
+
+export const emojiUiPlugin = toPlatePlugin(emojiBase, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => onEmojiKeyDown(editor, event),
+    onBlur: ({ editor, event }) => {
+      const related = "relatedTarget" in event ? event.relatedTarget : null;
+      if (related instanceof Element && related.closest("[data-emoji-suggest]") !== null) {
+        return;
+      }
+      queueMicrotask(() => {
+        const active = document.activeElement;
+        if (active instanceof Element && active.closest("[data-slate-editor]") !== null) {
+          return;
+        }
+        if (active instanceof Element && active.closest("[data-emoji-suggest]") !== null) {
+          return;
+        }
+        closeEmojiMenu(editor);
+      });
+    },
+  },
+});
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
 ```ts
 import type { RangeRef, SlateEditor, TRange } from "platejs";
@@ -25737,6 +26668,7 @@ import { PasteRepairNotice } from "../ui/paste-repair-notice";
 import { PasteUrlMenu } from "../ui/paste-url-menu";
 import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
+import { EmojiSuggest } from "../ui/emoji-suggest";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -25774,6 +26706,7 @@ export function EditorSurface({
             <PasteRepairNotice />
             <PasteUrlMenu />
             <SlashMenu />
+            <EmojiSuggest />
             <LinkToolbar />
             <LinkPopover />
             <BookmarkUrlPopover />
@@ -26269,7 +27202,11 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-unicode",
-    children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+    children: [
+      {
+        text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽. Type :smile to pick an emoji.",
+      },
+    ],
   },
   {
     type: "p",
@@ -27930,6 +28867,7 @@ import {
   CodeSyntaxStatic,
 } from "../../components/static/code-block-static";
 import { codeLowlight } from "../features/editor-code";
+import { CodeLeafStatic } from "../../components/static/code-leaf-static";
 import { KbdStatic } from "../../components/static/kbd-static";
 import { ensureStaticCodeLanguages } from "../../components/static/code-highlight";
 
@@ -27975,6 +28913,37 @@ function tokenProps(
       return { ...props, style: { [cssProperty]: `var(${variablePrefix}-${String(nodeValue)})` } };
     },
   };
+}
+
+// Same rule as the editor: a code leaf is always mono, and inline style beats the code class.
+function fontFamilyNodeProps() {
+  const fontFamily = tokenProps(KEYS.fontFamily, "fontFamily", "--editor-font", (value) =>
+    isAllowedValue(value, FONT_FAMILIES),
+  );
+
+  return {
+    nodeKey: fontFamily.nodeKey,
+    transformProps: (options: {
+      nodeValue?: unknown;
+      props: Record<string, unknown>;
+      text?: unknown;
+    }) => {
+      if (isAllowedValue(options.nodeValue, FONT_FAMILIES) && hasCodeMark(options.text)) {
+        return { ...options.props, style: { fontFamily: "var(--editor-font-mono)" } };
+      }
+
+      return fontFamily.transformProps(options);
+    },
+  };
+}
+
+function hasCodeMark(text: unknown): boolean {
+  return (
+    typeof text === "object" &&
+    text !== null &&
+    KEYS.code in text &&
+    Reflect.get(text, KEYS.code) === true
+  );
 }
 
 const paragraphPlugin = BaseParagraphPlugin.configure({
@@ -28026,7 +28995,10 @@ export const editorStaticPlugins = [
   BaseItalicPlugin,
   BaseUnderlinePlugin,
   BaseStrikethroughPlugin,
-  BaseCodePlugin.configure({ node: { props: { className: codeLeafClassName } } }),
+  BaseCodePlugin.configure({
+    node: { props: { className: codeLeafClassName } },
+    render: { node: CodeLeafStatic },
+  }),
   BaseSubscriptPlugin,
   BaseSuperscriptPlugin,
   BaseKbdPlugin.configure({ render: { node: KbdStatic } }),
@@ -28041,9 +29013,7 @@ export const editorStaticPlugins = [
   BaseFontSizePlugin,
   BaseFontFamilyPlugin.configure({
     inject: {
-      nodeProps: tokenProps(KEYS.fontFamily, "fontFamily", "--editor-font", (value) =>
-        isAllowedValue(value, FONT_FAMILIES),
-      ),
+      nodeProps: fontFamilyNodeProps(),
     },
   }),
   BaseTextAlignPlugin.configure({

@@ -95,6 +95,7 @@ import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { editorInputRulesPlugin } from "./editor-input-rules";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
+import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
 import {
   blockSelectionEnterPlugin,
   blockSelectionPlugin,
@@ -1971,6 +1972,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
+    emojiUiPlugin,
+    emojiWatchPlugin,
     bookmarkUrlPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,

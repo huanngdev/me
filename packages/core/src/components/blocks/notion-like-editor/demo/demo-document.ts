@@ -50,7 +50,11 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-unicode",
-    children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+    children: [
+      {
+        text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽. Type :smile to pick an emoji.",
+      },
+    ],
   },
   {
     type: "p",
