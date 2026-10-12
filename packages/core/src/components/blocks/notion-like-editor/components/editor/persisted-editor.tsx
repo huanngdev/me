@@ -22,6 +22,7 @@ export function PersistedEditor({
   mentionProvider = null,
   pageProvider = null,
   onOpenPage,
+  fileUpload = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -51,6 +52,7 @@ export function PersistedEditor({
           mentionProvider={mentionProvider}
           pageProvider={pageProvider}
           onOpenPage={onOpenPage}
+          fileUpload={fileUpload}
           status={session.status}
           message={session.message}
           onRetry={() => {

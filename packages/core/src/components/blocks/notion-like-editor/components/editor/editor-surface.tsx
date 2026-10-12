@@ -11,6 +11,7 @@ import type { EditorValue } from "../../lib/document/editor-value";
 import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
+import { FileUploadScope } from "../elements/file-upload-scope";
 import { PageLinkScope } from "../elements/page-link-element";
 import { PageLinkPicker } from "../ui/page-link-picker";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
@@ -28,6 +29,10 @@ import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
+import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
+
+// The media blocks will supply the real handler. Until then, a finished upload writes nothing.
+function acceptUpload(): void {}
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -40,6 +45,7 @@ type EditorSurfaceProps = {
   mentionProvider?: MentionProvider | null;
   pageProvider?: PageProvider | null;
   onOpenPage?: ((request: PageOpenRequest) => void) | null;
+  fileUpload?: FileUploadAdapter | null;
   onInsertedBelow?: (blockId: string) => void;
 };
 
@@ -54,6 +60,7 @@ export function EditorSurface({
   mentionProvider = null,
   pageProvider = null,
   onOpenPage = null,
+  fileUpload = null,
   onInsertedBelow,
 }: EditorSurfaceProps) {
   return (
@@ -67,41 +74,43 @@ export function EditorSurface({
         }}
       >
         <MentionScope provider={mentionProvider}>
-          <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
-            <LinkPreviewProvider adapter={linkPreview}>
-              <PasteRepairNotice />
-              <PasteUrlMenu />
-              <SlashMenu />
-              <EmojiSuggest />
-              <LinkToolbar />
-              <LinkPopover />
-              <BookmarkUrlPopover />
-              <PageLinkPicker />
-              <SelectionToolbar />
-              <FindBar />
-              <PlateContent
-                aria-label={ariaLabel}
-                aria-readonly={readOnly ? true : undefined}
-                placeholder={readOnly ? undefined : placeholder}
-                // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-                // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-                // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-                className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-                renderPlaceholder={(placeholderProps) => (
-                  <span
-                    {...placeholderProps.attributes}
-                    className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                    style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                  >
-                    {placeholderProps.children}
-                  </span>
-                )}
-              />
-              <BlockPlaceholders placeholder={placeholder} />
-              <BlockSelection />
-              <BlockHandle onInsertedBelow={onInsertedBelow} />
-            </LinkPreviewProvider>
-          </PageLinkScope>
+          <FileUploadScope adapter={fileUpload} onDone={acceptUpload}>
+            <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+              <LinkPreviewProvider adapter={linkPreview}>
+                <PasteRepairNotice />
+                <PasteUrlMenu />
+                <SlashMenu />
+                <EmojiSuggest />
+                <LinkToolbar />
+                <LinkPopover />
+                <BookmarkUrlPopover />
+                <PageLinkPicker />
+                <SelectionToolbar />
+                <FindBar />
+                <PlateContent
+                  aria-label={ariaLabel}
+                  aria-readonly={readOnly ? true : undefined}
+                  placeholder={readOnly ? undefined : placeholder}
+                  // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                  // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                  // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                  className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                  renderPlaceholder={(placeholderProps) => (
+                    <span
+                      {...placeholderProps.attributes}
+                      className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                      style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                    >
+                      {placeholderProps.children}
+                    </span>
+                  )}
+                />
+                <BlockPlaceholders placeholder={placeholder} />
+                <BlockSelection />
+                <BlockHandle onInsertedBelow={onInsertedBelow} />
+              </LinkPreviewProvider>
+            </PageLinkScope>
+          </FileUploadScope>
         </MentionScope>
       </Plate>
     </TooltipProvider>

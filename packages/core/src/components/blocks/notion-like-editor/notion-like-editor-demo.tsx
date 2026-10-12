@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useSyncExternalStore } from "react";
 
+import { demoFileUploadAdapter } from "./demo/demo-file-upload";
 import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
 import { demoPageProvider } from "./demo/demo-pages";
@@ -102,6 +103,7 @@ export function NotionLikeEditorDemo() {
       linkPreview={demoLinkPreviewAdapter}
       mentionProvider={demoMentionProvider}
       pageProvider={demoPageProvider}
+      fileUpload={demoFileUploadAdapter}
       readOnly={readOnly}
     />
   );

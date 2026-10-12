@@ -64,6 +64,7 @@ export function NotesView({ value }: { value: Value }) {
 - `mentionProvider?: MentionProvider | null` — searches and resolves people for mentions. Defaults to `null`.
 - `pageProvider?: PageProvider | null` — searches and resolves pages for page links. Defaults to `null`.
 - `onOpenPage?: (request: PageOpenRequest) => void` — called when a user opens a page link.
+- `fileUpload?: FileUploadAdapter | null` — uploads files and resolves their stored URLs. Defaults to `null`. No block uses it yet.
 
 `NotionLikeEditorStatic` (`NotionLikeEditorStaticProps`, `notion-like-editor-static.tsx`):
 
@@ -72,7 +73,7 @@ export function NotesView({ value }: { value: Value }) {
 
 ## Adapters
 
-The editor takes four adapters. Each one is optional. Their shapes below are copied from the source.
+The editor takes five adapters. Each one is optional. Their shapes below are copied from the source.
 
 `EditorPersistenceAdapter` (`lib/document/editor-persistence.ts`):
 
@@ -142,6 +143,35 @@ export type PageOpenRequest = { pageId: string; kind: PageLinkKind };
 `PageLinkKind` is `"link"` or `"child"`. The kind only picks the icon. Without a `PageProvider`, the Page link slash item is not offered, and an existing page link shows its stored title without resolving it. Without `onOpenPage`, a page link cannot be opened. A `missing` or `denied` resolution also prevents opening.
 
 Everything a provider returns is untrusted. Page search results go through `pagesFromSearch`, which drops entries without a valid page id, cleans titles, keeps one grapheme as the icon, and caps the list at 8 (`lib/features/editor-page-link.ts`). Mention results go through `storedPeople`, which drops entries with the wrong entity type or an invalid id, and sanitizes labels (`lib/plugins/editor-mention.ts`). Bookmark preview text is stripped of control characters and bidi marks, collapsed, and truncated to the field limit. A preview image URL must pass `normalizeBookmarkImageUrl` (`lib/features/editor-bookmark-url.ts`). A page resolution that is not a well-formed answer is treated as unavailable (`components/elements/page-link-element.tsx`).
+
+`FileUploadAdapter` (`lib/features/editor-file-upload.ts`):
+
+```ts
+export type UploadedFile = {
+  url: string;
+  name?: string;
+  size?: number;
+  mime?: string;
+};
+
+export type FileUploadOptions = {
+  signal: AbortSignal;
+  onProgress: (fraction: number) => void;
+};
+
+export type FileUploadAdapter = {
+  upload: (file: File, options: FileUploadOptions) => Promise<UploadedFile>;
+  resolveUrl?: (url: string, signal: AbortSignal) => Promise<string | null>;
+};
+```
+
+`upload` receives the file. Its `signal` fires when the user cancels the upload or the block is removed. It resolves to the URL the document stores, usually an https URL, and only `url` is required. `onProgress` takes a fraction from 0 to 1. Calling it is optional. `resolveUrl` is optional. It turns a stored URL into one the browser can load, and the editor calls it only for a stored URL that is not http or https, such as the demo's `local-file:<id>`. Without a `fileUpload` adapter, the editor has no upload function. No block uses the adapter yet, so the editor behaves as it did before.
+
+Each block gets at most one upload at a time. Starting a second upload on the same block cancels the first. A failed upload shows the error message, cleaned to one line and cut to 200 characters, or "Upload failed." when there is none. Retry uploads the same file again.
+
+Everything an adapter returns is untrusted. A result goes through `sanitizeUploadedFile` (`lib/features/editor-file-url.ts`). `url` must be a string of 1 to 2048 characters with no control characters and no whitespace, and it must not use a `javascript:`, `data:` or `vbscript:` scheme. An invalid `url` fails the upload with "The upload returned an invalid file." An invalid `name`, `size` or `mime` is dropped, and the File's value fills it in. A name has its control and bidi override characters removed, its path separators replaced, and is cut to 255 characters. A URL from `resolveUrl` must pass `isLoadableFileUrl`, so only `http`, `https` and `blob` URLs reach `src` or `href`. A throw, an abort or an unloadable result from `resolveUrl` gives null.
+
+The demo adapter (`demo/demo-file-upload.ts`) stores each file as a Blob in this browser's IndexedDB, in the database `notion-like-editor-demo-files`. It makes no network requests and rejects files over 25 MB. It shows the shape of the contract. It is not a production upload, since its files stay in one browser and are not shared.
 
 The demo uses fixture adapters in `demo/demo-link-preview.ts`, `demo/demo-mention.ts` and `demo/demo-pages.ts`. They show the shapes above.
 
