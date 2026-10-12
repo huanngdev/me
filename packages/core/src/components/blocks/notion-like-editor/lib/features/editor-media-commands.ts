@@ -22,22 +22,25 @@ import {
   removeMediaBlockAt,
   sanitizeMediaSource,
   type MediaBlockType,
+  type MediaFileType,
   type MediaSource,
 } from "./editor-media-source";
 import { videoElement, VIDEO_KEY } from "./editor-video";
+import { embedElement, EMBED_KEY } from "./editor-embed";
 
 // The commands every media block shares. Each factory takes the block type, so the image, file, video
 // and audio commands are one implementation with the type as a parameter. The ids and labels follow
 // the type: block.<type>.set-source, "Set image", and so on.
 
 // Blocks with a width and alignment. Their layout is written by the same commands.
-export type MediaLayoutType = Extract<MediaBlockType, "image" | "video">;
+export type MediaLayoutType = Extract<MediaBlockType, "image" | "video" | "embed">;
 
 const MEDIA_LABELS: Record<MediaBlockType, string> = {
   image: "Image",
   file: "File",
   video: "Video",
   audio: "Audio",
+  embed: "Embed",
 };
 
 // The block of this type with this id, when the editor is writable. Another block gives undefined.
@@ -61,6 +64,8 @@ export function mediaBlockElement(type: MediaBlockType, id: string): TElement {
       return videoElement({}, id);
     case AUDIO_KEY:
       return audioElement({}, id);
+    case EMBED_KEY:
+      return embedElement({}, id);
   }
 }
 
@@ -78,7 +83,7 @@ export function createMediaInsertCommand(type: MediaBlockType): EditorCommand<{ 
 // An upload result is stored with the name, size and mime type it has. A url-only value is an embed
 // link, and `embed` decides what an embed link stores.
 export function createMediaSetSourceCommand(
-  type: MediaBlockType,
+  type: MediaFileType,
   embed: (file: UploadedFile) => MediaSource | null,
 ): EditorCommand<{ id: string; file: UploadedFile }> {
   return {

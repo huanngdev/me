@@ -247,10 +247,10 @@ describe("file and html media paste", () => {
   });
 });
 
-describe("paste url menu without embed", () => {
-  test("a youtube url offers bookmark and keep as link only", async () => {
-    expect(pasteUrlActions.map((action) => action.id)).toEqual(["bookmark"]);
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+describe("paste url menu for a video link", () => {
+  test("a youtube url offers bookmark and embed, and keep as link", async () => {
+    expect(pasteUrlActions.map((action) => action.id)).toEqual(["bookmark", "embed"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     const mounted = await mountEditor([paragraph("")]);
     try {
       mounted.editor.tf.select(caret([0, 0], 0));
@@ -263,8 +263,7 @@ describe("paste url menu without embed", () => {
       const labels = [...(menu?.querySelectorAll("button") ?? [])].map(
         (button) => button.textContent,
       );
-      expect(labels).toEqual(["Bookmark", "Keep as link"]);
-      expect(menu?.textContent).not.toContain("Embed");
+      expect(labels).toEqual(["Bookmark", "Embed", "Keep as link"]);
     } finally {
       await mounted.cleanup();
     }

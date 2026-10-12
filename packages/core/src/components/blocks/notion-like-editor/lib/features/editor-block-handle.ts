@@ -3,6 +3,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { VIDEO_KEY } from "./editor-video";
@@ -28,6 +29,7 @@ const ELIGIBLE = new Set<string>([
   FILE_KEY,
   VIDEO_KEY,
   AUDIO_KEY,
+  EMBED_KEY,
   PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,

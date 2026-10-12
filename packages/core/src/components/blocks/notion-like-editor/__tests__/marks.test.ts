@@ -450,8 +450,8 @@ describe.each(MARKS)("%s", (_name, mark) => {
 
     expect(parsed.repairs).toEqual([]);
     // Top-level blocks. Paragraphs nested in the quote, callout, toggle, and columns are not counted.
-    // 110 blocks: the files heading and the file blocks, then the video and audio headings and blocks, were added after the image.
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(110);
+    // 112 blocks: the files heading and the file blocks, then the video and audio headings and blocks, and the embed heading and block, were added after the image.
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(112);
     expect(block === undefined ? "" : textOf(block)).toBe(mark.sentence);
     expect(markedLeaves).toEqual(expected);
   });

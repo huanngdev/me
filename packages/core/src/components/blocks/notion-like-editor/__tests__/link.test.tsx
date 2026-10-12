@@ -701,7 +701,7 @@ describe("link paste", () => {
     expect(nestedText(linkNodes(editor.children)[0])).toBe(`${HTTPS}/docs`);
     expect(blockString(editor)).toBe(`${HTTPS}/docs`);
     expect(editor.getOption(pasteUrlPlugin, "offer")?.url).toBe(`${HTTPS}/docs`);
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     expect(
       pasteUrlActions
         .filter((action) => action.match(`${HTTPS}/docs`))
@@ -718,7 +718,7 @@ describe("link paste", () => {
     expect(offered.getOption(pasteUrlPlugin, "offer")?.url).toBe(video);
     expect(
       pasteUrlActions.filter((action) => action.match(video)).map((action) => action.label),
-    ).toEqual(["Bookmark"]);
+    ).toEqual(["Bookmark", "Embed"]);
     runEditorCommand(offered, applyPasteUrlAction, "bookmark");
     expect(offered.children.map((block) => block.type)).toEqual(["p", "bookmark"]);
     expect(blockString(offered)).toBe("See ");

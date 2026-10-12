@@ -11,6 +11,7 @@ import {
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { VIDEO_KEY } from "./editor-video";
@@ -123,6 +124,7 @@ const STRUCTURAL = new Set<string>([
   FILE_KEY,
   VIDEO_KEY,
   AUDIO_KEY,
+  EMBED_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -607,6 +609,9 @@ function article(type: string): string {
   }
   if (type === AUDIO_KEY) {
     return "an audio file";
+  }
+  if (type === EMBED_KEY) {
+    return "an embed";
   }
   return "that block";
 }

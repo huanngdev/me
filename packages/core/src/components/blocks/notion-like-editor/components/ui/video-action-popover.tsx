@@ -14,7 +14,7 @@ import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
 import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
 import { MediaDownloadButton } from "./media-download-button";
 
-const ALIGN_BUTTONS: readonly { align: MediaAlign; label: string }[] = [
+export const ALIGN_BUTTONS: readonly { align: MediaAlign; label: string }[] = [
   { align: "left", label: "Align left" },
   { align: "center", label: "Align center" },
   { align: "right", label: "Align right" },

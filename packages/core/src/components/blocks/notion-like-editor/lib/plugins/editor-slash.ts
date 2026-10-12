@@ -16,6 +16,7 @@ import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { mediaBlockElement } from "../features/editor-media-commands";
 import { VIDEO_KEY } from "../features/editor-video";
+import { EMBED_KEY } from "../features/editor-embed";
 import { insertPickedBlock } from "../features/editor-block-picker";
 import {
   blockTextOffset,
@@ -225,6 +226,10 @@ function chooseSlash(editor: SlateEditor, id: string): void {
     insertMediaBesideSlash(editor, session.anchor.blockId, AUDIO_KEY);
     return;
   }
+  if (item.embed === true) {
+    insertMediaBesideSlash(editor, session.anchor.blockId, EMBED_KEY);
+    return;
+  }
   const block = item.block;
   if (block === undefined) {
     return;
@@ -246,7 +251,7 @@ function chooseSlash(editor: SlateEditor, id: string): void {
 function insertMediaBesideSlash(
   editor: SlateEditor,
   blockId: string,
-  type: typeof IMAGE_KEY | typeof FILE_KEY | typeof VIDEO_KEY | typeof AUDIO_KEY,
+  type: typeof IMAGE_KEY | typeof FILE_KEY | typeof VIDEO_KEY | typeof AUDIO_KEY | typeof EMBED_KEY,
 ): void {
   const id = nanoid();
   const element = mediaBlockElement(type, id);

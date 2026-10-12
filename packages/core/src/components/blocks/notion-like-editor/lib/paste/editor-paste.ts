@@ -85,6 +85,13 @@ import {
   MEDIA_FILE_LIMIT_MESSAGE,
   insertMediaFiles,
 } from "../features/editor-media";
+import {
+  EMBED_ATTRS_CLEANED,
+  EMBED_KEY,
+  EMBED_SOURCE_REMOVED,
+  cleanEmbedFields,
+  embedElement,
+} from "../features/editor-embed";
 import { uploadControllerOf } from "../plugins/editor-media-ui";
 import {
   BOOKMARK_KEY,
@@ -425,6 +432,18 @@ function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [videoElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the embed and its valid fields, as pastedVideo does for a video.
+function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanEmbedFields(node);
+  if (cleaned.cleared) {
+    rememberImageRepair({ path: [], message: EMBED_SOURCE_REMOVED });
+  } else if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: EMBED_ATTRS_CLEANED });
+  }
+
+  return [embedElement(cleaned.fields, takeId(node, seen))];
 }
 
 // Keeps the audio and its valid fields, as pastedImage does for an image.
@@ -1088,6 +1107,10 @@ function expandBlock(
 
     if (node.type === AUDIO_KEY) {
       return pastedAudio(node, seen);
+    }
+
+    if (node.type === EMBED_KEY) {
+      return pastedEmbed(node, seen);
     }
 
     if (node.type === PAGE_LINK_KEY) {

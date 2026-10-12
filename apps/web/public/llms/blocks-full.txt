@@ -2565,6 +2565,7 @@ import { AUDIO_KEY, isStoredAudioAttr } from "../features/editor-audio";
 import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
 import { VIDEO_KEY, isStoredVideoAttr } from "../features/editor-video";
+import { EMBED_FIELD_KEYS, EMBED_KEY, isStoredEmbedAttr } from "../features/editor-embed";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
@@ -3069,6 +3070,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime", "caption"],
   },
+  // Custom void, like the video: a YouTube or Vimeo link. Its source is read as one, so a bad provider,
+  // id or hash clears it, and any other bad field is dropped. The validator does that, not repairAttrs.
+  {
+    type: EMBED_KEY,
+    attrs: ["id", ...EMBED_FIELD_KEYS],
+    isVoid: true,
+    repairAttrs: EMBED_FIELD_KEYS,
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -3129,6 +3138,7 @@ export const EDITOR_ELEMENT_RULES = [
       FILE_KEY,
       VIDEO_KEY,
       AUDIO_KEY,
+      EMBED_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -3218,6 +3228,7 @@ export const EDITOR_ELEMENT_RULES = [
       FILE_KEY,
       VIDEO_KEY,
       AUDIO_KEY,
+      EMBED_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -3580,6 +3591,10 @@ export function isAllowedElementAttrValue(type: string, attr: string, value: unk
     return isStoredVideoAttr(attr, value);
   }
 
+  if (type === EMBED_KEY) {
+    return isStoredEmbedAttr(attr, value);
+  }
+
   if (type === AUDIO_KEY) {
     return isStoredAudioAttr(attr, value);
   }
@@ -3885,6 +3900,13 @@ import { AUDIO_KEY, AUDIO_URL_REMOVED } from "../features/editor-audio";
 import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
 import { VIDEO_KEY, VIDEO_URL_REMOVED } from "../features/editor-video";
+import {
+  EMBED_ATTRS_CLEANED,
+  EMBED_KEY,
+  EMBED_SOURCE_REMOVED,
+  applyCleanedEmbed,
+  cleanEmbedFields,
+} from "../features/editor-embed";
 import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
@@ -4121,9 +4143,20 @@ function walkElement(
     });
   }
 
-  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  // An embed is cleaned as one block. A bad source clears it, and any other bad field is dropped.
+  if (type === EMBED_KEY) {
+    const cleaned = cleanEmbedFields(value);
+    if (cleaned.cleared) {
+      state.repairs.push({ path, message: EMBED_SOURCE_REMOVED });
+    } else if (cleaned.dropped) {
+      state.repairs.push({ path, message: EMBED_ATTRS_CLEANED });
+    }
+  }
 
-  for (const key of Object.keys(value)) {
+  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  const attrKeys = type === EMBED_KEY ? [] : Object.keys(value);
+
+  for (const key of attrKeys) {
     if (key === "type" || key === "children" || key === "id") {
       continue;
     }
@@ -4324,6 +4357,11 @@ function dropRepairedAttrs(content: EditorValue, repairs: readonly Repair[]): Ed
   for (const repair of repairs) {
     const node = nodeAt(copy, repair.path);
     if (node === undefined || typeof node.type !== "string") {
+      continue;
+    }
+
+    if (node.type === EMBED_KEY) {
+      applyCleanedEmbed(node);
       continue;
     }
 
@@ -4622,6 +4660,13 @@ import {
   MEDIA_FILE_LIMIT_MESSAGE,
   insertMediaFiles,
 } from "../features/editor-media";
+import {
+  EMBED_ATTRS_CLEANED,
+  EMBED_KEY,
+  EMBED_SOURCE_REMOVED,
+  cleanEmbedFields,
+  embedElement,
+} from "../features/editor-embed";
 import { uploadControllerOf } from "../plugins/editor-media-ui";
 import {
   BOOKMARK_KEY,
@@ -4962,6 +5007,18 @@ function pastedVideo(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [videoElement(cleaned.fields, takeId(node, seen))];
+}
+
+// Keeps the embed and its valid fields, as pastedVideo does for a video.
+function pastedEmbed(node: TElement, seen: Set<string>): TElement[] {
+  const cleaned = cleanEmbedFields(node);
+  if (cleaned.cleared) {
+    rememberImageRepair({ path: [], message: EMBED_SOURCE_REMOVED });
+  } else if (cleaned.dropped) {
+    rememberImageRepair({ path: [], message: EMBED_ATTRS_CLEANED });
+  }
+
+  return [embedElement(cleaned.fields, takeId(node, seen))];
 }
 
 // Keeps the audio and its valid fields, as pastedImage does for an image.
@@ -5625,6 +5682,10 @@ function expandBlock(
 
     if (node.type === AUDIO_KEY) {
       return pastedAudio(node, seen);
+    }
+
+    if (node.type === EMBED_KEY) {
+      return pastedEmbed(node, seen);
     }
 
     if (node.type === PAGE_LINK_KEY) {
@@ -8980,6 +9041,7 @@ import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { AudioElement } from "../../components/elements/audio-element";
+import { EmbedElement } from "../../components/elements/embed-element";
 import { FileElement } from "../../components/elements/file-element";
 import { ImageElement } from "../../components/elements/image-element";
 import { VideoElement } from "../../components/elements/video-element";
@@ -9012,6 +9074,7 @@ import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { AUDIO_KEY } from "../features/editor-audio";
+import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { VIDEO_KEY } from "../features/editor-video";
@@ -9038,6 +9101,7 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { registerEmbedPasteAction } from "../paste/editor-embed-paste";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
@@ -9692,6 +9756,7 @@ function normalizeDisallowedChild(
         child.type === FILE_KEY ||
         child.type === VIDEO_KEY ||
         child.type === AUDIO_KEY ||
+        child.type === EMBED_KEY ||
         child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
@@ -10607,6 +10672,12 @@ const audioPlugin = createSlatePlugin({
   render: { node: AudioElement },
 });
 
+const embedPlugin = createSlatePlugin({
+  key: EMBED_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedElement },
+});
+
 // toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
 // Enter on the selected bookmark opens its action popover.
 const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
@@ -11003,6 +11074,7 @@ const toggleRevealPlugin = createSlatePlugin({
 });
 
 export function createEditorPlugins(): AnyPluginConfig[] {
+  registerEmbedPasteAction();
   return [
     // A split keeps the id it carries unless a block already has it, so undo of a merge restores
     // the second block's id. Enter still gives the new half a fresh id, because the original keeps its own.
@@ -11043,6 +11115,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     filePlugin,
     videoPlugin,
     audioPlugin,
+    embedPlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,
@@ -25115,7 +25188,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
 ## packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
 ```tsx
 import { useEffect, type ReactNode } from "react";
-import { Bookmark, Link } from "lucide-react";
+import { Bookmark, Link, SquarePlay } from "lucide-react";
 import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -25241,6 +25314,10 @@ function pasteDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
 function pasteActionIcon(id: string): ReactNode {
   if (id === "bookmark") {
     return <Bookmark aria-hidden="true" />;
+  }
+
+  if (id === "embed") {
+    return <SquarePlay aria-hidden="true" />;
   }
 
   return <Link aria-hidden="true" />;
@@ -26196,6 +26273,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { VIDEO_KEY } from "./editor-video";
@@ -26221,6 +26299,7 @@ const ELIGIBLE = new Set<string>([
   FILE_KEY,
   VIDEO_KEY,
   AUDIO_KEY,
+  EMBED_KEY,
   PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
@@ -26749,6 +26828,7 @@ import {
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { VIDEO_KEY } from "./editor-video";
@@ -26861,6 +26941,7 @@ const STRUCTURAL = new Set<string>([
   FILE_KEY,
   VIDEO_KEY,
   AUDIO_KEY,
+  EMBED_KEY,
   PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
@@ -27345,6 +27426,9 @@ function article(type: string): string {
   }
   if (type === AUDIO_KEY) {
     return "an audio file";
+  }
+  if (type === EMBED_KEY) {
+    return "an embed";
   }
   return "that block";
 }
@@ -33895,6 +33979,20 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "h3",
+    id: "demo-embeds",
+    children: [{ text: "Embed" }],
+  },
+  {
+    type: "embed",
+    id: "demo-embed",
+    provider: "youtube",
+    videoId: "aqz-KE-bpKQ",
+    url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    caption: "Big Buck Bunny, loaded only after a click.",
+    children: [{ text: "" }],
+  },
+  {
     type: "footnote_def",
     id: "demo-footnote-def",
     footnoteId: "demo-footnote",
@@ -34425,6 +34523,7 @@ import { AudioStatic } from "../../components/static/audio-static";
 import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
 import { VideoStatic } from "../../components/static/video-static";
+import { EmbedStatic } from "../../components/static/embed-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
@@ -34455,6 +34554,7 @@ import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { AUDIO_KEY } from "../features/editor-audio";
+import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { VIDEO_KEY } from "../features/editor-video";
@@ -34560,6 +34660,12 @@ const audioPlugin = createSlatePlugin({
   key: AUDIO_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: AudioStatic },
+});
+
+const embedPlugin = createSlatePlugin({
+  key: EMBED_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -34688,6 +34794,7 @@ export const editorStaticPlugins = [
   filePlugin,
   videoPlugin,
   audioPlugin,
+  embedPlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,

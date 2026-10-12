@@ -18,6 +18,7 @@ import { AUDIO_KEY, isStoredAudioAttr } from "../features/editor-audio";
 import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
 import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
 import { VIDEO_KEY, isStoredVideoAttr } from "../features/editor-video";
+import { EMBED_FIELD_KEYS, EMBED_KEY, isStoredEmbedAttr } from "../features/editor-embed";
 import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
@@ -522,6 +523,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     repairAttrs: ["url", "name", "size", "mime", "caption"],
   },
+  // Custom void, like the video: a YouTube or Vimeo link. Its source is read as one, so a bad provider,
+  // id or hash clears it, and any other bad field is dropped. The validator does that, not repairAttrs.
+  {
+    type: EMBED_KEY,
+    attrs: ["id", ...EMBED_FIELD_KEYS],
+    isVoid: true,
+    repairAttrs: EMBED_FIELD_KEYS,
+  },
   // A link to a page the host resolves. title is the fallback shown while or when the page
   // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
   {
@@ -582,6 +591,7 @@ export const EDITOR_ELEMENT_RULES = [
       FILE_KEY,
       VIDEO_KEY,
       AUDIO_KEY,
+      EMBED_KEY,
       PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
@@ -671,6 +681,7 @@ export const EDITOR_ELEMENT_RULES = [
       FILE_KEY,
       VIDEO_KEY,
       AUDIO_KEY,
+      EMBED_KEY,
       PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
@@ -1031,6 +1042,10 @@ export function isAllowedElementAttrValue(type: string, attr: string, value: unk
 
   if (type === VIDEO_KEY) {
     return isStoredVideoAttr(attr, value);
+  }
+
+  if (type === EMBED_KEY) {
+    return isStoredEmbedAttr(attr, value);
   }
 
   if (type === AUDIO_KEY) {

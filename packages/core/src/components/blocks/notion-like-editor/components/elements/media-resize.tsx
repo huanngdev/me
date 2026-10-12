@@ -89,7 +89,7 @@ type DragState = {
   detach: () => void;
 };
 
-export type MediaResizeKind = "image" | "video";
+export type MediaResizeKind = "image" | "video" | "embed";
 
 // The two edge handles of a block that is selected and ready. `value` is the width the handles report.
 // `onPreview` gets the width during a drag, and null when the drag ends. `onCommit` gets the final width.
@@ -208,7 +208,12 @@ export function MediaResizeHandles({
   }
 
   function renderHandle(side: "left" | "right") {
-    const attr = kind === "image" ? { "data-image-resize": side } : { "data-video-resize": side };
+    const attr =
+      kind === "image"
+        ? { "data-image-resize": side }
+        : kind === "video"
+          ? { "data-video-resize": side }
+          : { "data-embed-resize": side };
     return (
       <div
         role="separator"

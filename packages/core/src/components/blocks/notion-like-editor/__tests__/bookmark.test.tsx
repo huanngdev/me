@@ -579,7 +579,7 @@ describe("bookmark preview adapter", () => {
 
 describe("bookmark paste menu", () => {
   test("bookmark is offered for every url, including a video url", async () => {
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     const editor = plateEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
     pasteText(editor, `  ${FALLBACK_URL}  `);
@@ -599,7 +599,7 @@ describe("bookmark paste menu", () => {
     expect(offerOf(video)?.url).toBe(YOUTUBE);
     expect(
       pasteUrlActions.filter((action) => action.match(YOUTUBE)).map((action) => action.label),
-    ).toEqual(["Bookmark"]);
+    ).toEqual(["Bookmark", "Embed"]);
 
     const mounted = await mountBookmark([paragraph("", "empty")]);
     mounted.editor.tf.select(caret([0, 0], 0));
@@ -608,7 +608,7 @@ describe("bookmark paste menu", () => {
     });
     const menu = document.querySelector("[data-paste-url-menu]");
     expect(menu?.textContent).toContain("Bookmark");
-    expect(menu?.textContent).not.toContain("Embed");
+    expect(menu?.textContent).toContain("Embed");
     expect(menu?.textContent).toContain("Keep as link");
     await act(async () => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));

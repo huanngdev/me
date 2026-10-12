@@ -60,6 +60,7 @@ import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { AudioElement } from "../../components/elements/audio-element";
+import { EmbedElement } from "../../components/elements/embed-element";
 import { FileElement } from "../../components/elements/file-element";
 import { ImageElement } from "../../components/elements/image-element";
 import { VideoElement } from "../../components/elements/video-element";
@@ -92,6 +93,7 @@ import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { AUDIO_KEY } from "../features/editor-audio";
+import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { VIDEO_KEY } from "../features/editor-video";
@@ -118,6 +120,7 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { registerEmbedPasteAction } from "../paste/editor-embed-paste";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
@@ -772,6 +775,7 @@ function normalizeDisallowedChild(
         child.type === FILE_KEY ||
         child.type === VIDEO_KEY ||
         child.type === AUDIO_KEY ||
+        child.type === EMBED_KEY ||
         child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
@@ -1687,6 +1691,12 @@ const audioPlugin = createSlatePlugin({
   render: { node: AudioElement },
 });
 
+const embedPlugin = createSlatePlugin({
+  key: EMBED_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedElement },
+});
+
 // toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
 // Enter on the selected bookmark opens its action popover.
 const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
@@ -2083,6 +2093,7 @@ const toggleRevealPlugin = createSlatePlugin({
 });
 
 export function createEditorPlugins(): AnyPluginConfig[] {
+  registerEmbedPasteAction();
   return [
     // A split keeps the id it carries unless a block already has it, so undo of a merge restores
     // the second block's id. Enter still gives the new half a fresh id, because the original keeps its own.
@@ -2123,6 +2134,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     filePlugin,
     videoPlugin,
     audioPlugin,
+    embedPlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,

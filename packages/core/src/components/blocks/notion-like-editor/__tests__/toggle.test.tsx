@@ -234,6 +234,7 @@ describe("toggle schema", () => {
       "file",
       "video",
       "audio",
+      "embed",
       "page_link",
       "code_block",
       "table",

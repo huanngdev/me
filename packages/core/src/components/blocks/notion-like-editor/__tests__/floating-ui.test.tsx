@@ -43,6 +43,8 @@ const floatingSources = [
   "components/ui/file-action-popover.tsx",
   "components/ui/video-action-popover.tsx",
   "components/ui/audio-action-popover.tsx",
+  "components/ui/embed-action-popover.tsx",
+  "components/ui/embed-link-popover.tsx",
 ];
 
 function isReactContainer(value: object): value is Parameters<typeof createRoot>[0] {

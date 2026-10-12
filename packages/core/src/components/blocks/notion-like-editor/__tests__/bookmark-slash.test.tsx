@@ -128,7 +128,7 @@ describe("slash bookmark item", () => {
       id: "bookmark",
       label: "Bookmark",
       description: "Save a link as a card",
-      keywords: ["web", "url", "embed"],
+      keywords: ["web", "url"],
       group: "Advanced",
     });
     const advanced = slashMenuItems(empty)
@@ -219,8 +219,8 @@ describe("slash bookmark item", () => {
     expect(slashMenuItems(quiet).some((item) => item.id === "bookmark")).toBe(false);
   });
 
-  test("/book, /web, and /embed find Bookmark, and /link keeps Link first", () => {
-    for (const query of ["book", "web", "embed"]) {
+  test("/book and /web find Bookmark, and /link keeps Link first", () => {
+    for (const query of ["book", "web"]) {
       const editor = createEditor([paragraph("")]);
       editor.tf.select(caret([0, 0], 0));
       typeSlash(editor, query);

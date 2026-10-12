@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { Bookmark, Link } from "lucide-react";
+import { Bookmark, Link, SquarePlay } from "lucide-react";
 import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -125,6 +125,10 @@ function pasteDomRange(editor: ReturnType<typeof useEditorRef>): Range | null {
 function pasteActionIcon(id: string): ReactNode {
   if (id === "bookmark") {
     return <Bookmark aria-hidden="true" />;
+  }
+
+  if (id === "embed") {
+    return <SquarePlay aria-hidden="true" />;
   }
 
   return <Link aria-hidden="true" />;

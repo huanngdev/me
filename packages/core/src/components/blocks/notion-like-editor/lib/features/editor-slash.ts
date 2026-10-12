@@ -6,6 +6,7 @@ import {
   Link,
   Music,
   Paperclip,
+  SquarePlay,
   Superscript,
   Video,
   type LucideIcon,
@@ -25,6 +26,7 @@ import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { FILE_KEY } from "./editor-file";
 import { IMAGE_KEY } from "./editor-image";
 import { VIDEO_KEY } from "./editor-video";
+import { EMBED_KEY } from "./editor-embed";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { blockPickerItemsAt, type BlockPickerItem } from "./editor-block-picker";
 import { insertInlineLink } from "../plugins/editor-link";
@@ -52,6 +54,7 @@ export type SlashItem = {
   file?: boolean;
   video?: boolean;
   audio?: boolean;
+  embed?: boolean;
   pageLink?: boolean;
 };
 
@@ -258,8 +261,9 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
   const file = fileSlashItem(editor, session);
   const video = videoSlashItem(editor, session);
   const audio = audioSlashItem(editor, session);
+  const embed = embedSlashItem(editor, session);
   const pageLink = pageLinkSlashItem(editor, bookmark);
-  const advanced = [bookmark, pageLink, image, file, video, audio].filter(
+  const advanced = [bookmark, pageLink, image, file, video, audio, embed].filter(
     (item): item is SlashItem => item !== null,
   );
   return insertAdvancedSlashItems(blocks, advanced, inline);
@@ -386,6 +390,23 @@ function audioSlashItem(editor: SlateEditor, session: SlashSession): SlashItem |
   };
 }
 
+// Offered right after Audio. The link popover accepts only YouTube and Vimeo links.
+function embedSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
+  if (editor.dom.readOnly === true || !blockPlaceable(editor, session, EMBED_KEY)) {
+    return null;
+  }
+
+  return {
+    id: "embed",
+    label: "Embed",
+    description: "YouTube or Vimeo link",
+    keywords: ["embed", "youtube", "vimeo", "video", "player"],
+    icon: SquarePlay,
+    group: "Advanced",
+    embed: true,
+  };
+}
+
 function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashItem | null {
   if (editor.dom.readOnly === true || !blockPlaceable(editor, session, BOOKMARK_KEY)) {
     return null;
@@ -395,7 +416,7 @@ function bookmarkSlashItem(editor: SlateEditor, session: SlashSession): SlashIte
     id: "bookmark",
     label: "Bookmark",
     description: "Save a link as a card",
-    keywords: ["web", "url", "embed"],
+    keywords: ["web", "url"],
     icon: Bookmark,
     group: "Advanced",
     bookmark: true,

@@ -35,6 +35,14 @@ export function MediaTextInput({
   const draftRef = useRef(draft);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // The field takes focus each time autoFocus turns on. A field that is already mounted, such as a
+  // caption that exists, gets no new mount, so the attribute alone would not focus it.
+  useEffect(() => {
+    if (autoFocus) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus]);
+
   // Slate reads beforeinput on the editor root, so it is stopped here.
   useEffect(() => {
     const node = inputRef.current;
@@ -67,7 +75,6 @@ export function MediaTextInput({
       placeholder={placeholder}
       maxLength={maxLength}
       value={draft}
-      autoFocus={autoFocus}
       className={className}
       onChange={(event) => {
         draftRef.current = event.target.value;

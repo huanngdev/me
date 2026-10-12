@@ -8,6 +8,7 @@ import type { UploadedFile } from "./editor-file-upload";
 import { mediaBlockElement } from "./editor-media-commands";
 import type { UploadController } from "./editor-upload-controller";
 import { setVideoSource } from "./editor-video-commands";
+import { setEmbedSource } from "./editor-embed-commands";
 import {
   MEDIA_MIME_PREFIXES,
   applyMediaSource,
@@ -50,6 +51,7 @@ const SET_SOURCE_BY_TYPE: Record<
   file: setFileSource,
   video: setVideoSource,
   audio: setAudioSource,
+  embed: setEmbedSource,
 };
 
 // Writes an upload result into a media block that is still empty. The block must exist, be a media

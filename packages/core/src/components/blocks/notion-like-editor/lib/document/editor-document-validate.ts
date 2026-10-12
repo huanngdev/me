@@ -33,6 +33,13 @@ import { AUDIO_KEY, AUDIO_URL_REMOVED } from "../features/editor-audio";
 import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
 import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
 import { VIDEO_KEY, VIDEO_URL_REMOVED } from "../features/editor-video";
+import {
+  EMBED_ATTRS_CLEANED,
+  EMBED_KEY,
+  EMBED_SOURCE_REMOVED,
+  applyCleanedEmbed,
+  cleanEmbedFields,
+} from "../features/editor-embed";
 import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
 import { repairPageLinkContent } from "../features/editor-page-link";
@@ -269,9 +276,20 @@ function walkElement(
     });
   }
 
-  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  // An embed is cleaned as one block. A bad source clears it, and any other bad field is dropped.
+  if (type === EMBED_KEY) {
+    const cleaned = cleanEmbedFields(value);
+    if (cleaned.cleared) {
+      state.repairs.push({ path, message: EMBED_SOURCE_REMOVED });
+    } else if (cleaned.dropped) {
+      state.repairs.push({ path, message: EMBED_ATTRS_CLEANED });
+    }
+  }
 
-  for (const key of Object.keys(value)) {
+  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  const attrKeys = type === EMBED_KEY ? [] : Object.keys(value);
+
+  for (const key of attrKeys) {
     if (key === "type" || key === "children" || key === "id") {
       continue;
     }
@@ -472,6 +490,11 @@ function dropRepairedAttrs(content: EditorValue, repairs: readonly Repair[]): Ed
   for (const repair of repairs) {
     const node = nodeAt(copy, repair.path);
     if (node === undefined || typeof node.type !== "string") {
+      continue;
+    }
+
+    if (node.type === EMBED_KEY) {
+      applyCleanedEmbed(node);
       continue;
     }
 

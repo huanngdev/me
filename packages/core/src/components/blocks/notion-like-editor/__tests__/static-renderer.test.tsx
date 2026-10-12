@@ -493,7 +493,8 @@ describe("static renderer", () => {
         id === "demo-file" ||
         id === "demo-pdf" ||
         id === "demo-video" ||
-        id === "demo-audio"
+        id === "demo-audio" ||
+        id === "demo-embed"
       ) {
         continue;
       }

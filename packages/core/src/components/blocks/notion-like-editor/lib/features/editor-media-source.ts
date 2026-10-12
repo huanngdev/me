@@ -8,6 +8,7 @@ import {
   sanitizeUploadedFile,
 } from "./editor-file-url";
 import type { UploadedFile } from "./editor-file-upload";
+import { EMBED_KEY } from "./editor-embed";
 
 // Media block types and the mime prefix each one accepts. Every key is a block type.
 // An empty prefix accepts any mime type. Every media block reads its prefix from here.
@@ -18,7 +19,10 @@ export const MEDIA_MIME_PREFIXES = {
   audio: "audio/",
 } as const;
 
-export type MediaBlockType = keyof typeof MEDIA_MIME_PREFIXES;
+export type MediaFileType = keyof typeof MEDIA_MIME_PREFIXES;
+
+// The embed block is a media block with no file. It has no mime prefix, so it is not in the map above.
+export type MediaBlockType = MediaFileType | typeof EMBED_KEY;
 
 const MEDIA_PREFIX_BY_TYPE = new Map<string, string>(Object.entries(MEDIA_MIME_PREFIXES));
 
@@ -36,7 +40,7 @@ export type MediaSource = {
 };
 
 export function isMediaBlockType(type: string): type is MediaBlockType {
-  return MEDIA_PREFIX_BY_TYPE.has(type);
+  return type === EMBED_KEY || MEDIA_PREFIX_BY_TYPE.has(type);
 }
 
 // A stored url is a valid stored value and never a blob url, which only exists in one browser tab.
@@ -174,7 +178,7 @@ export function mediaBlockEntry(
     match: (candidate) =>
       ElementApi.isElement(candidate) &&
       candidate.id === blockId &&
-      MEDIA_PREFIX_BY_TYPE.has(candidate.type),
+      isMediaBlockType(candidate.type),
   })) {
     if (ElementApi.isElement(node)) {
       return [node, path];

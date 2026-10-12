@@ -42,6 +42,7 @@ import { AudioStatic } from "../../components/static/audio-static";
 import { FileStatic } from "../../components/static/file-static";
 import { ImageStatic } from "../../components/static/image-static";
 import { VideoStatic } from "../../components/static/video-static";
+import { EmbedStatic } from "../../components/static/embed-static";
 import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
@@ -72,6 +73,7 @@ import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { AUDIO_KEY } from "../features/editor-audio";
+import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
 import { IMAGE_KEY } from "../features/editor-image";
 import { VIDEO_KEY } from "../features/editor-video";
@@ -177,6 +179,12 @@ const audioPlugin = createSlatePlugin({
   key: AUDIO_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: AudioStatic },
+});
+
+const embedPlugin = createSlatePlugin({
+  key: EMBED_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedStatic },
 });
 
 const pageLinkPlugin = createSlatePlugin({
@@ -305,6 +313,7 @@ export const editorStaticPlugins = [
   filePlugin,
   videoPlugin,
   audioPlugin,
+  embedPlugin,
   pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,
