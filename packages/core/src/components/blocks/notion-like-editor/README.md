@@ -305,7 +305,13 @@ Shortcuts are generated from the same inventory as the feature list. `Mod` is Cm
 - Creating a synced reference has no menu item. The command exists and is tested, but no control runs it (`lib/features/editor-synced-block.ts`).
 - Autosave waits 800 ms after a change by default (`lib/document/editor-autosave.ts`).
 - Emoji data loads on first use (`lib/features/editor-emoji.ts`).
-- No browser or device has been tested or certified.
+- Browser support is measured, not certified. Core flows pass in automated runs on Chrome 154, Firefox and WebKit (Playwright builds) at 1280×900, and in Chrome and WebKit touch emulation at 390×844. Safari, iOS Safari, Android Chrome, VoiceOver and a real Vietnamese IME have not been tested by hand.
+- Touch devices have no block menu. The block handle is hidden when the device cannot hover, and nothing else opens Turn into, Duplicate, Delete, Color or move for a block (`lib/features/editor-block-handle.ts`). The selection toolbar and the slash menu work on touch.
+- The on-screen keyboard is not handled. Popovers do not follow `visualViewport`, so the keyboard can cover them.
+- Performance is measured up to 5,000 paragraphs on one machine (Apple M5, Chrome 154, production build): mount 0.6 s, typing p95 32 ms, select all 0.14 s. Larger documents are not measured. The document limits are 20,000 nodes and 2 MB (`lib/document/editor-document.ts`).
+- A document with a code line, table row or table cell at the top level opens as unsupported (`lib/document/editor-document-validate.ts`).
+- Mod+F opens the editor's find bar when focus is in the editor, in place of the browser's find.
+- A markdown shortcut typed through an input method composition (for example `-` then space) does not convert (`lib/plugins/editor-input-rules.ts`).
 
 ## Development
 
