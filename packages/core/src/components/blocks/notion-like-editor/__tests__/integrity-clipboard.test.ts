@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Descendant } from "platejs";
+import type { Descendant, SlateEditor } from "platejs";
 
 import { DEMO_DOCUMENT_VALUE } from "../demo/demo-document";
 import { FOOTNOTE_DEF_KEY } from "../lib/document/editor-document-schema";
@@ -18,7 +18,7 @@ import {
   type Reference,
 } from "./integrity-helpers";
 import { WORST_CASE_VALUE } from "./integrity-fixtures";
-import { caret, createEditor } from "./test-utils";
+import { caret, createEditor, paragraphValue, textRange } from "./test-utils";
 
 const FRAGMENT_TYPE = "application/x-slate-fragment";
 
@@ -27,8 +27,7 @@ const FIXTURES: readonly { name: string; value: EditorValue }[] = [
   { name: "worst", value: WORST_CASE_VALUE },
 ];
 
-// Containers that lose their wrapper when pasted after a non-empty paragraph. The test.failing
-// blocks below show each case. The loop skips these types so the other blocks still run.
+// Containers that keep their wrapper when pasted after a non-empty paragraph.
 const WRAPPER_LOSS_TYPES: readonly string[] = [
   "blockquote",
   "callout",
@@ -229,11 +228,6 @@ describe("copy one block to the end of a paragraph in the middle of the demo", (
 
       for (const { name, value, index, id } of half(part)) {
         const label = `${name} block ${index} "${id}" after the middle paragraph`;
-        const sourceType = value[index];
-        if (isRecordValue(sourceType) && WRAPPER_LOSS_TYPES.includes(String(sourceType.type))) {
-          continue;
-        }
-
         const copied = copyBlock(value, id);
         const target = createEditor(cloneValue(DEMO_DOCUMENT_VALUE) as EditorValue);
         const before = snapshot(target);
@@ -283,10 +277,8 @@ describe("copy one block to the end of a paragraph in the middle of the demo", (
     });
   }
 
-  // DEFECT: pasting the demo column group after a paragraph of the demo document throws Plate's
-  // "Could not completely normalize the editor after 294 iterations". The same paste into a small
-  // document works. In the demo, the trigger appears once the target holds at least 11 callouts.
-  test.failing("the demo column group pastes after a paragraph of the demo document", () => {
+  // A column group pasted after a paragraph keeps its columns and normalizes.
+  test("the demo column group pastes after a paragraph of the demo document", () => {
     const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-column-group");
     const paragraph = middleParagraphIndex();
     const target = createEditor(cloneValue(DEMO_DOCUMENT_VALUE) as EditorValue);
@@ -295,17 +287,12 @@ describe("copy one block to the end of a paragraph in the middle of the demo", (
     checkInvariants(target, "demo column group pasted into the demo document");
   });
 
-  // DEFECT: a container (blockquote, callout, toggle, code block, column group) pasted after a non-empty
-  // paragraph loses its wrapper. Its first child merges into the paragraph, the other children become
-  // top-level blocks, and no repair is reported. This is the same for every container in the demo.
-  test.failing("containers keep their wrapper when pasted after a paragraph", () => {
+  // A container pasted after a non-empty paragraph keeps its wrapper.
+  test("containers keep their wrapper when pasted after a paragraph", () => {
     const paragraph = middleParagraphIndex();
     for (const { name, value, id, index } of allBlocks()) {
       const block = value[index];
       if (!isRecordValue(block) || !WRAPPER_LOSS_TYPES.includes(String(block.type))) {
-        continue;
-      }
-      if (name === "demo" && id === "demo-column-group") {
         continue;
       }
       const copied = copyBlock(value, id);
@@ -326,22 +313,18 @@ describe("copy one block to the end of a paragraph in the middle of the demo", (
     }
   });
 
-  // DEFECT: a code block pasted after a paragraph leaves its lines outside the code block, as top-level
-  // code_line blocks. The validator accepts those (see the round-trip edge cases), so the result looks valid.
-  test.failing(
-    "a code block pasted after a paragraph keeps its lines inside the code block",
-    () => {
-      const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-code-ts");
-      const paragraph = middleParagraphIndex();
-      const target = createEditor(cloneValue(DEMO_DOCUMENT_VALUE) as EditorValue);
-      target.tf.select(target.api.end([paragraph]) ?? caret([paragraph, 0], 0));
-      target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
-      const orphans = snapshot(target).filter(
-        (block) => isRecordValue(block) && block.type === "code_line",
-      );
-      expect(orphans.length).toBe(0);
-    },
-  );
+  // A code block pasted after a paragraph keeps its lines inside the code block.
+  test("a code block pasted after a paragraph keeps its lines inside the code block", () => {
+    const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-code-ts");
+    const paragraph = middleParagraphIndex();
+    const target = createEditor(cloneValue(DEMO_DOCUMENT_VALUE) as EditorValue);
+    target.tf.select(target.api.end([paragraph]) ?? caret([paragraph, 0], 0));
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+    const orphans = snapshot(target).filter(
+      (block) => isRecordValue(block) && block.type === "code_line",
+    );
+    expect(orphans.length).toBe(0);
+  });
 });
 
 describe("plain text of a block copy", () => {
@@ -387,4 +370,131 @@ describe("copy the whole document", () => {
       expect(counted.references).toEqual(expected.references);
     });
   }
+});
+
+function blockTypes(value: EditorValue): string[] {
+  return value.map((block) => (isRecordValue(block) ? String(block.type) : "?"));
+}
+
+function blockIdOf(value: EditorValue, type: string): string {
+  const found = value.find((block) => isRecordValue(block) && block.type === type);
+  if (!isRecordValue(found) || typeof found.id !== "string") {
+    throw new Error(`The demo has no ${type} block with an id.`);
+  }
+  return found.id;
+}
+
+// The first paragraph inside the first top-level block of the given type.
+function firstParagraphPathIn(editor: SlateEditor, type: string): number[] {
+  const top = editor.children.findIndex((block) => isRecordValue(block) && block.type === type);
+  if (top < 0) {
+    throw new Error(`The demo has no ${type} block.`);
+  }
+  for (const [, path] of editor.api.nodes({ at: [top], match: { type: "p" } })) {
+    return path;
+  }
+  throw new Error(`The first ${type} block has no paragraph.`);
+}
+
+describe("paste a callout at a caret in a text block", () => {
+  test("a callout pasted at the start of a non-empty paragraph goes before the paragraph", () => {
+    const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-callout");
+    const target = createEditor(paragraphValue("hello world", "p-1"));
+    const before = snapshot(target);
+    target.tf.select(caret([0, 0], 0));
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+    checkInvariants(target, "callout at the start");
+    const after = snapshot(target);
+
+    expect(blockTypes(after)).toEqual(["callout", "p"]);
+    expect(allTextOf(after[1])).toBe("hello world");
+    target.tf.undo();
+    expectExact(snapshot(target), before, "callout at the start: undo");
+  });
+
+  test("a callout pasted in the middle of a paragraph splits it around the callout", () => {
+    const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-callout");
+    const target = createEditor(paragraphValue("hello world", "p-1"));
+    const before = snapshot(target);
+    target.tf.select(caret([0, 0], 5));
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+    checkInvariants(target, "callout in the middle");
+    const after = snapshot(target);
+
+    expect(blockTypes(after)).toEqual(["p", "callout", "p"]);
+    expect(allTextOf(after[0])).toBe("hello");
+    expect(allTextOf(after[2])).toBe(" world");
+    target.tf.undo();
+    expectExact(snapshot(target), before, "callout in the middle: undo");
+  });
+
+  test("a callout pasted over an expanded selection replaces the selected text", () => {
+    const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-callout");
+    const target = createEditor(paragraphValue("hello world", "p-1"));
+    const before = snapshot(target);
+    target.tf.select(textRange([0, 0], 6, 11));
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+    checkInvariants(target, "callout over a selection");
+    const after = snapshot(target);
+
+    expect(blockTypes(after)).toEqual(["p", "callout"]);
+    expect(allTextOf(after[0])).toBe("hello ");
+    target.tf.undo();
+    expectExact(snapshot(target), before, "callout over a selection: undo");
+  });
+
+  // The editor's normalizers decide where the callout ends up in these four places.
+  for (const [label, type] of [
+    ["a callout", "callout"],
+    ["a toggle", "toggle"],
+    ["a table cell", "table"],
+    ["a column", "column_group"],
+  ] as const) {
+    test(`a callout pasted at the end of a paragraph inside ${label} passes the invariants`, () => {
+      const copied = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-callout");
+      const target = createEditor(cloneValue(DEMO_DOCUMENT_VALUE) as EditorValue);
+      const before = snapshot(target);
+      target.tf.select(target.api.end(firstParagraphPathIn(target, type)) ?? caret([0, 0], 0));
+      target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+      checkInvariants(target, `callout at the end of a paragraph inside ${label}`);
+
+      target.tf.undo();
+      expectExact(snapshot(target), before, `callout inside ${label}: undo`);
+    });
+  }
+
+  test("a fragment that starts with a paragraph still merges that paragraph at the end of a paragraph", () => {
+    const callout = copyBlock(DEMO_DOCUMENT_VALUE as EditorValue, "demo-callout").fragment[0];
+    const fragment = [{ type: "p", id: "p-x", children: [{ text: "x" }] }, callout] as EditorValue;
+    const encoded = window.btoa(encodeURIComponent(JSON.stringify(fragment)));
+    const target = createEditor(paragraphValue("hello world", "p-1"));
+    const before = snapshot(target);
+    target.tf.select(caret([0, 0], 11));
+    target.tf.insertData(pasteData(encoded, plainFor(fragment)));
+    checkInvariants(target, "paragraph and callout at the end");
+    const after = snapshot(target);
+
+    expect(blockTypes(after)).toEqual(["p", "callout"]);
+    expect(allTextOf(after[0])).toBe("hello worldx");
+    target.tf.undo();
+    expectExact(snapshot(target), before, "paragraph and callout at the end: undo");
+  });
+
+  test("a divider pasted at the end of a non-empty paragraph goes after the paragraph", () => {
+    const copied = copyBlock(
+      DEMO_DOCUMENT_VALUE as EditorValue,
+      blockIdOf(DEMO_DOCUMENT_VALUE as EditorValue, "hr"),
+    );
+    const target = createEditor(paragraphValue("hello world", "p-1"));
+    const before = snapshot(target);
+    target.tf.select(caret([0, 0], 11));
+    target.tf.insertData(pasteData(copied.encoded, plainFor(copied.fragment)));
+    checkInvariants(target, "divider at the end");
+    const after = snapshot(target);
+
+    expect(blockTypes(after)).toEqual(["p", "hr"]);
+    expect(allTextOf(after[0])).toBe("hello world");
+    target.tf.undo();
+    expectExact(snapshot(target), before, "divider at the end: undo");
+  });
 });

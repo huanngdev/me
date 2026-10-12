@@ -1,6 +1,7 @@
 import {
   ElementApi,
   KEYS,
+  PathApi,
   TextApi,
   createSlatePlugin,
   isHtmlBlockElement,
@@ -68,6 +69,7 @@ import {
   storedPageLink,
 } from "../features/editor-page-link";
 import type { EditorValue } from "../document/editor-value";
+import { selectionInCodeBlock } from "../features/editor-code";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
@@ -1460,6 +1462,75 @@ export function limitPastedValue(value: EditorValue, _repairs: Repair[]): Editor
   return next;
 }
 
+// A void block (divider, bookmark) or a node that holds blocks (container, table).
+function isStructuralNode(editor: SlateEditor, node: TElement): boolean {
+  if (editor.api.isInline(node)) {
+    return false;
+  }
+
+  return (
+    editor.api.isVoid(node) ||
+    node.children.some((child) => ElementApi.isElement(child) && !editor.api.isInline(child))
+  );
+}
+
+// True when the fragment starts or ends with a structural block. Other fragments insert as before.
+function hasStructuralEdge(editor: SlateEditor, fragment: EditorValue): boolean {
+  const first = fragment[0];
+  const last = fragment[fragment.length - 1];
+  return (
+    (first !== undefined && isStructuralNode(editor, first)) ||
+    (last !== undefined && isStructuralNode(editor, last))
+  );
+}
+
+// Inserts a collapsed caret's fragment as whole blocks when the caret is in a non-empty text block.
+// Slate would merge the fragment's first text block into that block and drop a container around it.
+// Returns false when the normal insert should run instead.
+function insertBlocksAtCaret(editor: SlateEditor, fragment: EditorValue): boolean {
+  const first = fragment[0];
+  const last = fragment[fragment.length - 1];
+  if (first === undefined || last === undefined || !editor.selection) {
+    return false;
+  }
+
+  const firstStructural = isStructuralNode(editor, first);
+  if (!firstStructural && !isStructuralNode(editor, last)) {
+    return false;
+  }
+
+  const block = editor.api.block();
+  if (
+    block === undefined ||
+    editor.api.isVoid(block[0]) ||
+    selectionInCodeBlock(editor) ||
+    editor.api.isEmpty(editor.selection, { block: true })
+  ) {
+    return false;
+  }
+
+  const atStart = editor.api.isAt({ start: true });
+  const atEnd = editor.api.isAt({ end: true });
+  if (!firstStructural && atEnd) {
+    return false;
+  }
+
+  const blockPath = block[1];
+  const after = PathApi.next(blockPath);
+  if (after === undefined) {
+    return false;
+  }
+
+  editor.tf.withoutNormalizing(() => {
+    if (!atStart && !atEnd) {
+      // The second half gets a new id when the document normalizes.
+      editor.tf.splitNodes({ always: true });
+    }
+    editor.tf.insertNodes(fragment, { at: atStart ? blockPath : after, select: true });
+  });
+  return true;
+}
+
 export const PasteFallbackPlugin = createSlatePlugin({
   key: "pasteFallback",
   priority: PASTE_FALLBACK_PRIORITY,
@@ -1480,7 +1551,21 @@ export const PasteFallbackPlugin = createSlatePlugin({
       // table override sanitizes that path too. This still covers every other fragment.
       // Repairs are remembered across the table override's second sanitize.
       try {
-        insertFragment(fitPasteForCell(editor, preparePastedFragment(editor, fragment)), options);
+        const prepared = fitPasteForCell(editor, preparePastedFragment(editor, fragment));
+        // An explicit `at` names its own location, so the caret-based path does not apply.
+        if (options?.at !== undefined || !hasStructuralEdge(editor, prepared)) {
+          insertFragment(prepared, options);
+        } else {
+          // The delete of an expanded selection and the insert undo as one step.
+          editor.tf.withNewBatch(() => {
+            if (editor.selection && !editor.api.isCollapsed()) {
+              editor.tf.deleteFragment();
+            }
+            if (!insertBlocksAtCaret(editor, prepared)) {
+              insertFragment(prepared, options);
+            }
+          });
+        }
       } finally {
         clearPendingImageRepairs();
         clearPendingMentionInputRepairs();
