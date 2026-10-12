@@ -1,7 +1,7 @@
 import { useEffect, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ExternalLink, RefreshCw, Trash2, Type } from "lucide-react";
 import { ElementApi } from "platejs";
-import { useEditorRef, useEditorSelector, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -34,7 +34,7 @@ export function BookmarkToolbarPopover({
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const open = usePluginOption(bookmarkToolbarPlugin, "open") === true;
   const blockId = usePluginOption(bookmarkToolbarPlugin, "blockId");
   const selection = useEditorSelector((current) => current.selection, []);

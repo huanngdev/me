@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -30,7 +30,7 @@ const SLASH_GROUPS: readonly SlashGroup[] = [...BLOCK_PICKER_GROUPS, "Inline"];
 
 export function SlashMenu() {
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const open = usePluginOption(slashUiPlugin, "open");
   const activeIndex = usePluginOption(slashUiPlugin, "activeIndex");
   const blockId = usePluginOption(slashUiPlugin, "blockId");

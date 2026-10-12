@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ExternalLink, Pencil, Unlink } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
+  useEditorReadOnly,
   useEditorRef,
   useEditorSelector,
   usePluginOption,
@@ -86,7 +87,7 @@ export function LinkToolbar() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const mode = usePluginOption(linkUiPlugin, "mode");
   const hoverId = usePluginOption(linkUiPlugin, "hoverId");
   const selection = useEditorSelector((current) => current.selection, []);

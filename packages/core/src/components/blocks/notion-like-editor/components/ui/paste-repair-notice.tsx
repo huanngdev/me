@@ -1,19 +1,20 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { useEditorRef } from "platejs/react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { pasteRepairsOf, subscribePasteRepairs } from "../../lib/paste/editor-paste-repairs";
 
 export function PasteRepairNotice() {
   const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
   const repairs = useSyncExternalStore(
     (onStoreChange) => subscribePasteRepairs(editor, onStoreChange),
     () => pasteRepairsOf(editor),
     () => pasteRepairsOf(editor),
   );
 
-  if (repairs.length === 0) {
+  if (readOnly || repairs.length === 0) {
     return null;
   }
 

@@ -38,8 +38,17 @@ function getServerDemoAdapter(): undefined {
   return undefined;
 }
 
+function readReadonlyFlag(): boolean {
+  return new URLSearchParams(window.location.search).get("readonly") === "1";
+}
+
+function readReadonlyServer(): boolean {
+  return false;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
+  const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
 
   if (!adapter) {
     return (
@@ -56,6 +65,7 @@ export function NotionLikeEditorDemo() {
       initialValue={DEMO_DOCUMENT_VALUE}
       linkPreview={demoLinkPreviewAdapter}
       mentionProvider={demoMentionProvider}
+      readOnly={readOnly}
     />
   );
 }

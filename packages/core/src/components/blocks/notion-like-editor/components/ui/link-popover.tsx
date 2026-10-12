@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { ExternalLink, Save, Unlink } from "lucide-react";
 import { Input } from "@/components/input";
@@ -22,7 +22,7 @@ export function LinkPopover() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const mode = usePluginOption(linkUiPlugin, "mode");
   const error = usePluginOption(linkUiPlugin, "error");
   const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");

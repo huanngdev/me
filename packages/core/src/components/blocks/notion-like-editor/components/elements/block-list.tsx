@@ -113,6 +113,9 @@ function TodoCheck({
       <Checkbox
         checked={checked}
         disabled={readOnly}
+        aria-disabled={readOnly || undefined}
+        tabIndex={readOnly ? -1 : undefined}
+        className={readOnly ? "pointer-events-none" : undefined}
         aria-labelledby={blockId ? todoTextId(blockId) : undefined}
         aria-label={blockId ? undefined : "To-do"}
         onMouseDown={(event) => {

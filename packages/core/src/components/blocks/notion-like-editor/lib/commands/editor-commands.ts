@@ -1430,7 +1430,11 @@ export function runEditorCommand<Payload>(
   payload: Payload,
   options?: RunEditorCommandOptions,
 ): boolean {
-  if (options?.readOnly === true || command.isEnabled?.(editor) === false) {
+  if (
+    options?.readOnly === true ||
+    editor.dom.readOnly === true ||
+    command.isEnabled?.(editor) === false
+  ) {
     return false;
   }
 

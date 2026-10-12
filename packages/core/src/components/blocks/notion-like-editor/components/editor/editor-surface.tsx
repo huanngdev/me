@@ -65,6 +65,7 @@ export function EditorSurface({
             <BookmarkUrlPopover />
             <SelectionToolbar />
             <PlateContent
+              aria-readonly={readOnly ? true : undefined}
               placeholder={readOnly ? undefined : placeholder}
               // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
               // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.

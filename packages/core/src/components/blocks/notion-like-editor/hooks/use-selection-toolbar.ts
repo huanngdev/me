@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RangeApi, type TRange } from "platejs";
-import { useEditorRef, useEditorSelector, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
 
 import { bookmarkUrlPlugin } from "../lib/plugins/editor-bookmark-popover";
 import { editorIsComposing } from "../lib/plugins/editor-mention";
@@ -68,7 +68,7 @@ export function useSelectionToolbar() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const linkMode = usePluginOption(linkUiPlugin, "mode");
   const slashOpen = usePluginOption(slashUiPlugin, "open");
   const blockSelectionCount = usePluginOption(blockSelectionPlugin, "ids").length;

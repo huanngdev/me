@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Bookmark } from "lucide-react";
 import { Input } from "@/components/input";
@@ -18,7 +18,7 @@ export function BookmarkUrlPopover() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const open = usePluginOption(bookmarkUrlPlugin, "open");
   const error = usePluginOption(bookmarkUrlPlugin, "error");
 

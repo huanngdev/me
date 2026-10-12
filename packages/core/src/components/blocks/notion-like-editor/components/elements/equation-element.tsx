@@ -309,7 +309,7 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverContent>
       </Popover>
       {readOnly && expression.length > 0 ? (
-        <div className="mt-1 flex justify-end" contentEditable={false}>
+        <div className="absolute right-3 bottom-2" contentEditable={false}>
           <EditorIconButton
             label="Copy source"
             icon={<Copy aria-hidden="true" />}

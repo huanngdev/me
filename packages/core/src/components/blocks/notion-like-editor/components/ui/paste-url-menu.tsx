@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Bookmark, Link } from "lucide-react";
-import { useEditorRef, usePluginOption } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 
@@ -17,6 +17,7 @@ import {
 
 export function PasteUrlMenu() {
   const editor = useEditorRef();
+  const readOnly = useEditorReadOnly();
   const offer = usePluginOption(pasteUrlPlugin, "offer");
   const actions =
     offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
@@ -26,7 +27,13 @@ export function PasteUrlMenu() {
   );
 
   useEffect(() => {
-    if (offer === undefined) {
+    if (readOnly && offer !== undefined) {
+      clearPasteUrlOffer(editor);
+    }
+  }, [editor, offer, readOnly]);
+
+  useEffect(() => {
+    if (readOnly || offer === undefined) {
       return;
     }
 
@@ -49,9 +56,9 @@ export function PasteUrlMenu() {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [editor, offer]);
+  }, [editor, offer, readOnly]);
 
-  if (offer === undefined || actions.length === 0) {
+  if (readOnly || offer === undefined || actions.length === 0) {
     return null;
   }
 
