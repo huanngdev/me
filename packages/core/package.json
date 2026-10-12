@@ -34,6 +34,7 @@
     "@platejs/layout": "53.0.0",
     "@platejs/link": "53.3.5",
     "@platejs/list": "53.3.13",
+    "@platejs/markdown": "53.3.15",
     "@platejs/mention": "53.0.0",
     "@platejs/table": "53.0.9",
     "@platejs/toc": "53.0.0",

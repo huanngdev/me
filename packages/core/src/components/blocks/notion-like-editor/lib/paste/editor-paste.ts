@@ -816,6 +816,16 @@ export function clearHtmlTableWidths(): void {
   pendingWidthRepairs = [];
 }
 
+// HTML import sanitizes without an editor. These buffers are process-wide, so
+// an import clears them before and after. Paste still reads the same buffers.
+export function clearPasteCaptureState(): void {
+  clearPendingImageRepairs();
+  clearPendingLimitRepairs();
+  clearPendingMentionInputRepairs();
+  clearHtmlTableWidths();
+  clearUnsafePastedLinkRepairs();
+}
+
 function applyRememberedWidths(table: TElement, repairs: Repair[] | undefined): TElement {
   const plan = htmlWidthPlans.shift();
   if (plan === undefined) {

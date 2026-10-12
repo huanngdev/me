@@ -217,6 +217,7 @@ export const CODE_LANG_ALIASES = {
   yml: "yaml",
   xml: "html",
   html: "html",
+  md: "markdown",
 } as const satisfies Record<string, CodeLang>;
 
 function aliasCodeLang(token: string): CodeLang | undefined {

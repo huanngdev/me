@@ -2730,6 +2730,7 @@ export const CODE_LANG_ALIASES = {
   yml: "yaml",
   xml: "html",
   html: "html",
+  md: "markdown",
 } as const satisfies Record<string, CodeLang>;
 
 function aliasCodeLang(token: string): CodeLang | undefined {
@@ -5063,6 +5064,16 @@ export function rememberHtmlTableWidths(html: string): void {
 export function clearHtmlTableWidths(): void {
   htmlWidthPlans = [];
   pendingWidthRepairs = [];
+}
+
+// HTML import sanitizes without an editor. These buffers are process-wide, so
+// an import clears them before and after. Paste still reads the same buffers.
+export function clearPasteCaptureState(): void {
+  clearPendingImageRepairs();
+  clearPendingLimitRepairs();
+  clearPendingMentionInputRepairs();
+  clearHtmlTableWidths();
+  clearUnsafePastedLinkRepairs();
 }
 
 function applyRememberedWidths(table: TElement, repairs: Repair[] | undefined): TElement {
@@ -28247,10 +28258,7 @@ export const HEADING_STYLES = {
 
 export type HeadingTag = keyof typeof HEADING_STYLES;
 
-// The DOM id is derived from the block id. It is not stored on the node.
-export function headingAnchorId(blockId: string): string {
-  return `heading-${blockId}`;
-}
+export { headingAnchorId } from "../../lib/features/heading-anchor";
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
