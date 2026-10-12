@@ -35,6 +35,7 @@ import {
   type TextColorState,
 } from "../commands/editor-commands";
 import { blockMenuDecisions, menuBlockView } from "./editor-block-menu";
+import { indentBlocks, outdentBlocks } from "./editor-block-indent";
 import { blockPickerTurnItems } from "./editor-block-picker";
 import { bookmarkUrlOpen } from "../plugins/editor-bookmark-popover";
 import { editInlineLink, insertInlineLink, linkUiPlugin } from "../plugins/editor-link";
@@ -122,6 +123,8 @@ export type SelectionToolbarModel = {
   fontSize: FontSizeState;
   fontFamily: FontFamilyState;
   lineHeight: LineHeightState;
+  indent: { disabled: boolean; reason?: string; shortcut?: string };
+  outdent: { disabled: boolean; reason?: string; shortcut?: string };
   clear: { disabled: boolean; reason?: string; shortcut?: string };
 };
 
@@ -247,6 +250,14 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     fontSize: getFontSize(editor),
     fontFamily: getFontFamily(editor),
     lineHeight: getLineHeight(editor),
+    indent: {
+      ...commandFlags(editor, indentBlocks),
+      shortcut: pluginShortcutLabel(editor, "blockIndent"),
+    },
+    outdent: {
+      ...commandFlags(editor, outdentBlocks),
+      shortcut: pluginShortcutLabel(editor, "blockOutdent"),
+    },
     clear: {
       ...commandFlags(editor, clearFormatting),
       shortcut: pluginShortcutLabel(editor, "clearFormatting"),
@@ -527,6 +538,12 @@ function shortcutKeyLabel(key: string, mac: boolean): string {
   }
   if (key === "Backslash") {
     return "\\";
+  }
+  if (key === "BracketLeft") {
+    return "[";
+  }
+  if (key === "BracketRight") {
+    return "]";
   }
   if (key.length === 1) {
     return key.toUpperCase();

@@ -15,6 +15,7 @@ import {
   type TText,
 } from "platejs";
 
+import { blockIndentOf } from "../features/editor-block-indent-style";
 import {
   applyBlockTurn,
   deleteBlockAt,
@@ -1086,7 +1087,9 @@ function paragraphEntries(editor: SlateEditor) {
   ];
 }
 
-// Orphan indent and numbering attrs are removed by dependentAttrsPlugin, not here.
+// A list item that leaves its list drops its level with it. A plain paragraph keeps its own
+// indent, so the unset is explicit here and not a normalizer. A plain indent that becomes a
+// list keeps its level as depth, where Plate's toggle would add one.
 export function createToggleList(style: ListStyle): EditorCommand {
   const command = TOGGLE_LIST_COMMAND[style];
 
@@ -1095,11 +1098,32 @@ export function createToggleList(style: ListStyle): EditorCommand {
     label: command.label,
     group: "turn-into",
     run: (editor) => {
-      if (paragraphEntries(editor).length === 0) {
+      const entries = paragraphEntries(editor);
+      if (entries.length === 0) {
         return;
       }
 
+      const paths = entries.map(([, path]) => [...path]);
+      const plainLevels = entries.map(([node]) =>
+        ElementApi.isElement(node) && isPlainParagraph(node) ? blockIndentOf(node) : 0,
+      );
       toggleList(editor, { listStyleType: style });
+      paths.forEach((path, index) => {
+        const node = editor.api.node(path)?.[0];
+        if (!ElementApi.isElement(node)) {
+          return;
+        }
+        if (isPlainParagraph(node)) {
+          if ("indent" in node) {
+            editor.tf.unsetNodes(KEYS.indent, { at: path });
+          }
+          return;
+        }
+        const level = plainLevels[index] ?? 0;
+        if (level > 0 && node.indent !== level) {
+          editor.tf.setNodes({ indent: level }, { at: path });
+        }
+      });
     },
   };
 }

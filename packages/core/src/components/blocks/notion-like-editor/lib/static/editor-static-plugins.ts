@@ -61,6 +61,7 @@ import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
+import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
 import { SYNCED_REF_KEY } from "../document/editor-document-schema";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
 import { codeLeafClassName } from "./mark-classes";
@@ -166,6 +167,14 @@ export const editorStaticPlugins = [
       isElement: true,
       targetPlugins: [...BLOCK_TONE_TYPES],
       nodeProps: blockToneNodeProps(),
+    },
+  }),
+  createSlatePlugin({
+    key: "blockIndent",
+    inject: {
+      isElement: true,
+      targetPlugins: [...BLOCK_INDENT_TYPES],
+      nodeProps: blockIndentNodeProps(),
     },
   }),
   BaseLineHeightPlugin.configure({

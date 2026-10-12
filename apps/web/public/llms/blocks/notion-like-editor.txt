@@ -68,56 +68,58 @@
 58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
 59. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
 60. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-tone.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-62. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-63. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-64. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-65. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-67. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-68. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-72. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-73. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-74. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-75. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-76. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-77. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-78. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-79. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-80. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-82. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-83. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-85. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-87. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-88. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-89. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-90. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-91. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-92. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-104. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-105. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-106. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
-107. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-108. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-109. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-110. apps/web/src/app/blocks/notion-like-editor/page.tsx
+61. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+63. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+64. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+65. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+66. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+67. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+68. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+69. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+70. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+73. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+74. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+75. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+76. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+77. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+78. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+79. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+80. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+86. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+88. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+89. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+90. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+91. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+92. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+93. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+94. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+108. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+109. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+110. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+111. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+112. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -382,9 +384,15 @@ export function codeLangFromToken(token: string): CodeLang | null {
   return stored ?? null;
 }
 
+// Plain indent is the same integer as list depth. It is stored only in the 1..6 range.
 const headingElementRule = {
-  attrs: ["id", "align", "textTone", "backgroundTone"],
-  attrValues: { align: TEXT_ALIGNS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
+  attrs: ["id", "align", "indent", "textTone", "backgroundTone"],
+  attrValues: {
+    align: TEXT_ALIGNS,
+    indent: LIST_INDENTS,
+    textTone: PALETTE_TOKENS,
+    backgroundTone: PALETTE_TOKENS,
+  },
 } as const;
 
 export const EQUATION_EXPRESSION_MAX = 4000;
@@ -543,12 +551,11 @@ export const EDITOR_ELEMENT_RULES = [
       listRestart: LIST_NUMBER_RANGE,
       listRestartPolite: LIST_NUMBER_RANGE,
     },
-    // Standalone block indent is a later task. Indent is kept only with a list style.
+    // indent is a list depth with listStyleType, and a plain block indent without it.
     // Numbering attrs are kept only on decimal items. checked is kept only on todo items.
     // Plate deletes listStart on disc and leaves listRestart, so a disc item would not
     // round-trip those attrs.
     attrRequires: {
-      indent: { attr: "listStyleType" },
       listStart: { attr: "listStyleType", values: ["decimal"] },
       listRestart: { attr: "listStyleType", values: ["decimal"] },
       listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
@@ -559,12 +566,12 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
-  // Alignment and line height stay on the child paragraphs. A quote stores only its id.
-  // Tones are block attrs on the quote itself. Child paragraphs keep their own.
+  // Alignment and line height stay on the child paragraphs. A quote stores its id, plain indent,
+  // and tones. Tones and indent are block attrs on the quote itself. Child paragraphs keep their own.
   {
     type: KEYS.blockquote,
-    attrs: ["id", "textTone", "backgroundTone"],
-    attrValues: { textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
+    attrs: ["id", "indent", "textTone", "backgroundTone"],
+    attrValues: { indent: LIST_INDENTS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
     childTypes: [KEYS.p],
   },
   // A divider is a void. It stores only its id, never align, line height, or list attrs.
@@ -1936,6 +1943,7 @@ import {
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
 import { inlineEquationNode } from "../features/editor-inline-equation";
+import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
@@ -2134,6 +2142,14 @@ function copyCellSpans(node: Record<string, unknown>, props: TElement): void {
   }
 }
 
+// A pasted indent above the cap is clamped. Below 1 or non-integer is left to the attr check.
+function pastedIndent(value: unknown): unknown {
+  if (typeof value === "number" && Number.isInteger(value) && value > BLOCK_INDENT_MAX) {
+    return BLOCK_INDENT_MAX;
+  }
+  return value;
+}
+
 function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void {
   const allowed = allowedElementAttrs(props.type);
   if (allowed === undefined) {
@@ -2141,17 +2157,18 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
+    const value = key === "indent" ? pastedIndent(node[key]) : node[key];
     if (
       key === "id" ||
       key === "colSpan" ||
       key === "rowSpan" ||
       !(key in node) ||
-      !isAllowedElementAttrValue(props.type, key, node[key])
+      !isAllowedElementAttrValue(props.type, key, value)
     ) {
       continue;
     }
 
-    props[key] = node[key];
+    props[key] = value;
   }
 
   copyCellSpans(node, props);
@@ -5932,6 +5949,15 @@ import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
+import {
+  BLOCK_INDENT_TYPES,
+  blockIndentNodeProps,
+  blockIndentOf,
+  isListParagraph,
+  listIndentInjects,
+  listIndentOf,
+} from "../features/editor-block-indent-style";
+import { blockIndentTargets, indentBlocks, outdentBlocks } from "../features/editor-block-indent";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "../../components/elements/link-element";
 import {
@@ -6372,25 +6398,6 @@ const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
-function isListParagraph(node: unknown): boolean {
-  return (
-    typeof node === "object" &&
-    node !== null &&
-    "type" in node &&
-    node.type === KEYS.p &&
-    "listStyleType" in node &&
-    typeof node.listStyleType === "string"
-  );
-}
-
-function listIndentOf(node: unknown): number {
-  if (typeof node !== "object" || node === null || !("indent" in node)) {
-    return 1;
-  }
-
-  return typeof node.indent === "number" ? node.indent : 1;
-}
-
 function isElementRecord(node: unknown): node is Record<string, unknown> & { type: string } {
   return (
     typeof node === "object" &&
@@ -6738,11 +6745,16 @@ const childTypesPlugin = createSlatePlugin({
   },
 }));
 
-// Targets stay on paragraphs. Headings are not list items in this milestone.
+// Targets are list paragraphs. Plain paragraphs, headings and quotes take the indent
+// through blockIndentPlugin. The indent normalizer unsets indent on any other type, so
+// the same types stay targets here. Only list paragraphs get Plate's margin, through query.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
 const indentPlugin = IndentPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p],
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: {
+      query: listIndentInjects,
+    },
   },
   options: {
     indentMax: LIST_INDENT_MAX,
@@ -7001,6 +7013,18 @@ const listKeyboardPlugin = createSlatePlugin({
         return;
       }
 
+      // A plain indented block steps out one level instead of merging with the block above.
+      if (
+        block &&
+        !isListParagraph(block[0]) &&
+        blockIndentOf(block[0]) > 0 &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true })
+      ) {
+        runEditorCommand(editor, outdentBlocks, undefined, { readOnly: editor.dom.readOnly });
+        return;
+      }
+
       deleteBackward(unit);
     },
   },
@@ -7019,6 +7043,45 @@ const blockTonePlugin = createSlatePlugin({
     isElement: true,
     targetPlugins: [...BLOCK_TONE_TYPES],
     nodeProps: blockToneNodeProps(),
+  },
+});
+
+// Plain blocks get their margin from the injector. Cmd+] and Cmd+[ are browser history keys
+// on some platforms. A block at its limit still takes the key, so the browser never sees it.
+function runBlockIndentShortcut(editor: SlateEditor, command: EditorCommand): boolean {
+  if (editor.dom.readOnly) {
+    return false;
+  }
+
+  if (runEditorCommand(editor, command, undefined, { readOnly: false })) {
+    return true;
+  }
+
+  return blockIndentTargets(editor).length > 0;
+}
+
+const blockIndentPlugin = createSlatePlugin({
+  key: "blockIndent",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: blockIndentNodeProps(),
+  },
+  shortcuts: {
+    indent: {
+      keys: [[Key.Mod, "BracketRight"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
+    },
+  },
+});
+
+const blockOutdentPlugin = createSlatePlugin({
+  key: "blockOutdent",
+  shortcuts: {
+    outdent: {
+      keys: [[Key.Mod, "BracketLeft"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
+    },
   },
 });
 
@@ -7754,6 +7817,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     horizontalRulePlugin,
     textAlignPlugin,
     blockTonePlugin,
+    blockIndentPlugin,
+    blockOutdentPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,
@@ -20437,6 +20502,7 @@ import {
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
+import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
   allowedChildTypes,
@@ -21083,10 +21149,26 @@ function replacementNodes(
   return [structuredClone(node)];
 }
 
+// A plain indent moves to the next block. A list item's depth is not a plain indent, so it stops here.
+function plainIndentOf(node: TElement): number | undefined {
+  if (isListParagraph(node)) {
+    return undefined;
+  }
+  return blockIndentOf(node) || undefined;
+}
+
 function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
   const align = stringProp(node, "align");
   const lineHeight = stringProp(node, "lineHeight");
-  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight, node);
+  return textBlock(
+    nodeId(node),
+    kind,
+    structuredClone(node.children),
+    align,
+    lineHeight,
+    node,
+    plainIndentOf(node),
+  );
 }
 
 function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -21095,7 +21177,13 @@ function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElem
   const inlines = structuredClone(node.children);
   const label = labelKind(kind, node);
   const inner = textBlock(createId(seen), label, inlines, align, lineHeight, node);
-  return containerNode(nodeId(node), kind, [inner]);
+  const outer = containerNode(nodeId(node), kind, [inner]);
+  // Only a quote keeps a plain indent on its own element. Callout and toggle drop it.
+  const indent = plainIndentOf(node);
+  if (kind === "quote" && indent !== undefined) {
+    setProp(outer, "indent", indent);
+  }
+  return outer;
 }
 
 function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -21132,6 +21220,8 @@ function containerToLeaf(
 ): { leaf: TElement; rest: TElement[] } {
   const children = blockElements(node);
   const first = children[0];
+  // A quote's indent comes along, else the first plain child's, as align does.
+  const quoteIndent = plainIndentOf(node);
   if (first && canRepresent(childView(first), kind)) {
     // A toned quote keeps its tone. Otherwise the first child's tone comes along, as align does.
     const toned = hasTone(node) ? node : first;
@@ -21142,12 +21232,21 @@ function containerToLeaf(
       stringProp(first, "align"),
       stringProp(first, "lineHeight"),
       toned,
+      quoteIndent ?? plainIndentOf(first),
     );
     return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
   }
 
   return {
-    leaf: textBlock(nodeId(node), kind, [{ text: "" }]),
+    leaf: textBlock(
+      nodeId(node),
+      kind,
+      [{ text: "" }],
+      undefined,
+      undefined,
+      undefined,
+      quoteIndent,
+    ),
     rest: children.map((child) => structuredClone(child)),
   };
 }
@@ -21229,6 +21328,8 @@ function childView(node: TElement): MenuChildView {
   };
 }
 
+// A list kind takes indent as its depth, and 1 when there is none. A plain paragraph or
+// heading takes indent only when given one.
 function textBlock(
   id: string,
   kind: BlockMenuKind,
@@ -21236,6 +21337,7 @@ function textBlock(
   align?: string,
   lineHeight?: string,
   toneSource?: TElement,
+  indent?: number,
 ): TElement {
   const node: TElement = { type: slateType(kind), id, children };
   if (toneSource !== undefined) {
@@ -21250,7 +21352,9 @@ function textBlock(
   const style = listStyleOf(kind);
   if (style !== undefined) {
     setProp(node, "listStyleType", style);
-    setProp(node, "indent", 1);
+    setProp(node, "indent", indent ?? 1);
+  } else if (indent !== undefined && isPlainIndentKind(kind)) {
+    setProp(node, "indent", indent);
   }
   if (kind === "numbered") {
     setProp(node, "listStart", 1);
@@ -21291,6 +21395,10 @@ function unsetTones(node: TElement): void {
 
 function hasTone(node: TElement): boolean {
   return TONE_KEYS.some((key) => stringProp(node, key) !== undefined);
+}
+
+function isPlainIndentKind(kind: BlockMenuKind): boolean {
+  return kind === "paragraph" || kind === "h1" || kind === "h2" || kind === "h3";
 }
 
 function allowsAlign(kind: BlockMenuKind): boolean {
@@ -22454,6 +22562,218 @@ export const setBlockTone: EditorCommand<BlockTonePayload> = {
 };
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent.ts
+```ts
+import { setIndent } from "@platejs/indent";
+import { ElementApi, KEYS, type SlateEditor } from "platejs";
+
+import type { EditorCommand } from "../commands/editor-commands";
+import { firstChildForbiddenAttrs } from "../document/editor-document-schema";
+import { blockSelectionActive, blockSelectionIds } from "../plugins/editor-block-selection";
+import {
+  BLOCK_INDENT_MAX,
+  BLOCK_INDENT_TYPES,
+  blockIndentOf,
+  isListParagraph,
+  listIndentOf,
+} from "./editor-block-indent-style";
+
+export { BLOCK_INDENT_MAX, BLOCK_INDENT_TYPES } from "./editor-block-indent-style";
+
+// A plain block type that can carry indent. A toggle's first child cannot.
+export function blockIndentAllowed(editor: SlateEditor, path: number[]): boolean {
+  const node = editor.api.node(path)?.[0];
+  if (!ElementApi.isElement(node) || !BLOCK_INDENT_TYPES.includes(node.type)) {
+    return false;
+  }
+
+  const index = path[path.length - 1];
+  if (index !== 0 || path.length < 2) {
+    return true;
+  }
+
+  const parent = editor.api.node(path.slice(0, -1))?.[0];
+  return !(
+    ElementApi.isElement(parent) && firstChildForbiddenAttrs(parent.type).includes("indent")
+  );
+}
+
+// Rule: a block selection targets the selected blocks. A text selection targets the lowest
+// blocks it touches, so a paragraph inside a quote, callout or cell moves itself. A quote
+// moves only when it is block-selected. Code lines are blocks and are refused.
+export function blockIndentTargets(editor: SlateEditor): number[][] {
+  const paths: number[][] = [];
+  if (blockSelectionActive(editor)) {
+    const wanted = new Set(blockSelectionIds(editor));
+    for (const [, path] of editor.api.nodes({
+      at: [],
+      match: (candidate) =>
+        ElementApi.isElement(candidate) &&
+        typeof candidate.id === "string" &&
+        wanted.has(candidate.id),
+    })) {
+      if (blockIndentAllowed(editor, path)) {
+        paths.push([...path]);
+      }
+    }
+    return paths;
+  }
+
+  if (!editor.selection) {
+    return paths;
+  }
+
+  for (const [, path] of editor.api.nodes({
+    at: editor.selection,
+    mode: "lowest",
+    match: (candidate) => ElementApi.isElement(candidate) && editor.api.isBlock(candidate),
+  })) {
+    if (blockIndentAllowed(editor, path)) {
+      paths.push([...path]);
+    }
+  }
+  return paths;
+}
+
+function canMove(node: unknown, step: 1 | -1): boolean {
+  if (isListParagraph(node)) {
+    return step < 0 || listIndentOf(node) < BLOCK_INDENT_MAX;
+  }
+
+  return step > 0 ? blockIndentOf(node) < BLOCK_INDENT_MAX : blockIndentOf(node) > 0;
+}
+
+function movableTargets(editor: SlateEditor, step: 1 | -1): number[][] {
+  return blockIndentTargets(editor).filter((path) => canMove(editor.api.node(path)?.[0], step));
+}
+
+function stepBlockIndent(editor: SlateEditor, step: 1 | -1): void {
+  const targets = movableTargets(editor, step);
+  editor.tf.withoutNormalizing(() => {
+    for (const path of targets) {
+      const node = editor.api.node(path)?.[0];
+      if (isListParagraph(node)) {
+        // The same list step as Tab and Shift+Tab. Outdent at depth 1 drops the list style.
+        setIndent(editor, {
+          offset: step,
+          getNodesOptions: { at: path, match: (candidate) => isListParagraph(candidate) },
+          unsetNodesProps: step < 0 ? [KEYS.listType, KEYS.listChecked] : [],
+        });
+        continue;
+      }
+
+      const next = blockIndentOf(node) + step;
+      if (next <= 0) {
+        editor.tf.unsetNodes("indent", { at: path });
+      } else {
+        editor.tf.setNodes({ indent: next }, { at: path });
+      }
+    }
+  });
+}
+
+function disabledReasonFor(editor: SlateEditor, step: 1 | -1): string | undefined {
+  if (blockIndentTargets(editor).length === 0) {
+    return "Indent is not available here.";
+  }
+
+  return step > 0 ? "Already at the deepest level." : "Not indented.";
+}
+
+function blockIndentCommand(id: string, label: string, step: 1 | -1): EditorCommand {
+  return {
+    id,
+    label,
+    group: "format",
+    isEnabled: (editor) => movableTargets(editor, step).length > 0,
+    disabledReason: (editor) => disabledReasonFor(editor, step),
+    run: (editor) => {
+      stepBlockIndent(editor, step);
+    },
+  };
+}
+
+export const indentBlocks: EditorCommand = blockIndentCommand("block.indent", "Indent", 1);
+
+export const outdentBlocks: EditorCommand = blockIndentCommand("block.outdent", "Outdent", -1);
+```
+
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-indent-style.ts
+```ts
+import { KEYS } from "platejs";
+
+import { LIST_INDENTS, type ListIndent } from "../document/editor-document-schema";
+
+// Kept free of editor and command imports: the static renderer imports this module.
+// Plain indent is the native `indent` attr. A list paragraph reads it as list depth.
+export const BLOCK_INDENT_TYPES: readonly string[] = [
+  KEYS.p,
+  KEYS.h1,
+  KEYS.h2,
+  KEYS.h3,
+  KEYS.blockquote,
+];
+
+export const BLOCK_INDENT_MAX = 6;
+
+export const BLOCK_INDENT_STEP_PX = 24;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function isListParagraph(node: unknown): boolean {
+  return isRecord(node) && node.type === KEYS.p && typeof node.listStyleType === "string";
+}
+
+// A list item without a stored indent is depth 1.
+export function listIndentOf(node: unknown): number {
+  if (!isRecord(node) || !("indent" in node)) {
+    return 1;
+  }
+
+  return typeof node.indent === "number" ? node.indent : 1;
+}
+
+function isListIndent(value: unknown): value is ListIndent {
+  return LIST_INDENTS.some((level) => level === value);
+}
+
+// 0 when absent or invalid. An invalid stored value renders nothing and counts as unset.
+export function blockIndentOf(node: unknown): number {
+  const value: unknown = isRecord(node) ? node.indent : undefined;
+  return isListIndent(value) ? value : 0;
+}
+
+// Plain blocks only. A list paragraph keeps the step the list markup draws.
+export function blockIndentNodeProps() {
+  return {
+    transformProps: ({
+      element,
+      props,
+    }: {
+      element?: unknown;
+      props: Record<string, unknown>;
+    }): Record<string, unknown> => {
+      const indent = blockIndentOf(element);
+      if (indent === 0 || isListParagraph(element)) {
+        return props;
+      }
+
+      const style: Record<string, unknown> = { ...(isRecord(props.style) ? props.style : {}) };
+      style.marginInlineStart = `${indent * BLOCK_INDENT_STEP_PX}px`;
+      return { ...props, "data-block-indent": String(indent), style };
+    },
+  };
+}
+
+// Plate's IndentPlugin injects margin-left on any paragraph that has indent. Plain blocks
+// get their own margin here, so that injection is limited to list paragraphs.
+export function listIndentInjects({ nodeProps }: { nodeProps: { element?: unknown } }): boolean {
+  return isListParagraph(nodeProps.element);
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
@@ -22473,6 +22793,7 @@ import {
   type TText,
 } from "platejs";
 
+import { blockIndentOf } from "../features/editor-block-indent-style";
 import {
   applyBlockTurn,
   deleteBlockAt,
@@ -23544,7 +23865,9 @@ function paragraphEntries(editor: SlateEditor) {
   ];
 }
 
-// Orphan indent and numbering attrs are removed by dependentAttrsPlugin, not here.
+// A list item that leaves its list drops its level with it. A plain paragraph keeps its own
+// indent, so the unset is explicit here and not a normalizer. A plain indent that becomes a
+// list keeps its level as depth, where Plate's toggle would add one.
 export function createToggleList(style: ListStyle): EditorCommand {
   const command = TOGGLE_LIST_COMMAND[style];
 
@@ -23553,11 +23876,32 @@ export function createToggleList(style: ListStyle): EditorCommand {
     label: command.label,
     group: "turn-into",
     run: (editor) => {
-      if (paragraphEntries(editor).length === 0) {
+      const entries = paragraphEntries(editor);
+      if (entries.length === 0) {
         return;
       }
 
+      const paths = entries.map(([, path]) => [...path]);
+      const plainLevels = entries.map(([node]) =>
+        ElementApi.isElement(node) && isPlainParagraph(node) ? blockIndentOf(node) : 0,
+      );
       toggleList(editor, { listStyleType: style });
+      paths.forEach((path, index) => {
+        const node = editor.api.node(path)?.[0];
+        if (!ElementApi.isElement(node)) {
+          return;
+        }
+        if (isPlainParagraph(node)) {
+          if ("indent" in node) {
+            editor.tf.unsetNodes(KEYS.indent, { at: path });
+          }
+          return;
+        }
+        const level = plainLevels[index] ?? 0;
+        if (level > 0 && node.indent !== level) {
+          editor.tf.setNodes({ indent: level }, { at: path });
+        }
+      });
     },
   };
 }
@@ -26132,6 +26476,14 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-indent",
+    indent: 1,
+    children: [
+      { text: "This paragraph is indented one level. Press Cmd+] to indent and Cmd+[ to outdent." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-block-styles",
     children: [{ text: "Block styles" }],
@@ -27557,6 +27909,7 @@ import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
+import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
 import { SYNCED_REF_KEY } from "../document/editor-document-schema";
 import { FONT_FAMILIES, isAllowedValue, isPaletteToken } from "../document/editor-document-schema";
 import { codeLeafClassName } from "./mark-classes";
@@ -27662,6 +28015,14 @@ export const editorStaticPlugins = [
       isElement: true,
       targetPlugins: [...BLOCK_TONE_TYPES],
       nodeProps: blockToneNodeProps(),
+    },
+  }),
+  createSlatePlugin({
+    key: "blockIndent",
+    inject: {
+      isElement: true,
+      targetPlugins: [...BLOCK_INDENT_TYPES],
+      nodeProps: blockIndentNodeProps(),
     },
   }),
   BaseLineHeightPlugin.configure({

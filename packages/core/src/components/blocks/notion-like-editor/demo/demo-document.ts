@@ -285,6 +285,14 @@ export const DEMO_DOCUMENT_VALUE = [
     ],
   },
   {
+    type: "p",
+    id: "demo-indent",
+    indent: 1,
+    children: [
+      { text: "This paragraph is indented one level. Press Cmd+] to indent and Cmd+[ to outdent." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-block-styles",
     children: [{ text: "Block styles" }],

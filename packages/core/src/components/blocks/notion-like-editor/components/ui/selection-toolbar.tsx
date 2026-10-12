@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Code,
   Ellipsis,
+  IndentDecrease,
+  IndentIncrease,
   Italic,
   Link,
   RemoveFormatting,
@@ -65,6 +67,7 @@ import {
   type PaletteToken,
   type TextAlign,
 } from "../../lib/document/editor-document-schema";
+import { indentBlocks, outdentBlocks } from "../../lib/features/editor-block-indent";
 import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
 import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import {
@@ -369,6 +372,12 @@ export function SelectionToolbar() {
       onLineHeight={(value) => {
         run(setLineHeight, value);
       }}
+      onIndent={() => {
+        run(indentBlocks, undefined);
+      }}
+      onOutdent={() => {
+        run(outdentBlocks, undefined);
+      }}
       onClear={() => {
         run(clearFormatting, undefined);
       }}
@@ -481,6 +490,8 @@ function ToolbarControls({
   onFontSize,
   onFontFamily,
   onLineHeight,
+  onIndent,
+  onOutdent,
   onClear,
   onRestore,
 }: {
@@ -499,6 +510,8 @@ function ToolbarControls({
   onFontSize: (value: FontSize | null) => void;
   onFontFamily: (value: FontFamily | null) => void;
   onLineHeight: (value: LineHeight | null) => void;
+  onIndent: () => void;
+  onOutdent: () => void;
   onClear: () => void;
 }) {
   const model = selectionToolbarModel(editor);
@@ -661,6 +674,8 @@ function ToolbarControls({
         onFontSize={onFontSize}
         onFontFamily={onFontFamily}
         onLineHeight={onLineHeight}
+        onIndent={onIndent}
+        onOutdent={onOutdent}
         onClear={onClear}
       />
     </>
@@ -744,6 +759,8 @@ function MoreMenu({
   onFontSize,
   onFontFamily,
   onLineHeight,
+  onIndent,
+  onOutdent,
   onClear,
 }: {
   model: ReturnType<typeof selectionToolbarModel>;
@@ -754,6 +771,8 @@ function MoreMenu({
   onFontSize: (value: FontSize | null) => void;
   onFontFamily: (value: FontFamily | null) => void;
   onLineHeight: (value: LineHeight | null) => void;
+  onIndent: () => void;
+  onOutdent: () => void;
   onClear: () => void;
 }) {
   return (
@@ -852,6 +871,42 @@ function MoreMenu({
               </DropdownMenuRadioItem>
             ))}
           </ChoiceMenu>
+          <DropdownMenuItem
+            disabled={model.indent.disabled}
+            data-more-choice="indent"
+            onSelect={onIndent}
+          >
+            <IndentIncrease aria-hidden="true" />
+            <span className="flex min-w-0 flex-col items-start">
+              <span>Indent</span>
+              {model.indent.reason ? (
+                <span className="text-muted-foreground text-xs whitespace-normal">
+                  {model.indent.reason}
+                </span>
+              ) : null}
+            </span>
+            {model.indent.shortcut ? (
+              <DropdownMenuShortcut>{model.indent.shortcut}</DropdownMenuShortcut>
+            ) : null}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={model.outdent.disabled}
+            data-more-choice="outdent"
+            onSelect={onOutdent}
+          >
+            <IndentDecrease aria-hidden="true" />
+            <span className="flex min-w-0 flex-col items-start">
+              <span>Outdent</span>
+              {model.outdent.reason ? (
+                <span className="text-muted-foreground text-xs whitespace-normal">
+                  {model.outdent.reason}
+                </span>
+              ) : null}
+            </span>
+            {model.outdent.shortcut ? (
+              <DropdownMenuShortcut>{model.outdent.shortcut}</DropdownMenuShortcut>
+            ) : null}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={model.clear.disabled}

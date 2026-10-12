@@ -4,6 +4,7 @@ import { Key, Plate, PlateContent, createPlateEditor } from "platejs/react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { listMarker } from "../components/elements/block-list";
+import { listIndentInjects } from "../lib/features/editor-block-indent-style";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import {
   BULLETED_LIST_TYPE,
@@ -78,7 +79,8 @@ function pasteHtml(html: string): SlateEditor {
 
 describe("dependent attribute rule", () => {
   test("a dependent attribute is unsatisfied without an allowed required attribute", () => {
-    expect(unsatisfiedDependentAttrs("p", { indent: 1 })).toEqual(["indent"]);
+    // Plain indent is not a dependent attr now. indent without a list style is valid on a p.
+    expect(unsatisfiedDependentAttrs("p", { indent: 1 })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { indent: 1, listStyleType: "decimal" })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { indent: 2, listStyleType: "disc" })).toEqual([]);
     expect(unsatisfiedDependentAttrs("p", { listStyleType: "disc" })).toEqual([]);
@@ -129,13 +131,13 @@ describe("bulleted list allowlist", () => {
     expect(result.issues.some((issue) => issue.message.includes(`unsupported ${key}`))).toBe(true);
   });
 
-  test("indent without listStyleType is unsupported and the raw document is kept", () => {
-    const content = [{ type: "p", id: "block-a", indent: 2, children: [{ text: "Item" }] }];
-    const raw = envelope(content);
-    const result = expectUnsupported(parseEditorDocument(raw));
-
-    expect(result.raw).toBe(raw);
-    expect(result.issues[0]?.message).toContain("unsupported indent without listStyleType");
+  test("plain indent without listStyleType validates, and only 1 through 6 are allowed", () => {
+    const plain = (indent: number) => [
+      { type: "p", id: "block-a", indent, children: [{ text: "Item" }] },
+    ];
+    expectOk(parseEditorDocument(envelope(plain(1))));
+    expectUnsupported(parseEditorDocument(envelope(plain(7))));
+    expectUnsupported(parseEditorDocument(envelope(plain(0))));
   });
 
   test("a heading with listStyleType is unsupported", () => {
@@ -542,7 +544,20 @@ describe("bulleted list keyboard", () => {
     const editor = createEditor();
 
     expect(editor.getPlugin({ key: KEYS.list }).inject.targetPlugins).toEqual([KEYS.p]);
-    expect(editor.getPlugin({ key: KEYS.indent }).inject.targetPlugins).toEqual([KEYS.p]);
+    // Headings and quotes take a plain indent. The query keeps Plate's margin on list paragraphs only.
+    expect(editor.getPlugin({ key: KEYS.indent }).inject.targetPlugins).toEqual([
+      KEYS.p,
+      KEYS.h1,
+      KEYS.h2,
+      KEYS.h3,
+      KEYS.blockquote,
+    ]);
+    expect(editor.getPlugin({ key: KEYS.indent }).inject.nodeProps?.styleKey).toBe("marginLeft");
+    expect(editor.getPlugin({ key: KEYS.indent }).inject.nodeProps?.query).toBe(listIndentInjects);
+    expect(listIndentInjects({ nodeProps: { element: bullet("Item", "b", 2) } })).toBe(true);
+    expect(
+      listIndentInjects({ nodeProps: { element: { type: "p", children: [{ text: "x" }] } } }),
+    ).toBe(false);
     expect(editor.getPlugin({ key: KEYS.indent }).options.indentMax).toBe(
       Math.max(...LIST_INDENTS),
     );

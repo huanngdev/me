@@ -71,6 +71,15 @@ import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
+import {
+  BLOCK_INDENT_TYPES,
+  blockIndentNodeProps,
+  blockIndentOf,
+  isListParagraph,
+  listIndentInjects,
+  listIndentOf,
+} from "../features/editor-block-indent-style";
+import { blockIndentTargets, indentBlocks, outdentBlocks } from "../features/editor-block-indent";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
 import { LinkElement } from "../../components/elements/link-element";
 import {
@@ -511,25 +520,6 @@ const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
 
-function isListParagraph(node: unknown): boolean {
-  return (
-    typeof node === "object" &&
-    node !== null &&
-    "type" in node &&
-    node.type === KEYS.p &&
-    "listStyleType" in node &&
-    typeof node.listStyleType === "string"
-  );
-}
-
-function listIndentOf(node: unknown): number {
-  if (typeof node !== "object" || node === null || !("indent" in node)) {
-    return 1;
-  }
-
-  return typeof node.indent === "number" ? node.indent : 1;
-}
-
 function isElementRecord(node: unknown): node is Record<string, unknown> & { type: string } {
   return (
     typeof node === "object" &&
@@ -877,11 +867,16 @@ const childTypesPlugin = createSlatePlugin({
   },
 }));
 
-// Targets stay on paragraphs. Headings are not list items in this milestone.
+// Targets are list paragraphs. Plain paragraphs, headings and quotes take the indent
+// through blockIndentPlugin. The indent normalizer unsets indent on any other type, so
+// the same types stay targets here. Only list paragraphs get Plate's margin, through query.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
 const indentPlugin = IndentPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p],
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: {
+      query: listIndentInjects,
+    },
   },
   options: {
     indentMax: LIST_INDENT_MAX,
@@ -1140,6 +1135,18 @@ const listKeyboardPlugin = createSlatePlugin({
         return;
       }
 
+      // A plain indented block steps out one level instead of merging with the block above.
+      if (
+        block &&
+        !isListParagraph(block[0]) &&
+        blockIndentOf(block[0]) > 0 &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true })
+      ) {
+        runEditorCommand(editor, outdentBlocks, undefined, { readOnly: editor.dom.readOnly });
+        return;
+      }
+
       deleteBackward(unit);
     },
   },
@@ -1158,6 +1165,45 @@ const blockTonePlugin = createSlatePlugin({
     isElement: true,
     targetPlugins: [...BLOCK_TONE_TYPES],
     nodeProps: blockToneNodeProps(),
+  },
+});
+
+// Plain blocks get their margin from the injector. Cmd+] and Cmd+[ are browser history keys
+// on some platforms. A block at its limit still takes the key, so the browser never sees it.
+function runBlockIndentShortcut(editor: SlateEditor, command: EditorCommand): boolean {
+  if (editor.dom.readOnly) {
+    return false;
+  }
+
+  if (runEditorCommand(editor, command, undefined, { readOnly: false })) {
+    return true;
+  }
+
+  return blockIndentTargets(editor).length > 0;
+}
+
+const blockIndentPlugin = createSlatePlugin({
+  key: "blockIndent",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: blockIndentNodeProps(),
+  },
+  shortcuts: {
+    indent: {
+      keys: [[Key.Mod, "BracketRight"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
+    },
+  },
+});
+
+const blockOutdentPlugin = createSlatePlugin({
+  key: "blockOutdent",
+  shortcuts: {
+    outdent: {
+      keys: [[Key.Mod, "BracketLeft"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
+    },
   },
 });
 
@@ -1893,6 +1939,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     horizontalRulePlugin,
     textAlignPlugin,
     blockTonePlugin,
+    blockIndentPlugin,
+    blockOutdentPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,

@@ -245,9 +245,15 @@ export function codeLangFromToken(token: string): CodeLang | null {
   return stored ?? null;
 }
 
+// Plain indent is the same integer as list depth. It is stored only in the 1..6 range.
 const headingElementRule = {
-  attrs: ["id", "align", "textTone", "backgroundTone"],
-  attrValues: { align: TEXT_ALIGNS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
+  attrs: ["id", "align", "indent", "textTone", "backgroundTone"],
+  attrValues: {
+    align: TEXT_ALIGNS,
+    indent: LIST_INDENTS,
+    textTone: PALETTE_TOKENS,
+    backgroundTone: PALETTE_TOKENS,
+  },
 } as const;
 
 export const EQUATION_EXPRESSION_MAX = 4000;
@@ -406,12 +412,11 @@ export const EDITOR_ELEMENT_RULES = [
       listRestart: LIST_NUMBER_RANGE,
       listRestartPolite: LIST_NUMBER_RANGE,
     },
-    // Standalone block indent is a later task. Indent is kept only with a list style.
+    // indent is a list depth with listStyleType, and a plain block indent without it.
     // Numbering attrs are kept only on decimal items. checked is kept only on todo items.
     // Plate deletes listStart on disc and leaves listRestart, so a disc item would not
     // round-trip those attrs.
     attrRequires: {
-      indent: { attr: "listStyleType" },
       listStart: { attr: "listStyleType", values: ["decimal"] },
       listRestart: { attr: "listStyleType", values: ["decimal"] },
       listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
@@ -422,12 +427,12 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
-  // Alignment and line height stay on the child paragraphs. A quote stores only its id.
-  // Tones are block attrs on the quote itself. Child paragraphs keep their own.
+  // Alignment and line height stay on the child paragraphs. A quote stores its id, plain indent,
+  // and tones. Tones and indent are block attrs on the quote itself. Child paragraphs keep their own.
   {
     type: KEYS.blockquote,
-    attrs: ["id", "textTone", "backgroundTone"],
-    attrValues: { textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
+    attrs: ["id", "indent", "textTone", "backgroundTone"],
+    attrValues: { indent: LIST_INDENTS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
     childTypes: [KEYS.p],
   },
   // A divider is a void. It stores only its id, never align, line height, or list attrs.

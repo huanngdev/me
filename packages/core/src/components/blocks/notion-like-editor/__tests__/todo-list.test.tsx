@@ -389,7 +389,8 @@ describe("to-do list allowlist", () => {
 
     expect(field(editor.children[0], "checked")).toBeUndefined();
     expect(field(editor.children[0], "listStyleType")).toBeUndefined();
-    expect(field(editor.children[0], "indent")).toBeUndefined();
+    // The item is a plain paragraph now, and a plain paragraph keeps its stored indent.
+    expect(field(editor.children[0], "indent")).toBe(1);
   });
 });
 

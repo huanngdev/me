@@ -45,6 +45,7 @@ import {
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
 import { inlineEquationNode } from "../features/editor-inline-equation";
+import { BLOCK_INDENT_MAX } from "../features/editor-block-indent-style";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
@@ -243,6 +244,14 @@ function copyCellSpans(node: Record<string, unknown>, props: TElement): void {
   }
 }
 
+// A pasted indent above the cap is clamped. Below 1 or non-integer is left to the attr check.
+function pastedIndent(value: unknown): unknown {
+  if (typeof value === "number" && Number.isInteger(value) && value > BLOCK_INDENT_MAX) {
+    return BLOCK_INDENT_MAX;
+  }
+  return value;
+}
+
 function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void {
   const allowed = allowedElementAttrs(props.type);
   if (allowed === undefined) {
@@ -250,17 +259,18 @@ function copyAllowedAttrs(node: Record<string, unknown>, props: TElement): void 
   }
 
   for (const key of allowed) {
+    const value = key === "indent" ? pastedIndent(node[key]) : node[key];
     if (
       key === "id" ||
       key === "colSpan" ||
       key === "rowSpan" ||
       !(key in node) ||
-      !isAllowedElementAttrValue(props.type, key, node[key])
+      !isAllowedElementAttrValue(props.type, key, value)
     ) {
       continue;
     }
 
-    props[key] = node[key];
+    props[key] = value;
   }
 
   copyCellSpans(node, props);

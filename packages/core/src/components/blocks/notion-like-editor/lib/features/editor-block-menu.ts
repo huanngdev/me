@@ -12,6 +12,7 @@ import {
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
+import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
   allowedChildTypes,
@@ -658,10 +659,26 @@ function replacementNodes(
   return [structuredClone(node)];
 }
 
+// A plain indent moves to the next block. A list item's depth is not a plain indent, so it stops here.
+function plainIndentOf(node: TElement): number | undefined {
+  if (isListParagraph(node)) {
+    return undefined;
+  }
+  return blockIndentOf(node) || undefined;
+}
+
 function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
   const align = stringProp(node, "align");
   const lineHeight = stringProp(node, "lineHeight");
-  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight, node);
+  return textBlock(
+    nodeId(node),
+    kind,
+    structuredClone(node.children),
+    align,
+    lineHeight,
+    node,
+    plainIndentOf(node),
+  );
 }
 
 function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -670,7 +687,13 @@ function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElem
   const inlines = structuredClone(node.children);
   const label = labelKind(kind, node);
   const inner = textBlock(createId(seen), label, inlines, align, lineHeight, node);
-  return containerNode(nodeId(node), kind, [inner]);
+  const outer = containerNode(nodeId(node), kind, [inner]);
+  // Only a quote keeps a plain indent on its own element. Callout and toggle drop it.
+  const indent = plainIndentOf(node);
+  if (kind === "quote" && indent !== undefined) {
+    setProp(outer, "indent", indent);
+  }
+  return outer;
 }
 
 function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -707,6 +730,8 @@ function containerToLeaf(
 ): { leaf: TElement; rest: TElement[] } {
   const children = blockElements(node);
   const first = children[0];
+  // A quote's indent comes along, else the first plain child's, as align does.
+  const quoteIndent = plainIndentOf(node);
   if (first && canRepresent(childView(first), kind)) {
     // A toned quote keeps its tone. Otherwise the first child's tone comes along, as align does.
     const toned = hasTone(node) ? node : first;
@@ -717,12 +742,21 @@ function containerToLeaf(
       stringProp(first, "align"),
       stringProp(first, "lineHeight"),
       toned,
+      quoteIndent ?? plainIndentOf(first),
     );
     return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
   }
 
   return {
-    leaf: textBlock(nodeId(node), kind, [{ text: "" }]),
+    leaf: textBlock(
+      nodeId(node),
+      kind,
+      [{ text: "" }],
+      undefined,
+      undefined,
+      undefined,
+      quoteIndent,
+    ),
     rest: children.map((child) => structuredClone(child)),
   };
 }
@@ -804,6 +838,8 @@ function childView(node: TElement): MenuChildView {
   };
 }
 
+// A list kind takes indent as its depth, and 1 when there is none. A plain paragraph or
+// heading takes indent only when given one.
 function textBlock(
   id: string,
   kind: BlockMenuKind,
@@ -811,6 +847,7 @@ function textBlock(
   align?: string,
   lineHeight?: string,
   toneSource?: TElement,
+  indent?: number,
 ): TElement {
   const node: TElement = { type: slateType(kind), id, children };
   if (toneSource !== undefined) {
@@ -825,7 +862,9 @@ function textBlock(
   const style = listStyleOf(kind);
   if (style !== undefined) {
     setProp(node, "listStyleType", style);
-    setProp(node, "indent", 1);
+    setProp(node, "indent", indent ?? 1);
+  } else if (indent !== undefined && isPlainIndentKind(kind)) {
+    setProp(node, "indent", indent);
   }
   if (kind === "numbered") {
     setProp(node, "listStart", 1);
@@ -866,6 +905,10 @@ function unsetTones(node: TElement): void {
 
 function hasTone(node: TElement): boolean {
   return TONE_KEYS.some((key) => stringProp(node, key) !== undefined);
+}
+
+function isPlainIndentKind(kind: BlockMenuKind): boolean {
+  return kind === "paragraph" || kind === "h1" || kind === "h2" || kind === "h3";
 }
 
 function allowsAlign(kind: BlockMenuKind): boolean {
