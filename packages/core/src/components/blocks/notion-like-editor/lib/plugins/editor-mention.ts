@@ -218,6 +218,7 @@ export function mentionTriggerAllowed(editor: SlateEditor): boolean {
 }
 
 export const mentionPlugin = BaseMentionPlugin.configure({
+  node: { isMarkableVoid: false },
   options: {
     trigger: "@",
     triggerPreviousCharPattern: /^\s?$/,

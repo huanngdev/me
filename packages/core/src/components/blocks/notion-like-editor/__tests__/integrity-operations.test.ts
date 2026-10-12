@@ -426,26 +426,22 @@ describe("marks on the whole block", () => {
     }
   }
 
-  // DEFECT: a mark applied across an inline void (mention, date, inline equation, footnote reference) also
-  // lands on the void's empty text leaf. The validator rejects a marked leaf there, so the document cannot reopen.
+  // A mark never lands on the empty text leaf of an inline void, so the document stays valid.
   for (const name of ["demo", "worst"]) {
-    test.failing(
-      `${name} text blocks with inline elements take each mark on and off and stay valid`,
-      () => {
-        marksFor(
-          name,
-          fixtureNamed(name),
-          TOGGLES,
-          (block) => containsType(block, INLINE_VOID_TYPES),
-          0,
-          12,
-        );
-      },
-    );
+    test(`${name} text blocks with inline elements take each mark on and off and stay valid`, () => {
+      marksFor(
+        name,
+        fixtureNamed(name),
+        TOGGLES,
+        (block) => containsType(block, INLINE_VOID_TYPES),
+        0,
+        12,
+      );
+    });
   }
 
-  // DEFECT (minimal form of the test above): bold across [p: "a", mention, "b"] marks the mention's text leaf.
-  test.failing("bold across a mention keeps the document valid", () => {
+  // Bold across a mention leaves the mention's empty text leaf unmarked.
+  test("bold across a mention keeps the document valid", () => {
     const editor = createEditor([
       {
         type: "p",
@@ -656,26 +652,29 @@ describe("turn into", () => {
     }
   }
 
-  // DEFECT: runEditorCommand's contract says a command returning false is refused. turnBlockInto.run
-  // ignores the false that applyBlockTurn returns, so a refused Turn into still reports success.
-  test.failing("a refused Turn into reports false to the caller", () => {
+  // A refused Turn into returns false and changes nothing.
+  test("a refused Turn into reports false to the caller", () => {
     const value = fixtureNamed("worst");
     const editor = freshEditor(value);
-    const index = indexesOf(value, FOOTNOTE_DEF_KEY)[0];
-    if (index === undefined) {
-      throw new Error("The fixture has no footnote definition.");
+    let target: { index: number; kind: BlockMenuKind } | undefined;
+    for (let index = 0; index < value.length && target === undefined; index += 1) {
+      const view = menuBlockView(editor, [index]);
+      const refused = view
+        ? (blockMenuDecisions(view) ?? []).find((item) => !item.allowed)
+        : undefined;
+      if (refused !== undefined) {
+        target = { index, kind: refused.kind };
+      }
     }
-    const view = menuBlockView(editor, [index]);
-    const refused = view
-      ? (blockMenuDecisions(view) ?? []).find((item) => !item.allowed)
-      : undefined;
-    if (refused === undefined) {
-      throw new Error("A footnote definition should refuse at least one turn.");
+    if (target === undefined) {
+      throw new Error("The worst fixture has no block that refuses a turn.");
     }
 
-    expect(runEditorCommand(editor, turnBlockInto, { path: [index], kind: refused.kind })).toBe(
-      false,
-    );
+    const before = snapshot(editor);
+    expect(
+      runEditorCommand(editor, turnBlockInto, { path: [target.index], kind: target.kind }),
+    ).toBe(false);
+    expectExact(snapshot(editor), before, "a refused Turn into");
   });
 });
 

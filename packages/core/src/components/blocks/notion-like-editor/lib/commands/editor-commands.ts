@@ -1352,9 +1352,7 @@ export const turnBlockInto: EditorCommand<BlockMenuTurnPayload> = {
   id: "block.menu.turn-into",
   label: "Turn into",
   group: "turn-into",
-  run: (editor, payload) => {
-    applyBlockTurn(editor, payload.path, payload.kind);
-  },
+  run: (editor, payload) => applyBlockTurn(editor, payload.path, payload.kind),
 };
 
 export const duplicateBlock: EditorCommand<{ path: number[] }> = {

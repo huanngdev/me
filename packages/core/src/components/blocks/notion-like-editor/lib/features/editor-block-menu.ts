@@ -218,8 +218,12 @@ export function applyBlockTurn(editor: SlateEditor, path: number[], kind: BlockM
 
   const view = viewAt(editor, node, entry[1]);
   const decision = blockMenuDecisions(view)?.find((item) => item.kind === kind);
-  if (!decision || !decision.allowed || decision.effect === "same") {
+  if (!decision || !decision.allowed) {
     return false;
+  }
+  // Turning into the same kind changes nothing, and that is still an accepted turn.
+  if (decision.effect === "same") {
+    return true;
   }
 
   const seen = collectIds(editor);
