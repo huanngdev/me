@@ -1,5 +1,11 @@
-import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
-import { Paperclip, RefreshCw } from "lucide-react";
+import {
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
+import { Eye, Paperclip, RefreshCw } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -24,6 +30,7 @@ import {
   formatFileSize,
   isHttpFileUrl,
 } from "../../lib/features/editor-file-url";
+import { isPdfMime, pdfViewerAvailable } from "../../lib/features/editor-pdf-preview";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import {
@@ -34,6 +41,7 @@ import {
 import { EditorTextButton, mediaStringAttr } from "../ui/block-toolbar";
 import { FileActionPopover } from "../ui/file-action-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
+import { PdfPreviewDialog } from "../ui/pdf-preview-dialog";
 import { hrElementClassName } from "./hr-element";
 import { FileRowText, FileTypeIcon } from "../static/file-row";
 import { isControlTarget, useMediaCardSelect } from "./media-card";
@@ -78,6 +86,18 @@ function fileState(url: string | undefined, status: ResolvedFileUrl["status"]): 
   return "loading";
 }
 
+function noop(): void {}
+
+// The viewer setting does not change while the page is open, so nothing subscribes. The server
+// snapshot is false, so the server render and the first client render match.
+function subscribeToNothing(): () => void {
+  return noop;
+}
+
+function usePdfViewerAvailable(): boolean {
+  return useSyncExternalStore(subscribeToNothing, pdfViewerAvailable, () => false);
+}
+
 function storedFileName(editor: SlateEditor, id: string): string | undefined {
   const entry = findBlockById(editor, id);
   return entry === undefined ? undefined : mediaStringAttr(entry[0], "name");
@@ -97,6 +117,10 @@ export function FileElement(props: PlateElementProps) {
   const upload = useUploadState(id);
   const resolved = useResolvedFileUrl(fields.url);
   const [renaming, setRenaming] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  // Counts the opens, so each open gets a fresh dialog (see PdfPreviewDialog).
+  const [previewCount, setPreviewCount] = useState(0);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +129,9 @@ export function FileElement(props: PlateElementProps) {
   const state = fileState(fields.url, resolved.status);
   const phase: FilePhase = uploading?.status ?? state;
   const src = resolved.status === "ready" ? resolved.url : undefined;
+  // Preview needs a PDF mime, a resolved url and the browser's PDF viewer. Otherwise it is not offered.
+  const pdfViewer = usePdfViewerAvailable();
+  const previewUrl = pdfViewer && isPdfMime(fields.mime) ? src : undefined;
   const name = displayFileName(fields);
   const icon = <FileTypeIcon kind={fileIconKind(fields.mime, name)} />;
   const sizeDetail = fields.size === undefined ? undefined : formatFileSize(fields.size);
@@ -123,6 +150,20 @@ export function FileElement(props: PlateElementProps) {
   function openActions(): void {
     selectMediaBlock(editor, id);
     openMediaActions(editor, id);
+  }
+
+  function openPreview(): void {
+    setPreviewCount((count) => count + 1);
+    setPreviewOpen(true);
+  }
+
+  // Read-only, focus goes back to the Preview button that opened the dialog. In the editor, to the text.
+  function returnPreviewFocus(): void {
+    if (readOnly) {
+      previewButtonRef.current?.focus();
+    } else {
+      editor.tf.focus();
+    }
   }
 
   function embedLink(url: string): boolean {
@@ -186,20 +227,31 @@ export function FileElement(props: PlateElementProps) {
   } else if (readOnly) {
     body =
       state === "ready" && src !== undefined ? (
-        <a
-          href={src}
-          {...(/^blob:/i.test(src)
-            ? { download: name }
-            : { target: "_blank", rel: "noopener noreferrer nofollow" })}
-          data-file-state={phase}
-          className={cn(
-            MEDIA_ROW_CLASS,
-            "hover:bg-accent focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        <div className="flex items-center gap-2">
+          <a
+            href={src}
+            {...(/^blob:/i.test(src)
+              ? { download: name }
+              : { target: "_blank", rel: "noopener noreferrer nofollow" })}
+            data-file-state={phase}
+            className={cn(
+              MEDIA_ROW_CLASS,
+              "hover:bg-accent focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+            )}
+          >
+            {icon}
+            <FileRowText name={name} detail={detail} />
+          </a>
+          {previewUrl === undefined ? null : (
+            <EditorTextButton
+              ref={previewButtonRef}
+              label="Preview"
+              icon={<Eye aria-hidden="true" />}
+              data-file-action="preview"
+              onClick={openPreview}
+            />
           )}
-        >
-          {icon}
-          <FileRowText name={name} detail={detail} />
-        </a>
+        </div>
       ) : (
         <div className={MEDIA_ROW_CLASS}>
           {icon}
@@ -272,6 +324,7 @@ export function FileElement(props: PlateElementProps) {
               name={name}
               href={src}
               readAnchor={readAnchor}
+              onPreview={previewUrl === undefined ? undefined : openPreview}
               onRename={() => {
                 setRenaming(true);
               }}
@@ -285,6 +338,16 @@ export function FileElement(props: PlateElementProps) {
             />
           </>
         ) : null}
+        {previewUrl === undefined ? null : (
+          <PdfPreviewDialog
+            key={previewCount}
+            name={name}
+            url={previewUrl}
+            open={previewOpen}
+            onOpenChange={setPreviewOpen}
+            returnFocus={returnPreviewFocus}
+          />
+        )}
       </div>
       {props.children}
     </PlateElement>

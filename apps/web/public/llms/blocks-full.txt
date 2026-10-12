@@ -33854,6 +33854,15 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "file",
+    id: "demo-pdf",
+    url: "/blocks/notion-like-editor/pdf-demo.pdf",
+    name: "pdf-demo.pdf",
+    size: 591,
+    mime: "application/pdf",
+    children: [{ text: "" }],
+  },
+  {
     type: "h3",
     id: "demo-videos",
     children: [{ text: "Video" }],

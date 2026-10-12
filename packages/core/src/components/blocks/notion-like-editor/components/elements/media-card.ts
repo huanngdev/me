@@ -45,8 +45,10 @@ export function onPlayerClick(event: { stopPropagation: () => void }): void {
   event.stopPropagation();
 }
 
-// Mouse-down on the card selects its block, as a bookmark card does. It runs only while `active`,
-// which is true when the card is rendered and the editor is writable.
+// Mouse-down on the card keeps the caret where it is, and a click selects its block. The block is not
+// selected on mouse-down: selecting scrolls a row near the bottom of the editor into view, so it moves
+// out from under the pointer, and the click is lost. It runs only while `active`, which is true when
+// the card is rendered and the editor is writable.
 export function useMediaCardSelect(
   cardRef: RefObject<HTMLDivElement | null>,
   id: string,
@@ -69,11 +71,19 @@ export function useMediaCardSelect(
       }
 
       event.preventDefault();
+    };
+    const onClick = (event: MouseEvent): void => {
+      if (event.button !== 0 || isControlTarget(event.target)) {
+        return;
+      }
+
       selectMediaBlock(editor, id);
     };
     node.addEventListener("mousedown", onMouseDown);
+    node.addEventListener("click", onClick);
     return () => {
       node.removeEventListener("mousedown", onMouseDown);
+      node.removeEventListener("click", onClick);
     };
   }, [editor, id, active, cardRef]);
 }

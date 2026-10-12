@@ -186,7 +186,10 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
         via: "paste",
         note: "Files pasted or dropped, other than images, videos and audio, up to 10 at a time",
       },
-      { via: "pointer", note: "Click for actions: Download, Rename, Replace and Delete" },
+      {
+        via: "pointer",
+        note: "Click for actions: Preview (PDFs only), Download, Rename, Replace and Delete",
+      },
       { via: "toolbar", id: "block.file.rename", note: "Rename" },
       { via: "toolbar", id: "block.file.set-source", note: "Replace" },
       { via: "toolbar", id: "block.file.remove", note: "Delete" },
@@ -199,6 +202,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       "Name up to 255 characters; a link without a name takes its name from the url",
       "Any mime type; the icon follows the mime type, then the extension",
       "Without a file adapter, only http, https and root-relative urls open",
+      "Preview needs an application/pdf mime type and the browser's PDF viewer; the bytes must start with %PDF- within the first 1024 bytes, and a PDF over 50 MB is not shown",
     ],
   },
   {

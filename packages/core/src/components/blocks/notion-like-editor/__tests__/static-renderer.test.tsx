@@ -485,12 +485,13 @@ describe("static renderer", () => {
     expect(editorBlocks.length).toBeGreaterThan(0);
     for (const node of editorBlocks) {
       const id = node.getAttribute("data-block-id");
-      // A bookmark, and the demo image, file, video and audio blocks, have no static parity here. The
+      // A bookmark, and the demo image, file, pdf, video and audio blocks, have no static parity here. The
       // static output of these blocks has no data-block-id. Their own tests cover their static output.
       if (
         id?.includes("bookmark") ||
         id === "demo-image" ||
         id === "demo-file" ||
+        id === "demo-pdf" ||
         id === "demo-video" ||
         id === "demo-audio"
       ) {

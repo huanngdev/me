@@ -1,4 +1,4 @@
-import { Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useEditorRef, usePluginOption } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -14,12 +14,13 @@ import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-too
 import { MediaDownloadButton } from "./media-download-button";
 
 // One row of file actions, opened by a click on the file row (or Enter on the selected file).
-// Download, then Rename and Replace, then Delete, with separators between the sections.
+// Preview for a PDF, then Download, then Rename and Replace, then Delete, with separators between the sections.
 export function FileActionPopover({
   id,
   name,
   href,
   readAnchor,
+  onPreview,
   onRename,
   onReplace,
 }: {
@@ -27,6 +28,7 @@ export function FileActionPopover({
   name: string;
   href: string | undefined; // the resolved url; undefined while it resolves or when unavailable
   readAnchor: () => HTMLElement | null;
+  onPreview?: () => void; // set only for a PDF the browser can show
   onRename: () => void;
   onReplace: () => void;
 }) {
@@ -96,6 +98,20 @@ export function FileActionPopover({
           tabIndex={-1}
           className="flex flex-nowrap items-center gap-1 focus:outline-none"
         >
+          {onPreview === undefined ? null : (
+            <>
+              <EditorTextButton
+                label="Preview"
+                icon={<Eye aria-hidden="true" />}
+                data-file-action="preview"
+                onClick={() => {
+                  closeMediaActions(editor);
+                  onPreview();
+                }}
+              />
+              <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+            </>
+          )}
           <MediaDownloadButton
             kind="file"
             href={href}

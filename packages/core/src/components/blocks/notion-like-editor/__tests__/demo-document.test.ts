@@ -992,8 +992,8 @@ describe("demo document", () => {
   });
 
   test("the demo includes an external link, a mailto link, and an autolink example", () => {
-    // 109 blocks: the files heading and the file block, then the video and audio headings and blocks, were added after the image.
-    expect(DEMO_DOCUMENT_VALUE).toHaveLength(109);
+    // 110 blocks: the files heading and the file blocks, then the video and audio headings and blocks, were added after the image.
+    expect(DEMO_DOCUMENT_VALUE).toHaveLength(110);
     const intro = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-intro");
     const paste = DEMO_DOCUMENT_VALUE.find((item) => item.id === "demo-paste");
     const introLinks = elementChildren(intro).filter((child) => field(child, "type") === "a");
