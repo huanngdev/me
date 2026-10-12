@@ -152,8 +152,9 @@ export function showingToolbarSnapshot(
   };
 }
 
-export function selectionToolbarPlacement(matchesCoarse: boolean): "floating" | "docked" {
-  return matchesCoarse ? "docked" : "floating";
+// Touch shows the toolbar below the selection, under the OS copy and paste callout.
+export function selectionToolbarSide(matchesCoarse: boolean): "top" | "bottom" {
+  return matchesCoarse ? "bottom" : "top";
 }
 
 export function selectionToolbarFrame(

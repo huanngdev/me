@@ -113,6 +113,7 @@ function BookmarkUrlForm({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-bookmark-url-popover=""
+        aria-label="Bookmark link"
         side="bottom"
         align="start"
         sideOffset={4}

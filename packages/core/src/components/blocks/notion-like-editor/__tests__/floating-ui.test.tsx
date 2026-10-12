@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { createPlateEditor } from "platejs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import * as ts from "typescript";
 
 import { EditorSurface } from "../components/editor/editor-surface";
 import type { EditorValue } from "../lib/document/editor-value";
@@ -36,12 +37,34 @@ const floatingSources = [
   "components/ui/block-color-menu.tsx",
   "components/ui/selection-toolbar.tsx",
   "components/ui/selection-color-menu.tsx",
+  "components/ui/slash-menu.tsx",
   "components/ui/emoji-suggest.tsx",
   "components/ui/find-bar.tsx",
 ];
 
 function isReactContainer(value: object): value is Parameters<typeof createRoot>[0] {
   return "nodeType" in value && value.nodeType === 1;
+}
+
+// Counts the <PopoverContent> elements in a file that have no aria-label attribute.
+function unlabeledPopovers(path: string, text: string): number {
+  const file = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let unlabeled = 0;
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+      node.tagName.getText(file) === "PopoverContent" &&
+      !node.attributes.properties.some(
+        (attribute) =>
+          ts.isJsxAttribute(attribute) && attribute.name.getText(file) === "aria-label",
+      )
+    ) {
+      unlabeled += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return unlabeled;
 }
 
 describe("floating ui positioning", () => {
@@ -62,6 +85,10 @@ describe("floating ui positioning", () => {
       }
       if (padding.length !== surfaces.length) {
         problems.push(`${path} pads ${padding.length} of ${surfaces.length} surfaces`);
+      }
+      const unlabeled = unlabeledPopovers(path, text);
+      if (unlabeled > 0) {
+        problems.push(`${path} has ${unlabeled} popover contents without aria-label`);
       }
     }
 

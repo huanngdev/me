@@ -15,6 +15,7 @@ export function PersistedEditor({
   onChange,
   readOnly = false,
   placeholder = "Type something…",
+  ariaLabel = "Rich text editor",
   className,
   adapter,
   linkPreview = null,
@@ -43,6 +44,7 @@ export function PersistedEditor({
           initialValue={session.document.content}
           readOnly={readOnly}
           placeholder={placeholder}
+          ariaLabel={ariaLabel}
           onChange={onChange}
           onContentChange={session.onContentChange}
           linkPreview={linkPreview}

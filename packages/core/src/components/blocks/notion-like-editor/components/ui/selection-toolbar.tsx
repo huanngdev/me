@@ -185,7 +185,7 @@ export function SelectionToolbar() {
   "use no memo";
 
   const toolbar = useSelectionToolbar();
-  const { editor, placement, visible, dismiss, captureRange, setMenuOpen } = toolbar;
+  const { editor, side, visible, dismiss, captureRange, setMenuOpen } = toolbar;
   const [revision, setRevision] = useState(0);
   const anchor = useMemo(
     () =>
@@ -197,11 +197,11 @@ export function SelectionToolbar() {
   );
 
   useEffect(() => {
-    if (!visible || placement !== "floating") {
+    if (!visible) {
       return;
     }
     window.dispatchEvent(new Event("resize"));
-  }, [placement, toolbar.expandedKey, visible]);
+  }, [toolbar.expandedKey, visible]);
 
   useEffect(() => {
     if (!visible) {
@@ -388,27 +388,14 @@ export function SelectionToolbar() {
     />
   );
 
-  if (placement === "docked") {
-    return (
-      <div
-        className="sticky top-0 z-30 w-full"
-        onMouseDown={keepSelection}
-        onKeyDown={onToolbarKeyDown}
-      >
-        <ScrollFadeArea orientation="horizontal" className="w-full">
-          <ToolbarRoot placement="docked">{controls}</ToolbarRoot>
-        </ScrollFadeArea>
-      </div>
-    );
-  }
-
   const frame = selectionToolbarFrame(document);
   return (
     <Popover open modal={false}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
         data-collision-boundary={frame ? "frame" : undefined}
-        side="top"
+        aria-label="Text formatting"
+        side={side}
         align="center"
         sideOffset={8}
         collisionPadding={8}
@@ -421,12 +408,10 @@ export function SelectionToolbar() {
         onPointerDownOutside={keepNested}
         onMouseDown={keepSelection}
         onKeyDown={onToolbarKeyDown}
-        className="w-auto max-w-[calc(100vw-16px)] p-1"
+        className="w-auto max-w-[min(calc(100vw-16px),var(--radix-popover-content-available-width))] p-1"
       >
         <ScrollFadeArea orientation="horizontal" className="w-full">
-          <ToolbarRoot placement="floating" collisionBoundary={frame ? "frame" : undefined}>
-            {controls}
-          </ToolbarRoot>
+          <ToolbarRoot collisionBoundary={frame ? "frame" : undefined}>{controls}</ToolbarRoot>
         </ScrollFadeArea>
       </PopoverContent>
     </Popover>
@@ -434,11 +419,9 @@ export function SelectionToolbar() {
 }
 
 function ToolbarRoot({
-  placement,
   collisionBoundary,
   children,
 }: {
-  placement: "floating" | "docked";
   collisionBoundary?: string;
   children: ReactNode;
 }) {
@@ -447,12 +430,8 @@ function ToolbarRoot({
       role="toolbar"
       aria-label="Text formatting"
       data-selection-toolbar=""
-      data-placement={placement}
       data-collision-boundary={collisionBoundary}
-      className={cn(
-        "flex items-center gap-1",
-        placement === "docked" && "bg-background p-2 shadow-sm",
-      )}
+      className="flex items-center gap-1"
     >
       {children}
     </div>
@@ -539,7 +518,7 @@ function ToolbarControls({
                 type="button"
                 size="sm"
                 variant="ghost"
-                aria-label="Turn into"
+                aria-label={`Turn into, current: ${model.turnInto.label}`}
                 data-toolbar-control="turn-into"
                 tabIndex={tabOf("turn-into", false, firstEnabled)}
                 className="h-8"

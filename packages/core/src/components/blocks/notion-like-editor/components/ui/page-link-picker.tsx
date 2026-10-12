@@ -211,6 +211,7 @@ function PageLinkPickerForm({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-page-link-picker=""
+        aria-label="Page search"
         side="bottom"
         align="start"
         sideOffset={4}

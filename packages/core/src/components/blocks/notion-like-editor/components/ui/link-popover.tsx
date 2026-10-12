@@ -103,6 +103,7 @@ function LinkPopoverForm({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-popover=""
+        aria-label="Link"
         data-link-mode={mode}
         side="bottom"
         align="start"

@@ -14,6 +14,7 @@ type ReadyEditorProps = {
   initialValue: EditorValue;
   readOnly: boolean;
   placeholder: string;
+  ariaLabel: string;
   onChange?: (value: EditorValue) => void;
   onContentChange: (value: EditorValue) => void;
   status: AutosaveStatus;
@@ -30,6 +31,7 @@ export function ReadyEditor({
   initialValue,
   readOnly,
   placeholder,
+  ariaLabel,
   onChange,
   onContentChange,
   status,
@@ -56,6 +58,7 @@ export function ReadyEditor({
         editor={editor}
         readOnly={readOnly}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         onValueChange={(value) => {
           onChange?.(value);
           onContentChange(value);

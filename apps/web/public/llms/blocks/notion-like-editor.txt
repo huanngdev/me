@@ -15039,7 +15039,11 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { clampAndNormalizeWidths, setColumnWidths } from "../../lib/commands/editor-columns";
+import {
+  clampAndNormalizeWidths,
+  COLUMN_MIN_PERCENT,
+  setColumnWidths,
+} from "../../lib/commands/editor-columns";
 
 import { COLUMN_GROUP_LAYOUT_CLASS } from "./column-classes";
 
@@ -15220,9 +15224,12 @@ export function ColumnGroupElement(props: PlateElementProps) {
       {readOnly ? null : (
         <>
           {columns.slice(0, -1).map((_, index) => {
-            const left = widthNumbers(shown)
-              .slice(0, index + 1)
-              .reduce((total, value) => total + value, 0);
+            const widths = widthNumbers(shown);
+            const left = widths.slice(0, index + 1).reduce((total, value) => total + value, 0);
+            // The value is the rounded width of the column on the left. The limits match
+            // clampAndNormalizeWidths, so the value stays in range.
+            const leftWidth = Math.round(widths[index] ?? 0);
+            const maxWidth = 100 - COLUMN_MIN_PERCENT * (columns.length - 1);
             return (
               // A resize handle is dragged and stepped with the arrow keys. It is a
               // separator, not a Button, because it does not run a command.
@@ -15231,6 +15238,9 @@ export function ColumnGroupElement(props: PlateElementProps) {
                 role="separator"
                 aria-orientation="vertical"
                 aria-label={`Resize column ${index + 1}`}
+                aria-valuenow={leftWidth}
+                aria-valuemin={COLUMN_MIN_PERCENT}
+                aria-valuemax={maxWidth}
                 tabIndex={0}
                 data-column-resize={index}
                 className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
@@ -16199,6 +16209,7 @@ export function EquationElement(props: PlateElementProps) {
           </div>
         </PopoverAnchor>
         <PopoverContent
+          aria-label="Equation editor"
           className="w-[min(28rem,calc(100vw-2rem))]"
           collisionPadding={8}
           hideWhenDetached
@@ -16690,6 +16701,7 @@ export function InlineEquationPopover({ id }: { id: string }) {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-inline-equation-popover=""
+        aria-label="Equation"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -17580,6 +17592,7 @@ export function InlineDatePopover({ id }: { id: string }) {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-inline-date-popover=""
+        aria-label="Date"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -20845,6 +20858,7 @@ export function LinkToolbar() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-toolbar=""
+        aria-label="Link actions"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -21083,6 +21097,7 @@ function LinkPopoverForm({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-popover=""
+        aria-label="Link"
         data-link-mode={mode}
         side="bottom"
         align="start"
@@ -22272,6 +22287,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       </span>
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
+        aria-label="Mention suggestions"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -22423,6 +22439,7 @@ export function PasteUrlMenu() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-paste-url-menu=""
+        aria-label="Paste options"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -22536,6 +22553,7 @@ export function EmojiSuggest() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-emoji-suggest=""
+        aria-label="Emoji suggestions"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -29228,6 +29246,7 @@ type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
   readOnly: boolean;
   placeholder: string;
+  ariaLabel?: string;
   onValueChange?: (value: EditorValue) => void;
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
@@ -29241,6 +29260,7 @@ export function EditorSurface({
   editor,
   readOnly,
   placeholder,
+  ariaLabel,
   onValueChange,
   className,
   linkPreview = null,
@@ -29273,6 +29293,7 @@ export function EditorSurface({
               <SelectionToolbar />
               <FindBar />
               <PlateContent
+                aria-label={ariaLabel}
                 aria-readonly={readOnly ? true : undefined}
                 placeholder={readOnly ? undefined : placeholder}
                 // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
@@ -29527,6 +29548,7 @@ export function MemoryEditor({
   onChange,
   readOnly = false,
   placeholder = "Type something…",
+  ariaLabel = "Rich text editor",
   className,
   linkPreview = null,
   mentionProvider = null,
@@ -29541,6 +29563,7 @@ export function MemoryEditor({
         editor={editor}
         readOnly={readOnly}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         onValueChange={onChange}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
@@ -29571,6 +29594,7 @@ type ReadyEditorProps = {
   initialValue: EditorValue;
   readOnly: boolean;
   placeholder: string;
+  ariaLabel: string;
   onChange?: (value: EditorValue) => void;
   onContentChange: (value: EditorValue) => void;
   status: AutosaveStatus;
@@ -29587,6 +29611,7 @@ export function ReadyEditor({
   initialValue,
   readOnly,
   placeholder,
+  ariaLabel,
   onChange,
   onContentChange,
   status,
@@ -29613,6 +29638,7 @@ export function ReadyEditor({
         editor={editor}
         readOnly={readOnly}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         onValueChange={(value) => {
           onChange?.(value);
           onContentChange(value);
@@ -29647,6 +29673,7 @@ export function PersistedEditor({
   onChange,
   readOnly = false,
   placeholder = "Type something…",
+  ariaLabel = "Rich text editor",
   className,
   adapter,
   linkPreview = null,
@@ -29675,6 +29702,7 @@ export function PersistedEditor({
           initialValue={session.document.content}
           readOnly={readOnly}
           placeholder={placeholder}
+          ariaLabel={ariaLabel}
           onChange={onChange}
           onContentChange={session.onContentChange}
           linkPreview={linkPreview}
@@ -29711,6 +29739,7 @@ export type NotionLikeEditorBlockProps = {
   onChange?: (value: EditorValue) => void;
   readOnly?: boolean;
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
   linkPreview?: LinkPreviewAdapter | null;

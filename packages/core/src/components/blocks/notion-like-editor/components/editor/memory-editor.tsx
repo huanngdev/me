@@ -12,6 +12,7 @@ export function MemoryEditor({
   onChange,
   readOnly = false,
   placeholder = "Type something…",
+  ariaLabel = "Rich text editor",
   className,
   linkPreview = null,
   mentionProvider = null,
@@ -26,6 +27,7 @@ export function MemoryEditor({
         editor={editor}
         readOnly={readOnly}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         onValueChange={onChange}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}

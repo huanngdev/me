@@ -25,7 +25,7 @@ import {
   SELECTION_TOOLBAR_MEDIA,
   selectionToolbarFrame,
   selectionToolbarModel,
-  selectionToolbarPlacement,
+  selectionToolbarSide,
   selectionToolbarVisible,
   showingToolbarSnapshot,
 } from "../lib/features/editor-selection-toolbar";
@@ -130,8 +130,22 @@ function control(label: string): HTMLElement {
   return node;
 }
 
+// The Turn into name includes the current type, so the trigger is found by its data attribute.
+function turnInto(): HTMLElement {
+  const node = document.querySelector(
+    "[data-selection-toolbar] [data-toolbar-control='turn-into']",
+  );
+  if (!(node instanceof HTMLElement)) {
+    throw new Error("Missing control turn into");
+  }
+  return node;
+}
+
 async function press(label: string): Promise<void> {
-  const node = control(label);
+  await pressNode(control(label));
+}
+
+async function pressNode(node: HTMLElement): Promise<void> {
   await act(async () => {
     node.dispatchEvent(
       new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
@@ -507,7 +521,7 @@ describe("selection toolbar controls", () => {
       }
       const controls = [...bar.querySelectorAll("[data-toolbar-control]")];
       expect(controls.map((node) => node.getAttribute("aria-label"))).toEqual([
-        "Turn into",
+        "Turn into, current: Text",
         "Bold",
         "Italic",
         "Underline",
@@ -558,7 +572,7 @@ describe("selection toolbar controls", () => {
         expect(mounted.editor.selection).toEqual(before);
       }
 
-      await press("Turn into");
+      await pressNode(turnInto());
       const heading = document.querySelector("[data-block-picker-item='h2']");
       await act(async () => {
         if (heading instanceof HTMLElement) {
@@ -677,8 +691,9 @@ describe("selection toolbar controls", () => {
     const mounted = await showToolbar([paragraph("Hello world")]);
     const before = mounted.editor.api.string(mounted.editor.selection!);
     try {
-      expect(control("Turn into").textContent).toContain("Text");
-      await press("Turn into");
+      expect(turnInto().textContent).toContain("Text");
+      expect(turnInto().getAttribute("aria-label")).toBe("Turn into, current: Text");
+      await pressNode(turnInto());
       const heading = document.querySelector("[data-block-picker-item='h2']");
       expect(heading?.getAttribute("data-state")).toBe("unchecked");
       const current = document.querySelector("[data-block-picker-item='paragraph']");
@@ -788,7 +803,7 @@ describe("selection toolbar controls", () => {
           new KeyboardEvent("keydown", { key: "F10", altKey: true, bubbles: true }),
         );
       });
-      expect(document.activeElement?.getAttribute("aria-label")).toBe("Turn into");
+      expect(document.activeElement?.getAttribute("aria-label")).toBe("Turn into, current: Text");
 
       await act(async () => {
         toolbar()?.dispatchEvent(
@@ -825,9 +840,9 @@ describe("selection toolbar controls", () => {
     }
   });
 
-  test("placement follows the media query", async () => {
-    expect(selectionToolbarPlacement(false)).toBe("floating");
-    expect(selectionToolbarPlacement(true)).toBe("docked");
+  test("the side follows the media query and touch keeps the floating popover", async () => {
+    expect(selectionToolbarSide(false)).toBe("top");
+    expect(selectionToolbarSide(true)).toBe("bottom");
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({
       matches: query === SELECTION_TOOLBAR_MEDIA,
@@ -839,21 +854,21 @@ describe("selection toolbar controls", () => {
       addListener: () => undefined,
       removeListener: () => undefined,
     })) as typeof window.matchMedia;
-    const docked = await showToolbar();
+    const touch = await showToolbar();
     try {
-      expect(toolbar()?.getAttribute("data-placement")).toBe("docked");
-      expect(toolbar()?.parentElement?.closest("[data-slate-editor]")).toBeNull();
+      expect(toolbar()?.closest("[data-radix-popper-content-wrapper]")).not.toBeNull();
+      expect(toolbar()?.closest("[data-side]")?.getAttribute("data-side")).toBe("bottom");
     } finally {
-      await docked.cleanup();
+      await touch.cleanup();
       window.matchMedia = original;
     }
 
-    const floating = await showToolbar();
+    const pointer = await showToolbar();
     try {
-      expect(toolbar()?.getAttribute("data-placement")).toBe("floating");
       expect(toolbar()?.closest("[data-radix-popper-content-wrapper]")).not.toBeNull();
+      expect(toolbar()?.closest("[data-side]")?.getAttribute("data-side")).toBe("top");
     } finally {
-      await floating.cleanup();
+      await pointer.cleanup();
     }
   });
 
@@ -959,7 +974,7 @@ describe("selection toolbar keys and state", () => {
           "[data-selection-toolbar] [data-toolbar-control]:not([disabled])",
         ),
       ).map((node) => node.getAttribute("aria-label"));
-      expect(enabled[0]).toBe("Turn into");
+      expect(enabled[0]).toBe("Turn into, current: Text");
 
       const visited: (string | null)[] = [];
       for (let step = 0; step < enabled.length; step += 1) {

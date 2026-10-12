@@ -84,6 +84,7 @@ export function InlineDatePopover({ id }: { id: string }) {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-inline-date-popover=""
+        aria-label="Date"
         side="bottom"
         align="start"
         sideOffset={4}

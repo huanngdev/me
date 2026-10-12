@@ -46,6 +46,7 @@ export function EmojiSuggest() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-emoji-suggest=""
+        aria-label="Emoji suggestions"
         side="bottom"
         align="start"
         sideOffset={4}

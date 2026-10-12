@@ -14,6 +14,7 @@ export type NotionLikeEditorBlockProps = {
   onChange?: (value: EditorValue) => void;
   readOnly?: boolean;
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
   linkPreview?: LinkPreviewAdapter | null;

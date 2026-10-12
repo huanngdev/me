@@ -3,6 +3,7 @@ import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react"
 
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { BLOCK_PICKER_GROUPS } from "../../lib/features/editor-block-picker";
@@ -89,6 +90,7 @@ export function SlashMenu() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-slash-menu=""
+        aria-label={SLASH_MENU_LABEL}
         side="bottom"
         align="start"
         sideOffset={4}
@@ -197,7 +199,9 @@ function SlashRow({
       <Icon aria-hidden="true" />
       <span className="flex min-w-0 flex-col">
         <span>{item.label}</span>
-        <span className="text-muted-foreground text-xs">{item.description}</span>
+        <span className={cn("text-xs", selected ? "text-foreground" : "text-muted-foreground")}>
+          {item.description}
+        </span>
       </span>
     </CommandItem>
   );

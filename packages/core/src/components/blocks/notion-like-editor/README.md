@@ -57,6 +57,7 @@ export function NotesView({ value }: { value: Value }) {
 - `onChange?: (value: EditorValue) => void` — called with the value after each change.
 - `readOnly?: boolean` — turns editing off. Defaults to `false`.
 - `placeholder?: string` — shown in an empty block. Defaults to `"Type something…"`.
+- `ariaLabel?: string` — the accessible name of the editable. Defaults to `"Rich text editor"`.
 - `className?: string` — added to the wrapper element.
 - `adapter?: EditorPersistenceAdapter` — selects persisted mode when present.
 - `linkPreview?: LinkPreviewAdapter | null` — fills bookmark previews. Defaults to `null`.

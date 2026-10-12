@@ -67,6 +67,7 @@ export function PasteUrlMenu() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-paste-url-menu=""
+        aria-label="Paste options"
         side="bottom"
         align="start"
         sideOffset={4}

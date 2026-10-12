@@ -8,7 +8,11 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { clampAndNormalizeWidths, setColumnWidths } from "../../lib/commands/editor-columns";
+import {
+  clampAndNormalizeWidths,
+  COLUMN_MIN_PERCENT,
+  setColumnWidths,
+} from "../../lib/commands/editor-columns";
 
 import { COLUMN_GROUP_LAYOUT_CLASS } from "./column-classes";
 
@@ -189,9 +193,12 @@ export function ColumnGroupElement(props: PlateElementProps) {
       {readOnly ? null : (
         <>
           {columns.slice(0, -1).map((_, index) => {
-            const left = widthNumbers(shown)
-              .slice(0, index + 1)
-              .reduce((total, value) => total + value, 0);
+            const widths = widthNumbers(shown);
+            const left = widths.slice(0, index + 1).reduce((total, value) => total + value, 0);
+            // The value is the rounded width of the column on the left. The limits match
+            // clampAndNormalizeWidths, so the value stays in range.
+            const leftWidth = Math.round(widths[index] ?? 0);
+            const maxWidth = 100 - COLUMN_MIN_PERCENT * (columns.length - 1);
             return (
               // A resize handle is dragged and stepped with the arrow keys. It is a
               // separator, not a Button, because it does not run a command.
@@ -200,6 +207,9 @@ export function ColumnGroupElement(props: PlateElementProps) {
                 role="separator"
                 aria-orientation="vertical"
                 aria-label={`Resize column ${index + 1}`}
+                aria-valuenow={leftWidth}
+                aria-valuemin={COLUMN_MIN_PERCENT}
+                aria-valuemax={maxWidth}
                 tabIndex={0}
                 data-column-resize={index}
                 className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"

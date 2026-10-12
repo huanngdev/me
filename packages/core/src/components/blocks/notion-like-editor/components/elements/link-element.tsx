@@ -130,6 +130,7 @@ export function LinkToolbar() {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-toolbar=""
+        aria-label="Link actions"
         side="bottom"
         align="start"
         sideOffset={4}

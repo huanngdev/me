@@ -241,6 +241,7 @@ export function EquationElement(props: PlateElementProps) {
           </div>
         </PopoverAnchor>
         <PopoverContent
+          aria-label="Equation editor"
           className="w-[min(28rem,calc(100vw-2rem))]"
           collisionPadding={8}
           hideWhenDetached

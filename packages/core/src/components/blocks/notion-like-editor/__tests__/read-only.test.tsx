@@ -12,6 +12,7 @@ import { createEditorDocument } from "../lib/document/editor-document";
 import { parseEditorDocument } from "../lib/document/editor-document-validate";
 import type { EditorValue } from "../lib/document/editor-value";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
+import { NotionLikeEditorBlock } from "../notion-like-editor-block";
 
 const CHROME = [
   "[data-block-handle]",
@@ -225,6 +226,27 @@ describe("read-only mode", () => {
         mounted.root.unmount();
       });
       mounted.host.remove();
+    }
+  });
+
+  test("the editable is named by default and a host can replace the name", async () => {
+    for (const ariaLabel of [undefined, "Journal entry"]) {
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      const root = createRoot(host);
+      await act(async () => {
+        root.render(<NotionLikeEditorBlock documentId="named" ariaLabel={ariaLabel} />);
+      });
+      try {
+        const editable = host.querySelector("[data-slate-editor]");
+        expect(editable?.getAttribute("role")).toBe("textbox");
+        expect(editable?.getAttribute("aria-label")).toBe(ariaLabel ?? "Rich text editor");
+      } finally {
+        await act(async () => {
+          root.unmount();
+        });
+        host.remove();
+      }
     }
   });
 

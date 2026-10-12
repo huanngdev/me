@@ -10,7 +10,7 @@ import { blockSelectionPlugin } from "../lib/plugins/editor-block-selection";
 import {
   SELECTION_TOOLBAR_MEDIA,
   editorSurfaceFlags,
-  selectionToolbarPlacement,
+  selectionToolbarSide,
   selectionToolbarVisible,
   type SelectionToolbarSnapshot,
 } from "../lib/features/editor-selection-toolbar";
@@ -88,7 +88,7 @@ export function useSelectionToolbar() {
   const [armed, setArmed] = useState(false);
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [placement, setPlacement] = useState<"floating" | "docked">("floating");
+  const [side, setSide] = useState<"top" | "bottom">("top");
   const [domFlags, setDomFlags] = useState<DomFlags>(CLOSED_DOM);
   const saved = useRef<TRange | null>(null);
 
@@ -114,7 +114,7 @@ export function useSelectionToolbar() {
 
     const query = window.matchMedia(SELECTION_TOOLBAR_MEDIA);
     const update = (): void => {
-      setPlacement(selectionToolbarPlacement(query.matches));
+      setSide(selectionToolbarSide(query.matches));
     };
     update();
     query.addEventListener("change", update);
@@ -276,7 +276,7 @@ export function useSelectionToolbar() {
 
   return {
     editor,
-    placement,
+    side,
     visible,
     expandedKey,
     menuOpen,

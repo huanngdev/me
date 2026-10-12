@@ -88,6 +88,7 @@ export function InlineEquationPopover({ id }: { id: string }) {
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-inline-equation-popover=""
+        aria-label="Equation"
         side="bottom"
         align="start"
         sideOffset={4}

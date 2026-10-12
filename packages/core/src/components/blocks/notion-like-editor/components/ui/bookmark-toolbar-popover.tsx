@@ -111,6 +111,7 @@ export function BookmarkToolbarPopover({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-bookmark-toolbar-popover=""
+        aria-label="Bookmark actions"
         side="bottom"
         align="start"
         sideOffset={4}

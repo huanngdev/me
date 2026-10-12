@@ -111,6 +111,7 @@ export function SelectionColorMenu({
       <PopoverContent
         data-selection-toolbar-portal=""
         data-selection-color-menu=""
+        aria-label="Text and highlight color"
         side="bottom"
         align="start"
         sideOffset={8}

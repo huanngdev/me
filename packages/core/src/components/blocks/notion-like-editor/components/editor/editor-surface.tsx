@@ -33,6 +33,7 @@ type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
   readOnly: boolean;
   placeholder: string;
+  ariaLabel?: string;
   onValueChange?: (value: EditorValue) => void;
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
@@ -46,6 +47,7 @@ export function EditorSurface({
   editor,
   readOnly,
   placeholder,
+  ariaLabel,
   onValueChange,
   className,
   linkPreview = null,
@@ -78,6 +80,7 @@ export function EditorSurface({
               <SelectionToolbar />
               <FindBar />
               <PlateContent
+                aria-label={ariaLabel}
                 aria-readonly={readOnly ? true : undefined}
                 placeholder={readOnly ? undefined : placeholder}
                 // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.

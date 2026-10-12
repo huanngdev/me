@@ -823,6 +823,31 @@ describe("column rendering", () => {
     await mounted.cleanup();
   });
 
+  test("the resize separator exposes its left width and limits and follows the keyboard", async () => {
+    const mounted = await mountColumns([
+      group("g", [
+        column("a", "34%", [paragraph("Left", "left")]),
+        column("b", "33%", [paragraph("Middle", "middle")]),
+        column("c", "33%", [paragraph("Right", "right")]),
+      ]),
+    ]);
+    const handle = mounted.host.querySelector("[data-column-resize]");
+    if (!(handle instanceof HTMLElement)) {
+      throw new Error("Missing column resize handle.");
+    }
+
+    expect(handle.getAttribute("aria-valuenow")).toBe("34");
+    expect(handle.getAttribute("aria-valuemin")).toBe("20");
+    expect(handle.getAttribute("aria-valuemax")).toBe("60");
+    handle.focus();
+    await act(async () => {
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    expect(widthsOf(mounted.editor.children[0])).toEqual(["29%", "38%", "33%"]);
+    expect(handle.getAttribute("aria-valuenow")).toBe("29");
+    await mounted.cleanup();
+  });
+
   test("the block menu deletes a column group in one click and undoes it", async () => {
     const mounted = await mountColumns([
       paragraph("Stay", "stay"),
