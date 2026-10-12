@@ -10,6 +10,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
@@ -114,6 +115,7 @@ const STRUCTURAL = new Set<string>([
   KEYS.th,
   KEYS.hr,
   BOOKMARK_KEY,
+  PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
   SYNCED_REF_KEY,

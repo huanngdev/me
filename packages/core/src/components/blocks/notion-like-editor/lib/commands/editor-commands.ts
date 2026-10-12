@@ -73,7 +73,8 @@ export type EditorCommand<Payload = void> = {
   /** Shown when the command cannot run. Absent means the control stays quiet. */
   disabledReason?: (editor: SlateEditor) => string | undefined;
   getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
-  run: (editor: SlateEditor, payload: Payload) => void;
+  /** Returning false refuses the command: no change, and runEditorCommand returns false. */
+  run: (editor: SlateEditor, payload: Payload) => void | boolean;
 };
 
 export type RunEditorCommandOptions = {
@@ -1477,16 +1478,19 @@ export function runEditorCommand<Payload>(
     return false;
   }
 
+  let accepted = true;
   editor.tf.withNewBatch(() => {
     if (options?.selection) {
       editor.tf.select(options.selection);
     }
 
-    command.run(editor, payload);
+    if (command.run(editor, payload) === false) {
+      accepted = false;
+    }
   });
   // The batch splits from earlier typing, then later keystrokes would merge
   // into it. Leave the split flag so the next saved operation starts its own entry.
   editor.tf.setSplittingOnce(true);
 
-  return true;
+  return accepted;
 }

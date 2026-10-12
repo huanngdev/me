@@ -56,6 +56,7 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
 import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
@@ -83,6 +84,8 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { PAGE_LINK_KEY } from "../features/editor-page-link";
+import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import {
   BLOCK_INDENT_TYPES,
@@ -752,6 +755,7 @@ function normalizeDisallowedChild(
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
       (child.type === BOOKMARK_KEY ||
+        child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
         child.type === SYNCED_REF_KEY) &&
@@ -1731,6 +1735,16 @@ const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
   },
 });
 
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const pageLinkPlatePlugin = toPlatePlugin(pageLinkPlugin, {
+  render: { node: PageLinkElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onPageLinkKeyDown(editor, event);
+    },
+  },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -2023,6 +2037,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     inlineEquationUiPlatePlugin,
     inlineDatePlatePlugin,
     inlineDateUiPlatePlugin,
+    pageLinkPlatePlugin,
     footnoteRefPlatePlugin,
     footnoteDefPlatePlugin,
     mentionUiPlugin,

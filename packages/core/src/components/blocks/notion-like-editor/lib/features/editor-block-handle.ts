@@ -2,6 +2,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 4;
@@ -19,6 +20,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.toggle,
   KEYS.hr,
   BOOKMARK_KEY,
+  PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
   SYNCED_REF_KEY,

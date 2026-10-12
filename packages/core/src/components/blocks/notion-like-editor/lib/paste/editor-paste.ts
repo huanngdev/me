@@ -60,6 +60,13 @@ import {
   bookmarkElement,
   storedBookmark,
 } from "../features/editor-bookmark-url";
+import {
+  PAGE_LINK_KEY,
+  PAGE_LINK_PASTE_DROPPED,
+  PAGE_LINK_TITLE_CLEANED,
+  pageLinkNode,
+  storedPageLink,
+} from "../features/editor-page-link";
 import type { EditorValue } from "../document/editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -357,6 +364,19 @@ function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [bookmarkElement(stored, nanoid())];
+}
+
+function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
+  const stored = storedPageLink(node);
+  if (stored === undefined) {
+    rememberImageRepair({ path: [], message: PAGE_LINK_PASTE_DROPPED });
+    return [];
+  }
+
+  if (stored.title !== node.title) {
+    rememberImageRepair({ path: [], message: PAGE_LINK_TITLE_CLEANED });
+  }
+  return [pageLinkNode(stored.pageId, stored.title, stored.kind, takeId(node, seen))];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -981,6 +1001,10 @@ function expandBlock(
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === BOOKMARK_KEY) {
       return pastedBookmark(node, seen);
+    }
+
+    if (node.type === PAGE_LINK_KEY) {
+      return pastedPageLink(node, seen);
     }
 
     if (node.type === KEYS.toc) {

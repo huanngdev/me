@@ -29,6 +29,7 @@ import {
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
+import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
@@ -564,7 +565,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
   const footnotes = repairFootnoteContent(envelope.data.content);
   const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
-  const content = mentions.content;
+  const pageLinks = repairPageLinkContent(mentions.content);
+  const content = pageLinks.content;
 
   for (let index = 0; index < content.length; index += 1) {
     walkTopLevel(content[index], [index], state);
@@ -599,6 +601,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       ...footnotes.repairs,
       ...structurally.repairs,
       ...mentions.repairs,
+      ...pageLinks.repairs,
       ...state.repairs,
       ...normalized.repairs,
       ...syncedRefRepairs(normalized.content),

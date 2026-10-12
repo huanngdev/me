@@ -11,6 +11,8 @@ import type { EditorValue } from "../../lib/document/editor-value";
 import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
+import { PageLinkScope } from "../elements/page-link-element";
+import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
 import { BookmarkUrlPopover } from "../ui/bookmark-url-popover";
@@ -34,6 +36,8 @@ type EditorSurfaceProps = {
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: ((request: PageOpenRequest) => void) | null;
   onInsertedBelow?: (blockId: string) => void;
 };
 
@@ -45,6 +49,8 @@ export function EditorSurface({
   className,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage = null,
   onInsertedBelow,
 }: EditorSurfaceProps) {
   return (
@@ -58,37 +64,39 @@ export function EditorSurface({
         }}
       >
         <MentionScope provider={mentionProvider}>
-          <LinkPreviewProvider adapter={linkPreview}>
-            <PasteRepairNotice />
-            <PasteUrlMenu />
-            <SlashMenu />
-            <EmojiSuggest />
-            <LinkToolbar />
-            <LinkPopover />
-            <BookmarkUrlPopover />
-            <SelectionToolbar />
-            <FindBar />
-            <PlateContent
-              aria-readonly={readOnly ? true : undefined}
-              placeholder={readOnly ? undefined : placeholder}
-              // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-              // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-              // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-              className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-              renderPlaceholder={(placeholderProps) => (
-                <span
-                  {...placeholderProps.attributes}
-                  className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                  style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                >
-                  {placeholderProps.children}
-                </span>
-              )}
-            />
-            <BlockPlaceholders placeholder={placeholder} />
-            <BlockSelection />
-            <BlockHandle onInsertedBelow={onInsertedBelow} />
-          </LinkPreviewProvider>
+          <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+            <LinkPreviewProvider adapter={linkPreview}>
+              <PasteRepairNotice />
+              <PasteUrlMenu />
+              <SlashMenu />
+              <EmojiSuggest />
+              <LinkToolbar />
+              <LinkPopover />
+              <BookmarkUrlPopover />
+              <SelectionToolbar />
+              <FindBar />
+              <PlateContent
+                aria-readonly={readOnly ? true : undefined}
+                placeholder={readOnly ? undefined : placeholder}
+                // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                renderPlaceholder={(placeholderProps) => (
+                  <span
+                    {...placeholderProps.attributes}
+                    className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                    style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                  >
+                    {placeholderProps.children}
+                  </span>
+                )}
+              />
+              <BlockPlaceholders placeholder={placeholder} />
+              <BlockSelection />
+              <BlockHandle onInsertedBelow={onInsertedBelow} />
+            </LinkPreviewProvider>
+          </PageLinkScope>
         </MentionScope>
       </Plate>
     </TooltipProvider>

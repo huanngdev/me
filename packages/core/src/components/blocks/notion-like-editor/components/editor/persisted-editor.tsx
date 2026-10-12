@@ -19,6 +19,8 @@ export function PersistedEditor({
   adapter,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -45,6 +47,8 @@ export function PersistedEditor({
           onContentChange={session.onContentChange}
           linkPreview={linkPreview}
           mentionProvider={mentionProvider}
+          pageProvider={pageProvider}
+          onOpenPage={onOpenPage}
           status={session.status}
           message={session.message}
           onRetry={() => {

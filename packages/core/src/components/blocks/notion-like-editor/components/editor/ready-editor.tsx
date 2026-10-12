@@ -5,6 +5,7 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -20,6 +21,8 @@ type ReadyEditorProps = {
   onRetry: () => void;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
 };
 
 export function ReadyEditor({
@@ -34,6 +37,8 @@ export function ReadyEditor({
   onRetry,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
   // The healthy states render nothing, so the row takes no space. Only the
@@ -57,6 +62,8 @@ export function ReadyEditor({
         }}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
+        pageProvider={pageProvider}
+        onOpenPage={onOpenPage}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>

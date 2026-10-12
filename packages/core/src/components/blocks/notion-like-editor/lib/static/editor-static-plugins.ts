@@ -38,6 +38,7 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
   CodeBlockStatic,
@@ -66,6 +67,7 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
 import {
@@ -143,6 +145,12 @@ const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: BookmarkStatic },
+});
+
+const pageLinkPlugin = createSlatePlugin({
+  key: PAGE_LINK_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: PageLinkStatic },
 });
 
 const equationPlugin = createSlatePlugin({
@@ -261,6 +269,7 @@ export const editorStaticPlugins = [
   BaseColumnPlugin.configure({ render: { node: ColumnGroupStatic } }),
   BaseColumnItemPlugin.configure({ render: { node: ColumnStatic } }),
   bookmarkPlugin,
+  pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,
   syncedPlugin,

@@ -2,6 +2,7 @@
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
 import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
 import type { EditorValue } from "./lib/document/editor-value";
 import { MemoryEditor } from "./components/editor/memory-editor";
@@ -17,6 +18,8 @@ export type NotionLikeEditorBlockProps = {
   adapter?: EditorPersistenceAdapter;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {

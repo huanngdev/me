@@ -15,6 +15,7 @@ import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
 import { checkMentionNode } from "../features/editor-mention-node";
+import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -488,6 +489,15 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
   },
+  // A link to a page the host resolves. title is the fallback shown while or when the page
+  // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
+  {
+    type: PAGE_LINK_KEY,
+    attrs: ["id", "pageId", "title", "kind"],
+    attrValues: { kind: PAGE_LINK_KINDS },
+    isVoid: true,
+    validateChildren: (node, path) => checkPageLinkNode(node, path),
+  },
   // Plate's toc node (@platejs/toc 53.0.0, key "toc") is a void. The outline is
   // derived on render. maxDepth is 1, 2, or 3, and absence means 3.
   {
@@ -535,6 +545,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       BOOKMARK_KEY,
+      PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
       KEYS.toc,
@@ -619,6 +630,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.codeBlock,
       BOOKMARK_KEY,
+      PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
       KEYS.equation,

@@ -15,6 +15,8 @@ export function MemoryEditor({
   className,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: NotionLikeEditorBlockProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -27,6 +29,8 @@ export function MemoryEditor({
         onValueChange={onChange}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
+        pageProvider={pageProvider}
+        onOpenPage={onOpenPage}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>

@@ -2562,6 +2562,7 @@ import { sanitizeLinkUrl } from "../features/editor-link-url";
 import { isStoredDate } from "../features/editor-date-value";
 import { isFootnoteId } from "../features/editor-footnote-id";
 import { checkMentionNode } from "../features/editor-mention-node";
+import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -3035,6 +3036,15 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
   },
+  // A link to a page the host resolves. title is the fallback shown while or when the page
+  // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
+  {
+    type: PAGE_LINK_KEY,
+    attrs: ["id", "pageId", "title", "kind"],
+    attrValues: { kind: PAGE_LINK_KINDS },
+    isVoid: true,
+    validateChildren: (node, path) => checkPageLinkNode(node, path),
+  },
   // Plate's toc node (@platejs/toc 53.0.0, key "toc") is a void. The outline is
   // derived on render. maxDepth is 1, 2, or 3, and absence means 3.
   {
@@ -3082,6 +3092,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       BOOKMARK_KEY,
+      PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
       KEYS.toc,
@@ -3166,6 +3177,7 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.codeBlock,
       BOOKMARK_KEY,
+      PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
@@ -3790,6 +3802,7 @@ import {
 } from "./editor-document-schema";
 import { repairColumnContent } from "./editor-column-repair";
 import { repairMentionInputs } from "../features/editor-mention-node";
+import { repairPageLinkContent } from "../features/editor-page-link";
 import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
@@ -4325,7 +4338,8 @@ export function parseEditorDocument(raw: unknown): ParseResult {
   const footnotes = repairFootnoteContent(envelope.data.content);
   const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
-  const content = mentions.content;
+  const pageLinks = repairPageLinkContent(mentions.content);
+  const content = pageLinks.content;
 
   for (let index = 0; index < content.length; index += 1) {
     walkTopLevel(content[index], [index], state);
@@ -4360,6 +4374,7 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       ...footnotes.repairs,
       ...structurally.repairs,
       ...mentions.repairs,
+      ...pageLinks.repairs,
       ...state.repairs,
       ...normalized.repairs,
       ...syncedRefRepairs(normalized.content),
@@ -4432,6 +4447,13 @@ import {
   bookmarkElement,
   storedBookmark,
 } from "../features/editor-bookmark-url";
+import {
+  PAGE_LINK_KEY,
+  PAGE_LINK_PASTE_DROPPED,
+  PAGE_LINK_TITLE_CLEANED,
+  pageLinkNode,
+  storedPageLink,
+} from "../features/editor-page-link";
 import type { EditorValue } from "../document/editor-value";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
 
@@ -4729,6 +4751,19 @@ function pastedBookmark(node: TElement, seen: Set<string>): TElement[] {
   }
 
   return [bookmarkElement(stored, nanoid())];
+}
+
+function pastedPageLink(node: TElement, seen: Set<string>): TElement[] {
+  const stored = storedPageLink(node);
+  if (stored === undefined) {
+    rememberImageRepair({ path: [], message: PAGE_LINK_PASTE_DROPPED });
+    return [];
+  }
+
+  if (stored.title !== node.title) {
+    rememberImageRepair({ path: [], message: PAGE_LINK_TITLE_CLEANED });
+  }
+  return [pageLinkNode(stored.pageId, stored.title, stored.kind, takeId(node, seen))];
 }
 
 function hasContent(nodes: readonly Descendant[]): boolean {
@@ -5353,6 +5388,10 @@ function expandBlock(
   if (isVoidElementType(node.type) && allowedElementAttrs(node.type) !== undefined) {
     if (node.type === BOOKMARK_KEY) {
       return pastedBookmark(node, seen);
+    }
+
+    if (node.type === PAGE_LINK_KEY) {
+      return pastedPageLink(node, seen);
     }
 
     if (node.type === KEYS.toc) {
@@ -8485,6 +8524,7 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
 import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
@@ -8512,6 +8552,8 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { PAGE_LINK_KEY } from "../features/editor-page-link";
+import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import {
   BLOCK_INDENT_TYPES,
@@ -9181,6 +9223,7 @@ function normalizeDisallowedChild(
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
       (child.type === BOOKMARK_KEY ||
+        child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
         child.type === SYNCED_REF_KEY) &&
@@ -10160,6 +10203,16 @@ const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
   },
 });
 
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const pageLinkPlatePlugin = toPlatePlugin(pageLinkPlugin, {
+  render: { node: PageLinkElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onPageLinkKeyDown(editor, event);
+    },
+  },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -10452,6 +10505,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     inlineEquationUiPlatePlugin,
     inlineDatePlatePlugin,
     inlineDateUiPlatePlugin,
+    pageLinkPlatePlugin,
     footnoteRefPlatePlugin,
     footnoteDefPlatePlugin,
     mentionUiPlugin,
@@ -23322,7 +23376,7 @@ export type MentionProvider = {
   ) => Promise<MentionEntity | null>;
 };
 
-function hasControlChar(value: string): boolean {
+export function hasControlChar(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
     if (code <= 0x1f || code === 0x7f) {
@@ -25544,6 +25598,7 @@ import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 4;
@@ -25561,6 +25616,7 @@ const ELIGIBLE = new Set<string>([
   KEYS.toggle,
   KEYS.hr,
   BOOKMARK_KEY,
+  PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
   SYNCED_REF_KEY,
@@ -26087,6 +26143,7 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { PAGE_LINK_KEY } from "./editor-page-link";
 import { isInsideTable } from "./editor-block-tone";
 import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
@@ -26191,6 +26248,7 @@ const STRUCTURAL = new Set<string>([
   KEYS.th,
   KEYS.hr,
   BOOKMARK_KEY,
+  PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
   SYNCED_REF_KEY,
@@ -28446,7 +28504,8 @@ export type EditorCommand<Payload = void> = {
   /** Shown when the command cannot run. Absent means the control stays quiet. */
   disabledReason?: (editor: SlateEditor) => string | undefined;
   getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
-  run: (editor: SlateEditor, payload: Payload) => void;
+  /** Returning false refuses the command: no change, and runEditorCommand returns false. */
+  run: (editor: SlateEditor, payload: Payload) => void | boolean;
 };
 
 export type RunEditorCommandOptions = {
@@ -29850,18 +29909,21 @@ export function runEditorCommand<Payload>(
     return false;
   }
 
+  let accepted = true;
   editor.tf.withNewBatch(() => {
     if (options?.selection) {
       editor.tf.select(options.selection);
     }
 
-    command.run(editor, payload);
+    if (command.run(editor, payload) === false) {
+      accepted = false;
+    }
   });
   // The batch splits from earlier typing, then later keystrokes would merge
   // into it. Leave the split flag so the next saved operation starts its own entry.
   editor.tf.setSplittingOnce(true);
 
-  return true;
+  return accepted;
 }
 ```
 
@@ -31307,6 +31369,8 @@ import type { EditorValue } from "../../lib/document/editor-value";
 import { LinkPreviewProvider } from "../elements/bookmark-element";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import { mentionUiPlugin } from "../../lib/plugins/editor-mention";
+import { PageLinkScope } from "../elements/page-link-element";
+import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import { repairMentionInputs, type MentionProvider } from "../../lib/features/editor-mention-node";
 import { LinkToolbar } from "../elements/link-element";
 import { BookmarkUrlPopover } from "../ui/bookmark-url-popover";
@@ -31330,6 +31394,8 @@ type EditorSurfaceProps = {
   className: string;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: ((request: PageOpenRequest) => void) | null;
   onInsertedBelow?: (blockId: string) => void;
 };
 
@@ -31341,6 +31407,8 @@ export function EditorSurface({
   className,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage = null,
   onInsertedBelow,
 }: EditorSurfaceProps) {
   return (
@@ -31354,37 +31422,39 @@ export function EditorSurface({
         }}
       >
         <MentionScope provider={mentionProvider}>
-          <LinkPreviewProvider adapter={linkPreview}>
-            <PasteRepairNotice />
-            <PasteUrlMenu />
-            <SlashMenu />
-            <EmojiSuggest />
-            <LinkToolbar />
-            <LinkPopover />
-            <BookmarkUrlPopover />
-            <SelectionToolbar />
-            <FindBar />
-            <PlateContent
-              aria-readonly={readOnly ? true : undefined}
-              placeholder={readOnly ? undefined : placeholder}
-              // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-              // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-              // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-              className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-              renderPlaceholder={(placeholderProps) => (
-                <span
-                  {...placeholderProps.attributes}
-                  className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                  style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                >
-                  {placeholderProps.children}
-                </span>
-              )}
-            />
-            <BlockPlaceholders placeholder={placeholder} />
-            <BlockSelection />
-            <BlockHandle onInsertedBelow={onInsertedBelow} />
-          </LinkPreviewProvider>
+          <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+            <LinkPreviewProvider adapter={linkPreview}>
+              <PasteRepairNotice />
+              <PasteUrlMenu />
+              <SlashMenu />
+              <EmojiSuggest />
+              <LinkToolbar />
+              <LinkPopover />
+              <BookmarkUrlPopover />
+              <SelectionToolbar />
+              <FindBar />
+              <PlateContent
+                aria-readonly={readOnly ? true : undefined}
+                placeholder={readOnly ? undefined : placeholder}
+                // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                renderPlaceholder={(placeholderProps) => (
+                  <span
+                    {...placeholderProps.attributes}
+                    className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                    style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                  >
+                    {placeholderProps.children}
+                  </span>
+                )}
+              />
+              <BlockPlaceholders placeholder={placeholder} />
+              <BlockSelection />
+              <BlockHandle onInsertedBelow={onInsertedBelow} />
+            </LinkPreviewProvider>
+          </PageLinkScope>
         </MentionScope>
       </Plate>
     </TooltipProvider>
@@ -31621,6 +31691,8 @@ export function MemoryEditor({
   className,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: NotionLikeEditorBlockProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
 
@@ -31633,6 +31705,8 @@ export function MemoryEditor({
         onValueChange={onChange}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
+        pageProvider={pageProvider}
+        onOpenPage={onOpenPage}
         className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
@@ -31649,6 +31723,7 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -31664,6 +31739,8 @@ type ReadyEditorProps = {
   onRetry: () => void;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
 };
 
 export function ReadyEditor({
@@ -31678,6 +31755,8 @@ export function ReadyEditor({
   onRetry,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
   // The healthy states render nothing, so the row takes no space. Only the
@@ -31701,6 +31780,8 @@ export function ReadyEditor({
         }}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
+        pageProvider={pageProvider}
+        onOpenPage={onOpenPage}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
@@ -31731,6 +31812,8 @@ export function PersistedEditor({
   adapter,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -31757,6 +31840,8 @@ export function PersistedEditor({
           onContentChange={session.onContentChange}
           linkPreview={linkPreview}
           mentionProvider={mentionProvider}
+          pageProvider={pageProvider}
+          onOpenPage={onOpenPage}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -31775,6 +31860,7 @@ export function PersistedEditor({
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
 import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
 import type { EditorValue } from "./lib/document/editor-value";
 import { MemoryEditor } from "./components/editor/memory-editor";
@@ -31790,6 +31876,8 @@ export type NotionLikeEditorBlockProps = {
   adapter?: EditorPersistenceAdapter;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -33551,6 +33639,7 @@ import { KEYS, createSlatePlugin } from "platejs";
 
 import { BlockquoteStatic } from "../../components/static/blockquote-static";
 import { BookmarkStatic } from "../../components/static/bookmark-static";
+import { PageLinkStatic } from "../../components/static/page-link-static";
 import { CalloutStatic } from "../../components/static/callout-static";
 import {
   CodeBlockStatic,
@@ -33579,6 +33668,7 @@ import { TableCellStatic, TableRowStatic, TableStatic } from "../../components/s
 import { TocStatic } from "../../components/static/toc-static";
 import { ToggleStatic } from "../../components/static/toggle-static";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { PAGE_LINK_KEY } from "../features/editor-page-link";
 import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
 import { BLOCK_INDENT_TYPES, blockIndentNodeProps } from "../features/editor-block-indent-style";
 import {
@@ -33656,6 +33746,12 @@ const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: BookmarkStatic },
+});
+
+const pageLinkPlugin = createSlatePlugin({
+  key: PAGE_LINK_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: PageLinkStatic },
 });
 
 const equationPlugin = createSlatePlugin({
@@ -33774,6 +33870,7 @@ export const editorStaticPlugins = [
   BaseColumnPlugin.configure({ render: { node: ColumnGroupStatic } }),
   BaseColumnItemPlugin.configure({ render: { node: ColumnStatic } }),
   bookmarkPlugin,
+  pageLinkPlugin,
   BaseTocPlugin.configure({ render: { node: TocStatic } }),
   equationPlugin,
   syncedPlugin,
