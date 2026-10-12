@@ -921,7 +921,11 @@ function blockElements(node: TElement): TElement[] {
     if (!ElementApi.isElement(child) || typeof child.type !== "string") {
       continue;
     }
-    if (child.type === KEYS.link || child.type === KEYS.mention) {
+    if (
+      child.type === KEYS.link ||
+      child.type === KEYS.mention ||
+      child.type === KEYS.inlineEquation
+    ) {
       continue;
     }
     blocks.push(child);
@@ -967,7 +971,11 @@ function viewAt(editor: SlateEditor, node: TElement, path: number[]): MenuBlockV
 
 function isRich(node: Descendant): boolean {
   if (ElementApi.isElement(node)) {
-    if (node.type === KEYS.link || node.type === KEYS.mention) {
+    if (
+      node.type === KEYS.link ||
+      node.type === KEYS.mention ||
+      node.type === KEYS.inlineEquation
+    ) {
       return true;
     }
     return node.children.some((child) => isRich(child));

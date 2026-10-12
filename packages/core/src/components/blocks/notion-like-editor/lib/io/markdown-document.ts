@@ -89,7 +89,7 @@ function escapeMd(text: string, inTable: boolean): string {
     .map((line) => {
       let escaped = line
         .replaceAll("\\", "\\\\")
-        .replaceAll(/([*`_~[\]])/g, "\\$1")
+        .replaceAll(/([*`_~[\]$])/g, "\\$1")
         .replaceAll("<", "\\<");
       if (inTable) {
         escaped = escaped.replaceAll("|", "\\|");
@@ -108,7 +108,11 @@ function renderInlines(
   warnings: ReturnType<typeof createWarnings>,
   inTable: boolean,
 ): string {
-  return nodes.map((node) => renderInline(node, warnings, inTable)).join("");
+  let text = "";
+  nodes.forEach((node, index) => {
+    text += renderInline(node, warnings, inTable, nodes[index + 1], text);
+  });
+  return text;
 }
 
 function wrapMark(text: string, marker: string): string {
@@ -126,6 +130,8 @@ function renderInline(
   node: Node,
   warnings: ReturnType<typeof createWarnings>,
   inTable: boolean,
+  following?: Node,
+  preceding = "",
 ): string {
   if (typeof node.text === "string") {
     const pieces = node.text.split("\n").map((piece) => escapeMd(piece, inTable));
@@ -188,6 +194,31 @@ function renderInline(
       );
     }
     return text;
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    // TeX ignores whitespace, and a newline or tab cannot sit inside a Markdown line.
+    const tex = (typeof node.texExpression === "string" ? node.texExpression : "")
+      .replace(/[\n\r\t]/g, " ")
+      .trim();
+    // "$$" would read back as a block equation, so an empty one cannot be written.
+    if (tex.length === 0) {
+      warnings.add(
+        "empty-equation",
+        (count) =>
+          `${count} empty inline ${plural(count, "equation was", "equations were")} removed. Markdown has no empty inline math.`,
+      );
+      return "";
+    }
+    if (!readsBackAsInlineMath(tex, inTable, following, preceding)) {
+      warnings.add(
+        "inline-equation-text",
+        (count) =>
+          `${count} inline ${plural(count, "equation was", "equations were")} written as plain text. Markdown cannot mark them as math here.`,
+      );
+      return escapeMd(`$${tex}$`, inTable);
+    }
+    return `$${tex}$`;
   }
 
   if (node.type === KEYS.mention) {
@@ -665,6 +696,7 @@ function paragraph(children: Node[], extra?: Node): Node {
 function inlineTokens(
   tokens: readonly MarkedToken[] | undefined,
   warnings: ReturnType<typeof createWarnings>,
+  nonce: string,
 ): Node[] {
   if (tokens === undefined) {
     return [{ text: "" }];
@@ -684,7 +716,7 @@ function inlineTokens(
 
     if (token.type === "text" || token.type === "paragraph") {
       if (token.tokens !== undefined && token.tokens.length > 0) {
-        nodes.push(...inlineTokens(token.tokens, warnings));
+        nodes.push(...inlineTokens(token.tokens, warnings, nonce));
       } else {
         nodes.push({ text: token.text ?? "" });
       }
@@ -700,7 +732,7 @@ function inlineTokens(
       const children =
         token.type === "codespan"
           ? [{ text: token.text ?? "" }]
-          : inlineTokens(token.tokens, warnings);
+          : inlineTokens(token.tokens, warnings, nonce);
       const mark =
         token.type === "strong"
           ? "bold"
@@ -722,7 +754,7 @@ function inlineTokens(
     if (token.type === "link") {
       const href = token.href ?? "";
       const safe = sanitizeLinkUrl(href);
-      const inner = inlineTokens(token.tokens, warnings);
+      const inner = inlineTokens(token.tokens, warnings, nonce);
       if (safe === undefined) {
         warnings.add(
           "unsafe-link",
@@ -746,7 +778,7 @@ function inlineTokens(
     }
 
     if (token.type === "html") {
-      const raw = token.text ?? token.raw ?? "";
+      const raw = restoreInlineMath(token.text ?? token.raw ?? "", nonce);
       if (/^<br\s*\/?>$/i.test(raw.trim())) {
         nodes.push({ text: "\n" });
         continue;
@@ -776,6 +808,7 @@ function listFrom(
   token: MarkedToken,
   indent: number,
   warnings: ReturnType<typeof createWarnings>,
+  nonce: string,
 ): Node[] {
   const blocks: Node[] = [];
   const items = token.items ?? [];
@@ -807,16 +840,16 @@ function listFrom(
     const nested: Node[] = [];
     for (const child of item.tokens ?? []) {
       if (child.type === "list") {
-        nested.push(...listFrom(child, storedIndent + 1, warnings));
+        nested.push(...listFrom(child, storedIndent + 1, warnings, nonce));
         continue;
       }
 
       if (child.type === "text" || child.type === "paragraph") {
-        inline.push(...inlineTokens(child.tokens ?? [child], warnings));
+        inline.push(...inlineTokens(child.tokens ?? [child], warnings, nonce));
         continue;
       }
 
-      nested.push(...blocksFromToken(child, warnings));
+      nested.push(...blocksFromToken(child, warnings, nonce));
     }
 
     blocks.push(paragraph(inline, extra), ...nested);
@@ -825,7 +858,11 @@ function listFrom(
   return blocks;
 }
 
-function blocksFromToken(token: MarkedToken, warnings: ReturnType<typeof createWarnings>): Node[] {
+function blocksFromToken(
+  token: MarkedToken,
+  warnings: ReturnType<typeof createWarnings>,
+  nonce: string,
+): Node[] {
   if (token.type === "space") {
     return [];
   }
@@ -840,19 +877,19 @@ function blocksFromToken(token: MarkedToken, warnings: ReturnType<typeof createW
           `${count} ${plural(count, "heading was", "headings were")} saved as heading 3. This editor stores headings 1 to 3.`,
       );
     }
-    return [{ type, children: inlineTokens(token.tokens, warnings) }];
+    return [{ type, children: inlineTokens(token.tokens, warnings, nonce) }];
   }
 
   if (token.type === "paragraph") {
-    return [paragraph(inlineTokens(token.tokens, warnings))];
+    return [paragraph(inlineTokens(token.tokens, warnings, nonce))];
   }
 
   if (token.type === "list") {
-    return listFrom(token, 1, warnings);
+    return listFrom(token, 1, warnings, nonce);
   }
 
   if (token.type === "blockquote") {
-    const inner = (token.tokens ?? []).flatMap((child) => blocksFromToken(child, warnings));
+    const inner = (token.tokens ?? []).flatMap((child) => blocksFromToken(child, warnings, nonce));
     const alert = alertCallout(inner, warnings);
     if (alert !== undefined) {
       return [alert];
@@ -905,7 +942,7 @@ function blocksFromToken(token: MarkedToken, warnings: ReturnType<typeof createW
           type: KEYS.tr,
           children: row.map((cell) => ({
             type: rowIndex === 0 ? KEYS.th : KEYS.td,
-            children: [paragraph(inlineTokens(cell.tokens, warnings))],
+            children: [paragraph(inlineTokens(cell.tokens, warnings, nonce))],
           })),
         })),
       },
@@ -918,7 +955,7 @@ function blocksFromToken(token: MarkedToken, warnings: ReturnType<typeof createW
       return [];
     }
 
-    return htmlTokenBlocks(raw, warnings);
+    return htmlTokenBlocks(restoreInlineMath(raw, nonce), warnings);
   }
 
   if (token.type === "footnote" || token.raw?.includes("[^")) {
@@ -1161,6 +1198,213 @@ function paragraphFromNode(node: Node): Node {
   return paragraph([{ text: plain(node) }]);
 }
 
+// Inline math is read by a small scanner, not one regex, so a backslash escapes
+// the next character (a `$` after an odd run of backslashes is not a delimiter).
+// Code spans and fences are copied through untouched, so `$` inside them stays text.
+// An equation opens at an unescaped `$` followed by a non-space, and closes at the
+// next unescaped `$` on the same line when that one follows a non-space and is not
+// followed by a digit. Anything else is text.
+const NONCE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+// The nonce is random per call, so document text cannot forge a placeholder.
+function newInlineMathNonce(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    NONCE_CHARACTERS.charAt(byte % NONCE_CHARACTERS.length),
+  ).join("");
+}
+
+function inlineMathPlaceholderPattern(nonce: string): RegExp {
+  return new RegExp(`%%NLEIEQ${nonce}([0-9a-f]+)%%`, "g");
+}
+
+// The TeX is hex in the placeholder so marked never reads its punctuation.
+function encodeInlineMath(tex: string): string {
+  let hex = "";
+  for (let index = 0; index < tex.length; index += 1) {
+    hex += tex.charCodeAt(index).toString(16).padStart(4, "0");
+  }
+  return hex;
+}
+
+function decodeInlineMath(hex: string): string {
+  let tex = "";
+  for (let index = 0; index < hex.length; index += 4) {
+    tex += String.fromCharCode(Number.parseInt(hex.slice(index, index + 4), 16));
+  }
+  return tex;
+}
+
+function restoreInlineMath(text: string, nonce: string): string {
+  return text.replace(
+    inlineMathPlaceholderPattern(nonce),
+    (_match, hex: string) => `$${decodeInlineMath(hex)}$`,
+  );
+}
+
+// Whether a `$` in this source ends the equation early (an escaped `$` does not).
+function hasUnescapedDollar(text: string): boolean {
+  for (let index = 0; index < text.length;) {
+    if (text.charAt(index) === "\\") {
+      index += 2;
+    } else if (text.charAt(index) === "$") {
+      return true;
+    } else {
+      index += 1;
+    }
+  }
+  return false;
+}
+
+function endsWithOddBackslashes(text: string): boolean {
+  const run = /\\+$/.exec(text)?.[0].length ?? 0;
+  return run % 2 === 1;
+}
+
+// The export check: would `$tex$` read back as this same equation in this place?
+function readsBackAsInlineMath(
+  tex: string,
+  inTable: boolean,
+  following: Node | undefined,
+  preceding: string,
+): boolean {
+  if (hasUnescapedDollar(tex) || endsWithOddBackslashes(tex)) {
+    return false;
+  }
+  // A raw `|` would split the table cell.
+  if (inTable && tex.includes("|")) {
+    return false;
+  }
+  // An odd backslash run before the opener would escape it.
+  if (endsWithOddBackslashes(preceding)) {
+    return false;
+  }
+  return following === undefined || !/^\d/.test(plain(following));
+}
+
+// Index of the closing `$` for an opener whose content starts at `from`, or -1.
+function inlineMathClose(source: string, from: number): number {
+  let index = from;
+  while (index < source.length && source.charAt(index) !== "\n") {
+    const char = source.charAt(index);
+    if (char === "\\") {
+      index += 2;
+    } else if (char === "$") {
+      const before = source.charAt(index - 1);
+      const after = source.charAt(index + 1);
+      const valid = index > from && !/\s/.test(before) && !/\d/.test(after);
+      return valid ? index : -1;
+    } else {
+      index += 1;
+    }
+  }
+  return -1;
+}
+
+// Index just past the closing backtick run of the same length, or -1.
+function codeSpanEnd(source: string, from: number, length: number): number {
+  const run = "`".repeat(length);
+  let at = source.indexOf(run, from);
+  while (at !== -1) {
+    if (source.charAt(at - 1) !== "`" && source.charAt(at + length) !== "`") {
+      return at + length;
+    }
+    at = source.indexOf(run, at + 1);
+  }
+  return -1;
+}
+
+// Index just past a fence that opens at `start`. An unclosed fence runs to the end.
+function fenceEnd(source: string, start: number): number {
+  const marker = /^(`{3,}|~{3,})/.exec(source.slice(start, start + 200))?.[1] ?? "```";
+  let lineEnd = source.indexOf("\n", start);
+  while (lineEnd !== -1) {
+    const nextEnd = source.indexOf("\n", lineEnd + 1);
+    const line = source.slice(lineEnd + 1, nextEnd === -1 ? undefined : nextEnd).trim();
+    if (line.length >= marker.length && line.split("").every((char) => char === marker.charAt(0))) {
+      return nextEnd === -1 ? source.length : nextEnd;
+    }
+    lineEnd = nextEnd;
+  }
+  return source.length;
+}
+
+function liftInlineMath(source: string, nonce: string): string {
+  let out = "";
+  let index = 0;
+  while (index < source.length) {
+    const char = source.charAt(index);
+    const atLineStart = index === 0 || source.charAt(index - 1) === "\n";
+    if (char === "\\") {
+      out += source.slice(index, index + 2);
+      index += 2;
+    } else if (
+      atLineStart &&
+      (source.startsWith("```", index) || source.startsWith("~~~", index))
+    ) {
+      const end = fenceEnd(source, index);
+      out += source.slice(index, end);
+      index = end;
+    } else if (char === "`") {
+      const run = /^`+/.exec(source.slice(index, index + 200))?.[0] ?? "`";
+      const end = codeSpanEnd(source, index + run.length, run.length);
+      if (end === -1) {
+        out += run;
+        index += run.length;
+      } else {
+        out += source.slice(index, end);
+        index = end;
+      }
+    } else if (char === "$" && !/\s|\$/.test(source.charAt(index + 1))) {
+      const close = inlineMathClose(source, index + 1);
+      if (close === -1) {
+        out += char;
+        index += 1;
+      } else {
+        out += `%%NLEIEQ${nonce}${encodeInlineMath(source.slice(index + 1, close))}%%`;
+        index = close + 1;
+      }
+    } else {
+      out += char;
+      index += 1;
+    }
+  }
+  return out;
+}
+
+function splitInlineMath(node: Node, nonce: string): Node {
+  if (!Array.isArray(node.children)) {
+    return node;
+  }
+
+  const children: Node[] = [];
+  for (const child of node.children) {
+    if (typeof child.text === "string" && child.text.includes(`%%NLEIEQ${nonce}`)) {
+      const text = child.text;
+      let last = 0;
+      for (const match of text.matchAll(inlineMathPlaceholderPattern(nonce))) {
+        const start = match.index;
+        if (start > last) {
+          children.push({ ...child, text: text.slice(last, start) });
+        }
+        children.push({
+          type: KEYS.inlineEquation,
+          texExpression: decodeInlineMath(match[1] ?? ""),
+          children: [{ text: "" }],
+        });
+        last = start + match[0].length;
+      }
+      if (last < text.length) {
+        children.push({ ...child, text: text.slice(last) });
+      }
+      continue;
+    }
+
+    children.push(splitInlineMath(child, nonce));
+  }
+
+  return { ...node, children };
+}
+
 async function markdownBlocks(
   source: string,
   warnings: ReturnType<typeof createWarnings>,
@@ -1173,7 +1417,8 @@ async function markdownBlocks(
     equations.push(tex);
     return `\n\n%%NLE_EQUATION_${String(index)}%%\n\n`;
   });
-  const tokens = await tokensOf(withEquations);
+  const nonce = newInlineMathNonce();
+  const tokens = await tokensOf(liftInlineMath(withEquations, nonce));
   const blocks: Node[] = [];
   for (const token of tokens) {
     const text = token.raw ?? token.text ?? "";
@@ -1196,10 +1441,10 @@ async function markdownBlocks(
       continue;
     }
 
-    blocks.push(...blocksFromToken(token, warnings));
+    blocks.push(...blocksFromToken(token, warnings, nonce));
   }
 
-  return blocks;
+  return blocks.map((block) => splitInlineMath(block, nonce));
 }
 
 async function toggleBlocks(

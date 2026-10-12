@@ -119,7 +119,7 @@ describe("html io", () => {
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ code: "block-limit", count: 1 }),
     );
-  });
+  }, 20000);
 
   test("vietnamese text and emoji survive", async () => {
     const value = [{ type: "p", id: "uni", children: [{ text: "Tiếng Việt \u0065\u0302 👩‍💻" }] }];

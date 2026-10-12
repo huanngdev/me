@@ -143,6 +143,19 @@
           "label": "Ada"
         },
         {
+          "text": " and "
+        },
+        {
+          "type": "inline_equation",
+          "id": "inline-equation",
+          "children": [
+            {
+              "text": ""
+            }
+          ],
+          "texExpression": "e^{i\\pi}+1=0"
+        },
+        {
           "text": "\nnext line"
         }
       ],

@@ -183,6 +183,11 @@ function renderInline(node: Node, inTable: boolean): string {
     return `<span data-nle-mention${idAttr(node)}${attr("data-id", id)}>@${escapeText(label)}</span>`;
   }
 
+  if (node.type === KEYS.inlineEquation) {
+    const tex = typeof node.texExpression === "string" ? node.texExpression : "";
+    return `<span data-nle-inline-equation${idAttr(node)}>${escapeText(tex)}</span>`;
+  }
+
   if (node.type === KEYS.link || node.type === "a") {
     const url = typeof node.url === "string" ? node.url : "";
     const safe = sanitizeLinkUrl(url);

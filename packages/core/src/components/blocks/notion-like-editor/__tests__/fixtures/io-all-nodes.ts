@@ -57,6 +57,13 @@ export const IO_ALL_NODES = [
         label: "Ada",
         children: [{ text: "" }],
       },
+      { text: " and " },
+      {
+        type: "inline_equation",
+        id: "inline-equation",
+        texExpression: "e^{i\\pi}+1=0",
+        children: [{ text: "" }],
+      },
       { text: "\nnext line" },
     ],
   },

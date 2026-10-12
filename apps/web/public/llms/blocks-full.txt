@@ -2433,69 +2433,73 @@ export default function ErrorPageBlockPage() {
 39. packages/core/src/components/blocks/notion-like-editor/components/elements/toc-element.tsx
 40. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-equation.ts
 41. packages/core/src/components/blocks/notion-like-editor/components/elements/equation-element.tsx
-42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
-43. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
-44. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
-45. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
-46. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
-47. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
-48. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
-49. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
-50. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
-51. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
-52. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
-53. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
-54. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
-55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
-56. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
-57. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
-58. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
-59. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
-60. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
-61. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
-62. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
-63. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
-64. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
-65. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
-66. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
-67. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
-68. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
-69. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
-70. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
-71. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
-72. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
-73. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
-74. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
-75. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
-76. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
-77. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
-78. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
-79. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
-80. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
-81. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
-82. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
-83. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
-84. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
-85. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
-86. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
-87. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
-88. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
-89. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
-90. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
-91. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
-92. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
-93. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
-94. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
-95. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
-96. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
-97. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
-98. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
-99. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
-100. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
-101. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
-102. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
-103. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
-104. apps/web/src/app/blocks/notion-like-editor/page.tsx
+42. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
+43. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
+44. packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
+45. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
+46. packages/core/src/components/blocks/notion-like-editor/components/elements/synced-ref-element.tsx
+47. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-link-url.ts
+48. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-link.ts
+49. packages/core/src/components/blocks/notion-like-editor/components/elements/link-element.tsx
+50. packages/core/src/components/blocks/notion-like-editor/components/ui/link-popover.tsx
+51. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-mention-node.ts
+52. packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-mention.ts
+53. packages/core/src/components/blocks/notion-like-editor/components/elements/mention-element.tsx
+54. packages/core/src/components/blocks/notion-like-editor/components/ui/paste-url-menu.tsx
+55. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-selection.ts
+56. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-handle.ts
+57. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-menu.ts
+58. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-block-drop.ts
+59. packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
+60. packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
+61. packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
+62. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-persistence.ts
+63. packages/core/src/components/blocks/notion-like-editor/lib/document/local-storage-adapter.ts
+64. packages/core/src/components/blocks/notion-like-editor/lib/document/editor-autosave.ts
+65. packages/core/src/components/blocks/notion-like-editor/hooks/use-editor-document.ts
+66. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-surface.tsx
+67. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-document-skeleton.tsx
+68. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-save-status.tsx
+69. packages/core/src/components/blocks/notion-like-editor/components/editor/editor-recovery-notice.tsx
+70. packages/core/src/components/blocks/notion-like-editor/components/editor/memory-editor.tsx
+71. packages/core/src/components/blocks/notion-like-editor/components/editor/ready-editor.tsx
+72. packages/core/src/components/blocks/notion-like-editor/components/editor/persisted-editor.tsx
+73. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-block.tsx
+74. packages/core/src/components/blocks/notion-like-editor/demo/demo-document.ts
+75. packages/core/src/components/blocks/notion-like-editor/demo/demo-link-preview.ts
+76. packages/core/src/components/blocks/notion-like-editor/demo/demo-mention.ts
+77. packages/core/src/components/blocks/notion-like-editor/components/elements/heading-styles.ts
+78. packages/core/src/components/blocks/notion-like-editor/components/elements/block-list-metrics.ts
+79. packages/core/src/components/blocks/notion-like-editor/components/elements/blockquote-classes.ts
+80. packages/core/src/components/blocks/notion-like-editor/components/elements/hr-classes.ts
+81. packages/core/src/components/blocks/notion-like-editor/components/elements/callout-classes.ts
+82. packages/core/src/components/blocks/notion-like-editor/components/elements/toggle-classes.ts
+83. packages/core/src/components/blocks/notion-like-editor/components/elements/column-classes.ts
+84. packages/core/src/components/blocks/notion-like-editor/components/elements/bookmark-classes.ts
+85. packages/core/src/components/blocks/notion-like-editor/lib/features/editor-toc-outline.ts
+86. packages/core/src/components/blocks/notion-like-editor/lib/static/mark-classes.ts
+87. packages/core/src/components/blocks/notion-like-editor/lib/static/read-static-value.ts
+88. packages/core/src/components/blocks/notion-like-editor/lib/static/editor-static-plugins.ts
+89. packages/core/src/components/blocks/notion-like-editor/components/static/code-highlight.ts
+90. packages/core/src/components/blocks/notion-like-editor/components/static/heading-static.tsx
+91. packages/core/src/components/blocks/notion-like-editor/components/static/list-static.tsx
+92. packages/core/src/components/blocks/notion-like-editor/components/static/blockquote-static.tsx
+93. packages/core/src/components/blocks/notion-like-editor/components/static/hr-static.tsx
+94. packages/core/src/components/blocks/notion-like-editor/components/static/callout-static.tsx
+95. packages/core/src/components/blocks/notion-like-editor/components/static/toggle-static.tsx
+96. packages/core/src/components/blocks/notion-like-editor/components/static/code-block-static.tsx
+97. packages/core/src/components/blocks/notion-like-editor/components/static/table-static.tsx
+98. packages/core/src/components/blocks/notion-like-editor/components/static/column-static.tsx
+99. packages/core/src/components/blocks/notion-like-editor/components/static/bookmark-static.tsx
+100. packages/core/src/components/blocks/notion-like-editor/components/static/link-static.tsx
+101. packages/core/src/components/blocks/notion-like-editor/components/static/mention-static.tsx
+102. packages/core/src/components/blocks/notion-like-editor/components/static/toc-static.tsx
+103. packages/core/src/components/blocks/notion-like-editor/components/static/equation-static.tsx
+104. packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+105. packages/core/src/components/blocks/notion-like-editor/components/static/synced-static.tsx
+106. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-static.tsx
+107. packages/core/src/components/blocks/notion-like-editor/notion-like-editor-demo.tsx
+108. apps/web/src/app/blocks/notion-like-editor/page.tsx
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts
 ```ts
@@ -3103,6 +3107,14 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "entityType", "entityId", "label"],
     isVoid: true,
     validateChildren: (node, path) => checkMentionNode(node, path),
+  },
+  // Inline equation. Same stored expression as the block equation. Lives where the
+  // mention lives. Its own type, so the block equation's rules do not change.
+  {
+    type: KEYS.inlineEquation,
+    attrs: ["id", "texExpression"],
+    isVoid: true,
+    validateChildren: (node, path) => checkEquationNode(node, path),
   },
 ] as const satisfies readonly EditorElementRule[];
 
@@ -3855,7 +3867,10 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     }
 
     return (
-      (childType === KEYS.link || childType === KEYS.mention) && parentAllowsInlineLink(parentType)
+      (childType === KEYS.link ||
+        childType === KEYS.mention ||
+        childType === KEYS.inlineEquation) &&
+      parentAllowsInlineLink(parentType)
     );
   }
 
@@ -4296,6 +4311,7 @@ import {
   mentionInputPlainText,
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
+import { inlineEquationNode } from "../features/editor-inline-equation";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
@@ -5121,6 +5137,23 @@ function noteMentionInputPaste(): void {
   pendingMentionInputRepairs.push(repair);
 }
 
+// A valid inline equation keeps its source and gets a fresh id. An invalid one
+// becomes its source as plain text, with control characters removed.
+function pastedInlineEquationNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const tex = typeof node.texExpression === "string" ? node.texExpression : "";
+  if (allowMarks && isStoredEquationExpression(tex)) {
+    return [inlineEquationNode(tex)];
+  }
+
+  const text = Array.from(tex)
+    .filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return char === "\t" || char === "\n" || (code > 0x1f && code !== 0x7f);
+    })
+    .join("");
+  return text.length > 0 ? [{ text }] : [];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -5154,6 +5187,11 @@ function expandBlock(
 
   if (node.type === KEYS.mention) {
     const nodes = pastedMentionNodes(node, seen);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    const nodes = pastedInlineEquationNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -5290,6 +5328,10 @@ function inlineNodes(
     }
 
     return pastedMentionNodes(node, seen);
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    return pastedInlineEquationNodes(node, allowMarks);
   }
 
   if (node.type === KEYS.link) {
@@ -5488,7 +5530,9 @@ function nodeText(node: TElement): string {
 }
 
 function isInlinePasteType(type: string): boolean {
-  return type === KEYS.link || type === KEYS.mention || type === "a";
+  return (
+    type === KEYS.link || type === KEYS.mention || type === KEYS.inlineEquation || type === "a"
+  );
 }
 
 function countPasteBlocks(nodes: readonly unknown[]): number {
@@ -8471,8 +8515,10 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import {
   SYNCED_REF_KEY,
   goToSyncedOriginal,
@@ -10014,6 +10060,11 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
+// Display only for now. Editing UI is a later task.
+const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
+  render: { node: InlineEquationElement },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -10297,6 +10348,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     linkPlatePlugin,
     linkUiPlugin,
     mentionPlatePlugin,
+    inlineEquationPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,
@@ -18231,6 +18283,230 @@ export function EquationElement(props: PlateElementProps) {
 }
 ```
 
+## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-inline-equation.ts
+```ts
+import {
+  ElementApi,
+  KEYS,
+  RangeApi,
+  createSlatePlugin,
+  nanoid,
+  type Descendant,
+  type SlateEditor,
+  type TElement,
+  type TRange,
+} from "platejs";
+
+import { elementAllowsMarks, isStoredEquationExpression } from "../document/editor-document-schema";
+
+// Inline equation: an inline void with one stored expression. It is not a
+// block equation, so the native @platejs/math plugins stay unregistered.
+export const inlineEquationPlugin = createSlatePlugin({
+  key: KEYS.inlineEquation,
+  node: { isElement: true, isInline: true, isVoid: true },
+}).overrideEditor(({ editor, tf: { setFragmentData } }) => ({
+  transforms: {
+    setFragmentData(data, originEvent) {
+      setFragmentData(data, originEvent);
+      // The DOM text of a void is the KaTeX output, so a copied equation would
+      // be written as rendered math. Only a fragment with an equation is rewritten.
+      const fragment = editor.api.getFragment();
+      if (!fragment.some((node) => containsInlineEquation(node))) {
+        return;
+      }
+
+      data.setData("text/plain", fragment.map((node) => plainText(node)).join("\n"));
+    },
+  },
+}));
+
+function containsInlineEquation(node: Descendant): boolean {
+  if (!ElementApi.isElement(node)) {
+    return false;
+  }
+
+  return (
+    node.type === KEYS.inlineEquation ||
+    node.children.some((child) => containsInlineEquation(child))
+  );
+}
+
+function plainText(node: Descendant): string {
+  if (!ElementApi.isElement(node)) {
+    return "text" in node ? node.text : "";
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    const tex = typeof node.texExpression === "string" ? node.texExpression : "";
+    return `$${tex}$`;
+  }
+
+  return node.children.map((child) => plainText(child)).join("");
+}
+
+export function inlineEquationNode(expression: string, id?: string): TElement {
+  return {
+    type: KEYS.inlineEquation,
+    id: id ?? nanoid(),
+    texExpression: expression,
+    children: [{ text: "" }],
+  };
+}
+
+// Same places as the mention: never inside a link, a void, or a block without marks (a code line).
+function inlineEquationAllowed(editor: SlateEditor, range: TRange): boolean {
+  if (
+    editor.api.some({
+      at: range,
+      match: (node) => ElementApi.isElement(node) && node.type === KEYS.link,
+    })
+  ) {
+    return false;
+  }
+
+  if (editor.api.void({ at: range }) !== undefined) {
+    return false;
+  }
+
+  for (const point of [RangeApi.start(range), RangeApi.end(range)]) {
+    const block = editor.api.block({ at: point });
+    if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Returns the new node's id, or null when the selection is missing or cannot hold an inline equation.
+export function insertInlineEquation(editor: SlateEditor, expression: string): string | null {
+  const selection = editor.selection;
+  if (
+    selection === null ||
+    !isStoredEquationExpression(expression) ||
+    !inlineEquationAllowed(editor, selection)
+  ) {
+    return null;
+  }
+
+  const id = nanoid();
+  editor.tf.withNewBatch(() => {
+    if (!RangeApi.isCollapsed(selection)) {
+      editor.tf.delete();
+    }
+    editor.tf.insertNodes(inlineEquationNode(expression, id));
+    for (const [, path] of editor.api.nodes({
+      at: [],
+      voids: true,
+      match: (node) => ElementApi.isElement(node) && node.id === id,
+    })) {
+      const after = editor.api.after(path);
+      if (after !== undefined) {
+        editor.tf.select(after);
+      }
+      break;
+    }
+  });
+  return id;
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-classes.ts
+```ts
+export const INLINE_EQUATION_CLASS = "inline align-baseline";
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/elements/inline-equation-element.tsx
+```tsx
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  PlateElement,
+  useFocused,
+  useReadOnly,
+  useSelected,
+  type PlateElementProps,
+} from "platejs/react";
+
+import { cn } from "@/lib/utils";
+
+import { loadKatex } from "../../lib/features/editor-equation";
+import {
+  INLINE_EQUATION_EMPTY_PLACEHOLDER,
+  renderInlineEquation,
+} from "../../lib/features/editor-equation-render";
+import { INLINE_EQUATION_CLASS } from "./inline-equation-classes";
+
+import "katex/dist/katex.min.css";
+
+type KatexModule = Parameters<typeof renderInlineEquation>[0];
+
+export function InlineEquationElement(props: PlateElementProps) {
+  const readOnly = useReadOnly();
+  const selected = useSelected();
+  const focused = useFocused();
+  const expression =
+    typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  const [katex, setKatex] = useState<KatexModule | undefined>();
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadKatex().then((mod) => {
+      if (!cancelled) {
+        setKatex(mod);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  let body: ReactNode;
+  if (expression.length === 0) {
+    body = (
+      <span data-inline-equation-empty className="text-muted-foreground">
+        {INLINE_EQUATION_EMPTY_PLACEHOLDER}
+      </span>
+    );
+  } else if (!katex) {
+    // The raw source keeps the line the same width until KaTeX arrives.
+    body = <span className="font-mono">{expression}</span>;
+  } else {
+    const rendered = renderInlineEquation(katex, expression);
+    body = rendered.ok ? (
+      <span
+        data-inline-equation-math
+        className="text-foreground"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    ) : (
+      <span
+        data-inline-equation-error
+        title={rendered.message}
+        className="text-destructive font-mono"
+      >
+        {expression}
+      </span>
+    );
+  }
+
+  return (
+    <PlateElement
+      {...props}
+      as="span"
+      className={cn(
+        INLINE_EQUATION_CLASS,
+        selected && focused && !readOnly && "bg-muted rounded-sm",
+      )}
+    >
+      <span contentEditable={false} data-inline-equation="">
+        {body}
+      </span>
+      {props.children}
+    </PlateElement>
+  );
+}
+```
+
 ## packages/core/src/components/blocks/notion-like-editor/lib/features/editor-synced-block.ts
 ```ts
 import {
@@ -23055,7 +23331,11 @@ function blockElements(node: TElement): TElement[] {
     if (!ElementApi.isElement(child) || typeof child.type !== "string") {
       continue;
     }
-    if (child.type === KEYS.link || child.type === KEYS.mention) {
+    if (
+      child.type === KEYS.link ||
+      child.type === KEYS.mention ||
+      child.type === KEYS.inlineEquation
+    ) {
       continue;
     }
     blocks.push(child);
@@ -23101,7 +23381,11 @@ function viewAt(editor: SlateEditor, node: TElement, path: number[]): MenuBlockV
 
 function isRich(node: Descendant): boolean {
   if (ElementApi.isElement(node)) {
-    if (node.type === KEYS.link || node.type === KEYS.mention) {
+    if (
+      node.type === KEYS.link ||
+      node.type === KEYS.mention ||
+      node.type === KEYS.inlineEquation
+    ) {
       return true;
     }
     return node.children.some((child) => isRich(child));
@@ -29023,6 +29307,7 @@ import { ensureStaticCodeLanguages } from "../../components/static/code-highligh
 ensureStaticCodeLanguages();
 import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
 import { EquationStatic } from "../../components/static/equation-static";
+import { InlineEquationStatic } from "../../components/static/inline-equation-static";
 import { HeadingStatic } from "../../components/static/heading-static";
 import { HrStatic } from "../../components/static/hr-static";
 import { LinkStatic } from "../../components/static/link-static";
@@ -29079,6 +29364,12 @@ const equationPlugin = createSlatePlugin({
   key: KEYS.equation,
   node: { isElement: true, isVoid: true },
   render: { node: EquationStatic },
+});
+
+const inlineEquationPlugin = createSlatePlugin({
+  key: KEYS.inlineEquation,
+  node: { isElement: true, isInline: true, isVoid: true },
+  render: { node: InlineEquationStatic },
 });
 
 const syncedPlugin = createSlatePlugin({
@@ -29154,6 +29445,7 @@ export const editorStaticPlugins = [
   syncedPlugin,
   BaseLinkPlugin.configure({ render: { node: LinkStatic } }),
   BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
+  inlineEquationPlugin,
 ];
 ```
 
@@ -29997,6 +30289,58 @@ export function EquationStatic(props: SlateElementProps) {
           <div className="flex w-max min-w-full justify-center">{body}</div>
         </div>
       </div>
+      {props.children}
+    </SlateElement>
+  );
+}
+```
+
+## packages/core/src/components/blocks/notion-like-editor/components/static/inline-equation-static.tsx
+```tsx
+import katex from "katex";
+import { SlateElement, type SlateElementProps } from "platejs/static";
+import type { ReactNode } from "react";
+
+import {
+  INLINE_EQUATION_EMPTY_PLACEHOLDER,
+  renderInlineEquation,
+} from "../../lib/features/editor-equation-render";
+import { INLINE_EQUATION_CLASS } from "../elements/inline-equation-classes";
+
+import "katex/dist/katex.min.css";
+
+export function InlineEquationStatic(props: SlateElementProps) {
+  const expression =
+    typeof props.element.texExpression === "string" ? props.element.texExpression : "";
+  let body: ReactNode;
+  if (expression.length === 0) {
+    body = (
+      <span data-inline-equation-empty className="text-muted-foreground">
+        {INLINE_EQUATION_EMPTY_PLACEHOLDER}
+      </span>
+    );
+  } else {
+    const rendered = renderInlineEquation(katex, expression);
+    body = rendered.ok ? (
+      <span
+        data-inline-equation-math
+        className="text-foreground"
+        dangerouslySetInnerHTML={{ __html: rendered.html }}
+      />
+    ) : (
+      <span
+        data-inline-equation-error
+        title={rendered.message}
+        className="text-destructive font-mono"
+      >
+        {expression}
+      </span>
+    );
+  }
+
+  return (
+    <SlateElement {...props} as="span" className={INLINE_EQUATION_CLASS}>
+      <span data-inline-equation="">{body}</span>
       {props.children}
     </SlateElement>
   );

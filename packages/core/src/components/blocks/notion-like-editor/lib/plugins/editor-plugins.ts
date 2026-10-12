@@ -57,8 +57,10 @@ import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import { inlineEquationPlugin } from "../features/editor-inline-equation";
 import {
   SYNCED_REF_KEY,
   goToSyncedOriginal,
@@ -1600,6 +1602,11 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
   },
 });
 
+// Display only for now. Editing UI is a later task.
+const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
+  render: { node: InlineEquationElement },
+});
+
 const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
   render: { node: MentionElement },
   handlers: {
@@ -1883,6 +1890,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     linkPlatePlugin,
     linkUiPlugin,
     mentionPlatePlugin,
+    inlineEquationPlatePlugin,
     mentionUiPlugin,
     slashUiPlugin,
     slashWatchPlugin,

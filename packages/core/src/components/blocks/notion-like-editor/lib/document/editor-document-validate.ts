@@ -205,7 +205,10 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     }
 
     return (
-      (childType === KEYS.link || childType === KEYS.mention) && parentAllowsInlineLink(parentType)
+      (childType === KEYS.link ||
+        childType === KEYS.mention ||
+        childType === KEYS.inlineEquation) &&
+      parentAllowsInlineLink(parentType)
     );
   }
 

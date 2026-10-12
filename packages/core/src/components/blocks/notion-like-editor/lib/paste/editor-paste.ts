@@ -44,6 +44,7 @@ import {
   mentionInputPlainText,
   sanitizeMentionLabel,
 } from "../features/editor-mention-node";
+import { inlineEquationNode } from "../features/editor-inline-equation";
 import { capPastedTable, repairTableGrid } from "../features/editor-table";
 import { TABLE_MAX_COLUMN_WIDTH, TABLE_MIN_COLUMN_WIDTH } from "../features/editor-table-grid";
 import {
@@ -869,6 +870,23 @@ function noteMentionInputPaste(): void {
   pendingMentionInputRepairs.push(repair);
 }
 
+// A valid inline equation keeps its source and gets a fresh id. An invalid one
+// becomes its source as plain text, with control characters removed.
+function pastedInlineEquationNodes(node: TElement, allowMarks: boolean): Descendant[] {
+  const tex = typeof node.texExpression === "string" ? node.texExpression : "";
+  if (allowMarks && isStoredEquationExpression(tex)) {
+    return [inlineEquationNode(tex)];
+  }
+
+  const text = Array.from(tex)
+    .filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return char === "\t" || char === "\n" || (code > 0x1f && code !== 0x7f);
+    })
+    .join("");
+  return text.length > 0 ? [{ text }] : [];
+}
+
 function pastedMentionNodes(node: TElement, seen: Set<string>): Descendant[] {
   if (!isRecord(node) || !isStoredMention(node)) {
     const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
@@ -902,6 +920,11 @@ function expandBlock(
 
   if (node.type === KEYS.mention) {
     const nodes = pastedMentionNodes(node, seen);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    const nodes = pastedInlineEquationNodes(node, true);
     return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
   }
 
@@ -1038,6 +1061,10 @@ function inlineNodes(
     }
 
     return pastedMentionNodes(node, seen);
+  }
+
+  if (node.type === KEYS.inlineEquation) {
+    return pastedInlineEquationNodes(node, allowMarks);
   }
 
   if (node.type === KEYS.link) {
@@ -1236,7 +1263,9 @@ function nodeText(node: TElement): string {
 }
 
 function isInlinePasteType(type: string): boolean {
-  return type === KEYS.link || type === KEYS.mention || type === "a";
+  return (
+    type === KEYS.link || type === KEYS.mention || type === KEYS.inlineEquation || type === "a"
+  );
 }
 
 function countPasteBlocks(nodes: readonly unknown[]): number {

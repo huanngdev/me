@@ -589,6 +589,14 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkMentionNode(node, path),
   },
+  // Inline equation. Same stored expression as the block equation. Lives where the
+  // mention lives. Its own type, so the block equation's rules do not change.
+  {
+    type: KEYS.inlineEquation,
+    attrs: ["id", "texExpression"],
+    isVoid: true,
+    validateChildren: (node, path) => checkEquationNode(node, path),
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [

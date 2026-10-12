@@ -4,7 +4,7 @@
 
 ### Heading 3
 
-plain **bold** *italic* under ~~strike~~ `code` sub sup red yellow 12px serif and [a link](https://example.com) plus @Ada\
+plain **bold** *italic* under ~~strike~~ `code` sub sup red yellow 12px serif and [a link](https://example.com) plus @Ada and $e^{i\pi}+1=0$\
 next line
 
 - Bullet

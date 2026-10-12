@@ -49,6 +49,7 @@ import { ensureStaticCodeLanguages } from "../../components/static/code-highligh
 ensureStaticCodeLanguages();
 import { ColumnGroupStatic, ColumnStatic } from "../../components/static/column-static";
 import { EquationStatic } from "../../components/static/equation-static";
+import { InlineEquationStatic } from "../../components/static/inline-equation-static";
 import { HeadingStatic } from "../../components/static/heading-static";
 import { HrStatic } from "../../components/static/hr-static";
 import { LinkStatic } from "../../components/static/link-static";
@@ -105,6 +106,12 @@ const equationPlugin = createSlatePlugin({
   key: KEYS.equation,
   node: { isElement: true, isVoid: true },
   render: { node: EquationStatic },
+});
+
+const inlineEquationPlugin = createSlatePlugin({
+  key: KEYS.inlineEquation,
+  node: { isElement: true, isInline: true, isVoid: true },
+  render: { node: InlineEquationStatic },
 });
 
 const syncedPlugin = createSlatePlugin({
@@ -180,4 +187,5 @@ export const editorStaticPlugins = [
   syncedPlugin,
   BaseLinkPlugin.configure({ render: { node: LinkStatic } }),
   BaseMentionPlugin.configure({ render: { node: MentionStatic } }),
+  inlineEquationPlugin,
 ];

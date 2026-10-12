@@ -4,7 +4,7 @@ import { createEditorDocument } from "../document/editor-document";
 import { parseEditorDocument } from "../document/editor-document-validate";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
 import { MENTION_ENTITY_TYPE } from "../features/editor-mention-node";
-import { SYNCED_REF_KEY } from "../document/editor-document-schema";
+import { SYNCED_REF_KEY, isStoredEquationExpression } from "../document/editor-document-schema";
 import {
   MEDIA_NOT_SUPPORTED,
   PASTE_BLOCK_LIMIT,
@@ -253,6 +253,22 @@ function inlineFrom(
         entityType: MENTION_ENTITY_TYPE,
         entityId: id,
         label,
+        children: [{ text: "" }],
+      }),
+    ];
+  }
+
+  if (element.hasAttribute("data-nle-inline-equation")) {
+    // Only the text is read. Attributes such as onclick are never copied.
+    const tex = element.textContent ?? "";
+    if (!isStoredEquationExpression(tex)) {
+      return [textNode(tex, marks)];
+    }
+
+    return [
+      stamp(element, {
+        type: KEYS.inlineEquation,
+        texExpression: tex,
         children: [{ text: "" }],
       }),
     ];
@@ -745,7 +761,8 @@ function countBlocks(nodes: readonly unknown[]): number {
       node !== null &&
       "type" in node &&
       node.type !== KEYS.link &&
-      node.type !== KEYS.mention
+      node.type !== KEYS.mention &&
+      node.type !== KEYS.inlineEquation
     ) {
       count += 1;
     }
@@ -858,7 +875,7 @@ function repairsToWarnings(
 function isOwnedExport(body: Element): boolean {
   return (
     body.querySelector(
-      "[data-nle-id], [data-nle-callout], [data-nle-toc], [data-nle-bookmark], [data-nle-equation], [data-nle-columns], [data-nle-synced-ref], [data-nle-mention], [data-nle-line]",
+      "[data-nle-id], [data-nle-callout], [data-nle-toc], [data-nle-bookmark], [data-nle-equation], [data-nle-columns], [data-nle-synced-ref], [data-nle-mention], [data-nle-inline-equation], [data-nle-line]",
     ) !== null
   );
 }
@@ -921,7 +938,10 @@ export function importHtmlDocument(input: string): IoImportResult {
     const repairs: { path: number[]; message: string }[] = [];
     value = sanitizePastedFragment(candidates, {
       isInline: (node) =>
-        node.type === KEYS.link || node.type === KEYS.mention || node.type === "a",
+        node.type === KEYS.link ||
+        node.type === KEYS.mention ||
+        node.type === KEYS.inlineEquation ||
+        node.type === "a",
       repairs,
     });
     repairsToWarnings(repairs, warnings);
