@@ -16,6 +16,7 @@ import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicZodDataTableDemo, CustomZodDataTableDemo, EmptyZodDataTableDemo } from "./demo";
 
@@ -239,9 +240,17 @@ export default function ZodDataTablePage() {
         <Section
           id="install"
           title="Install"
-          description="Install the component, its table primitive, and runtime dependencies."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <TerminalBlock command={INSTALL_COMMAND} />
+          <RegistryInstall name="zod-data-table" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <TerminalBlock command={INSTALL_COMMAND} />
+            </div>
+          </details>
         </Section>
         <Separator />
 

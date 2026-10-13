@@ -20,6 +20,7 @@ import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { TileTreemapDemo } from "./demo";
 
@@ -216,38 +217,46 @@ export default function TileTreemapPage() {
         <Section
           id="install"
           title="Install"
-          description="Add the color tokens and the motion dependency, then copy the source."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <div className="space-y-8">
-            <Step
-              index={1}
-              title="Add the chart tokens"
-              description="Eight categorical colors that adapt to light and dark mode."
-            >
-              <CodeBlock code={TOKENS_CODE} language="css" />
-            </Step>
-            <Step
-              index={2}
-              title="Install framer-motion"
-              description="Powers the tile entrance and hover motion."
-            >
-              <TerminalBlock command="bun add framer-motion" />
-            </Step>
-            <Step
-              index={3}
-              title="Copy the layout utilities"
-              description="Save as components/tile-treemap.utils.ts."
-            >
-              <CodeBlock code={UTILS_SOURCE} language="ts" />
-            </Step>
-            <Step
-              index={4}
-              title="Copy the component"
-              description="Save as components/tile-treemap.tsx."
-            >
-              <CodeBlock code={TREEMAP_SOURCE} language="tsx" />
-            </Step>
-          </div>
+          <RegistryInstall name="tile-treemap" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <div className="space-y-8">
+                <Step
+                  index={1}
+                  title="Add the chart tokens"
+                  description="Eight categorical colors that adapt to light and dark mode."
+                >
+                  <CodeBlock code={TOKENS_CODE} language="css" />
+                </Step>
+                <Step
+                  index={2}
+                  title="Install framer-motion"
+                  description="Powers the tile entrance and hover motion."
+                >
+                  <TerminalBlock command="bun add framer-motion" />
+                </Step>
+                <Step
+                  index={3}
+                  title="Copy the layout utilities"
+                  description="Save as components/tile-treemap/tile-treemap.utils.ts."
+                >
+                  <CodeBlock code={UTILS_SOURCE} language="ts" />
+                </Step>
+                <Step
+                  index={4}
+                  title="Copy the component"
+                  description="Save as components/tile-treemap/tile-treemap.tsx."
+                >
+                  <CodeBlock code={TREEMAP_SOURCE} language="tsx" />
+                </Step>
+              </div>
+            </div>
+          </details>
         </Section>
         <Separator />
 

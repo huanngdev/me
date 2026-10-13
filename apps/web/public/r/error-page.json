@@ -1,0 +1,31 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "error-page",
+  "type": "registry:block",
+  "title": "Error Page",
+  "description": "A minimal fullscreen error page with clear recovery actions.",
+  "dependencies": [
+    "lucide-react@^1.56.0"
+  ],
+  "registryDependencies": [
+    "button"
+  ],
+  "files": [
+    {
+      "path": "registry/default/error-page/components/blocks/error-page-block.tsx",
+      "type": "registry:component",
+      "target": "@components/blocks/error-page/error-page-block.tsx",
+      "content": "import type { LucideIcon } from \"lucide-react\";\nimport Link from \"next/link\";\n\nimport { FixedBackButton, type FixedBackButtonProps } from \"@/components/huanngdev/error-page/components/fixed-back-button\";\nimport { Button } from \"@/components/ui/button\";\nimport { cn } from \"@/lib/utils\";\n\nexport type ErrorPageBlockAction = {\n  label: string;\n  href: string;\n  icon?: LucideIcon;\n  appearance?: \"solid\" | \"outline\";\n};\n\nexport type ErrorPageBlockProps = {\n  code: string | number;\n  message: string;\n  description: string;\n  actions: readonly ErrorPageBlockAction[];\n  backButton?: FixedBackButtonProps | false;\n  className?: string;\n};\n\nexport function ErrorPageBlock({\n  code,\n  message,\n  description,\n  actions,\n  backButton,\n  className,\n}: ErrorPageBlockProps) {\n  return (\n    <section\n      className={cn(\n        \"bg-background @container flex min-h-svh w-full items-center justify-center px-4 py-12 text-center\",\n        className,\n      )}\n    >\n      {backButton !== false && <FixedBackButton {...backButton} />}\n      <div className=\"flex max-w-2xl flex-col items-center gap-5\">\n        <p className=\"text-muted-foreground/80 font-mono text-8xl leading-none font-bold tracking-tighter @sm:text-9xl\">\n          {code}\n        </p>\n        <h1 className=\"text-xl font-semibold tracking-tight @sm:text-2xl\">{message}</h1>\n        <p className=\"text-muted-foreground max-w-lg text-base leading-relaxed\">{description}</p>\n        <div className=\"flex flex-wrap items-center justify-center gap-2\">\n          {actions.map((action) => {\n            const Icon = action.icon;\n\n            return (\n              <Button\n                key={`${action.label}-${action.href}`}\n                asChild\n                variant={action.appearance === \"outline\" ? \"outline\" : \"default\"}\n              >\n                <Link href={action.href}>\n                  {Icon && <Icon data-icon=\"inline-start\" aria-hidden />}\n                  {action.label}\n                </Link>\n              </Button>\n            );\n          })}\n        </div>\n      </div>\n    </section>\n  );\n}\n"
+    },
+    {
+      "path": "registry/default/error-page/components/fixed-back-button.tsx",
+      "type": "registry:component",
+      "target": "@components/huanngdev/error-page/components/fixed-back-button.tsx",
+      "content": "\"use client\";\n\nimport { ArrowLeft } from \"lucide-react\";\n\nimport { cn } from \"@/lib/utils\";\nimport { Button } from \"@/components/ui/button\";\n\nexport type FixedBackButtonPosition = \"top-left\" | \"top-right\" | \"bottom-left\" | \"bottom-right\";\n\nexport type FixedBackButtonProps = {\n  position?: FixedBackButtonPosition;\n  label?: string;\n  className?: string;\n};\n\nconst POSITION_CLASS_NAMES: Record<FixedBackButtonPosition, string> = {\n  \"top-left\": \"top-4 left-4\",\n  \"top-right\": \"top-4 right-4\",\n  \"bottom-left\": \"bottom-4 left-4\",\n  \"bottom-right\": \"right-4 bottom-4\",\n};\n\nexport function FixedBackButton({\n  position = \"top-left\",\n  label = \"Go back\",\n  className,\n}: FixedBackButtonProps) {\n  const buttonClassName = cn(\"fixed z-10 rounded-full\", POSITION_CLASS_NAMES[position], className);\n\n  return (\n    <Button\n      type=\"button\"\n      variant=\"outline\"\n      size=\"icon\"\n      className={buttonClassName}\n      aria-label={label}\n      onClick={() => window.history.back()}\n    >\n      <ArrowLeft aria-hidden />\n    </Button>\n  );\n}\n"
+    }
+  ],
+  "meta": {
+    "framework": "next"
+  },
+  "docs": "Requires Next.js (uses next/link)."
+}

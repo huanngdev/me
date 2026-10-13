@@ -16,6 +16,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "github-contributions-3d",
     name: "GitHub Contributions 3D",
     description: "An interactive Three.js contribution calendar with six themes.",
+    registryPath: "/r/github-contributions-3d.json",
     docsPath: "/components/github-contributions-3d",
     files: [
       "packages/core/src/components/github-contributions-3d.utils.ts",
@@ -36,6 +37,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "scroll-minimap",
     name: "Scroll Minimap",
     description: "A compact scrollspy navigator for long content.",
+    registryPath: "/r/scroll-minimap.json",
     docsPath: "/components/scroll-minimap",
     files: ["packages/core/src/components/scroll-minimap.tsx"],
   },
@@ -44,6 +46,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "audio-player",
     name: "Audio Player",
     description: "A compact audio player with shadcn controls.",
+    registryPath: "/r/audio-player.json",
     docsPath: "/components/audio-player",
     files: [
       "packages/core/src/components/video-player/use-video-player.ts",
@@ -55,6 +58,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "video-player",
     name: "Video Player",
     description: "A headless media player with shadcn controls.",
+    registryPath: "/r/video-player.json",
     docsPath: "/components/video-player",
     files: [
       "packages/core/src/components/video-player/use-video-player.ts",
@@ -75,6 +79,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "tile-treemap",
     name: "Tile Treemap",
     description: "Divide a single box into proportionally sized, color-coded tiles.",
+    registryPath: "/r/tile-treemap.json",
     docsPath: "/components/tile-treemap",
     files: [
       "packages/core/src/components/tile-treemap.utils.ts",
@@ -87,6 +92,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     name: "CRM Data Table",
     description:
       "A CRM customers table with faceted filters, sorting, selection, expandable rows, row pinning, and column controls.",
+    registryPath: "/r/crm-data-table.json",
     docsPath: "/blocks/crm-data-table",
     files: [
       "packages/core/src/components/blocks/crm-data-table/types.ts",
@@ -109,6 +115,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "error-page",
     name: "Error Page",
     description: "A minimal fullscreen error page with clear recovery actions.",
+    registryPath: "/r/error-page.json",
     docsPath: "/blocks/error-page",
     files: [
       "packages/core/src/components/blocks/error-page-block.tsx",
@@ -120,6 +127,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "notion-like-editor",
     name: "Notion-like Editor",
     description: "A Notion-style block editor built on Plate with shadcn primitives.",
+    registryPath: "/r/notion-like-editor.json",
     docsPath: "/blocks/notion-like-editor",
     files: [
       "packages/core/src/components/blocks/notion-like-editor/lib/document/editor-value.ts",

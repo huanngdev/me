@@ -21,6 +21,7 @@ import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicVideoPlayerDemo, SourceSwitcherDemo } from "./demo";
 
@@ -76,7 +77,7 @@ const STYLE_IMPORTS = `@import "@vidstack/react/player/styles/base.css";
 
 const USAGE_CODE = `"use client";
 
-import { VideoPlayer } from "@/components/ui/video-player/video-player";
+import { VideoPlayer } from "@/components/video-player/video-player";
 
 export function Example() {
   return (
@@ -114,7 +115,7 @@ export function Example() {
 const SOURCE_SWITCHER_CODE = `"use client";
 
 import { useState } from "react";
-import { VideoPlayer, type VideoPlayerProps } from "@/components/ui/video-player/video-player";
+import { VideoPlayer, type VideoPlayerProps } from "@/components/video-player/video-player";
 
 const sources = [
   {
@@ -369,45 +370,53 @@ export default function VideoPlayerPage() {
         <Section
           id="install"
           title="Install"
-          description="Add the playback engines, shadcn primitives, styles, hook, and component."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <div className="space-y-8">
-            <Step
-              index={1}
-              title="Install media dependencies"
-              description="Vidstack provides the headless player; hls.js and dash.js stay local."
-            >
-              <TerminalBlock command={INSTALL_COMMAND} />
-            </Step>
-            <Step
-              index={2}
-              title="Add shadcn primitives"
-              description="The visible controls use your existing theme tokens."
-            >
-              <TerminalBlock command={SHADCN_COMMAND} />
-            </Step>
-            <Step
-              index={3}
-              title="Import media styles"
-              description="Add these lines to your global stylesheet."
-            >
-              <CodeBlock code={STYLE_IMPORTS} language="css" />
-            </Step>
-            <Step
-              index={4}
-              title="Copy the state hook"
-              description="Save as components/ui/video-player/use-video-player.ts."
-            >
-              <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
-            </Step>
-            <Step
-              index={5}
-              title="Copy the player"
-              description="Save as components/ui/video-player/video-player.tsx."
-            >
-              <CodeBlock code={VIDEO_PLAYER_SOURCE} language="tsx" />
-            </Step>
-          </div>
+          <RegistryInstall name="video-player" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <div className="space-y-8">
+                <Step
+                  index={1}
+                  title="Install media dependencies"
+                  description="Vidstack provides the headless player; hls.js and dash.js stay local."
+                >
+                  <TerminalBlock command={INSTALL_COMMAND} />
+                </Step>
+                <Step
+                  index={2}
+                  title="Add shadcn primitives"
+                  description="The visible controls use your existing theme tokens."
+                >
+                  <TerminalBlock command={SHADCN_COMMAND} />
+                </Step>
+                <Step
+                  index={3}
+                  title="Import media styles"
+                  description="Add these lines to your global stylesheet."
+                >
+                  <CodeBlock code={STYLE_IMPORTS} language="css" />
+                </Step>
+                <Step
+                  index={4}
+                  title="Copy the state hook"
+                  description="Save as components/video-player/use-video-player.ts."
+                >
+                  <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
+                </Step>
+                <Step
+                  index={5}
+                  title="Copy the player"
+                  description="Save as components/video-player/video-player.tsx."
+                >
+                  <CodeBlock code={VIDEO_PLAYER_SOURCE} language="tsx" />
+                </Step>
+              </div>
+            </div>
+          </details>
         </Section>
         <Separator />
 

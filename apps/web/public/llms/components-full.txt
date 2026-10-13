@@ -8,6 +8,7 @@
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/github-contributions-3d
+- Registry: https://www.huanngdev.site/r/github-contributions-3d.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
@@ -592,6 +593,7 @@ export function TagsInput({
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/scroll-minimap
+- Registry: https://www.huanngdev.site/r/scroll-minimap.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
@@ -807,6 +809,7 @@ function scrollToItem(href: `#${string}`, scrollContainer?: HTMLElement | null) 
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/audio-player
+- Registry: https://www.huanngdev.site/r/audio-player.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
@@ -1378,6 +1381,7 @@ export function AudioPlayer({
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/video-player
+- Registry: https://www.huanngdev.site/r/video-player.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
@@ -2473,6 +2477,7 @@ export function ZodDataTable<TSchema extends z.ZodObject>({
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/tile-treemap
+- Registry: https://www.huanngdev.site/r/tile-treemap.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order

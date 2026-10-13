@@ -17,6 +17,7 @@ import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import registry from "../../../../public/r/shadcn-tags-input.json";
 import { BasicDemo, ConstrainedDemo, ZodDemo } from "./demo";
@@ -339,46 +340,54 @@ export default function TagsInputComponentPage() {
         <Section
           id="install"
           title="Install"
-          description="Add the component manually in four steps."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <div className="space-y-8">
-            <Step
-              index={1}
-              title="Install dependencies"
-              description="Runtime libraries the component needs."
-            >
-              <TerminalBlock command={DEPS_COMMAND} />
-            </Step>
-            <Step
-              index={2}
-              title="Add shadcn primitives"
-              description="Pulls in the badge component used by tags."
-            >
-              <TerminalBlock command={SHADCN_DEPS_COMMAND} />
-            </Step>
-            <Step
-              index={3}
-              title="Copy the source"
-              description="Drop into components/shadcn-tags-input/tags-input.tsx."
-            >
-              <CodeBlock code={TAGS_INPUT_SOURCE} language="tsx" />
-            </Step>
-            <Step
-              index={4}
-              title="Browse the repo"
-              description="Latest source, history, and issues live on GitHub."
-            >
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="border-border hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors"
-              >
-                <span className="font-mono text-xs">huanngdev/me</span>
-                <ExternalLink className="size-3.5" />
-              </a>
-            </Step>
-          </div>
+          <RegistryInstall name="shadcn-tags-input" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <div className="space-y-8">
+                <Step
+                  index={1}
+                  title="Install dependencies"
+                  description="Runtime libraries the component needs."
+                >
+                  <TerminalBlock command={DEPS_COMMAND} />
+                </Step>
+                <Step
+                  index={2}
+                  title="Add shadcn primitives"
+                  description="Pulls in the badge component used by tags."
+                >
+                  <TerminalBlock command={SHADCN_DEPS_COMMAND} />
+                </Step>
+                <Step
+                  index={3}
+                  title="Copy the source"
+                  description="Drop into components/shadcn-tags-input/tags-input.tsx."
+                >
+                  <CodeBlock code={TAGS_INPUT_SOURCE} language="tsx" />
+                </Step>
+                <Step
+                  index={4}
+                  title="Browse the repo"
+                  description="Latest source, history, and issues live on GitHub."
+                >
+                  <a
+                    href={REPO_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border-border hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors"
+                  >
+                    <span className="font-mono text-xs">huanngdev/me</span>
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </Step>
+              </div>
+            </div>
+          </details>
         </Section>
         <Separator />
 

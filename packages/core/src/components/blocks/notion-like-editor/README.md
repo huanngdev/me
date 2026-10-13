@@ -14,6 +14,8 @@ import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-
 
 It re-exports `NotionLikeEditorBlock` and `NotionLikeEditorStatic` with their prop types, `EditorValue`, `EMPTY_EDITOR_VALUE`, `EditorOptions`, `ResolvedEditorOptions`, `DEFAULT_EDITOR_OPTIONS`, `EditorFeatures`, `EditorFeature`, `EDITOR_FEATURES`, `DEFAULT_EDITOR_FEATURES`, `DEFAULT_PLACEHOLDER`, `createLocalStorageAdapter`, `EditorPersistenceAdapter`, `LinkPreviewAdapter`, `FileUploadAdapter` (with `UploadedFile` and `FileUploadOptions`), `MentionProvider` (with `MentionEntity`) and `PageProvider` (with `PageEntity`, `PageResolution` and `PageOpenRequest`). It has no `"use client"` directive. The block is a client component in its own file, and the static renderer has no hooks, so a server component can import both from this path.
 
+To install it into a shadcn project, run `bunx --bun shadcn@latest add https://www.huanngdev.site/r/notion-like-editor.json`. It writes the editor under `components/blocks/notion-like-editor/`, the shared helpers under `components/huanngdev/notion-like-editor/`, and the Plate, KaTeX and highlight packages it needs. It also installs the audio and video players it uses for media blocks. Install it from a Next.js or Vite project with Radix shadcn primitives; Base UI projects do not compile without changes.
+
 ## Usage
 
 Memory mode keeps the document in component state. Pass `onChange` to read it.

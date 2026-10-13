@@ -4,6 +4,7 @@
 
 - Kind: block
 - Docs: https://www.huanngdev.site/blocks/error-page
+- Registry: https://www.huanngdev.site/r/error-page.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
