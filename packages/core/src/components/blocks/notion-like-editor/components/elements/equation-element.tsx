@@ -57,7 +57,7 @@ function EquationView({
   katex: KatexModule | undefined;
   empty: "placeholder" | "blank";
 }) {
-  let body: ReactNode = null;
+  let body: ReactNode;
   if (expression.length === 0) {
     body =
       empty === "blank" ? null : (

@@ -340,7 +340,7 @@ export function runMoveTarget(
   if (single[0] === run.start && single[1] === run.end) {
     return siblingMove(editor.children, [...run.parent, run.start], direction);
   }
-  let toIndex: number | null = null;
+  let toIndex: number;
   if (direction === "down") {
     if (run.end >= siblings.length) {
       return { ok: false, reason: MOVE_ALREADY_LAST };

@@ -530,7 +530,7 @@ function runFuzz(
     try {
       result = parseSafely(envelopeOf(mutation));
     } catch (error) {
-      throw new Error(`${context}: parseEditorDocument threw: ${String(error)}`);
+      throw new Error(`${context}: parseEditorDocument threw: ${String(error)}`, { cause: error });
     }
 
     if (!["ok", "invalid", "unsupported", "future-version"].includes(result.status)) {

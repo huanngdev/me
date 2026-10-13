@@ -297,6 +297,7 @@ function runSequence(seed: number): void {
     } catch (error) {
       throw new Error(
         `seed ${seed}, step ${step}, ${operation}: a command threw ${String(error).slice(0, 200)}. Steps so far: ${log.join(" ; ")}`,
+        { cause: error },
       );
     }
 
@@ -309,6 +310,7 @@ function runSequence(seed: number): void {
     } catch (error) {
       throw new Error(
         `seed ${seed}, step ${step}, ${description ?? operation}: first violated invariant: ${String(error).slice(0, 240)}. Steps so far: ${log.join(" ; ")}`,
+        { cause: error },
       );
     }
   }

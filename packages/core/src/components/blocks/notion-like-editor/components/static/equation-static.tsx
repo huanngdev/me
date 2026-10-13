@@ -1,5 +1,6 @@
 import katex from "katex";
 import { SlateElement, type SlateElementProps } from "platejs/static";
+import type { ReactNode } from "react";
 
 import {
   EQUATION_EMPTY_PLACEHOLDER,
@@ -12,7 +13,7 @@ import "katex/dist/katex.min.css";
 export function EquationStatic(props: SlateElementProps) {
   const expression =
     typeof props.element.texExpression === "string" ? props.element.texExpression : "";
-  let body = null;
+  let body: ReactNode;
   if (expression.length === 0) {
     body = (
       <p data-equation-empty className="text-muted-foreground text-center text-sm">
