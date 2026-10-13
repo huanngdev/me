@@ -67,7 +67,7 @@ function repairMessages(result: ReturnType<typeof parse>): string[] {
   return result.status === "ok" ? result.repairs.map((repair) => repair.message) : [];
 }
 
-// The anchor of an embed block carries its state: empty, facade, or loaded.
+// The anchor of an embed block carries its state: empty, or ready with its frame.
 function embedState(host: HTMLElement, id: string): string | null {
   return (
     blockHost(host, id)?.querySelector("[data-embed-state]")?.getAttribute("data-embed-state") ??
@@ -79,12 +79,9 @@ function frames(host: HTMLElement, id: string): HTMLIFrameElement[] {
   return [...(blockHost(host, id)?.querySelectorAll<HTMLIFrameElement>("iframe") ?? [])];
 }
 
-async function loadOn(host: HTMLElement, id: string): Promise<void> {
-  await click(blockHost(host, id)?.querySelector("[data-embed-load]") ?? null);
-}
-
+// A click on the card, outside the frame, opens the actions.
 async function openActionsOn(host: HTMLElement, id: string): Promise<void> {
-  await click(blockHost(host, id)?.querySelector("[data-embed-more]") ?? null);
+  await click(blockHost(host, id)?.querySelector("[data-embed-card]") ?? null);
 }
 
 function linkInput(): HTMLInputElement {
@@ -388,7 +385,7 @@ describe("embed slash item", () => {
   });
 });
 
-describe("embed link popover and facade", () => {
+describe("embed link popover and frame", () => {
   test("the empty placeholder opens a link popover with no upload tab, and Escape closes it", async () => {
     const mounted = await mount([paragraph("", "p1"), embed("e1")]);
     await settle();
@@ -416,34 +413,29 @@ describe("embed link popover and facade", () => {
     await mounted.cleanup();
   });
 
-  test("a valid link fills the block, closes the popover, and shows the facade with no frame", async () => {
+  test("a valid link fills the block, closes the popover, and the frame is there with no click", async () => {
     const mounted = await mount([paragraph("", "p1"), embed("e1")]);
     await settle();
     await click(blockHost(mounted.host, "e1")?.querySelector("[data-media-placeholder]") ?? null);
     await submitLink(YOUTUBE);
     expect(find("[data-embed-link-popover]")).toBeNull();
     expect(nodeOf(mounted.editor, "e1")).toMatchObject({ provider: "youtube", videoId: ID });
-    expect(embedState(mounted.host, "e1")).toBe("facade");
-    expect(
-      blockHost(mounted.host, "e1")?.querySelector("[data-embed-load]")?.getAttribute("aria-label"),
-    ).toBe("Load YouTube video");
-    expect(frames(mounted.host, "e1")).toHaveLength(0);
+    expect(embedState(mounted.host, "e1")).toBe("ready");
+    expect(frames(mounted.host, "e1")).toHaveLength(1);
+    expect(blockHost(mounted.host, "e1")?.querySelector("[data-embed-load]")).toBeNull();
     await mounted.cleanup();
   });
 
-  test("the first click loads exactly one frame, with its src, sandbox, allow and title", async () => {
+  test("the frame is one iframe with its src, sandbox, allow and title, and no autoplay", async () => {
     const mounted = await mount([
       paragraph("", "p1"),
       embed("e1", { provider: "youtube", videoId: ID, startSeconds: 90, url: `${YOUTUBE}&t=90` }),
     ]);
     await settle();
-    expect(frames(mounted.host, "e1")).toHaveLength(0);
-
-    await loadOn(mounted.host, "e1");
     const [frame, ...rest] = frames(mounted.host, "e1");
     expect(rest).toHaveLength(0);
     expect(frame?.getAttribute("src")).toBe(
-      `https://www.youtube-nocookie.com/embed/${ID}?start=90&autoplay=1`,
+      `https://www.youtube-nocookie.com/embed/${ID}?start=90`,
     );
     expect(frame?.getAttribute("sandbox")).toBe(EMBED_SANDBOX);
     expect(frame?.getAttribute("allow")).toBe(EMBED_IFRAME_ALLOW);
@@ -451,31 +443,30 @@ describe("embed link popover and facade", () => {
     expect(frame?.getAttribute("referrerpolicy")).toBe("strict-origin-when-cross-origin");
     expect(frame?.hasAttribute("allowfullscreen")).toBe(true);
     expect(frame?.getAttribute("loading")).toBe("lazy");
-    expect(embedState(mounted.host, "e1")).toBe("loaded");
+    expect(frame?.hasAttribute("autoplay")).toBe(false);
+    expect(embedState(mounted.host, "e1")).toBe("ready");
 
-    // The click on the facade is not a block action and does not open the More popover.
+    // The frame is a control, so the card and its actions are not opened by the frame itself.
     expect(find("[data-embed-actions]")).toBeNull();
     expect(mediaActionsBlockId(mounted.editor)).toBe("");
     await mounted.cleanup();
   });
 
-  test("Replace with another link resets the block to the facade", async () => {
+  test("Replace with another link changes the frame to the new provider", async () => {
     const mounted = await mount([
       paragraph("", "p1"),
       embed("e1", { provider: "youtube", videoId: ID, url: YOUTUBE }),
     ]);
     await settle();
-    await loadOn(mounted.host, "e1");
     expect(frames(mounted.host, "e1")).toHaveLength(1);
 
     await openActionsOn(mounted.host, "e1");
     await click(find('[data-embed-action="replace"]'));
     await submitLink(VIMEO);
     expect(nodeOf(mounted.editor, "e1")).toMatchObject({ provider: "vimeo", videoId: "76979871" });
-    expect(frames(mounted.host, "e1")).toHaveLength(0);
-    expect(
-      blockHost(mounted.host, "e1")?.querySelector("[data-embed-load]")?.getAttribute("aria-label"),
-    ).toBe("Load Vimeo video");
+    expect(frames(mounted.host, "e1")).toHaveLength(1);
+    expect(frames(mounted.host, "e1")[0]?.getAttribute("title")).toBe("Vimeo video");
+    expect(frames(mounted.host, "e1")[0]?.getAttribute("src")).toContain("player.vimeo.com");
     await mounted.cleanup();
   });
 
@@ -486,7 +477,7 @@ describe("embed link popover and facade", () => {
     ]);
     await settle();
     const box = blockHost(mounted.host, "e1")?.querySelector<HTMLElement>(
-      "[data-embed-facade]",
+      "[data-embed-frame]",
     )?.parentElement;
     expect(box?.getAttribute("style")).toContain("9 / 16");
     await mounted.cleanup();
@@ -494,29 +485,6 @@ describe("embed link popover and facade", () => {
 });
 
 describe("embed focus and caption", () => {
-  test("Load in edit mode leaves focus in the editor, not on the removed button", async () => {
-    const mounted = await mount([
-      paragraph("", "p1"),
-      embed("e1", { provider: "youtube", videoId: ID, url: YOUTUBE }),
-    ]);
-    await settle();
-    await loadOn(mounted.host, "e1");
-    expect(frames(mounted.host, "e1")).toHaveLength(1);
-    expect(document.activeElement).toBe(mounted.host.querySelector("[data-slate-editor]"));
-    await mounted.cleanup();
-  });
-
-  test("Load in read-only mode moves focus to the frame", async () => {
-    const mounted = await mount(
-      [paragraph("", "p1"), embed("e1", { provider: "youtube", videoId: ID, url: YOUTUBE })],
-      { readOnly: true },
-    );
-    await settle();
-    await loadOn(mounted.host, "e1");
-    expect(document.activeElement).toBe(frames(mounted.host, "e1")[0]);
-    await mounted.cleanup();
-  });
-
   test("Caption focuses the caption field, for a block that already has a caption", async () => {
     const mounted = await mount([
       paragraph("Before", "p1"),
@@ -532,7 +500,7 @@ describe("embed focus and caption", () => {
 });
 
 describe("embed actions", () => {
-  test("one click on the More button opens the actions, and align sets the alignment", async () => {
+  test("one click on the card, outside the frame, opens the actions, and align sets the alignment", async () => {
     const mounted = await mount([
       paragraph("Before", "p1"),
       embed("e1", { provider: "vimeo", videoId: "76979871", url: VIMEO }),
@@ -626,8 +594,46 @@ describe("embed actions", () => {
   });
 });
 
+describe("embed strip", () => {
+  test("a strip under the frame opens the actions on click, and the frame itself does not", async () => {
+    const mounted = await mount([
+      paragraph("Before", "p1"),
+      embed("e1", { provider: "vimeo", videoId: "76979871", url: VIMEO }),
+    ]);
+    await settle();
+    const strip = blockHost(mounted.host, "e1")?.querySelector("[data-embed-strip]") ?? null;
+    expect(strip).not.toBeNull();
+    await click(strip);
+    expect(find("[data-embed-actions]")?.getAttribute("aria-label")).toBe("Embed actions");
+    await mounted.cleanup();
+  });
+});
+
+describe("embed fit to width", () => {
+  test("the current align is pressed with the selection tint, and Fit to width sets 100 in one undo step", async () => {
+    const mounted = await mount([
+      paragraph("Before", "p1"),
+      embed("e1", { provider: "vimeo", videoId: "76979871", url: VIMEO, width: 60, align: "left" }),
+    ]);
+    await settle();
+    await openActionsOn(mounted.host, "e1");
+    expect(find('[data-embed-align="left"]')?.className).toContain("aria-pressed:bg-muted");
+    expect(find('[aria-label="Fit to width"]')?.getAttribute("aria-pressed")).toBe("false");
+
+    const undos = mounted.editor.history.undos.length;
+    await click(find('[aria-label="Fit to width"]'));
+    expect(field(nodeOf(mounted.editor, "e1"), "width")).toBe(100);
+    expect(find('[aria-label="Fit to width"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(mounted.editor.history.undos.length).toBe(undos + 1);
+
+    mounted.editor.tf.undo();
+    expect(field(nodeOf(mounted.editor, "e1"), "width")).toBe(60);
+    await mounted.cleanup();
+  });
+});
+
 describe("embed read-only", () => {
-  test("read-only shows the facade, the caption and the original link, with no More button or handles", async () => {
+  test("read-only shows the frame, the caption and the original link, with no handles or actions", async () => {
     const mounted = await mount(
       [
         paragraph("Before", "p1"),
@@ -637,14 +643,11 @@ describe("embed read-only", () => {
     );
     await settle();
     const host = blockHost(mounted.host, "e1");
-    expect(host?.querySelector("[data-embed-more]")).toBeNull();
     expect(host?.querySelector('[role="separator"]')).toBeNull();
     expect(host?.querySelector("input")).toBeNull();
     expect(host?.querySelector("figcaption")?.textContent).toBe("Read me");
     expect(host?.querySelector('a[href="' + YOUTUBE + '"]')?.textContent).toBe("Open original");
     expect(find("[data-embed-actions]")).toBeNull();
-
-    await loadOn(mounted.host, "e1");
     expect(frames(mounted.host, "e1")).toHaveLength(1);
     await mounted.cleanup();
   });

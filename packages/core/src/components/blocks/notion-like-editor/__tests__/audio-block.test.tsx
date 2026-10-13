@@ -78,8 +78,9 @@ function player(host: HTMLElement, id: string): HTMLAudioElement | null {
   return blockHost(host, id)?.querySelector<HTMLAudioElement>("[data-audio-player]") ?? null;
 }
 
+// A click on the card, outside the player, opens the actions.
 async function openActionsOn(host: HTMLElement, id: string): Promise<void> {
-  await click(blockHost(host, id)?.querySelector("[data-audio-more]") ?? null);
+  await click(blockHost(host, id)?.querySelector("[data-audio-card]") ?? null);
 }
 
 describe("audio schema", () => {
@@ -272,14 +273,13 @@ describe("audio rendering", () => {
     await mounted.cleanup();
   });
 
-  test("the More button sits at the right end of the card, labelled Audio actions", async () => {
+  test("there is no More button on the card", async () => {
     const mounted = await mount([
       paragraph("", "p1"),
       audio("a1", { url: TONE, name: "tone.mp3" }),
     ]);
     await settle();
-    const more = blockHost(mounted.host, "a1")?.querySelector("[data-audio-more]");
-    expect(more?.getAttribute("aria-label")).toBe("Audio actions");
+    expect(blockHost(mounted.host, "a1")?.querySelector("[data-audio-more]")).toBeNull();
     await mounted.cleanup();
   });
 
@@ -294,7 +294,7 @@ describe("audio rendering", () => {
     expect(text).toContain("Audio unavailable");
     expect(text).toContain("tone.mp3");
     expect(buttonWithLabel("Replace")).not.toBeNull();
-    expect(blockHost(mounted.host, "a1")?.querySelector("[data-audio-more]")).not.toBeNull();
+    expect(blockHost(mounted.host, "a1")?.querySelector("[data-audio-more]")).toBeNull();
     await mounted.cleanup();
   });
 
@@ -403,7 +403,7 @@ describe("audio upload", () => {
 });
 
 describe("audio action popover", () => {
-  test("the More button, from an editor that never had focus, selects the block and opens the actions", async () => {
+  test("a click on the card, from an editor that never had focus, selects the block and opens the actions", async () => {
     const mounted = await mount([
       paragraph("Before", "p1"),
       audio("a1", { url: TONE, name: "tone.mp3" }),

@@ -27,6 +27,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 export const MEDIA_TOOLBAR_CLASS =
   "absolute top-1 right-1 z-10 flex max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
+// The chosen option of a row of toggles, such as the align buttons. The same tint as a selection mark.
+export const TOOLBAR_PRESSED_CLASS = "aria-pressed:bg-muted";
+
 type EditorButtonVariant = "default" | "outline" | "ghost" | "destructive";
 
 type EditorTextButtonProps = Omit<

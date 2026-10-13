@@ -1333,7 +1333,7 @@ export const DEMO_DOCUMENT_VALUE = [
     provider: "youtube",
     videoId: "aqz-KE-bpKQ",
     url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-    caption: "Big Buck Bunny, loaded only after a click.",
+    caption: "Big Buck Bunny, a YouTube embed.",
     children: [{ text: "" }],
   },
   {

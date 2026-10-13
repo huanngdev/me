@@ -10,9 +10,7 @@ import {
   PlateElement,
   useEditorRef,
   useElement,
-  useFocused,
   useReadOnly,
-  useSelected,
   type PlateElementProps,
 } from "platejs/react";
 
@@ -42,9 +40,8 @@ import { EditorTextButton, mediaStringAttr } from "../ui/block-toolbar";
 import { FileActionPopover } from "../ui/file-action-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
 import { PdfPreviewDialog } from "../ui/pdf-preview-dialog";
-import { hrElementClassName } from "./hr-element";
 import { FileRowText, FileTypeIcon } from "../static/file-row";
-import { isControlTarget, useMediaCardSelect } from "./media-card";
+import { isControlTarget, useMediaCardSelect, useMediaHover } from "./media-card";
 import { MEDIA_ICON_CLASS, MEDIA_ROW_CLASS } from "./media-classes";
 import { MediaTextInput } from "./media-text-input";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
@@ -104,13 +101,11 @@ function storedFileName(editor: SlateEditor, id: string): string | undefined {
 }
 
 // The file block. Its body is one of: an upload row, the empty placeholder, the file row, or the
-// unavailable row. A ready row opens its actions on click. Read-only, it is a link.
+// unavailable row. A ready row opens its actions on hover or click. Read-only, it is a link.
 export function FileElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const readOnly = useReadOnly();
-  const selected = useSelected();
-  const focused = useFocused();
   const { fields } = cleanFileFields(element);
   const id = typeof element.id === "string" ? element.id : "";
   const controller = useUploadController();
@@ -139,6 +134,11 @@ export function FileElement(props: PlateElementProps) {
   const cardPhase = phase === "ready" || phase === "loading" || phase === "unavailable";
 
   useMediaCardSelect(cardRef, id, editable && cardPhase);
+  useMediaHover(
+    anchorRef,
+    id,
+    editable && (phase === "ready" || phase === "unavailable") && !renaming && !previewOpen,
+  );
 
   const readAnchor = (): HTMLElement | null => anchorRef.current;
 
@@ -303,11 +303,9 @@ export function FileElement(props: PlateElementProps) {
     );
   }
 
+  // The row is already a muted card, so the block takes no selected fill.
   return (
-    <PlateElement
-      {...props}
-      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
-    >
+    <PlateElement {...props} className="relative py-1">
       <div
         ref={anchorRef}
         contentEditable={false}

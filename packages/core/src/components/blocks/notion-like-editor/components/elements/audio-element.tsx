@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Ellipsis, Music, RefreshCw, VolumeX } from "lucide-react";
+import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { Music, RefreshCw, VolumeX } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -22,6 +22,7 @@ import {
 } from "../../lib/features/editor-audio-commands";
 import { displayFileName } from "../../lib/features/editor-file";
 import { formatFileSize } from "../../lib/features/editor-file-url";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import {
   openMediaActions,
   openMediaSource,
@@ -29,13 +30,20 @@ import {
 } from "../../lib/plugins/editor-media-ui";
 import { MediaUnavailableRow } from "../static/media-unavailable-row";
 import { FileRowText } from "../static/file-row";
-import { EditorIconButton, EditorTextButton } from "../ui/block-toolbar";
+import { EditorTextButton } from "../ui/block-toolbar";
 import { AudioActionPopover } from "../ui/audio-action-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
 import { hrElementClassName } from "./hr-element";
 import { IMAGE_CAPTION_CLASS } from "./image-classes";
 import { MEDIA_CARD_CLASS, MEDIA_ICON_CLASS } from "./media-classes";
-import { onPlayerClick, onPlayerKeyDown, onPlayerKeyUp, useMediaCardSelect } from "./media-card";
+import {
+  isControlTarget,
+  onPlayerClick,
+  onPlayerKeyDown,
+  onPlayerKeyUp,
+  useMediaCardSelect,
+  useMediaHover,
+} from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import { mediaResolveState, type MediaState } from "./media-state";
@@ -56,7 +64,7 @@ const AUDIO_SOURCE_CONFIG: MediaSourceConfig = {
 
 // The audio block. Its body is one of: an upload row, the empty placeholder, a skeleton while the url
 // resolves, the player card, or the unavailable row. The player takes its own clicks and keys, so its
-// actions open from the More button on the card.
+// actions open on hover, from a click on the card outside the player, or from Enter on the selected block.
 export function AudioElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -83,8 +91,13 @@ export function AudioElement(props: PlateElementProps) {
   const sizeDetail = fields.size === undefined ? undefined : formatFileSize(fields.size);
   const readAnchor = (): HTMLElement | null => anchorRef.current;
 
-  // Mouse-down on the card selects the block. The player and the More button are controls.
+  // Mouse-down on the card selects the block. The player is a control.
   useMediaCardSelect(cardRef, id, editable && showReady);
+  useMediaHover(
+    anchorRef,
+    id,
+    editable && (phase === "ready" || phase === "unavailable") && !captionOpen,
+  );
 
   function openSource(): void {
     selectMediaBlock(editor, id);
@@ -96,20 +109,20 @@ export function AudioElement(props: PlateElementProps) {
     openMediaActions(editor, id);
   }
 
+  // A click on the card outside the player opens its actions, as a click on the image does.
+  function onCardClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    if (readOnly || isControlTarget(event.target) || blockSelectionActive(editor)) {
+      return;
+    }
+
+    openActions();
+  }
+
   function embedLink(url: string): boolean {
     return runEditorCommand(editor, setAudioSource, { id, file: { url } });
   }
 
   const audioIcon = <Music aria-hidden="true" className={MEDIA_ICON_CLASS} />;
-  const moreButton = editable ? (
-    <EditorIconButton
-      variant="ghost"
-      label="Audio actions"
-      icon={<Ellipsis aria-hidden="true" />}
-      data-audio-more=""
-      onClick={openActions}
-    />
-  ) : null;
 
   let body: ReactNode;
   if (uploading?.status === "uploading") {
@@ -163,7 +176,6 @@ export function AudioElement(props: PlateElementProps) {
               icon={<RefreshCw aria-hidden="true" />}
               onClick={openSource}
             />
-            <div className="ml-auto">{moreButton}</div>
           </div>
         ) : null}
       </div>
@@ -191,11 +203,10 @@ export function AudioElement(props: PlateElementProps) {
 
     body = (
       <figure className="flex w-full flex-col">
-        <div ref={cardRef} data-audio-card="" className={MEDIA_CARD_CLASS}>
+        <div ref={cardRef} data-audio-card="" className={MEDIA_CARD_CLASS} onClick={onCardClick}>
           <div className="flex items-center gap-3">
             {audioIcon}
             <FileRowText name={name} detail={sizeDetail} />
-            {moreButton}
           </div>
           <audio
             src={src}

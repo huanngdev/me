@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Ellipsis, Play, SquarePlay } from "lucide-react";
+import {
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
+import { SquarePlay } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -19,23 +25,26 @@ import {
   EMBED_IFRAME_ALLOW,
   EMBED_SANDBOX,
   embedFrameSrc,
-  embedProviderLabel,
   embedTitle,
   isYouTubeShort,
 } from "../../lib/features/editor-embed-url";
 import { MEDIA_WIDTH_MAX } from "../../lib/features/editor-media-layout";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import {
   openMediaActions,
   openMediaSource,
   selectMediaBlock,
 } from "../../lib/plugins/editor-media-ui";
-import { EditorIconButton, EditorTextButton } from "../ui/block-toolbar";
 import { EmbedActionPopover } from "../ui/embed-action-popover";
 import { EmbedLinkPopover } from "../ui/embed-link-popover";
-import { hrElementClassName } from "./hr-element";
 import { IMAGE_CAPTION_CLASS, imageFigureClassName, imageFigureStyle } from "./image-classes";
-import { MEDIA_ICON_CLASS } from "./media-classes";
-import { onPlayerClick, onPlayerKeyDown, onPlayerKeyUp, useMediaCardSelect } from "./media-card";
+import { MEDIA_ICON_CLASS, mediaBlockClassName } from "./media-classes";
+import {
+  isControlTarget,
+  useMediaActionsOpen,
+  useMediaCardSelect,
+  useMediaHover,
+} from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaPlaceholderRow } from "./media-rows";
 import { MediaResizeHandles, useNaturalMediaPercent } from "./media-resize";
@@ -46,9 +55,8 @@ const SHORT_BOX_STYLE: CSSProperties = {
   width: "min(100%, calc(min(560px, 70vh) * 9 / 16))",
 };
 
-// The embed block. Before the click it is a facade with the provider's name and a Load button, so no
-// request reaches YouTube or Vimeo. After the click it is one iframe. The loaded state is local view
-// state, kept for one source, so a new link shows the facade again.
+// The embed block. It is one iframe, built from the provider, the video id, the Vimeo hash and the start
+// time, so the stored link never reaches the frame. The frame loads with the block.
 export function EmbedElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -57,32 +65,19 @@ export function EmbedElement(props: PlateElementProps) {
   const focused = useFocused();
   const { fields } = cleanEmbedFields(element);
   const id = typeof element.id === "string" ? element.id : "";
-  const [loadedKey, setLoadedKey] = useState<string | undefined>(undefined);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const figureRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLIFrameElement>(null);
-  // Set by Load. Once the frame exists, a read-only block moves focus to it, so the keyboard reaches the player.
-  const focusFrame = useRef(false);
 
   const editable = !readOnly;
   const provider = fields.provider;
   const videoId = fields.videoId;
   const ready = provider !== undefined && videoId !== undefined;
-  const sourceKey = [provider, videoId, fields.hash, fields.startSeconds, fields.url].join("|");
-  const loaded = ready && loadedKey === sourceKey;
   const short = provider === "youtube" && fields.url !== undefined && isYouTubeShort(fields.url);
   const boxWidth = preview ?? fields.width ?? 100;
   const readAnchor = (): HTMLElement | null => anchorRef.current;
-
-  useEffect(() => {
-    if (loaded && focusFrame.current) {
-      focusFrame.current = false;
-      frameRef.current?.focus();
-    }
-  }, [loaded]);
 
   // The rendered width is measured once the box exists, for a block with no stored width.
   const { natural } = useNaturalMediaPercent(
@@ -91,8 +86,10 @@ export function EmbedElement(props: PlateElementProps) {
     fields.width === undefined && ready,
   );
 
-  // Mouse-down on the padding around the box selects the block. The facade button and the frame are controls.
+  // Mouse-down on the padding around the box selects the block. Hovering the block opens its toolbar.
   useMediaCardSelect(cardRef, id, editable && ready);
+  const { open: actionsOpen } = useMediaActionsOpen(id);
+  useMediaHover(anchorRef, id, editable && ready && !captionOpen);
 
   function openSource(): void {
     selectMediaBlock(editor, id);
@@ -104,23 +101,20 @@ export function EmbedElement(props: PlateElementProps) {
     openMediaActions(editor, id);
   }
 
+  // A click on the block outside the frame opens its actions, as a click on the image does.
+  function onCardClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    if (isControlTarget(event.target) || blockSelectionActive(editor)) {
+      return;
+    }
+
+    openActions();
+  }
+
   function writeWidth(width: number): void {
     runEditorCommand(editor, setEmbedWidth, { id, width });
   }
 
   const embedIcon = <SquarePlay aria-hidden="true" className={MEDIA_ICON_CLASS} />;
-  // The More button sits over the top-right corner, always visible in an editable editor.
-  const moreButton = editable ? (
-    <div className="bg-background/80 absolute top-2 right-2 rounded-md">
-      <EditorIconButton
-        variant="ghost"
-        label="Embed actions"
-        icon={<Ellipsis aria-hidden="true" />}
-        data-embed-more=""
-        onClick={openActions}
-      />
-    </div>
-  ) : null;
 
   let body: ReactNode;
   if (provider === undefined || videoId === undefined) {
@@ -133,7 +127,6 @@ export function EmbedElement(props: PlateElementProps) {
       />
     );
   } else {
-    const providerName = embedProviderLabel(provider);
     const captionNode = readOnly ? (
       fields.caption === undefined ? null : (
         <figcaption className={IMAGE_CAPTION_CLASS}>{fields.caption}</figcaption>
@@ -155,7 +148,7 @@ export function EmbedElement(props: PlateElementProps) {
     ) : null;
 
     const handles =
-      editable && selected ? (
+      editable && (selected || actionsOpen) ? (
         <MediaResizeHandles
           kind="embed"
           label="Resize embed"
@@ -169,7 +162,7 @@ export function EmbedElement(props: PlateElementProps) {
         />
       ) : null;
 
-    // Read-only has no More button, so the original link is shown under the caption.
+    // Read-only has no actions, so the original link is shown under the caption.
     const openOriginal =
       readOnly && fields.url !== undefined ? (
         <a
@@ -196,60 +189,33 @@ export function EmbedElement(props: PlateElementProps) {
             )}
             style={short ? SHORT_BOX_STYLE : undefined}
           >
-            {loaded ? (
-              <iframe
-                ref={frameRef}
-                src={embedFrameSrc(
-                  { provider, videoId, hash: fields.hash, startSeconds: fields.startSeconds },
-                  true,
-                )}
-                title={embedTitle(provider)}
-                allow={EMBED_IFRAME_ALLOW}
-                sandbox={EMBED_SANDBOX}
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-                loading="lazy"
-                data-embed-frame=""
-                className="absolute inset-0 size-full border-0"
-              />
-            ) : (
-              <div
-                data-embed-facade=""
-                className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm"
-              >
-                <span className="text-muted-foreground">{providerName}</span>
-                <EditorTextButton
-                  label={`Load ${providerName} video`}
-                  variant="outline"
-                  icon={<Play aria-hidden="true" />}
-                  data-embed-load=""
-                  onClick={(event) => {
-                    onPlayerClick(event);
-                    focusFrame.current = readOnly;
-                    // The button leaves the page when the frame appears. In edit mode the editor takes focus instead.
-                    if (editable) {
-                      editor.tf.focus();
-                    }
-                    setLoadedKey(sourceKey);
-                  }}
-                  onKeyDown={(event) => {
-                    onPlayerKeyDown(editor, event);
-                  }}
-                  onKeyUp={onPlayerKeyUp}
-                />
-              </div>
-            )}
+            <iframe
+              src={embedFrameSrc(
+                { provider, videoId, hash: fields.hash, startSeconds: fields.startSeconds },
+                false,
+              )}
+              title={embedTitle(provider)}
+              allow={EMBED_IFRAME_ALLOW}
+              sandbox={EMBED_SANDBOX}
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              loading="lazy"
+              data-embed-frame=""
+              className="absolute inset-0 size-full border-0"
+            />
           </div>
-          {moreButton}
           {handles}
         </div>
         {captionNode}
         {openOriginal}
       </figure>
     );
+    // The provider's frame takes the pointer, so the page gets no events over it. This strip under the frame
+    // can be hovered and clicked. It is positioned below the card, so the block's box is not made taller.
     body = editable ? (
-      <div ref={cardRef} data-embed-card="">
+      <div ref={cardRef} data-embed-card="" className="relative" onClick={onCardClick}>
         {figure}
+        <div data-embed-strip="" aria-hidden="true" className="absolute inset-x-0 top-full h-2" />
       </div>
     ) : (
       figure
@@ -257,16 +223,13 @@ export function EmbedElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement
-      {...props}
-      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
-    >
+    <PlateElement {...props} className={mediaBlockClassName(selected, focused, readOnly)}>
       <div
         ref={anchorRef}
         contentEditable={false}
         data-block-handle-anchor=""
         data-media-anchor=""
-        data-embed-state={!ready ? "empty" : loaded ? "loaded" : "facade"}
+        data-embed-state={ready ? "ready" : "empty"}
         className="relative"
       >
         {body}
@@ -275,6 +238,7 @@ export function EmbedElement(props: PlateElementProps) {
             <EmbedActionPopover
               id={id}
               align={fields.align}
+              width={fields.width}
               href={fields.url}
               readAnchor={readAnchor}
               onCaption={() => {

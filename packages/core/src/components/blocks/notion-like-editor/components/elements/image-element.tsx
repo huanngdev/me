@@ -33,7 +33,12 @@ import {
 } from "../../lib/features/editor-image-commands";
 import { isHttpFileUrl, isRootRelativeFileUrl } from "../../lib/features/editor-file-url";
 import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
-import { isControlTarget, useMediaCardSelect } from "./media-card";
+import {
+  isControlTarget,
+  useMediaActionsOpen,
+  useMediaCardSelect,
+  useMediaHover,
+} from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaResizeHandles, useNaturalMediaPercent } from "./media-resize";
 import { mediaResolveState, type MediaState } from "./media-state";
@@ -55,8 +60,7 @@ import { ImageUnavailableRow } from "../static/image-unavailable-row";
 import { EditorTextButton } from "../ui/block-toolbar";
 import { ImageToolbarPopover } from "../ui/image-toolbar-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
-import { hrElementClassName } from "./hr-element";
-import { MEDIA_ICON_CLASS } from "./media-classes";
+import { MEDIA_ICON_CLASS, mediaBlockClassName } from "./media-classes";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import { useResolvedFileUrl, useUploadController, useUploadState } from "./file-upload-scope";
 
@@ -115,8 +119,14 @@ export function ImageElement(props: PlateElementProps) {
     fields.width === undefined && showReady,
   );
 
-  // Mouse-down selects the block, as a bookmark card does.
+  // Mouse-down selects the block, as a bookmark card does. Hovering it opens its toolbar.
   useMediaCardSelect(cardRef, id, !readOnly && showReady);
+  const { open: actionsOpen } = useMediaActionsOpen(id);
+  useMediaHover(
+    anchorRef,
+    id,
+    editable && (phase === "ready" || phase === "unavailable") && !captionOpen,
+  );
 
   function openSource(): void {
     selectMediaBlock(editor, id);
@@ -233,7 +243,7 @@ export function ImageElement(props: PlateElementProps) {
     ) : null;
 
     const handles =
-      editable && selected && showReady ? (
+      editable && (selected || actionsOpen) && showReady ? (
         <MediaResizeHandles
           kind="image"
           label="Resize image"
@@ -271,10 +281,7 @@ export function ImageElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement
-      {...props}
-      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
-    >
+    <PlateElement {...props} className={mediaBlockClassName(selected, focused, readOnly)}>
       <div
         ref={anchorRef}
         contentEditable={false}
@@ -289,6 +296,7 @@ export function ImageElement(props: PlateElementProps) {
             <ImageToolbarPopover
               id={id}
               align={fields.align}
+              width={fields.width}
               openHref={openHref}
               readAnchor={readAnchor}
               onCaption={() => {

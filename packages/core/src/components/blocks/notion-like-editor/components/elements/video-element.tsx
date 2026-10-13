@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Ellipsis, RefreshCw, Video as VideoIcon, VideoOff } from "lucide-react";
+import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { RefreshCw, Video as VideoIcon, VideoOff } from "lucide-react";
 import {
   PlateElement,
   useEditorRef,
@@ -23,16 +23,16 @@ import {
   setVideoSource,
   setVideoWidth,
 } from "../../lib/features/editor-video-commands";
+import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
 import {
   openMediaActions,
   openMediaSource,
   selectMediaBlock,
 } from "../../lib/plugins/editor-media-ui";
 import { MediaUnavailableRow } from "../static/media-unavailable-row";
-import { EditorIconButton, EditorTextButton } from "../ui/block-toolbar";
+import { EditorTextButton } from "../ui/block-toolbar";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
 import { VideoActionPopover } from "../ui/video-action-popover";
-import { hrElementClassName } from "./hr-element";
 import {
   IMAGE_CAPTION_CLASS,
   IMAGE_SKELETON_CLASS,
@@ -42,8 +42,16 @@ import {
   imageLoadingStyle,
   imageMediaClassName,
 } from "./image-classes";
-import { MEDIA_ICON_CLASS } from "./media-classes";
-import { onPlayerClick, onPlayerKeyDown, onPlayerKeyUp, useMediaCardSelect } from "./media-card";
+import { MEDIA_ICON_CLASS, mediaBlockClassName } from "./media-classes";
+import {
+  isControlTarget,
+  onPlayerClick,
+  onPlayerKeyDown,
+  onPlayerKeyUp,
+  useMediaActionsOpen,
+  useMediaCardSelect,
+  useMediaHover,
+} from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import { MediaResizeHandles, useNaturalMediaPercent } from "./media-resize";
@@ -64,8 +72,8 @@ const VIDEO_SOURCE_CONFIG: MediaSourceConfig = {
 };
 
 // The video block. Its body is one of: an upload row, the empty placeholder, a skeleton while the url
-// resolves, the player, or the unavailable row. The player takes its own clicks and keys, so its
-// actions open from the More button.
+// resolves, the player, or the unavailable row. Its actions open on hover, from a click on the block
+// outside the player, or from Enter on the selected block.
 export function VideoElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -106,6 +114,12 @@ export function VideoElement(props: PlateElementProps) {
 
   // Mouse-down on the padding around the player selects the block. The player itself is a control.
   useMediaCardSelect(cardRef, id, editable && showReady);
+  const { open: actionsOpen } = useMediaActionsOpen(id);
+  useMediaHover(
+    anchorRef,
+    id,
+    editable && (phase === "ready" || phase === "unavailable") && !captionOpen,
+  );
 
   function openSource(): void {
     selectMediaBlock(editor, id);
@@ -117,6 +131,15 @@ export function VideoElement(props: PlateElementProps) {
     openMediaActions(editor, id);
   }
 
+  // A click on the block outside the player opens its actions, as a click on the image does.
+  function onCardClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    if (isControlTarget(event.target) || blockSelectionActive(editor)) {
+      return;
+    }
+
+    openActions();
+  }
+
   function embedLink(url: string): boolean {
     return runEditorCommand(editor, setVideoSource, { id, file: { url } });
   }
@@ -126,18 +149,6 @@ export function VideoElement(props: PlateElementProps) {
   }
 
   const videoIcon = <VideoIcon aria-hidden="true" className={MEDIA_ICON_CLASS} />;
-  // The More button sits over the top-right corner, always visible in an editable editor.
-  const moreButton = editable ? (
-    <div className="bg-background/80 absolute top-2 right-2 rounded-md">
-      <EditorIconButton
-        variant="ghost"
-        label="Video actions"
-        icon={<Ellipsis aria-hidden="true" />}
-        data-video-more=""
-        onClick={openActions}
-      />
-    </div>
-  ) : null;
 
   let body: ReactNode;
   if (uploading?.status === "uploading") {
@@ -200,7 +211,6 @@ export function VideoElement(props: PlateElementProps) {
             />
           </div>
         ) : null}
-        {moreButton}
       </div>
     );
   } else {
@@ -225,7 +235,7 @@ export function VideoElement(props: PlateElementProps) {
     ) : null;
 
     const handles =
-      editable && selected && loaded ? (
+      editable && (selected || actionsOpen) && loaded ? (
         <MediaResizeHandles
           kind="video"
           label="Resize video"
@@ -265,14 +275,13 @@ export function VideoElement(props: PlateElementProps) {
             onKeyUp={onPlayerKeyUp}
             onClick={onPlayerClick}
           />
-          {moreButton}
           {handles}
         </div>
         {captionNode}
       </figure>
     );
     body = editable ? (
-      <div ref={cardRef} data-video-card="">
+      <div ref={cardRef} data-video-card="" onClick={onCardClick}>
         {figure}
       </div>
     ) : (
@@ -281,10 +290,7 @@ export function VideoElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement
-      {...props}
-      className={cn("relative py-1", hrElementClassName(selected, focused, readOnly))}
-    >
+    <PlateElement {...props} className={mediaBlockClassName(selected, focused, readOnly)}>
       <div
         ref={anchorRef}
         contentEditable={false}
@@ -299,6 +305,7 @@ export function VideoElement(props: PlateElementProps) {
             <VideoActionPopover
               id={id}
               align={fields.align}
+              width={fields.width}
               name={displayFileName(fields)}
               href={src}
               readAnchor={readAnchor}

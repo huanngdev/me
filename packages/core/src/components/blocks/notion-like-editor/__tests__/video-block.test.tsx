@@ -84,8 +84,9 @@ function player(host: HTMLElement, id: string): HTMLVideoElement | null {
   return blockHost(host, id)?.querySelector<HTMLVideoElement>("[data-video-player]") ?? null;
 }
 
+// A click on the card, outside the player, opens the actions.
 async function openActionsOn(host: HTMLElement, id: string): Promise<void> {
-  await click(blockHost(host, id)?.querySelector("[data-video-more]") ?? null);
+  await click(blockHost(host, id)?.querySelector("[data-video-card]") ?? null);
 }
 
 describe("video schema", () => {
@@ -375,11 +376,10 @@ describe("video rendering", () => {
     await mounted.cleanup();
   });
 
-  test("the More button is always visible in an editable editor, with its label", async () => {
+  test("there is no More button, in an editable editor or read-only", async () => {
     const mounted = await mount([paragraph("", "p1"), video("v1", { url: CLIP })]);
     await settle();
-    const more = blockHost(mounted.host, "v1")?.querySelector("[data-video-more]");
-    expect(more?.getAttribute("aria-label")).toBe("Video actions");
+    expect(blockHost(mounted.host, "v1")?.querySelector("[data-video-more]")).toBeNull();
     await mounted.cleanup();
   });
 
@@ -406,7 +406,6 @@ describe("video rendering", () => {
     expect(text).toContain("Video unavailable");
     expect(text).toContain("clip.mp4");
     expect(buttonWithLabel("Replace")).not.toBeNull();
-    expect(blockHost(mounted.host, "v1")?.querySelector("[data-video-more]")).not.toBeNull();
     await mounted.cleanup();
   });
 
@@ -553,7 +552,7 @@ describe("video upload", () => {
 });
 
 describe("video action popover", () => {
-  test("one click on the More button, from an editor that never had focus, selects the block and opens the actions", async () => {
+  test("one click on the block outside the player, from an editor that never had focus, selects it and opens the actions", async () => {
     const mounted = await mount([paragraph("Before", "p1"), video("v1", { url: CLIP })]);
     await settle();
     expect(mounted.editor.selection).toBeNull();
@@ -654,6 +653,29 @@ describe("video action popover", () => {
       mounted.editor.tf.undo();
     });
     expect(snapshot(mounted.editor)).toBe(before);
+    await mounted.cleanup();
+  });
+});
+
+describe("video fit to width", () => {
+  test("the current align is pressed with the selection tint, and Fit to width sets 100 in one undo step", async () => {
+    const mounted = await mount([
+      paragraph("Before", "p1"),
+      video("v1", { url: CLIP, width: 60, align: "left" }),
+    ]);
+    await settle();
+    await openActionsOn(mounted.host, "v1");
+    expect(find('[data-video-align="left"]')?.className).toContain("aria-pressed:bg-muted");
+    expect(find('[aria-label="Fit to width"]')?.getAttribute("aria-pressed")).toBe("false");
+
+    const undos = mounted.editor.history.undos.length;
+    await click(find('[aria-label="Fit to width"]'));
+    expect(field(nodeOf(mounted.editor, "v1"), "width")).toBe(100);
+    expect(find('[aria-label="Fit to width"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(mounted.editor.history.undos.length).toBe(undos + 1);
+
+    mounted.editor.tf.undo();
+    expect(field(nodeOf(mounted.editor, "v1"), "width")).toBe(60);
     await mounted.cleanup();
   });
 });

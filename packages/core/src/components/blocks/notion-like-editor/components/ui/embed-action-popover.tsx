@@ -5,9 +5,10 @@ import {
   Captions,
   ExternalLink,
   RefreshCw,
+  MoveHorizontal,
   Trash2,
 } from "lucide-react";
-import { useEditorRef, usePluginOption } from "platejs/react";
+import { useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -15,19 +16,33 @@ import { Separator } from "@/components/separator";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import type { MediaAlign } from "../../lib/features/editor-media-layout";
-import { removeEmbed, setEmbedAlign } from "../../lib/features/editor-embed-commands";
-import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
+import {
+  removeEmbed,
+  setEmbedAlign,
+  setEmbedWidth,
+} from "../../lib/features/editor-embed-commands";
+import { closeMediaActions } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
-import { useMediaActionsLifecycle } from "../elements/media-card";
+import {
+  mediaActionsHoverProps,
+  useMediaActionsLifecycle,
+  useMediaActionsOpen,
+} from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
-import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  TOOLBAR_PRESSED_CLASS,
+  moveActionFocus,
+} from "./block-toolbar";
 import { ALIGN_BUTTONS } from "./video-action-popover";
 
-// The actions of one embed, opened by its More button (or Enter on the selected embed). The same row as
-// a video, without Download, plus Open original when the block stores its link.
+// The actions of one embed, opened by hovering it, by a click on it, or by Enter on the selected embed.
+// The same row as a video, without Download, plus Open original when the block stores its link.
 export function EmbedActionPopover({
   id,
   align,
+  width,
   href,
   readAnchor,
   onCaption,
@@ -35,6 +50,7 @@ export function EmbedActionPopover({
 }: {
   id: string;
   align: MediaAlign | undefined;
+  width: number | undefined;
   href: string | undefined; // the stored link; undefined when the block has none
   readAnchor: () => HTMLElement | null;
   onCaption: () => void;
@@ -43,13 +59,13 @@ export function EmbedActionPopover({
   "use no memo";
 
   const editor = useEditorRef();
-  const open = usePluginOption(mediaUiPlugin, "actions") === id;
+  const { open, explicit } = useMediaActionsOpen(id);
   const anchor = virtualAnchor(
     () => elementRect(readAnchor()),
     () => anchorContext(readAnchor()),
   );
   // Leaving the block, entering read-only mode, or removing the block closes the popover.
-  useMediaActionsLifecycle(id, open);
+  useMediaActionsLifecycle(id, explicit);
 
   if (!open) {
     return null;
@@ -57,10 +73,11 @@ export function EmbedActionPopover({
 
   const current = align ?? "center";
   return (
-    <Popover open>
+    <Popover open key={explicit ? "actions" : "hover"}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
         data-embed-actions=""
+        data-media-actions=""
         aria-label="Embed actions"
         side="top"
         align="center"
@@ -68,9 +85,14 @@ export function EmbedActionPopover({
         collisionPadding={8}
         hideWhenDetached
         className="w-auto gap-1 p-1 text-xs whitespace-nowrap"
+        {...mediaActionsHoverProps(editor)}
         onOpenAutoFocus={(event) => {
           // The row takes focus, not a control, so no tooltip opens over the embed.
+          // A hover toolbar takes no focus at all.
           event.preventDefault();
+          if (!explicit) {
+            return;
+          }
           const content = event.currentTarget as HTMLElement | null;
           content?.querySelector<HTMLElement>("[data-embed-actions-row]")?.focus();
         }}
@@ -78,7 +100,7 @@ export function EmbedActionPopover({
           event.preventDefault();
         }}
         onPointerDownOutside={(event) => {
-          // A second click on the More button keeps the popover open.
+          // A second click on the embed keeps the popover open.
           const target = event.detail.originalEvent.target;
           if (target instanceof Element && target.closest("[data-embed-card]") !== null) {
             event.preventDefault();
@@ -119,6 +141,7 @@ export function EmbedActionPopover({
                 key={item.align}
                 label={item.label}
                 aria-pressed={current === item.align}
+                className={TOOLBAR_PRESSED_CLASS}
                 data-embed-align={item.align}
                 icon={<Icon aria-hidden="true" />}
                 onClick={() => {
@@ -127,6 +150,15 @@ export function EmbedActionPopover({
               />
             );
           })}
+          <EditorIconButton
+            label="Fit to width"
+            aria-pressed={width === 100}
+            className={TOOLBAR_PRESSED_CLASS}
+            icon={<MoveHorizontal aria-hidden="true" />}
+            onClick={() => {
+              runEditorCommand(editor, setEmbedWidth, { id, width: 100 });
+            }}
+          />
           <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
           <EditorTextButton
             label="Caption"

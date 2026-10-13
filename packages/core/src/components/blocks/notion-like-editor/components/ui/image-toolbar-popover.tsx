@@ -5,9 +5,10 @@ import {
   Captions,
   ExternalLink,
   RefreshCw,
+  MoveHorizontal,
   Trash2,
 } from "lucide-react";
-import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
+import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
 import { Button } from "@/components/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
@@ -15,13 +16,26 @@ import { Separator } from "@/components/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
-import { removeImage, setImageAlign } from "../../lib/features/editor-image-commands";
+import {
+  removeImage,
+  setImageAlign,
+  setImageWidth,
+} from "../../lib/features/editor-image-commands";
 import type { ImageAlign } from "../../lib/features/editor-image";
-import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
+import { closeMediaActions } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
-import { useMediaActionsLifecycle } from "../elements/media-card";
+import {
+  mediaActionsHoverProps,
+  useMediaActionsLifecycle,
+  useMediaActionsOpen,
+} from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
-import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  TOOLBAR_PRESSED_CLASS,
+  moveActionFocus,
+} from "./block-toolbar";
 
 const ALIGN_BUTTONS: readonly { align: ImageAlign; label: string }[] = [
   { align: "left", label: "Align left" },
@@ -29,11 +43,12 @@ const ALIGN_BUTTONS: readonly { align: ImageAlign; label: string }[] = [
   { align: "right", label: "Align right" },
 ];
 
-// One row of image actions, opened by a click on the image (or Enter on the selected image).
-// Alignment, caption and replace, then open-original and delete, with separators between them.
+// One row of image actions, opened by hovering the image, by a click on it, or by Enter on the selected
+// image. Alignment and fit to width, caption and replace, then open-original and delete, with separators.
 export function ImageToolbarPopover({
   id,
   align,
+  width,
   openHref,
   readAnchor,
   onCaption,
@@ -41,6 +56,7 @@ export function ImageToolbarPopover({
 }: {
   id: string;
   align: ImageAlign | undefined;
+  width: number | undefined;
   openHref: string | undefined;
   readAnchor: () => HTMLElement | null;
   onCaption: () => void;
@@ -50,13 +66,13 @@ export function ImageToolbarPopover({
 
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
-  const open = usePluginOption(mediaUiPlugin, "actions") === id;
+  const { open, explicit } = useMediaActionsOpen(id);
   const anchor = virtualAnchor(
     () => elementRect(readAnchor()),
     () => anchorContext(readAnchor()),
   );
   // Leaving the block, entering read-only mode, or removing the block closes the popover.
-  useMediaActionsLifecycle(id, open);
+  useMediaActionsLifecycle(id, explicit);
 
   if (readOnly || !open) {
     return null;
@@ -64,10 +80,11 @@ export function ImageToolbarPopover({
 
   const current = align ?? "center";
   return (
-    <Popover open>
+    <Popover open key={explicit ? "actions" : "hover"}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
         data-image-actions=""
+        data-media-actions=""
         aria-label="Image actions"
         side="top"
         align="center"
@@ -75,9 +92,14 @@ export function ImageToolbarPopover({
         collisionPadding={8}
         hideWhenDetached
         className="w-auto gap-1 p-1 text-xs whitespace-nowrap"
+        {...mediaActionsHoverProps(editor)}
         onOpenAutoFocus={(event) => {
           // The row takes focus, not a control, so no tooltip opens over the text above the image.
+          // A hover toolbar takes no focus at all.
           event.preventDefault();
+          if (!explicit) {
+            return;
+          }
           const content = event.currentTarget as HTMLElement | null;
           content?.querySelector<HTMLElement>("[data-image-actions-row]")?.focus();
         }}
@@ -126,6 +148,7 @@ export function ImageToolbarPopover({
                 key={item.align}
                 label={item.label}
                 aria-pressed={current === item.align}
+                className={TOOLBAR_PRESSED_CLASS}
                 icon={<Icon aria-hidden="true" />}
                 onClick={() => {
                   runEditorCommand(editor, setImageAlign, { id, align: item.align });
@@ -133,6 +156,15 @@ export function ImageToolbarPopover({
               />
             );
           })}
+          <EditorIconButton
+            label="Fit to width"
+            aria-pressed={width === 100}
+            className={TOOLBAR_PRESSED_CLASS}
+            icon={<MoveHorizontal aria-hidden="true" />}
+            onClick={() => {
+              runEditorCommand(editor, setImageWidth, { id, width: 100 });
+            }}
+          />
           <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
           <EditorTextButton
             label="Caption"

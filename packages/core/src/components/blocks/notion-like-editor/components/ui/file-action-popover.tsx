@@ -1,20 +1,24 @@
 import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import { useEditorRef, usePluginOption } from "platejs/react";
+import { useEditorRef } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { Separator } from "@/components/separator";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { removeFile } from "../../lib/features/editor-file-commands";
-import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
+import { closeMediaActions } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
-import { useMediaActionsLifecycle } from "../elements/media-card";
+import {
+  mediaActionsHoverProps,
+  useMediaActionsLifecycle,
+  useMediaActionsOpen,
+} from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
 import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
 import { MediaDownloadButton } from "./media-download-button";
 
-// One row of file actions, opened by a click on the file row (or Enter on the selected file).
-// Preview for a PDF, then Download, then Rename and Replace, then Delete, with separators between the sections.
+// One row of file actions, opened by hovering the file, by a click on the file row, or by Enter on the
+// selected file. Preview for a PDF, then Download, then Rename and Replace, then Delete, with separators.
 export function FileActionPopover({
   id,
   name,
@@ -35,23 +39,24 @@ export function FileActionPopover({
   "use no memo";
 
   const editor = useEditorRef();
-  const open = usePluginOption(mediaUiPlugin, "actions") === id;
+  const { open, explicit } = useMediaActionsOpen(id);
   const anchor = virtualAnchor(
     () => elementRect(readAnchor()),
     () => anchorContext(readAnchor()),
   );
   // Leaving the block, entering read-only mode, or removing the block closes the popover.
-  useMediaActionsLifecycle(id, open);
+  useMediaActionsLifecycle(id, explicit);
 
   if (!open) {
     return null;
   }
 
   return (
-    <Popover open>
+    <Popover open key={explicit ? "actions" : "hover"}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
         data-file-actions=""
+        data-media-actions=""
         aria-label="File actions"
         side="top"
         align="start"
@@ -59,9 +64,14 @@ export function FileActionPopover({
         collisionPadding={8}
         hideWhenDetached
         className="w-auto gap-1 p-1 text-xs whitespace-nowrap"
+        {...mediaActionsHoverProps(editor)}
         onOpenAutoFocus={(event) => {
           // The row takes focus, not a control, so no tooltip opens over the text above the file.
+          // A hover toolbar takes no focus at all.
           event.preventDefault();
+          if (!explicit) {
+            return;
+          }
           const content = event.currentTarget as HTMLElement | null;
           content?.querySelector<HTMLElement>("[data-file-actions-row]")?.focus();
         }}

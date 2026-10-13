@@ -602,6 +602,24 @@ function pasteFiles(editor: SlateEditor, files: File[]): void {
 }
 
 describe("file rendering", () => {
+  test("a focused, selected file block takes no grey fill; its row is the only muted surface", async () => {
+    const mounted = await mount([
+      paragraph("Before", "p1"),
+      file("f1", { url: LINK, name: "a.pdf", mime: "application/pdf" }),
+    ]);
+    await settle();
+    await act(async () => {
+      mounted.editor.tf.focus();
+      mounted.editor.tf.select(mounted.editor.api.start([1])!);
+    });
+    await settle();
+    const block = blockHost(mounted.host, "f1");
+    expect(block?.className).not.toContain("bg-muted");
+    expect(block?.className).not.toContain("shadow-");
+    expect(blockHost(mounted.host, "f1")?.querySelector("[data-file-card]")).not.toBeNull();
+    await mounted.cleanup();
+  });
+
   test("an empty file is the Add a file placeholder", async () => {
     const mounted = await mount([paragraph("Before", "p1"), file("f1")]);
     await settle();

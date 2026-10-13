@@ -1,14 +1,27 @@
-import { useEffect, type RefObject } from "react";
-import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
+import { useEffect, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
+import { useEditorReadOnly, useEditorRef, useEditorSelector, usePluginOption } from "platejs/react";
 
 import type { SlateEditor } from "platejs";
 
 import {
+  cancelMediaHoverClose,
+  cancelMediaOpen,
+  clearMediaHover,
   closeMediaActions,
   mediaActionsBlockId,
+  mediaHoverBlockId,
+  mediaUiPlugin,
+  scheduleMediaHover,
+  scheduleMediaHoverClose,
   selectMediaBlock,
   selectedMediaId,
+  type MediaPoint,
 } from "../../lib/plugins/editor-media-ui";
+
+// The pointer position of a mouse event, for the hover timers.
+function pointOf(event: { clientX: number; clientY: number }): MediaPoint {
+  return { x: event.clientX, y: event.clientY };
+}
 
 // Clicks and keys on these controls belong to the control, not to the media card. A video or audio
 // player is a control, so a click on it does not select the block.
@@ -113,4 +126,101 @@ export function useMediaActionsLifecycle(id: string, open: boolean): void {
     },
     [editor, id],
   );
+}
+
+// The action toolbar of a media block opens while the pointer rests on the block, and closes once the
+// pointer has left both the block and the toolbar. `active` says the block has actions now. A press
+// that began elsewhere does not open it; the release over the block does.
+export function useMediaHover(
+  anchorRef: RefObject<HTMLDivElement | null>,
+  id: string,
+  active: boolean,
+): void {
+  const editor = useEditorRef();
+
+  useEffect(() => {
+    const node = anchorRef.current;
+    if (node === null || !active) {
+      return;
+    }
+
+    const onEnter = (event: MouseEvent): void => {
+      if (event.buttons !== 0) {
+        return;
+      }
+
+      // Back over the block that is hovered, so its pending close is dropped.
+      if (mediaHoverBlockId(editor) === id) {
+        cancelMediaHoverClose(editor);
+      }
+      scheduleMediaHover(editor, id, pointOf(event));
+    };
+    // The browser can report the toolbar's enter before this leave, so a leave into the toolbar is ignored.
+    const onLeave = (event: MouseEvent): void => {
+      cancelMediaOpen(editor, id);
+      const next = event.relatedTarget;
+      if (next instanceof Element && next.closest("[data-media-actions]") !== null) {
+        return;
+      }
+
+      scheduleMediaHoverClose(editor, pointOf(event));
+    };
+    // Moving over the block restarts the rest, so the open uses the pointer's latest position.
+    const onMove = (event: MouseEvent): void => {
+      if (event.buttons === 0 && mediaHoverBlockId(editor) !== id) {
+        scheduleMediaHover(editor, id, pointOf(event));
+      }
+    };
+    const onDown = (): void => {
+      cancelMediaOpen(editor, id);
+    };
+    const onUp = (event: MouseEvent): void => {
+      scheduleMediaHover(editor, id, pointOf(event));
+    };
+    node.addEventListener("mouseenter", onEnter);
+    node.addEventListener("mouseleave", onLeave);
+    node.addEventListener("mousemove", onMove);
+    node.addEventListener("mousedown", onDown);
+    node.addEventListener("mouseup", onUp);
+    return () => {
+      node.removeEventListener("mouseenter", onEnter);
+      node.removeEventListener("mouseleave", onLeave);
+      node.removeEventListener("mousemove", onMove);
+      node.removeEventListener("mousedown", onDown);
+      node.removeEventListener("mouseup", onUp);
+      cancelMediaOpen(editor, id);
+    };
+  }, [editor, id, active, anchorRef]);
+
+  // Leaving the active state, or the block, closes its hover toolbar.
+  useEffect(
+    () => () => {
+      if (mediaHoverBlockId(editor) === id) {
+        clearMediaHover(editor);
+      }
+    },
+    [editor, id, active],
+  );
+}
+
+// Whether a block's action toolbar is open. `explicit` is true when a click or a key opened it. That
+// toolbar takes focus and stays open until it is dismissed. A hover toolbar takes neither.
+export function useMediaActionsOpen(id: string): { open: boolean; explicit: boolean } {
+  const actions = usePluginOption(mediaUiPlugin, "actions");
+  const hovered = usePluginOption(mediaUiPlugin, "hoverId");
+  const explicit = id.length > 0 && actions === id;
+  return { open: explicit || (id.length > 0 && hovered === id), explicit };
+}
+
+// The hover handlers of an action toolbar. The toolbar is a portal, so the pointer crosses the gap to
+// it: entering it cancels a pending close, and leaving it schedules one.
+export function mediaActionsHoverProps(editor: SlateEditor) {
+  return {
+    onMouseEnter: () => {
+      cancelMediaHoverClose(editor);
+    },
+    onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => {
+      scheduleMediaHoverClose(editor, pointOf(event));
+    },
+  };
 }

@@ -1,17 +1,38 @@
-import { AlignCenter, AlignLeft, AlignRight, Captions, RefreshCw, Trash2 } from "lucide-react";
-import { useEditorRef, usePluginOption } from "platejs/react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Captions,
+  RefreshCw,
+  MoveHorizontal,
+  Trash2,
+} from "lucide-react";
+import { useEditorRef } from "platejs/react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { Separator } from "@/components/separator";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import type { MediaAlign } from "../../lib/features/editor-media-layout";
-import { removeVideo, setVideoAlign } from "../../lib/features/editor-video-commands";
-import { closeMediaActions, mediaUiPlugin } from "../../lib/plugins/editor-media-ui";
+import {
+  removeVideo,
+  setVideoAlign,
+  setVideoWidth,
+} from "../../lib/features/editor-video-commands";
+import { closeMediaActions } from "../../lib/plugins/editor-media-ui";
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
-import { useMediaActionsLifecycle } from "../elements/media-card";
+import {
+  mediaActionsHoverProps,
+  useMediaActionsLifecycle,
+  useMediaActionsOpen,
+} from "../elements/media-card";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
-import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
+import {
+  EditorIconButton,
+  EditorTextButton,
+  TOOLBAR_PRESSED_CLASS,
+  moveActionFocus,
+} from "./block-toolbar";
 import { MediaDownloadButton } from "./media-download-button";
 
 export const ALIGN_BUTTONS: readonly { align: MediaAlign; label: string }[] = [
@@ -20,11 +41,13 @@ export const ALIGN_BUTTONS: readonly { align: MediaAlign; label: string }[] = [
   { align: "right", label: "Align right" },
 ];
 
-// One row of video actions, opened by the More button (or Enter on the selected video). Alignment,
-// then caption and replace, then download and delete, with separators between the sections.
+// One row of video actions, opened by hovering the video, by a click on the block, or by Enter on the
+// selected video. Alignment and fit to width, then caption and replace, then download and delete, with
+// separators between the sections.
 export function VideoActionPopover({
   id,
   align,
+  width,
   name,
   href,
   readAnchor,
@@ -33,6 +56,7 @@ export function VideoActionPopover({
 }: {
   id: string;
   align: MediaAlign | undefined;
+  width: number | undefined;
   name: string | undefined;
   href: string | undefined; // the resolved url; undefined while it resolves
   readAnchor: () => HTMLElement | null;
@@ -42,13 +66,13 @@ export function VideoActionPopover({
   "use no memo";
 
   const editor = useEditorRef();
-  const open = usePluginOption(mediaUiPlugin, "actions") === id;
+  const { open, explicit } = useMediaActionsOpen(id);
   const anchor = virtualAnchor(
     () => elementRect(readAnchor()),
     () => anchorContext(readAnchor()),
   );
   // Leaving the block, entering read-only mode, or removing the block closes the popover.
-  useMediaActionsLifecycle(id, open);
+  useMediaActionsLifecycle(id, explicit);
 
   if (!open) {
     return null;
@@ -56,10 +80,11 @@ export function VideoActionPopover({
 
   const current = align ?? "center";
   return (
-    <Popover open>
+    <Popover open key={explicit ? "actions" : "hover"}>
       <PopoverAnchor virtualRef={anchor} />
       <PopoverContent
         data-video-actions=""
+        data-media-actions=""
         aria-label="Video actions"
         side="top"
         align="center"
@@ -67,9 +92,14 @@ export function VideoActionPopover({
         collisionPadding={8}
         hideWhenDetached
         className="w-auto gap-1 p-1 text-xs whitespace-nowrap"
+        {...mediaActionsHoverProps(editor)}
         onOpenAutoFocus={(event) => {
           // The row takes focus, not a control, so no tooltip opens over the video.
+          // A hover toolbar takes no focus at all.
           event.preventDefault();
+          if (!explicit) {
+            return;
+          }
           const content = event.currentTarget as HTMLElement | null;
           content?.querySelector<HTMLElement>("[data-video-actions-row]")?.focus();
         }}
@@ -77,7 +107,7 @@ export function VideoActionPopover({
           event.preventDefault();
         }}
         onPointerDownOutside={(event) => {
-          // A second click on the More button keeps the popover open.
+          // A second click on the video keeps the popover open.
           const target = event.detail.originalEvent.target;
           if (target instanceof Element && target.closest("[data-video-card]") !== null) {
             event.preventDefault();
@@ -118,6 +148,7 @@ export function VideoActionPopover({
                 key={item.align}
                 label={item.label}
                 aria-pressed={current === item.align}
+                className={TOOLBAR_PRESSED_CLASS}
                 data-video-align={item.align}
                 icon={<Icon aria-hidden="true" />}
                 onClick={() => {
@@ -126,6 +157,15 @@ export function VideoActionPopover({
               />
             );
           })}
+          <EditorIconButton
+            label="Fit to width"
+            aria-pressed={width === 100}
+            className={TOOLBAR_PRESSED_CLASS}
+            icon={<MoveHorizontal aria-hidden="true" />}
+            onClick={() => {
+              runEditorCommand(editor, setVideoWidth, { id, width: 100 });
+            }}
+          />
           <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
           <EditorTextButton
             label="Caption"

@@ -816,6 +816,38 @@ describe("image actions popover", () => {
     await mounted.cleanup();
   });
 
+  test("the current align is pressed with the selection tint, and Fit to width sets 100 in one undo step", async () => {
+    const mounted = await mount([
+      paragraph("Before", "p1"),
+      image("img-1", { url: PNG, width: 60, align: "left" }),
+    ]);
+    await settle();
+    await click(blockHost(mounted.host, "img-1")?.querySelector("[data-image-card]") ?? null);
+
+    expect(buttonWithLabel("Align left")?.className).toContain("aria-pressed:bg-muted");
+    expect(buttonWithLabel("Fit to width")?.getAttribute("aria-pressed")).toBe("false");
+
+    const undos = mounted.editor.history.undos.length;
+    await click(buttonWithLabel("Fit to width"));
+    expect(field(imageNode(mounted.editor, "img-1"), "width")).toBe(100);
+    expect(buttonWithLabel("Fit to width")?.getAttribute("aria-pressed")).toBe("true");
+    expect(mounted.editor.history.undos.length).toBe(undos + 1);
+
+    mounted.editor.tf.undo();
+    expect(field(imageNode(mounted.editor, "img-1"), "width")).toBe(60);
+    await mounted.cleanup();
+  });
+
+  test("the default align is center, and it is the pressed one when no align is stored", async () => {
+    const mounted = await mount([paragraph("Before", "p1"), image("img-1", { url: PNG })]);
+    await settle();
+    await click(blockHost(mounted.host, "img-1")?.querySelector("[data-image-card]") ?? null);
+    expect(buttonWithLabel("Align center")?.getAttribute("aria-pressed")).toBe("true");
+    expect(buttonWithLabel("Align center")?.className).toContain("aria-pressed:bg-muted");
+    expect(buttonWithLabel("Align left")?.getAttribute("aria-pressed")).toBe("false");
+    await mounted.cleanup();
+  });
+
   test("Replace keeps the old image when cancelled, and swaps it in one undo step when a link is chosen", async () => {
     const mounted = await mount(
       [paragraph("Before", "p1"), image("img-1", { url: PNG, name: "a.png" })],

@@ -159,8 +159,12 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     entry: [
       { via: "slash", id: "image" },
       { via: "paste", note: "Image files pasted or dropped, with other files, up to 10 at a time" },
-      { via: "pointer", note: "Click for actions, drag the edge handles to resize" },
+      {
+        via: "pointer",
+        note: "Hover for actions, or click the image; drag the edge handles to resize",
+      },
       { via: "toolbar", id: "block.image.align", note: "Align left, center and right" },
+      { via: "toolbar", id: "block.image.fit-width", note: "Fit to width" },
       { via: "toolbar", id: "block.image.caption", note: "Caption" },
       { via: "toolbar", id: "block.image.set-source", note: "Replace" },
       { via: "toolbar", id: "block.image.remove", note: "Delete" },
@@ -189,7 +193,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       },
       {
         via: "pointer",
-        note: "Click for actions: Preview (PDFs only), Download, Rename, Replace and Delete",
+        note: "Hover for actions, or click the row: Preview (PDFs only), Download, Rename, Replace and Delete",
       },
       { via: "toolbar", id: "block.file.rename", note: "Rename" },
       { via: "toolbar", id: "block.file.set-source", note: "Replace" },
@@ -213,8 +217,12 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     entry: [
       { via: "slash", id: "video" },
       { via: "paste", note: "Video files pasted or dropped, with other files, up to 10 at a time" },
-      { via: "pointer", note: "The More button opens actions; drag the edge handles to resize" },
+      {
+        via: "pointer",
+        note: "Hover for actions, or click the video outside its controls; drag the edge handles to resize",
+      },
       { via: "toolbar", id: "block.video.align", note: "Align left, center and right" },
+      { via: "toolbar", id: "block.video.fit-width", note: "Fit to width" },
       { via: "toolbar", id: "block.video.caption", note: "Caption" },
       { via: "toolbar", id: "block.video.set-source", note: "Replace" },
       { via: "toolbar", id: "block.video.remove", note: "Delete" },
@@ -240,7 +248,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       { via: "paste", note: "Audio files pasted or dropped, with other files, up to 10 at a time" },
       {
         via: "pointer",
-        note: "The More button opens actions: Caption, Replace, Download and Delete",
+        note: "Hover for actions, or click the card outside its player: Caption, Replace, Download and Delete",
       },
       { via: "toolbar", id: "block.audio.caption", note: "Caption" },
       { via: "toolbar", id: "block.audio.set-source", note: "Replace" },
@@ -265,9 +273,10 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       { via: "paste", note: "A YouTube or Vimeo link pasted on its own offers Embed" },
       {
         via: "pointer",
-        note: "Click Load video to play it; the More button opens actions: Align, Caption, Replace, Open original and Delete. Drag the edge handles to resize",
+        note: "The frame plays in place. Hover the strip under the frame or the caption, or click the block outside the frame, for actions: Align, Caption, Replace, Open original and Delete. Drag the edge handles to resize",
       },
       { via: "toolbar", id: "block.embed.align", note: "Align left, center and right" },
+      { via: "toolbar", id: "block.embed.fit-width", note: "Fit to width" },
       { via: "toolbar", id: "block.embed.caption", note: "Caption" },
       { via: "toolbar", id: "block.embed.set-source", note: "Replace" },
       { via: "toolbar", id: "block.embed.remove", note: "Delete" },
@@ -276,7 +285,8 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     demoBlockId: "demo-embed",
     limits: [
       "Links are YouTube or Vimeo only: youtube.com, youtu.be, youtube-nocookie.com, vimeo.com and player.vimeo.com",
-      "No request goes to YouTube or Vimeo until Load video is clicked",
+      "The frame is lazy: YouTube or Vimeo get a request when the block nears the viewport, with no autoplay",
+      "The actions do not open on hover while the pointer is over the provider's frame, only from the strip, the caption, a click or Enter",
       "The frame is built from the provider, video id, Vimeo hash and start time, never from the link",
       "Width is 10 to 100 percent of the column, or the natural size",
       "Caption up to 500 characters",
