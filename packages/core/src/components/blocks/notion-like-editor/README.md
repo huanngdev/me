@@ -4,6 +4,16 @@
 
 A block editor for React, built on Plate (`platejs` 53). A document is JSON, validated against an allow list of block types, attributes and marks before it is opened or saved. The editor has no AI, no live collaboration, no import or export, and no media upload.
 
+## Import
+
+The public entry point is `index.tsx`, reached through this package path:
+
+```ts
+import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-editor/index";
+```
+
+It re-exports `NotionLikeEditorBlock` and `NotionLikeEditorStatic` with their prop types, `EditorValue`, `EMPTY_EDITOR_VALUE`, `EditorOptions`, `ResolvedEditorOptions`, `DEFAULT_EDITOR_OPTIONS`, `DEFAULT_PLACEHOLDER`, `createLocalStorageAdapter`, `EditorPersistenceAdapter`, `LinkPreviewAdapter`, `FileUploadAdapter` (with `UploadedFile` and `FileUploadOptions`), `MentionProvider` (with `MentionEntity`) and `PageProvider` (with `PageEntity`, `PageResolution` and `PageOpenRequest`). It has no `"use client"` directive. The block is a client component in its own file, and the static renderer has no hooks, so a server component can import both from this path.
+
 ## Usage
 
 Memory mode keeps the document in component state. Pass `onChange` to read it.
@@ -18,15 +28,17 @@ export function NotesEditor() {
 }
 ```
 
-Passing `adapter` switches to persisted mode. The editor loads the document with `adapter.load`, saves it with `adapter.save`, and writes recovery snapshots with `adapter.saveRecovery`. The local storage adapter is `createLocalStorageAdapter` from `lib/document/local-storage-adapter.ts`. The package path map only exports `.tsx` files under `components/`, so this file is not reachable by a package path. The demo imports it by a relative path. Create the adapter in the browser only, because it reads `window` when it is created.
+Passing `adapter` switches to persisted mode. The editor loads the document with `adapter.load`, saves it with `adapter.save`, and writes recovery snapshots with `adapter.saveRecovery`. The local storage adapter is `createLocalStorageAdapter`, from `lib/document/local-storage-adapter.ts` and from the barrel. Create the adapter in the browser only, because it reads `window` when it is created.
 
 ```tsx
 "use client";
 
 import { useState } from "react";
 
-import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-editor/notion-like-editor-block";
-import { createLocalStorageAdapter } from "../lib/document/local-storage-adapter";
+import {
+  NotionLikeEditorBlock,
+  createLocalStorageAdapter,
+} from "@repo/core/components/blocks/notion-like-editor/index";
 
 export function SavedNotes() {
   const [adapter] = useState(() => createLocalStorageAdapter());
@@ -52,24 +64,53 @@ export function NotesView({ value }: { value: Value }) {
 
 `NotionLikeEditorBlock` (`NotionLikeEditorBlockProps`, `notion-like-editor-block.tsx`):
 
-- `documentId: string` — the document identity. The persisted editor is keyed by it.
-- `initialValue?: EditorValue` — the content of a new document. Defaults to one empty paragraph.
-- `onChange?: (value: EditorValue) => void` — called with the value after each change.
-- `readOnly?: boolean` — turns editing off. Defaults to `false`.
-- `placeholder?: string` — shown in an empty block. Defaults to `"Type something, or type \"/\" for commands"`.
-- `ariaLabel?: string` — the accessible name of the editable. Defaults to `"Rich text editor"`.
-- `className?: string` — added to the wrapper element.
-- `adapter?: EditorPersistenceAdapter` — selects persisted mode when present.
-- `linkPreview?: LinkPreviewAdapter | null` — fills bookmark previews. Defaults to `null`.
-- `mentionProvider?: MentionProvider | null` — searches and resolves people for mentions. Defaults to `null`.
-- `pageProvider?: PageProvider | null` — searches and resolves pages for page links. Defaults to `null`.
-- `onOpenPage?: (request: PageOpenRequest) => void` — called when a user opens a page link.
-- `fileUpload?: FileUploadAdapter | null` — uploads files and resolves their stored URLs. Defaults to `null`. The image, video, audio and file blocks use it to show a stored URL that is not http, https or root-relative.
+| Prop              | Type                                 | Default                  | What it does                                                                                                                                                |
+| ----------------- | ------------------------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `documentId`      | `string`                             | required                 | The document identity. The persisted editor is keyed by it.                                                                                                 |
+| `initialValue`    | `EditorValue`                        | `EMPTY_EDITOR_VALUE`     | The content of a new document. The default is one empty paragraph.                                                                                          |
+| `onChange`        | `(value: EditorValue) => void`       | none                     | Called with the value after each change.                                                                                                                    |
+| `readOnly`        | `boolean`                            | `false`                  | Turns editing off.                                                                                                                                          |
+| `placeholder`     | `string`                             | `DEFAULT_PLACEHOLDER`    | Shown in an empty block. The default is `"Type something, or type \"/\" for commands"`.                                                                     |
+| `ariaLabel`       | `string`                             | `"Rich text editor"`     | The accessible name of the editable.                                                                                                                        |
+| `className`       | `string`                             | none                     | Added to the wrapper element.                                                                                                                               |
+| `adapter`         | `EditorPersistenceAdapter`           | none                     | Selects persisted mode when present. Without it, the editor runs in memory mode.                                                                            |
+| `linkPreview`     | `LinkPreviewAdapter \| null`         | `null`                   | Fills bookmark previews.                                                                                                                                    |
+| `mentionProvider` | `MentionProvider \| null`            | `null`                   | Searches and resolves people for mentions.                                                                                                                  |
+| `pageProvider`    | `PageProvider \| null`               | `null`                   | Searches and resolves pages for page links.                                                                                                                 |
+| `onOpenPage`      | `(request: PageOpenRequest) => void` | none                     | Called when a user opens a page link.                                                                                                                       |
+| `fileUpload`      | `FileUploadAdapter \| null`          | `null`                   | Uploads files and resolves their stored URLs. The image, video, audio and file blocks use it to show a stored URL that is not http, https or root-relative. |
+| `options`         | `EditorOptions`                      | `DEFAULT_EDITOR_OPTIONS` | Tuning values for the handle, autosave, shortcut hints and tail click. See Options.                                                                         |
 
 `NotionLikeEditorStatic` (`NotionLikeEditorStaticProps`, `notion-like-editor-static.tsx`):
 
 - `value: EditorValue` — the document content to render.
 - `className?: string` — added to the rendered element.
+
+## Options
+
+`options` is optional, and every field inside it is optional. A field that is missing, or holds a value of the wrong type, takes its default. A number is used only when it is finite and not negative. A flag is used only when it is a boolean. `resolveEditorOptions` (`lib/features/editor-options.ts`) applies these rules, and `DEFAULT_EDITOR_OPTIONS` holds the resolved defaults. The editor keeps the resolved value on its config plugin (`lib/plugins/editor-config.ts`).
+
+| Path                     | Type      | Default | Effect                                                                                                                                                                                                                             |
+| ------------------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle.gap`             | `number`  | `12`    | Pixels between the block handle and the left edge of its block.                                                                                                                                                                    |
+| `handle.centerMax`       | `number`  | `48`    | Tallest block, in pixels, that the handle is centred on when the block has no anchor. A taller block puts the handle on its first line.                                                                                            |
+| `handle.anchorCenterMax` | `number`  | `64`    | Tallest marked anchor, such as a media frame, that the handle is centred on. A taller anchor keeps the handle at its top.                                                                                                          |
+| `autosave.debounceMs`    | `number`  | `800`   | Milliseconds after the last change before a save starts. The save controller is created when a document opens or starts over, so a changed value applies from the next controller. The controller already running keeps its delay. |
+| `shortcutHints`          | `boolean` | `true`  | `false` hides every shortcut hint and every `aria-keyshortcuts` attribute in the editor.                                                                                                                                           |
+| `appendOnTailClick`      | `boolean` | `true`  | `false` stops a click in the empty space below the last block from adding or focusing a paragraph. The browser handles the click.                                                                                                  |
+
+A change to `handle` or `shortcutHints` or `appendOnTailClick` takes effect at once, with no remount. The editor instance is kept when `options` changes. The handle is measured again. Passing a new object with the same values does nothing, because the values are compared, not the object.
+
+```tsx
+<NotionLikeEditorBlock
+  documentId="notes"
+  options={{ handle: { gap: 20 }, autosave: { debounceMs: 1500 }, shortcutHints: false }}
+/>
+```
+
+## CSS variables
+
+`--editor-max-width` sets the width of the editing column. The default is `700px`, and the column reads it as `var(--editor-max-width,700px)`. It applies to the editable in memory mode (`components/editor/memory-editor.tsx`), to the column in persisted mode (`components/editor/ready-editor.tsx`), and to the loading skeleton and the recovery notice. Set it on an ancestor of the editor, for example `style={{ "--editor-max-width": "900px" }}`. The static renderer has no width of its own, so a host sets one on the element around it, as the demo does.
 
 ## Adapters
 
@@ -294,7 +335,7 @@ The embed block plays a YouTube or Vimeo video from a link. Only these hosts are
 
 Shortcuts are generated from the same inventory as the feature list. `Mod` is Cmd on macOS and Ctrl elsewhere.
 
-The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
+The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The `shortcutHints` option turns hints off for the whole editor. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
 
 <!-- shortcut-list:start -->
 

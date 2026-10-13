@@ -1115,3 +1115,104 @@ describe("block handle bands", () => {
     }
   });
 });
+
+describe("block handle options", () => {
+  const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
+  const viewport = { width: 1280, height: 800 };
+  const block = { blockTop: 100, blockBottom: 124, blockLeft: 300 };
+
+  function boxAt(top: number, height: number): DOMRect {
+    return {
+      top,
+      bottom: top + height,
+      left: 0,
+      right: 100,
+      width: 100,
+      height,
+      x: 0,
+      y: top,
+      toJSON() {
+        return {};
+      },
+    } as DOMRect;
+  }
+
+  function blockAt(top: number, height: number): HTMLElement {
+    const element = document.createElement("div");
+    element.getBoundingClientRect = () => boxAt(top, height);
+    return element;
+  }
+
+  test("the gap moves the handle left of the block by that many pixels", () => {
+    const explicit = {
+      gap: 20,
+      centerMax: BLOCK_HANDLE_CENTER_MAX,
+      anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+    };
+    expect(placeBlockHandle(block, handle, viewport, null, explicit)).toEqual({
+      top: 100,
+      left: 300 - 20 - BLOCK_HANDLE_WIDTH,
+    });
+    // Passing the defaults gives the same placement as passing nothing.
+    expect(
+      placeBlockHandle(block, handle, viewport, null, {
+        gap: BLOCK_HANDLE_GAP,
+        centerMax: BLOCK_HANDLE_CENTER_MAX,
+        anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+      }),
+    ).toEqual(placeBlockHandle(block, handle, viewport, null));
+  });
+
+  test("a gap too large for the viewport hides the handle", () => {
+    const tooWide = {
+      gap: 260,
+      centerMax: BLOCK_HANDLE_CENTER_MAX,
+      anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+    };
+    expect(placeBlockHandle(block, handle, viewport, null, tooWide)).toBeNull();
+  });
+
+  test("centerMax decides when an unmarked block is centred", () => {
+    const tall = blockAt(100, 60);
+    withLineHeight("normal", () => {
+      // 60 px is over the default limit, so the handle sits on the first line's top.
+      expect(blockHandleContentTop(tall, BLOCK_HANDLE_HEIGHT)).toBe(100);
+      // With the limit raised to 60, the block is centred: 100 + (60 - 24) / 2.
+      expect(
+        blockHandleContentTop(tall, BLOCK_HANDLE_HEIGHT, {
+          gap: BLOCK_HANDLE_GAP,
+          centerMax: 60,
+          anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+        }),
+      ).toBe(118);
+    });
+  });
+
+  test("anchorCenterMax decides when a marked anchor is centred", () => {
+    const blockEl = blockAt(100, 240);
+    const media = blockAt(120, 50);
+    media.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+    blockEl.append(media);
+    // 50 px is within the default limit: 120 + (50 - 24) / 2.
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(133);
+    // With the limit lowered to 40, the handle goes to the anchor's top.
+    expect(
+      blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT, {
+        gap: BLOCK_HANDLE_GAP,
+        centerMax: BLOCK_HANDLE_CENTER_MAX,
+        anchorCenterMax: 40,
+      }),
+    ).toBe(120);
+  });
+
+  // Runs `run` with the first-line computed style set to a line height of normal.
+  function withLineHeight(lineHeight: string, run: () => void): void {
+    const original = globalThis.getComputedStyle;
+    globalThis.getComputedStyle = (() => ({ lineHeight })) as unknown as typeof getComputedStyle;
+    try {
+      run();
+    } finally {
+      globalThis.getComputedStyle = original;
+    }
+  }
+});

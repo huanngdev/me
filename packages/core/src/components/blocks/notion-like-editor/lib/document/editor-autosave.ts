@@ -26,6 +26,9 @@ type AutosaveOptions = {
   onStatus: (state: AutosaveState) => void;
 };
 
+// A change is saved this long after the last edit, unless a caller passes debounceMs.
+export const DEFAULT_AUTOSAVE_DEBOUNCE_MS = 800;
+
 export type AutosaveController = {
   schedule: (content: EditorValue) => void;
   flush: () => Promise<void>;
@@ -64,7 +67,7 @@ function browserTimers(): AutosaveTimers {
 }
 
 export function createAutosave(options: AutosaveOptions): AutosaveController {
-  const debounceMs = options.debounceMs ?? 800;
+  const debounceMs = options.debounceMs ?? DEFAULT_AUTOSAVE_DEBOUNCE_MS;
   const maxWaitMs = options.maxWaitMs ?? 4000;
   const timers = options.timers ?? browserTimers();
   const readOnly = options.readOnly ?? (() => false);

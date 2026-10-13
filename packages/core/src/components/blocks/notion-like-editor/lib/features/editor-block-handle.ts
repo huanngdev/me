@@ -345,11 +345,29 @@ export const BLOCK_HANDLE_CENTER_MAX = 48;
 // the handle at its top.
 export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
 
+// The three placement values. The defaults are the constants above, so a caller
+// that passes nothing gets the same placement.
+export type BlockHandleOptions = {
+  gap: number;
+  centerMax: number;
+  anchorCenterMax: number;
+};
+
+export const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+  gap: BLOCK_HANDLE_GAP,
+  centerMax: BLOCK_HANDLE_CENTER_MAX,
+  anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+};
+
 // Handle top for a block, given the handle's measured height. A "center" anchor
 // (the divider rule) centres the handle on the rule. A marked anchor is centred
-// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
-// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
-export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+// up to options.anchorCenterMax, else the handle goes to its top. With no
+// anchor, the block is centred up to options.centerMax, else on its first line.
+export function blockHandleContentTop(
+  block: HTMLElement,
+  handleHeight: number,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
+): number {
   let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
@@ -363,13 +381,13 @@ export function blockHandleContentTop(block: HTMLElement, handleHeight: number):
   }
 
   if (anchorRect) {
-    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+    if (anchorRect.height <= options.anchorCenterMax) {
       return anchorRect.top + (anchorRect.height - handleHeight) / 2;
     }
     return anchorRect.top;
   }
   const blockRect = block.getBoundingClientRect();
-  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+  if (blockRect.height <= options.centerMax) {
     return blockRect.top + (blockRect.height - handleHeight) / 2;
   }
   return firstLineTop(block, handleHeight);
@@ -421,15 +439,16 @@ export type PlacedHandle = {
 };
 
 // Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
-// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// is placed in the gutter: `options.gap` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
 ): PlacedHandle | null {
   const top = block.blockTop;
-  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const left = block.blockLeft - options.gap - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 

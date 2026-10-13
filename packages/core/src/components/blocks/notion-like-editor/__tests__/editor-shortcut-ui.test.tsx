@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { KEYS, type SlateEditor, type TElement } from "platejs";
-import { createPlateEditor } from "platejs/react";
+import { Plate, createPlateEditor } from "platejs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -8,12 +8,14 @@ import { DropdownMenu, DropdownMenuContent } from "@/components/dropdown-menu";
 
 import { EditorSurface } from "../components/editor/editor-surface";
 import { BlockPickerGroups } from "../components/ui/block-picker";
-import { ShortcutKbd, ShortcutLabel } from "../components/ui/editor-shortcut";
+import { ShortcutHintsScope, ShortcutKbd, ShortcutLabel } from "../components/ui/editor-shortcut";
 import type { EditorValue } from "../lib/document/editor-value";
-import { blockPickerAddItems } from "../lib/features/editor-block-picker";
+import { blockPickerAddItems, blockPickerTurnItems } from "../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../lib/features/editor-block-menu";
+import { resolveEditorOptions } from "../lib/features/editor-options";
 import { EDITOR_SHORTCUTS } from "../lib/features/editor-shortcuts";
 import { findState } from "../lib/plugins/editor-find";
+import { editorConfigPlugin } from "../lib/plugins/editor-config";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { caret, textRange } from "./test-utils";
 import { keyboardInit } from "./shortcut-keys";
@@ -467,5 +469,66 @@ describe("touch-only devices", () => {
       root.unmount();
     });
     host.remove();
+  });
+});
+
+describe("shortcutHints option", () => {
+  // The Turn into menu and a shared label render inside the editor's Plate tree, so
+  // they read the editor's option through ShortcutHintsScope.
+  async function renderInEditor(shortcutHints: boolean) {
+    const editor = createPlateEditor({
+      plugins: createEditorPlugins(),
+      value: [paragraph("p1", "Hello")] as EditorValue,
+    });
+    editor.setOption(editorConfigPlugin, "resolved", resolveEditorOptions({ shortcutHints }));
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => {
+      root.render(
+        <Plate editor={editor}>
+          <ShortcutHintsScope>
+            <ShortcutLabel label="Bold" shortcut="bold" />
+            <DropdownMenu open>
+              <DropdownMenuContent>
+                <BlockPickerGroups
+                  items={blockPickerTurnItems(editor, [0])}
+                  onChoose={() => undefined}
+                  shortcuts
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ShortcutHintsScope>
+        </Plate>,
+      );
+    });
+    return {
+      row: (id: string) => document.querySelector(`[data-block-picker-item='${id}']`),
+      cleanup: async () => {
+        await act(async () => {
+          root.unmount();
+        });
+        host.remove();
+      },
+    };
+  }
+
+  test("on shows the Turn into hints and the label's kbd", async () => {
+    setPlatform(MAC);
+    const shown = await renderInEditor(true);
+    expect(menuShortcutOf(shown.row("h1"))).toBe("⌘⌥1");
+    expect(document.querySelector("[data-slot='kbd']")).not.toBeNull();
+    await shown.cleanup();
+  });
+
+  test("off removes every hint, kbd and aria-keyshortcuts from the same menu", async () => {
+    setPlatform(MAC);
+    const hidden = await renderInEditor(false);
+    expect(hidden.row("h1")?.textContent).toContain("Heading 1");
+    expect(document.querySelector("[data-slot='dropdown-menu-shortcut']")).toBeNull();
+    expect(document.querySelector("[data-slot='command-shortcut']")).toBeNull();
+    expect(document.querySelector("[data-slot='kbd']")).toBeNull();
+    expect(document.querySelector("[aria-keyshortcuts]")).toBeNull();
+    await hidden.cleanup();
   });
 });

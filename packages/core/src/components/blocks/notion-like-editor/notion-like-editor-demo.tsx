@@ -7,12 +7,9 @@ import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
 import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
-import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { createLocalStorageAdapter, type EditorPersistenceAdapter } from "./index";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
-import {
-  createLocalStorageAdapter,
-  removeStaleDemoDocuments,
-} from "./lib/document/local-storage-adapter";
+import { removeStaleDemoDocuments } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
 

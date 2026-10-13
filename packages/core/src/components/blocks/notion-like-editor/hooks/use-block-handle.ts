@@ -21,12 +21,14 @@ import {
   sortHandleBands,
   targetBlockAtPath,
   visibleHandleId,
+  type BlockHandleOptions,
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
+import { useEditorOptions } from "./use-editor-options";
 
 export type { BlockHandlePaint };
 
@@ -214,6 +216,7 @@ function measurePaint(
   editor: SlateEditor,
   id: string,
   size: { width: number; height: number },
+  handleOptions: BlockHandleOptions,
 ): BlockHandlePaint | null {
   const entry = findBlockById(editor, id);
   if (!entry || typeof entry[0].type !== "string") {
@@ -242,13 +245,14 @@ function measurePaint(
   }
   const placed = placeBlockHandle(
     {
-      blockTop: blockHandleContentTop(dom, size.height),
+      blockTop: blockHandleContentTop(dom, size.height, handleOptions),
       blockBottom: box.bottom,
       blockLeft: gutterLeft,
     },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
+    handleOptions,
   );
   if (!placed) {
     return null;
@@ -316,6 +320,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const visibleIdRef = useRef<string | null>(null);
   const bandsRef = useRef<HandleBand[]>([]);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  const handleOptions = useEditorOptions().handle;
   useEffect(() => {
     visibleIdRef.current = visibleId;
   }, [visibleId]);
@@ -427,7 +432,9 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       // can have changed (a render, scroll, resize or size change).
       rebuildBands();
       const next =
-        visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
+        visibleId === null || readOnly || hoverNone
+          ? null
+          : measurePaint(editor, visibleId, size, handleOptions);
       publish(next);
     };
     // On scroll (or after a drop) the last pointer position can now sit over a
@@ -483,7 +490,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       window.removeEventListener("resize", onScroll);
       observer?.disconnect();
     };
-  }, [editor, hoverNone, opCount, readOnly, size, visibleId]);
+  }, [editor, handleOptions, hoverNone, opCount, readOnly, size, visibleId]);
 
   useEffect(() => {
     return () => {

@@ -127,6 +127,7 @@ import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { mediaUiPlatePlugin } from "./editor-media-ui";
 import { editorInputRulesPlugin } from "./editor-input-rules";
+import { editorConfigPlugin } from "./editor-config";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
 import {
@@ -2178,5 +2179,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     editorInputRulesPlugin,
     bookmarkToolbarPlatePlugin,
     mediaUiPlatePlugin,
+    // Last, and it has no handlers, so it cannot change the order of any handler above.
+    editorConfigPlugin,
   ];
 }

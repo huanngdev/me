@@ -9166,6 +9166,7 @@ import { pageLinkPickerPlugin } from "./editor-page-link-picker";
 import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { mediaUiPlatePlugin } from "./editor-media-ui";
 import { editorInputRulesPlugin } from "./editor-input-rules";
+import { editorConfigPlugin } from "./editor-config";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
 import {
@@ -11217,6 +11218,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     editorInputRulesPlugin,
     bookmarkToolbarPlatePlugin,
     mediaUiPlatePlugin,
+    // Last, and it has no handlers, so it cannot change the order of any handler above.
+    editorConfigPlugin,
   ];
 }
 ```
@@ -26350,7 +26353,7 @@ import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_HANDLE_GAP = 8;
+export const BLOCK_HANDLE_GAP = 12;
 export const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
@@ -26685,11 +26688,29 @@ export const BLOCK_HANDLE_CENTER_MAX = 48;
 // the handle at its top.
 export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
 
+// The three placement values. The defaults are the constants above, so a caller
+// that passes nothing gets the same placement.
+export type BlockHandleOptions = {
+  gap: number;
+  centerMax: number;
+  anchorCenterMax: number;
+};
+
+export const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+  gap: BLOCK_HANDLE_GAP,
+  centerMax: BLOCK_HANDLE_CENTER_MAX,
+  anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+};
+
 // Handle top for a block, given the handle's measured height. A "center" anchor
 // (the divider rule) centres the handle on the rule. A marked anchor is centred
-// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
-// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
-export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+// up to options.anchorCenterMax, else the handle goes to its top. With no
+// anchor, the block is centred up to options.centerMax, else on its first line.
+export function blockHandleContentTop(
+  block: HTMLElement,
+  handleHeight: number,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
+): number {
   let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
@@ -26703,13 +26724,13 @@ export function blockHandleContentTop(block: HTMLElement, handleHeight: number):
   }
 
   if (anchorRect) {
-    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+    if (anchorRect.height <= options.anchorCenterMax) {
       return anchorRect.top + (anchorRect.height - handleHeight) / 2;
     }
     return anchorRect.top;
   }
   const blockRect = block.getBoundingClientRect();
-  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+  if (blockRect.height <= options.centerMax) {
     return blockRect.top + (blockRect.height - handleHeight) / 2;
   }
   return firstLineTop(block, handleHeight);
@@ -26761,15 +26782,16 @@ export type PlacedHandle = {
 };
 
 // Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
-// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// is placed in the gutter: `options.gap` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
 ): PlacedHandle | null {
   const top = block.blockTop;
-  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const left = block.blockLeft - options.gap - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 
@@ -30744,14 +30766,19 @@ export function runEditorCommand<Payload>(
 
 ## packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
 ```ts
+import { useLayoutEffect } from "react";
 import { usePlateEditor } from "platejs/react";
 
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
+import { editorConfigPlugin, editorOptions } from "../lib/plugins/editor-config";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "../lib/document/editor-value";
+import { editorOptionsKey, type EditorOptions } from "../lib/features/editor-options";
+import { useStableEditorOptions } from "./use-editor-options";
 
 type NotionLikeEditorOptions = {
   documentId: string;
   initialValue?: EditorValue;
+  options?: EditorOptions;
 };
 
 type NotionLikeEditorResult = {
@@ -30761,6 +30788,7 @@ type NotionLikeEditorResult = {
 export function useNotionLikeEditor({
   documentId,
   initialValue = EMPTY_EDITOR_VALUE,
+  options,
 }: NotionLikeEditorOptions): NotionLikeEditorResult {
   const editor = usePlateEditor(
     {
@@ -30770,6 +30798,16 @@ export function useNotionLikeEditor({
     },
     [documentId],
   );
+
+  // The editor is not recreated for a change of options. The value is written to
+  // the config plugin, and components that read it re-render.
+  const resolved = useStableEditorOptions(options);
+  useLayoutEffect(() => {
+    // Written only when the value differs, so a mount with default options writes nothing.
+    if (editorOptionsKey(editorOptions(editor)) !== editorOptionsKey(resolved)) {
+      editor.setOption(editorConfigPlugin, "resolved", resolved);
+    }
+  }, [editor, resolved]);
 
   return { editor };
 }
@@ -30800,12 +30838,14 @@ import {
   sortHandleBands,
   targetBlockAtPath,
   visibleHandleId,
+  type BlockHandleOptions,
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
 import { findBlockById } from "../lib/features/editor-synced-block";
+import { useEditorOptions } from "./use-editor-options";
 
 export type { BlockHandlePaint };
 
@@ -30993,6 +31033,7 @@ function measurePaint(
   editor: SlateEditor,
   id: string,
   size: { width: number; height: number },
+  handleOptions: BlockHandleOptions,
 ): BlockHandlePaint | null {
   const entry = findBlockById(editor, id);
   if (!entry || typeof entry[0].type !== "string") {
@@ -31021,13 +31062,14 @@ function measurePaint(
   }
   const placed = placeBlockHandle(
     {
-      blockTop: blockHandleContentTop(dom, size.height),
+      blockTop: blockHandleContentTop(dom, size.height, handleOptions),
       blockBottom: box.bottom,
       blockLeft: gutterLeft,
     },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
+    handleOptions,
   );
   if (!placed) {
     return null;
@@ -31095,6 +31137,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const visibleIdRef = useRef<string | null>(null);
   const bandsRef = useRef<HandleBand[]>([]);
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  const handleOptions = useEditorOptions().handle;
   useEffect(() => {
     visibleIdRef.current = visibleId;
   }, [visibleId]);
@@ -31206,7 +31249,9 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       // can have changed (a render, scroll, resize or size change).
       rebuildBands();
       const next =
-        visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
+        visibleId === null || readOnly || hoverNone
+          ? null
+          : measurePaint(editor, visibleId, size, handleOptions);
       publish(next);
     };
     // On scroll (or after a drop) the last pointer position can now sit over a
@@ -31262,7 +31307,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       window.removeEventListener("resize", onScroll);
       observer?.disconnect();
     };
-  }, [editor, hoverNone, opCount, readOnly, size, visibleId]);
+  }, [editor, handleOptions, hoverNone, opCount, readOnly, size, visibleId]);
 
   useEffect(() => {
     return () => {
@@ -31615,6 +31660,9 @@ type AutosaveOptions = {
   onStatus: (state: AutosaveState) => void;
 };
 
+// A change is saved this long after the last edit, unless a caller passes debounceMs.
+export const DEFAULT_AUTOSAVE_DEBOUNCE_MS = 800;
+
 export type AutosaveController = {
   schedule: (content: EditorValue) => void;
   flush: () => Promise<void>;
@@ -31653,7 +31701,7 @@ function browserTimers(): AutosaveTimers {
 }
 
 export function createAutosave(options: AutosaveOptions): AutosaveController {
-  const debounceMs = options.debounceMs ?? 800;
+  const debounceMs = options.debounceMs ?? DEFAULT_AUTOSAVE_DEBOUNCE_MS;
   const maxWaitMs = options.maxWaitMs ?? 4000;
   const timers = options.timers ?? browserTimers();
   const readOnly = options.readOnly ?? (() => false);
@@ -31968,6 +32016,7 @@ type UseEditorDocumentOptions = {
   adapter: EditorPersistenceAdapter;
   readOnly?: boolean;
   initialValue?: EditorValue;
+  debounceMs?: number;
 };
 
 function revisionOf(raw: unknown): number {
@@ -31988,16 +32037,21 @@ export function useEditorDocument({
   adapter,
   readOnly = false,
   initialValue,
+  debounceMs,
 }: UseEditorDocumentOptions): EditorDocumentSession {
   const [session, setSession] = useState<EditorDocumentSession>({ phase: "loading" });
   const autosaveRef = useRef<ReturnType<typeof createAutosave> | undefined>(undefined);
   const readOnlyRef = useRef(readOnly);
   const initialValueRef = useRef(initialValue);
+  // The controller is created once per document, so a changed delay applies from
+  // the next controller, not the one already running.
+  const debounceMsRef = useRef(debounceMs);
 
   useEffect(() => {
     readOnlyRef.current = readOnly;
     initialValueRef.current = initialValue;
-  }, [readOnly, initialValue]);
+    debounceMsRef.current = debounceMs;
+  }, [readOnly, initialValue, debounceMs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -32010,6 +32064,7 @@ export function useEditorDocument({
         documentId,
         revision: document.revision,
         initialContent: document.content,
+        debounceMs: debounceMsRef.current,
         readOnly: () => readOnlyRef.current,
         onStatus: (state) => {
           setSession((current) => {
@@ -32219,6 +32274,7 @@ import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
+import { ShortcutHintsScope } from "../ui/editor-shortcut";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
 import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
@@ -32262,57 +32318,59 @@ export function EditorSurface({
           onValueChange?.(repairMentionInputs(value, query).content);
         }}
       >
-        <MentionScope provider={mentionProvider}>
-          <FileUploadScope
-            adapter={fileUpload}
-            onDone={(blockId, file) => {
-              // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
-              if (editor !== null) {
-                applyUploadResult(editor, blockId, file);
-              }
-            }}
-          >
-            <UploadEditorLink />
-            <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
-              <LinkPreviewProvider adapter={linkPreview}>
-                <PasteRepairNotice />
-                <PasteUrlMenu />
-                <SlashMenu />
-                <EmojiSuggest />
-                <LinkToolbar />
-                <LinkPopover />
-                <BookmarkUrlPopover />
-                <PageLinkPicker />
-                <SelectionToolbar />
-                <FindBar />
-                <PlateContent
-                  aria-label={ariaLabel}
-                  aria-readonly={readOnly ? true : undefined}
-                  placeholder={readOnly ? undefined : placeholder}
-                  onMouseDown={(event) =>
-                    editor ? handleTailMouseDown(editor, event, readOnly) : undefined
-                  }
-                  // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-                  // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-                  // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-                  className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-                  renderPlaceholder={(placeholderProps) => (
-                    <span
-                      {...placeholderProps.attributes}
-                      className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                      style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                    >
-                      {placeholderProps.children}
-                    </span>
-                  )}
-                />
-                <BlockPlaceholders placeholder={placeholder} />
-                <BlockSelection />
-                <BlockHandle onInsertedBelow={onInsertedBelow} />
-              </LinkPreviewProvider>
-            </PageLinkScope>
-          </FileUploadScope>
-        </MentionScope>
+        <ShortcutHintsScope>
+          <MentionScope provider={mentionProvider}>
+            <FileUploadScope
+              adapter={fileUpload}
+              onDone={(blockId, file) => {
+                // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
+                if (editor !== null) {
+                  applyUploadResult(editor, blockId, file);
+                }
+              }}
+            >
+              <UploadEditorLink />
+              <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+                <LinkPreviewProvider adapter={linkPreview}>
+                  <PasteRepairNotice />
+                  <PasteUrlMenu />
+                  <SlashMenu />
+                  <EmojiSuggest />
+                  <LinkToolbar />
+                  <LinkPopover />
+                  <BookmarkUrlPopover />
+                  <PageLinkPicker />
+                  <SelectionToolbar />
+                  <FindBar />
+                  <PlateContent
+                    aria-label={ariaLabel}
+                    aria-readonly={readOnly ? true : undefined}
+                    placeholder={readOnly ? undefined : placeholder}
+                    onMouseDown={(event) =>
+                      editor ? handleTailMouseDown(editor, event, readOnly) : undefined
+                    }
+                    // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                    // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                    // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                    className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                    renderPlaceholder={(placeholderProps) => (
+                      <span
+                        {...placeholderProps.attributes}
+                        className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                        style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                      >
+                        {placeholderProps.children}
+                      </span>
+                    )}
+                  />
+                  <BlockPlaceholders placeholder={placeholder} />
+                  <BlockSelection />
+                  <BlockHandle onInsertedBelow={onInsertedBelow} />
+                </LinkPreviewProvider>
+              </PageLinkScope>
+            </FileUploadScope>
+          </MentionScope>
+        </ShortcutHintsScope>
       </Plate>
     </TooltipProvider>
   );
@@ -32553,8 +32611,9 @@ export function MemoryEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
 }: NotionLikeEditorBlockProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>
@@ -32585,6 +32644,7 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
+import type { EditorOptions } from "../../lib/features/editor-options";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
@@ -32606,6 +32666,7 @@ type ReadyEditorProps = {
   pageProvider?: PageProvider | null;
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
+  options?: EditorOptions;
 };
 
 export function ReadyEditor({
@@ -32624,8 +32685,9 @@ export function ReadyEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
 }: ReadyEditorProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options });
   // The healthy states render nothing, so the row takes no space. Only the
   // failure notice appears, and it is the only thing above the editor.
   const showNotice = status === "error" || status === "conflict";
@@ -32668,6 +32730,7 @@ import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { EditorRecoveryNotice } from "./editor-recovery-notice";
 import type { EditorPersistenceAdapter } from "../../lib/document/editor-persistence";
 import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
+import { resolveEditorOptions } from "../../lib/features/editor-options";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { ReadyEditor } from "./ready-editor";
 import { useEditorDocument } from "../../hooks/use-editor-document";
@@ -32686,8 +32749,15 @@ export function PersistedEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
-  const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
+  const session = useEditorDocument({
+    documentId,
+    adapter,
+    readOnly,
+    initialValue,
+    debounceMs: resolveEditorOptions(options).autosave.debounceMs,
+  });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>
@@ -32716,6 +32786,7 @@ export function PersistedEditor({
           pageProvider={pageProvider}
           onOpenPage={onOpenPage}
           fileUpload={fileUpload}
+          options={options}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -32733,6 +32804,7 @@ export function PersistedEditor({
 "use client";
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
+import type { EditorOptions } from "./lib/features/editor-options";
 import type { FileUploadAdapter } from "./lib/features/editor-file-upload";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
@@ -32755,6 +32827,7 @@ export type NotionLikeEditorBlockProps = {
   pageProvider?: PageProvider | null;
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
+  options?: EditorOptions;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -36105,12 +36178,9 @@ import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
 import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
-import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { createLocalStorageAdapter, type EditorPersistenceAdapter } from "./index";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
-import {
-  createLocalStorageAdapter,
-  removeStaleDemoDocuments,
-} from "./lib/document/local-storage-adapter";
+import { removeStaleDemoDocuments } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
 import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
 

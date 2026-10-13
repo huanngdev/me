@@ -1,7 +1,8 @@
-import { useSyncExternalStore } from "react";
+import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 
 import { Kbd, KbdGroup } from "@/components/kbd";
 
+import { useEditorOptions } from "../../hooks/use-editor-options";
 import {
   EDITOR_SHORTCUTS,
   formatShortcutKeys,
@@ -46,9 +47,24 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
+// The editor's shortcutHints option. A component outside an editor has no option,
+// so its hints stay on.
+const ShortcutHintsContext = createContext(true);
+
+// Sits inside Plate, so the hints of every component in the editor follow the option.
+export function ShortcutHintsScope({ children }: { children: ReactNode }) {
+  const { shortcutHints } = useEditorOptions();
+  return (
+    <ShortcutHintsContext.Provider value={shortcutHints}>{children}</ShortcutHintsContext.Provider>
+  );
+}
+
 // null on the server and in the first client render, so both render the same markup.
+// null also when the editor turns hints off, which hides every hint and aria-keyshortcuts.
 export function useShortcutPlatform(): ShortcutPlatform | null {
-  return useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const hints = useContext(ShortcutHintsContext);
+  const platform = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  return hints ? platform : null;
 }
 
 // The hint keys, one Kbd per key. Renders nothing on touch-only devices.
