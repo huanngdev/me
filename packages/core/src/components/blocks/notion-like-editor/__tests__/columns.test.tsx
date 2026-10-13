@@ -848,6 +848,37 @@ describe("column rendering", () => {
     await mounted.cleanup();
   });
 
+  test("the handle keeps its separator attributes and draws one hidden pill", async () => {
+    const mounted = await mountColumns([
+      group("g", [
+        column("a", "50%", [paragraph("Left", "left")]),
+        column("b", "50%", [paragraph("Right", "right")]),
+      ]),
+    ]);
+    const handle = mounted.host.querySelector("[data-column-resize]");
+    if (!(handle instanceof HTMLElement)) {
+      throw new Error("Missing column resize handle.");
+    }
+
+    expect(handle.getAttribute("role")).toBe("separator");
+    expect(handle.getAttribute("aria-label")).toBe("Resize column 1");
+    expect(handle.getAttribute("aria-valuenow")).toBe("50");
+    expect(handle.getAttribute("tabindex")).toBe("0");
+    expect(handle.getAttribute("data-column-resize")).toBe("0");
+    expect(handle.className).not.toContain("hover:bg-border");
+    expect(handle.className).not.toContain("focus-visible:bg-border");
+
+    expect(handle.children).toHaveLength(1);
+    const pills = handle.querySelectorAll("[aria-hidden='true']");
+    expect(pills).toHaveLength(1);
+    const pill = pills[0]?.className ?? "";
+    expect(pill).toContain("h-12");
+    expect(pill).toContain("w-1.5");
+    expect(pill).toContain("rounded-full");
+    expect(pill).toContain("opacity-0");
+    await mounted.cleanup();
+  });
+
   test("the block menu deletes a column group in one click and undoes it", async () => {
     const mounted = await mountColumns([
       paragraph("Stay", "stay"),

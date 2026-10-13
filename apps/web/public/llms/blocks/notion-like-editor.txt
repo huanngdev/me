@@ -15517,6 +15517,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
   const columns = columnNodes(element);
   const saved = storedWidths(columns);
   const [preview, setPreview] = useState<string[] | null>(null);
+  // The handle being dragged, so its pill stays shown while the pointer is captured.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ index: number; startX: number; width: number; start: number[] } | null>(
     null,
@@ -15574,6 +15576,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     event.preventDefault();
     dragRef.current = { index, startX: event.clientX, width, start: widthNumbers(saved) };
     event.currentTarget.setPointerCapture(event.pointerId);
+    setDragIndex(index);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
@@ -15599,6 +15602,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     const drag = dragRef.current;
     dragRef.current = null;
     setPreview(null);
+    setDragIndex(null);
     if (!drag) {
       return;
     }
@@ -15628,7 +15632,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement {...props} className="relative my-2">
+    <PlateElement {...props} className="group/columns relative my-2">
       <div
         ref={gridRef}
         data-column-layout="stack"
@@ -15659,7 +15663,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
                 aria-valuemax={maxWidth}
                 tabIndex={0}
                 data-column-resize={index}
-                className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
+                data-dragging={dragIndex === index ? "" : undefined}
+                className="group/handle absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
                 style={{ left: `${left}%` }}
                 onPointerDown={(event) => {
                   onPointerDown(index, event);
@@ -15673,7 +15678,13 @@ export function ColumnGroupElement(props: PlateElementProps) {
                   event.preventDefault();
                   onResizeKey(index, event.key, event.shiftKey);
                 }}
-              />
+              >
+                {/* The visible pill. It is hidden until the columns, the handle or its focus are active. */}
+                <span
+                  aria-hidden="true"
+                  className="bg-foreground/40 group-hover/handle:bg-foreground/60 group-focus-visible/handle:bg-foreground/60 group-focus-visible/handle:ring-ring/50 group-data-[dragging]/handle:bg-foreground/60 absolute top-1/2 left-1/2 h-12 max-h-full w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-[opacity,background-color] duration-150 ease-out group-hover/columns:opacity-100 group-hover/handle:opacity-100 group-focus-visible/handle:opacity-100 group-focus-visible/handle:ring-[3px] group-data-[dragging]/handle:opacity-100 motion-reduce:transition-none"
+                />
+              </div>
             );
           })}
         </>
