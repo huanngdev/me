@@ -35,7 +35,7 @@ export function MemoryEditor({
         pageProvider={pageProvider}
         onOpenPage={onOpenPage}
         fileUpload={fileUpload}
-        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
+        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[var(--editor-max-width,700px)] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );

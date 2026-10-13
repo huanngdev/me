@@ -70,7 +70,7 @@ export function EditorRecoveryNotice({
   const extra = issues.length - shown.length;
 
   return (
-    <div className="mx-auto w-full max-w-[700px] min-w-0 py-8 sm:py-12">
+    <div className="mx-auto w-full max-w-[var(--editor-max-width,700px)] min-w-0 py-8 sm:py-12">
       <Alert className="min-w-0">
         <AlertTitle>{titleFor(result)}</AlertTitle>
         <AlertDescription>

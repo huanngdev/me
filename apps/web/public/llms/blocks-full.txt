@@ -32227,7 +32227,7 @@ import { Skeleton } from "@/components/skeleton";
 
 export function EditorDocumentSkeleton() {
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[700px] min-w-0 flex-col gap-3 py-8 sm:py-12">
+    <div className="mx-auto flex min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col gap-3 py-8 sm:py-12">
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-4/5" />
@@ -32378,7 +32378,7 @@ export function EditorRecoveryNotice({
   const extra = issues.length - shown.length;
 
   return (
-    <div className="mx-auto w-full max-w-[700px] min-w-0 py-8 sm:py-12">
+    <div className="mx-auto w-full max-w-[var(--editor-max-width,700px)] min-w-0 py-8 sm:py-12">
       <Alert className="min-w-0">
         <AlertTitle>{titleFor(result)}</AlertTitle>
         <AlertDescription>
@@ -32470,7 +32470,7 @@ export function MemoryEditor({
         pageProvider={pageProvider}
         onOpenPage={onOpenPage}
         fileUpload={fileUpload}
-        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
+        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[var(--editor-max-width,700px)] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );
@@ -32532,7 +32532,7 @@ export function ReadyEditor({
   const showNotice = status === "error" || status === "conflict";
 
   return (
-    <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+    <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
       {showNotice ? (
         <div className="flex justify-end pt-4">
           <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
@@ -36018,7 +36018,7 @@ const StaticDocument = lazy(() =>
   import("./notion-like-editor-static").then((mod) => ({
     default: function StaticDocumentView() {
       return (
-        <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+        <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
           <mod.NotionLikeEditorStatic
             value={DEMO_DOCUMENT_VALUE}
             className={`text-foreground min-h-full w-full min-w-0 space-y-4 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12 ${LIST_SIBLING_GAP_CLASS}`}

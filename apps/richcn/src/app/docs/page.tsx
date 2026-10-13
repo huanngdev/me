@@ -7,8 +7,8 @@ export default function DocsPage() {
       <div className="text-foreground/80 mt-6 space-y-4 text-base leading-relaxed">
         <p>
           This is a block editor for React, built on Plate and shadcn primitives. It lives in the
-          shared <code className="font-mono text-sm">@repo/core</code> package and is shown here on
-          its own.
+          shared <code className="font-mono text-sm">@repo/core</code> package and is shown in
+          richcn on its own.
         </p>
         <p>
           A document is JSON, checked against an allow list of block types, attributes and marks

@@ -51,7 +51,7 @@ export function ReadyEditor({
   const showNotice = status === "error" || status === "conflict";
 
   return (
-    <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+    <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
       {showNotice ? (
         <div className="flex justify-end pt-4">
           <EditorSaveStatus status={status} message={message} onRetry={onRetry} />

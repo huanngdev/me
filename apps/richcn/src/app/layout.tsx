@@ -16,9 +16,8 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notion-like editor",
-  description:
-    "A Notion-style block editor built on Plate and shadcn primitives, shown on its own.",
+  title: "richcn",
+  description: "A demo of a Notion-style rich text editor built with shadcn/ui.",
 };
 
 export default function RootLayout({
