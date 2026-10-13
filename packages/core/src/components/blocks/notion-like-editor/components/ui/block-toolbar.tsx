@@ -11,6 +11,9 @@ import { Button } from "@/components/button";
 import { DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
+import { ariaKeyShortcuts, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
+import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
+
 // Editor controls (DEV-142):
 // Every clickable control is Button, Toggle or ToggleGroup for on/off state,
 // or a menu item. Text actions use size sm. Icon-only actions use size icon.
@@ -48,6 +51,7 @@ type EditorIconButtonProps = Omit<
   label: string;
   icon: ReactNode;
   variant?: EditorButtonVariant;
+  shortcut?: EditorShortcutId;
 };
 
 function inlineIcon(icon: ReactNode): ReactNode {
@@ -85,17 +89,32 @@ export function EditorIconButton({
   icon,
   variant = "ghost",
   type = "button",
+  shortcut,
   ...props
 }: EditorIconButtonProps) {
+  const platform = useShortcutPlatform();
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button {...props} type={type} size="icon" variant={variant} aria-label={label}>
+          <Button
+            {...props}
+            type={type}
+            size="icon"
+            variant={variant}
+            aria-label={label}
+            aria-keyshortcuts={
+              shortcut !== undefined && platform !== null
+                ? ariaKeyShortcuts(shortcut, platform)
+                : undefined
+            }
+          >
             {icon}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        <TooltipContent>
+          {shortcut === undefined ? label : <ShortcutLabel label={label} shortcut={shortcut} />}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

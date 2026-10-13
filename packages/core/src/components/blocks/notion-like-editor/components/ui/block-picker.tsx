@@ -7,13 +7,20 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
 } from "@/components/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { BLOCK_PICKER_GROUPS, type BlockPickerItem } from "../../lib/features/editor-block-picker";
+import {
+  itemShortcutId,
+  shortcutText,
+  type ShortcutPlatform,
+} from "../../lib/features/editor-shortcuts";
 import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
+import { useShortcutPlatform } from "./editor-shortcut";
 
-function ItemLabel({ item }: { item: BlockPickerItem }) {
+function ItemLabel({ item, shortcut }: { item: BlockPickerItem; shortcut?: string }) {
   const Icon = item.icon;
   return (
     <>
@@ -24,8 +31,17 @@ function ItemLabel({ item }: { item: BlockPickerItem }) {
           <span className="text-muted-foreground text-xs whitespace-normal">{item.reason}</span>
         )}
       </span>
+      {shortcut === undefined ? null : <DropdownMenuShortcut>{shortcut}</DropdownMenuShortcut>}
     </>
   );
+}
+
+function itemShortcut(
+  item: BlockPickerItem,
+  platform: ShortcutPlatform | null,
+): string | undefined {
+  const id = itemShortcutId(item.id);
+  return id !== undefined && platform !== null ? shortcutText(id, platform) : undefined;
 }
 
 // One shared renderer for the grouped block list, used by both the "+" Add menu
@@ -36,12 +52,17 @@ export function BlockPickerGroups({
   onChoose,
   value,
   radio = false,
+  shortcuts = false,
 }: {
   items: readonly BlockPickerItem[];
   onChoose: (item: BlockPickerItem) => void;
   value?: string;
   radio?: boolean;
+  shortcuts?: boolean;
 }) {
+  // Only the Turn into submenu shows hints. Its shortcuts convert the current block, as the item does.
+  const devicePlatform = useShortcutPlatform();
+  const platform = shortcuts ? devicePlatform : null;
   const groups = BLOCK_PICKER_GROUPS.filter((group) => items.some((item) => item.group === group));
 
   const rows = groups.map((group, index) => (
@@ -60,7 +81,7 @@ export function BlockPickerGroups({
                 data-block-picker-item={item.id}
                 className={cn(item.checked && MENU_ITEM_ACTIVE_CHECKED)}
               >
-                <ItemLabel item={item} />
+                <ItemLabel item={item} shortcut={itemShortcut(item, platform)} />
               </DropdownMenuRadioItem>
             ) : (
               <DropdownMenuItem
@@ -73,7 +94,7 @@ export function BlockPickerGroups({
                   }
                 }}
               >
-                <ItemLabel item={item} />
+                <ItemLabel item={item} shortcut={itemShortcut(item, platform)} />
               </DropdownMenuItem>
             ),
           )}

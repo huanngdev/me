@@ -20,7 +20,7 @@ const StaticDocument = lazy(() =>
   import("./notion-like-editor-static").then((mod) => ({
     default: function StaticDocumentView() {
       return (
-        <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+        <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
           <mod.NotionLikeEditorStatic
             value={DEMO_DOCUMENT_VALUE}
             className={`text-foreground min-h-full w-full min-w-0 space-y-4 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12 ${LIST_SIBLING_GAP_CLASS}`}

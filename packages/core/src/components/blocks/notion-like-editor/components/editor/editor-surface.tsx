@@ -31,6 +31,7 @@ import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
+import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -98,6 +99,9 @@ export function EditorSurface({
                   aria-label={ariaLabel}
                   aria-readonly={readOnly ? true : undefined}
                   placeholder={readOnly ? undefined : placeholder}
+                  onMouseDown={(event) =>
+                    editor ? handleTailMouseDown(editor, event, readOnly) : undefined
+                  }
                   // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
                   // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
                   // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.

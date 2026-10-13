@@ -1,12 +1,23 @@
 import { useEffect } from "react";
 import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
-import { Command, CommandGroup, CommandItem, CommandList } from "@/components/command";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { BLOCK_PICKER_GROUPS } from "../../lib/features/editor-block-picker";
+import {
+  itemShortcutId,
+  shortcutText,
+  type ShortcutPlatform,
+} from "../../lib/features/editor-shortcuts";
 import {
   SLASH_EMPTY_LABEL,
   SLASH_MENU_LABEL,
@@ -25,6 +36,7 @@ import {
 } from "../../lib/plugins/editor-slash";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import { retainScroll } from "./block-toolbar";
+import { useShortcutPlatform } from "./editor-shortcut";
 import { ScrollFadeArea } from "./editor-scroll";
 
 const SLASH_GROUPS: readonly SlashGroup[] = [...BLOCK_PICKER_GROUPS, "Inline"];
@@ -32,6 +44,7 @@ const SLASH_GROUPS: readonly SlashGroup[] = [...BLOCK_PICKER_GROUPS, "Inline"];
 export function SlashMenu() {
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
+  const platform = useShortcutPlatform();
   const open = usePluginOption(slashUiPlugin, "open");
   const activeIndex = usePluginOption(slashUiPlugin, "activeIndex");
   const blockId = usePluginOption(slashUiPlugin, "blockId");
@@ -115,13 +128,14 @@ export function SlashMenu() {
                   {SLASH_EMPTY_LABEL}
                 </div>
               ) : grouped ? (
-                groupedRows(items, activeId, editor)
+                groupedRows(items, activeId, editor, platform)
               ) : (
                 <CommandGroup>
                   {items.map((item, index) => (
                     <SlashRow
                       key={item.id}
                       item={item}
+                      platform={platform}
                       selected={item.id === activeId}
                       onHighlight={() => {
                         editor.setOption(slashUiPlugin, "activeIndex", index);
@@ -145,6 +159,7 @@ function groupedRows(
   items: readonly SlashItem[],
   activeId: string,
   editor: ReturnType<typeof useEditorRef>,
+  platform: ShortcutPlatform | null,
 ) {
   return SLASH_GROUPS.filter((group) => items.some((item) => item.group === group)).map((group) => (
     <CommandGroup key={group} heading={group}>
@@ -154,6 +169,7 @@ function groupedRows(
           <SlashRow
             key={item.id}
             item={item}
+            platform={platform}
             selected={item.id === activeId}
             onHighlight={() => {
               editor.setOption(
@@ -173,16 +189,21 @@ function groupedRows(
 
 function SlashRow({
   item,
+  platform,
   selected,
   onHighlight,
   onChoose,
 }: {
   item: SlashItem;
+  platform: ShortcutPlatform | null;
   selected: boolean;
   onHighlight: () => void;
   onChoose: () => void;
 }) {
   const Icon = item.icon;
+  const shortcutId = itemShortcutId(item.id);
+  const shortcut =
+    shortcutId !== undefined && platform !== null ? shortcutText(shortcutId, platform) : undefined;
   return (
     <CommandItem
       value={item.id}
@@ -203,6 +224,7 @@ function SlashRow({
           {item.description}
         </span>
       </span>
+      {shortcut === undefined ? null : <CommandShortcut>{shortcut}</CommandShortcut>}
     </CommandItem>
   );
 }

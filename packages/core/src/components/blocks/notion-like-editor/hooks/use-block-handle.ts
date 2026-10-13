@@ -241,7 +241,11 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { blockTop: blockHandleContentTop(dom), blockBottom: box.bottom, blockLeft: gutterLeft },
+    {
+      blockTop: blockHandleContentTop(dom, size.height),
+      blockBottom: box.bottom,
+      blockLeft: gutterLeft,
+    },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),

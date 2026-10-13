@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { EditorRecoveryNotice } from "./editor-recovery-notice";
 import type { EditorPersistenceAdapter } from "../../lib/document/editor-persistence";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { ReadyEditor } from "./ready-editor";
 import { useEditorDocument } from "../../hooks/use-editor-document";
@@ -14,7 +15,7 @@ export function PersistedEditor({
   initialValue,
   onChange,
   readOnly = false,
-  placeholder = "Type something…",
+  placeholder = DEFAULT_PLACEHOLDER,
   ariaLabel = "Rich text editor",
   className,
   adapter,

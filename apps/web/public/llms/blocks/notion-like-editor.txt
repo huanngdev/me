@@ -4136,6 +4136,9 @@ import { Button } from "@/components/button";
 import { DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
+import { ariaKeyShortcuts, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
+import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
+
 // Editor controls (DEV-142):
 // Every clickable control is Button, Toggle or ToggleGroup for on/off state,
 // or a menu item. Text actions use size sm. Icon-only actions use size icon.
@@ -4173,6 +4176,7 @@ type EditorIconButtonProps = Omit<
   label: string;
   icon: ReactNode;
   variant?: EditorButtonVariant;
+  shortcut?: EditorShortcutId;
 };
 
 function inlineIcon(icon: ReactNode): ReactNode {
@@ -4210,17 +4214,32 @@ export function EditorIconButton({
   icon,
   variant = "ghost",
   type = "button",
+  shortcut,
   ...props
 }: EditorIconButtonProps) {
+  const platform = useShortcutPlatform();
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button {...props} type={type} size="icon" variant={variant} aria-label={label}>
+          <Button
+            {...props}
+            type={type}
+            size="icon"
+            variant={variant}
+            aria-label={label}
+            aria-keyshortcuts={
+              shortcut !== undefined && platform !== null
+                ? ariaKeyShortcuts(shortcut, platform)
+                : undefined
+            }
+          >
             {icon}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        <TooltipContent>
+          {shortcut === undefined ? label : <ShortcutLabel label={label} shortcut={shortcut} />}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -4407,7 +4426,6 @@ import {
 import { GripVertical, Plus } from "lucide-react";
 import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
-import { Button } from "@/components/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
@@ -4429,10 +4447,16 @@ import {
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
 import { BlockPickerGroups } from "./block-picker";
+import { ShortcutLabel } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 const ADD_LABEL = "Add block below";
+
+// The two handle controls are plain buttons, not the shadcn Button, so they can
+// be 24 px tall. Colours mirror the shadcn ghost variant.
+const HANDLE_BUTTON_CLASS =
+  "inline-flex shrink-0 items-center justify-center rounded-sm p-0 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground dark:aria-expanded:bg-muted/50 dark:data-[state=open]:bg-muted/50";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -4644,16 +4668,15 @@ function BlockHandleContent({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button
+                    <button
                       type="button"
-                      size="icon"
-                      variant="ghost"
+                      className={cn(HANDLE_BUTTON_CLASS, "size-6")}
                       aria-label={ADD_LABEL}
                       data-block-handle-add=""
                       onMouseDown={keepEditorSelection}
                     >
-                      <Plus aria-hidden="true" />
-                    </Button>
+                      <Plus aria-hidden="true" className="size-4" />
+                    </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
@@ -4687,14 +4710,16 @@ function BlockHandleContent({
             </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   ref={(node) => {
                     gripRef.current = node;
                     drag.setNodeRef(node);
                   }}
                   type="button"
-                  size="icon"
-                  variant="ghost"
+                  className={cn(
+                    HANDLE_BUTTON_CLASS,
+                    "h-6 w-[18px] cursor-grab active:cursor-grabbing",
+                  )}
                   aria-label={BLOCK_MENU_GRIP_LABEL}
                   data-block-handle-grip=""
                   {...drag.attributes}
@@ -4722,10 +4747,12 @@ function BlockHandleContent({
                     openMenu.current(paint.target);
                   }}
                 >
-                  <GripVertical aria-hidden="true" />
-                </Button>
+                  <GripVertical aria-hidden="true" className="size-4" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+              <TooltipContent data-block-handle-tooltip="">
+                <ShortcutLabel label={BLOCK_MENU_GRIP_LABEL} shortcut="blockMenu" />
+              </TooltipContent>
             </Tooltip>
           </div>
           <div
@@ -4773,6 +4800,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -4788,6 +4816,7 @@ import {
   turnBlockInto,
 } from "../../lib/commands/editor-commands";
 import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
+import { shortcutText, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
 import {
   settleMovedBlock,
   siblingMove,
@@ -4819,6 +4848,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { BlockColorMenu } from "./block-color-menu";
 import { footnoteMenuOffersTurn } from "../../lib/features/editor-footnote";
 import { BlockPickerGroups } from "./block-picker";
+import { useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
@@ -4926,8 +4956,13 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
+function MenuHint({ text }: { text: string | undefined }) {
+  return text === undefined ? null : <DropdownMenuShortcut>{text}</DropdownMenuShortcut>;
+}
+
 function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
   const editor = useEditorRef();
+  const platform = useShortcutPlatform();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
   const turnItems = path === undefined ? [] : blockPickerTurnItems(editor, path);
@@ -4991,6 +5026,12 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   const selectedIds = blockSelectionIds(editor);
+  // The block shortcuts act on the block selection, so a row shows its hint only when this block is selected.
+  function hint(id: EditorShortcutId): string | undefined {
+    return platform !== null && selectedIds.includes(target.id)
+      ? shortcutText(id, platform)
+      : undefined;
+  }
   const multi =
     path !== undefined && selectedIds.length > 1 && selectedIds.includes(target.id)
       ? blockRun(editor, selectedIds)
@@ -5048,6 +5089,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Copy aria-hidden="true" />
           Duplicate
+          <MenuHint text={hint("duplicateBlocks")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={up === null || !up.ok}
@@ -5063,6 +5105,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksUp")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={down === null || !down.ok}
@@ -5078,6 +5121,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksDown")} />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -5088,6 +5132,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Trash2 aria-hidden="true" />
           Delete
+          <MenuHint text={hint("deleteBlocks")} />
         </DropdownMenuItem>
       </>
     );
@@ -5112,7 +5157,13 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
             >
               <MenuScrollArea>
-                <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+                <BlockPickerGroups
+                  items={turnItems}
+                  value={currentTurn}
+                  radio
+                  shortcuts
+                  onChoose={turn}
+                />
               </MenuScrollArea>
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
@@ -5176,6 +5227,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Copy aria-hidden="true" />
         Duplicate
+        <MenuHint text={hint("duplicateBlocks")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={up === null || !up.ok}
@@ -5191,6 +5243,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksUp")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={down === null || !down.ok}
@@ -5206,6 +5259,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksDown")} />
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
@@ -5216,6 +5270,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Trash2 aria-hidden="true" />
         Delete
+        <MenuHint text={hint("deleteBlocks")} />
       </DropdownMenuItem>
     </>
   );
@@ -6651,7 +6706,7 @@ import {
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
-import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
+import { ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "../../components/elements/block-list";
 import { BlockquoteElement } from "../../components/elements/blockquote-element";
@@ -6692,6 +6747,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { EDITOR_SHORTCUTS } from "../features/editor-shortcuts";
 import { AUDIO_KEY } from "../features/editor-audio";
 import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
@@ -6941,20 +6997,20 @@ const underlinePlugin = configureMarkPlugin(UnderlinePlugin, formatUnderline, {
   rules: underlineRules,
 });
 const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrikethrough, {
-  keys: [[Key.Mod, Key.Shift, "x"]],
+  keys: [[...EDITOR_SHORTCUTS.strikethrough]],
   rules: strikethroughRules,
 });
 const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
-  keys: [[Key.Mod, "e"]],
+  keys: [[...EDITOR_SHORTCUTS.code]],
   className: codeLeafClassName,
 });
 // SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
 const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
-  keys: [[Key.Mod, "period"]],
+  keys: [[...EDITOR_SHORTCUTS.superscript]],
 });
 // SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
-  keys: [[Key.Mod, "comma"]],
+  keys: [[...EDITOR_SHORTCUTS.subscript]],
 });
 // KbdPlugin ships no shortcut. Toggled from the More menu only.
 const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
@@ -7143,7 +7199,7 @@ function configureHeadingPlugin<
     },
     shortcuts: {
       toggle: {
-        keys: [[Key.Mod, Key.Alt, String(level)]],
+        keys: [[...EDITOR_SHORTCUTS[`h${level}` as const]]],
         handler: ({ editor }) => {
           runEditorCommand(editor, command, undefined, {
             readOnly: editor.dom.readOnly,
@@ -7668,7 +7724,7 @@ const listPlugin = ListPlugin.configure({
   },
   shortcuts: {
     toggleBulleted: {
-      keys: [[Key.Mod, Key.Shift, "8"]],
+      keys: [[...EDITOR_SHORTCUTS.bulleted]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleBulletedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -7676,7 +7732,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleNumbered: {
-      keys: [[Key.Mod, Key.Shift, "7"]],
+      keys: [[...EDITOR_SHORTCUTS.numbered]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleNumberedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -7684,7 +7740,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleTodo: {
-      keys: [[Key.Mod, Key.Shift, "9"]],
+      keys: [[...EDITOR_SHORTCUTS.todo]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleTodoList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -7692,7 +7748,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleChecked: {
-      keys: [[Key.Mod, "Enter"]],
+      keys: [[...EDITOR_SHORTCUTS.todoCheck]],
       handler: ({ editor }) => {
         // Plate stops the event when a shortcut handler returns, so a definition is handled here:
         // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
@@ -7840,7 +7896,7 @@ const blockIndentPlugin = createSlatePlugin({
   },
   shortcuts: {
     indent: {
-      keys: [[Key.Mod, "BracketRight"]],
+      keys: [[...EDITOR_SHORTCUTS.indent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
     },
   },
@@ -7850,7 +7906,7 @@ const blockOutdentPlugin = createSlatePlugin({
   key: "blockOutdent",
   shortcuts: {
     outdent: {
-      keys: [[Key.Mod, "BracketLeft"]],
+      keys: [[...EDITOR_SHORTCUTS.outdent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
     },
   },
@@ -7890,7 +7946,7 @@ const clearFormattingPlugin = createSlatePlugin({
   key: "clearFormatting",
   shortcuts: {
     clear: {
-      keys: [[Key.Mod, "Backslash"]],
+      keys: [[...EDITOR_SHORTCUTS.clearFormatting]],
       handler: ({ editor }) => {
         runEditorCommand(editor, clearFormatting, undefined, {
           readOnly: editor.dom.readOnly,
@@ -23910,10 +23966,10 @@ import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_HANDLE_GAP = 4;
+export const BLOCK_HANDLE_GAP = 8;
 export const BLOCK_HANDLE_PAD = 8;
-export const BLOCK_HANDLE_WIDTH = 66;
-export const BLOCK_HANDLE_HEIGHT = 32;
+export const BLOCK_HANDLE_WIDTH = 42;
+export const BLOCK_HANDLE_HEIGHT = 24;
 
 const ELIGIBLE = new Set<string>([
   KEYS.p,
@@ -23940,10 +23996,10 @@ const ELIGIBLE = new Set<string>([
   FOOTNOTE_DEF_KEY,
 ]);
 
-// The handle's top edge is flush with the top of the block's visible content.
-// A block that pads around that content marks it with `data-block-handle-anchor`;
-// placement reads that marker and otherwise uses the block element. There is no
-// per-type list. `placeBlockHandle` is the one pure placement rule.
+// The handle is vertically centred on the block's visible content. A block that
+// pads around that content marks it with `data-block-handle-anchor`; placement
+// reads that marker and otherwise uses the block element. There is no per-type
+// list. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
 // keeps a target in the gaps between blocks, where no element is hit. `depth`
@@ -24238,21 +24294,55 @@ export function isTypingKey(event: {
 
 export const BLOCK_HANDLE_ANCHOR = "data-block-handle-anchor";
 
-// Visible-content top. A marked child wins; otherwise the block element's top.
-export function blockHandleContentTop(block: HTMLElement): number {
+// A block with no anchor is centred on up to this height; a taller one uses its
+// first line instead.
+export const BLOCK_HANDLE_CENTER_MAX = 48;
+// A marked anchor is centred on up to this height; a taller one (media) keeps
+// the handle at its top.
+export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
+
+// Handle top for a block, given the handle's measured height. A "center" anchor
+// (the divider rule) centres the handle on the rule. A marked anchor is centred
+// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
+// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
+export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+  let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
     const rect = anchor.getBoundingClientRect();
     if (rect.height > 0) {
-      // "center" puts the handle's midline on the anchor (the divider rule).
       if (anchor.getAttribute(BLOCK_HANDLE_ANCHOR) === "center") {
-        return rect.top + rect.height / 2 - BLOCK_HANDLE_HEIGHT / 2;
+        return rect.top + rect.height / 2 - handleHeight / 2;
       }
-      return rect.top;
+      anchorRect = rect;
     }
   }
 
-  return block.getBoundingClientRect().top;
+  if (anchorRect) {
+    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+      return anchorRect.top + (anchorRect.height - handleHeight) / 2;
+    }
+    return anchorRect.top;
+  }
+  const blockRect = block.getBoundingClientRect();
+  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+    return blockRect.top + (blockRect.height - handleHeight) / 2;
+  }
+  return firstLineTop(block, handleHeight);
+}
+
+// Centres the handle on the first line box of a block. The line height comes
+// from the computed style; `normal` does not parse, so the line top is used.
+function firstLineTop(block: HTMLElement, handleHeight: number): number {
+  const style = getComputedStyle(block);
+  const paddingTop = parseFloat(style.paddingTop) || 0;
+  const borderTop = parseFloat(style.borderTopWidth) || 0;
+  const lineHeight = parseFloat(style.lineHeight);
+  const lineTop = block.getBoundingClientRect().top + paddingTop + borderTop;
+  if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+    return lineTop;
+  }
+  return lineTop + Math.max(0, (lineHeight - handleHeight) / 2);
 }
 
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
@@ -24286,8 +24376,8 @@ export type PlacedHandle = {
   left: number;
 };
 
-// Handle top = the target block's top edge (plain top alignment). The handle is
-// placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
+// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,
@@ -28546,7 +28636,11 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { blockTop: blockHandleContentTop(dom), blockBottom: box.bottom, blockLeft: gutterLeft },
+    {
+      blockTop: blockHandleContentTop(dom, size.height),
+      blockBottom: box.bottom,
+      blockLeft: gutterLeft,
+    },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
@@ -29743,6 +29837,7 @@ import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
+import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -29810,6 +29905,9 @@ export function EditorSurface({
                   aria-label={ariaLabel}
                   aria-readonly={readOnly ? true : undefined}
                   placeholder={readOnly ? undefined : placeholder}
+                  onMouseDown={(event) =>
+                    editor ? handleTailMouseDown(editor, event, readOnly) : undefined
+                  }
                   // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
                   // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
                   // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
@@ -29843,7 +29941,7 @@ import { Skeleton } from "@/components/skeleton";
 
 export function EditorDocumentSkeleton() {
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[700px] min-w-0 flex-col gap-3 py-8 sm:py-12">
+    <div className="mx-auto flex min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col gap-3 py-8 sm:py-12">
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-4/5" />
@@ -29994,7 +30092,7 @@ export function EditorRecoveryNotice({
   const extra = issues.length - shown.length;
 
   return (
-    <div className="mx-auto w-full max-w-[700px] min-w-0 py-8 sm:py-12">
+    <div className="mx-auto w-full max-w-[var(--editor-max-width,700px)] min-w-0 py-8 sm:py-12">
       <Alert className="min-w-0">
         <AlertTitle>{titleFor(result)}</AlertTitle>
         <AlertDescription>
@@ -30054,6 +30152,7 @@ export function EditorRecoveryNotice({
 import { cn } from "@/lib/utils";
 
 import { EditorSurface } from "./editor-surface";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -30062,7 +30161,7 @@ export function MemoryEditor({
   initialValue,
   onChange,
   readOnly = false,
-  placeholder = "Type something…",
+  placeholder = DEFAULT_PLACEHOLDER,
   ariaLabel = "Rich text editor",
   className,
   linkPreview = null,
@@ -30086,7 +30185,7 @@ export function MemoryEditor({
         pageProvider={pageProvider}
         onOpenPage={onOpenPage}
         fileUpload={fileUpload}
-        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
+        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[var(--editor-max-width,700px)] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );
@@ -30148,7 +30247,7 @@ export function ReadyEditor({
   const showNotice = status === "error" || status === "conflict";
 
   return (
-    <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+    <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
       {showNotice ? (
         <div className="flex justify-end pt-4">
           <EditorSaveStatus status={status} message={message} onRetry={onRetry} />
@@ -30184,6 +30283,7 @@ import { cn } from "@/lib/utils";
 import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { EditorRecoveryNotice } from "./editor-recovery-notice";
 import type { EditorPersistenceAdapter } from "../../lib/document/editor-persistence";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { ReadyEditor } from "./ready-editor";
 import { useEditorDocument } from "../../hooks/use-editor-document";
@@ -30193,7 +30293,7 @@ export function PersistedEditor({
   initialValue,
   onChange,
   readOnly = false,
-  placeholder = "Type something…",
+  placeholder = DEFAULT_PLACEHOLDER,
   ariaLabel = "Rich text editor",
   className,
   adapter,
@@ -33634,7 +33734,7 @@ const StaticDocument = lazy(() =>
   import("./notion-like-editor-static").then((mod) => ({
     default: function StaticDocumentView() {
       return (
-        <div className="mx-auto flex h-full min-h-full w-full max-w-[700px] min-w-0 flex-col">
+        <div className="mx-auto flex h-full min-h-full w-full max-w-[var(--editor-max-width,700px)] min-w-0 flex-col">
           <mod.NotionLikeEditorStatic
             value={DEMO_DOCUMENT_VALUE}
             className={`text-foreground min-h-full w-full min-w-0 space-y-4 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12 ${LIST_SIBLING_GAP_CLASS}`}

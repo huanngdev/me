@@ -527,7 +527,7 @@ describe("block color menu", () => {
 
 function findItem(text: string): Element | undefined {
   return Array.from(document.querySelectorAll("[data-block-menu] [role='menuitem']")).find(
-    (item) => item.textContent === text,
+    (item) => item.textContent?.startsWith(text) === true,
   );
 }
 

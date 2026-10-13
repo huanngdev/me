@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ElementApi, KEYS, NodeApi, type SlateEditor } from "platejs";
 
 import { FOOTNOTE_DEF_KEY } from "../../lib/document/editor-document-schema";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 const PLACEHOLDER_ATTR = "data-block-placeholder";
@@ -138,7 +139,7 @@ function isSingleEmptyDocument(editor: SlateEditor): boolean {
 
 // One mechanism for every empty editable block. It writes a data attribute and
 // a single CSS rule renders the text, so nothing enters the document model.
-export function BlockPlaceholders({ placeholder = "Type something…" }: { placeholder?: string }) {
+export function BlockPlaceholders({ placeholder = DEFAULT_PLACEHOLDER }: { placeholder?: string }) {
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
   const opCount = useEditorSelector((instance) => instance.operations.length, []);

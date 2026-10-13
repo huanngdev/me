@@ -3,7 +3,6 @@ import { codeToHtml, type BundledLanguage } from "shiki";
 
 import { PUBLIC_PORTFOLIO_URL } from "../../constants";
 import { type FixedBackButtonProps } from "../fixed-back-button";
-import { StripedPattern } from "../striped-pattern";
 import type { BlockExplorerFile } from "./block-file-explorer";
 import { BlockPreviewTabs } from "./block-preview-tabs";
 import { BlockUrlProvider, SafariPreview } from "./block-url";

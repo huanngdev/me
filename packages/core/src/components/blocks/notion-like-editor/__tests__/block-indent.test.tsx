@@ -566,10 +566,10 @@ describe("block indent toolbar model", () => {
     editor.tf.select(caret([0, 0], 0));
     const model = selectionToolbarModel(editor);
     expect(model.indent.disabled).toBe(false);
-    expect(model.indent.shortcut).toContain("]");
+    expect(model.indent.shortcut).toBe("indent");
     expect(model.outdent.disabled).toBe(true);
     expect(model.outdent.reason).toBe("Not indented.");
-    expect(model.outdent.shortcut).toContain("[");
+    expect(model.outdent.shortcut).toBe("outdent");
   });
 
   test("a code block disables both with the shared reason", () => {

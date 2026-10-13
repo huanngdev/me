@@ -56,7 +56,7 @@ export function NotesView({ value }: { value: Value }) {
 - `initialValue?: EditorValue` — the content of a new document. Defaults to one empty paragraph.
 - `onChange?: (value: EditorValue) => void` — called with the value after each change.
 - `readOnly?: boolean` — turns editing off. Defaults to `false`.
-- `placeholder?: string` — shown in an empty block. Defaults to `"Type something…"`.
+- `placeholder?: string` — shown in an empty block. Defaults to `"Type something, or type \"/\" for commands"`.
 - `ariaLabel?: string` — the accessible name of the editable. Defaults to `"Rich text editor"`.
 - `className?: string` — added to the wrapper element.
 - `adapter?: EditorPersistenceAdapter` — selects persisted mode when present.
@@ -293,6 +293,8 @@ The embed block plays a YouTube or Vimeo video from a link. Only these hosts are
 ## Keyboard shortcuts
 
 Shortcuts are generated from the same inventory as the feature list. `Mod` is Cmd on macOS and Ctrl elsewhere.
+
+The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
 
 <!-- shortcut-list:start -->
 

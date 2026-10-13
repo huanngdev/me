@@ -10,10 +10,10 @@ import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_HANDLE_GAP = 4;
+export const BLOCK_HANDLE_GAP = 12;
 export const BLOCK_HANDLE_PAD = 8;
-export const BLOCK_HANDLE_WIDTH = 66;
-export const BLOCK_HANDLE_HEIGHT = 32;
+export const BLOCK_HANDLE_WIDTH = 42;
+export const BLOCK_HANDLE_HEIGHT = 24;
 
 const ELIGIBLE = new Set<string>([
   KEYS.p,
@@ -40,10 +40,10 @@ const ELIGIBLE = new Set<string>([
   FOOTNOTE_DEF_KEY,
 ]);
 
-// The handle's top edge is flush with the top of the block's visible content.
-// A block that pads around that content marks it with `data-block-handle-anchor`;
-// placement reads that marker and otherwise uses the block element. There is no
-// per-type list. `placeBlockHandle` is the one pure placement rule.
+// The handle is vertically centred on the block's visible content. A block that
+// pads around that content marks it with `data-block-handle-anchor`; placement
+// reads that marker and otherwise uses the block element. There is no per-type
+// list. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
 // keeps a target in the gaps between blocks, where no element is hit. `depth`
@@ -338,21 +338,55 @@ export function isTypingKey(event: {
 
 export const BLOCK_HANDLE_ANCHOR = "data-block-handle-anchor";
 
-// Visible-content top. A marked child wins; otherwise the block element's top.
-export function blockHandleContentTop(block: HTMLElement): number {
+// A block with no anchor is centred on up to this height; a taller one uses its
+// first line instead.
+export const BLOCK_HANDLE_CENTER_MAX = 48;
+// A marked anchor is centred on up to this height; a taller one (media) keeps
+// the handle at its top.
+export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
+
+// Handle top for a block, given the handle's measured height. A "center" anchor
+// (the divider rule) centres the handle on the rule. A marked anchor is centred
+// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
+// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
+export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+  let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
     const rect = anchor.getBoundingClientRect();
     if (rect.height > 0) {
-      // "center" puts the handle's midline on the anchor (the divider rule).
       if (anchor.getAttribute(BLOCK_HANDLE_ANCHOR) === "center") {
-        return rect.top + rect.height / 2 - BLOCK_HANDLE_HEIGHT / 2;
+        return rect.top + rect.height / 2 - handleHeight / 2;
       }
-      return rect.top;
+      anchorRect = rect;
     }
   }
 
-  return block.getBoundingClientRect().top;
+  if (anchorRect) {
+    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+      return anchorRect.top + (anchorRect.height - handleHeight) / 2;
+    }
+    return anchorRect.top;
+  }
+  const blockRect = block.getBoundingClientRect();
+  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+    return blockRect.top + (blockRect.height - handleHeight) / 2;
+  }
+  return firstLineTop(block, handleHeight);
+}
+
+// Centres the handle on the first line box of a block. The line height comes
+// from the computed style; `normal` does not parse, so the line top is used.
+function firstLineTop(block: HTMLElement, handleHeight: number): number {
+  const style = getComputedStyle(block);
+  const paddingTop = parseFloat(style.paddingTop) || 0;
+  const borderTop = parseFloat(style.borderTopWidth) || 0;
+  const lineHeight = parseFloat(style.lineHeight);
+  const lineTop = block.getBoundingClientRect().top + paddingTop + borderTop;
+  if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+    return lineTop;
+  }
+  return lineTop + Math.max(0, (lineHeight - handleHeight) / 2);
 }
 
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
@@ -386,8 +420,8 @@ export type PlacedHandle = {
   left: number;
 };
 
-// Handle top = the target block's top edge (plain top alignment). The handle is
-// placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
+// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,

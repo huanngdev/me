@@ -11,6 +11,9 @@ import {
   BLOCK_HANDLE_GAP,
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  BLOCK_HANDLE_ANCHOR,
+  BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+  BLOCK_HANDLE_CENTER_MAX,
   blockHandleContentTop,
   blockHandleGutterId,
   blockHandleTarget,
@@ -532,20 +535,22 @@ describe("block handle placement", () => {
     card.getBoundingClientRect = () =>
       ({
         top: 14,
-        bottom: 46,
+        bottom: 34,
         left: 0,
         right: 100,
         width: 100,
-        height: 32,
+        height: 20,
         x: 0,
         y: 14,
         toJSON() {
           return {};
         },
       }) as DOMRect;
-    expect(blockHandleContentTop(blockEl)).toBe(14);
+    // The 20 px card is centred: 14 + (20 - 24) / 2.
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(12);
     card.remove();
-    expect(blockHandleContentTop(blockEl)).toBe(10);
+    // Without the anchor the 40 px block is centred: 10 + (40 - 24) / 2.
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(18);
     blockEl.remove();
   });
 
@@ -569,8 +574,126 @@ describe("block handle placement", () => {
           return {};
         },
       }) as DOMRect;
-    expect(blockHandleContentTop(blockEl)).toBe(20.5 - BLOCK_HANDLE_HEIGHT / 2);
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(
+      20.5 - BLOCK_HANDLE_HEIGHT / 2,
+    );
     blockEl.remove();
+  });
+
+  function rectOf(top: number, height: number): DOMRect {
+    return {
+      top,
+      bottom: top + height,
+      left: 0,
+      right: 100,
+      width: 100,
+      height,
+      x: 0,
+      y: top,
+      toJSON() {
+        return {};
+      },
+    } as DOMRect;
+  }
+
+  function elementAt(tag: string, top: number, height: number): HTMLElement {
+    const element = document.createElement(tag);
+    element.getBoundingClientRect = () => rectOf(top, height);
+    return element;
+  }
+
+  // Runs `run` with getComputedStyle answering the given style values.
+  function withComputedStyle(values: Record<string, string>, run: () => void): void {
+    const original = globalThis.getComputedStyle;
+    globalThis.getComputedStyle = (() => values) as unknown as typeof getComputedStyle;
+    try {
+      run();
+    } finally {
+      globalThis.getComputedStyle = original;
+    }
+  }
+
+  test("a one-line block centres the handle on the block", () => {
+    const paragraphEl = elementAt("div", 100, 26);
+    expect(blockHandleContentTop(paragraphEl, BLOCK_HANDLE_HEIGHT)).toBe(101);
+    const headingEl = elementAt("div", 100, 38);
+    expect(blockHandleContentTop(headingEl, BLOCK_HANDLE_HEIGHT)).toBe(107);
+  });
+
+  test("a block shorter than the handle puts the handle top above the block top", () => {
+    expect(blockHandleContentTop(elementAt("div", 100, 17), BLOCK_HANDLE_HEIGHT)).toBe(96.5);
+  });
+
+  test("a reference of exactly the centre limit is centred, a taller one is not", () => {
+    const atLimit = elementAt("div", 100, BLOCK_HANDLE_CENTER_MAX);
+    expect(blockHandleContentTop(atLimit, BLOCK_HANDLE_HEIGHT)).toBe(112);
+
+    const tall = elementAt("div", 100, BLOCK_HANDLE_CENTER_MAX + 1);
+    withComputedStyle({ paddingTop: "4px", borderTopWidth: "1px", lineHeight: "24px" }, () => {
+      // The first line is 24 px, so the handle lines up with it: 100 + 4 + 1.
+      expect(blockHandleContentTop(tall, BLOCK_HANDLE_HEIGHT)).toBe(105);
+    });
+  });
+
+  test("a tall block without an anchor centres the handle on its first line", () => {
+    const multiline = elementAt("div", 100, 52);
+    withComputedStyle({ paddingTop: "4px", borderTopWidth: "1px", lineHeight: "26px" }, () => {
+      // 100 + 4 + 1 + (26 - 24) / 2
+      expect(blockHandleContentTop(multiline, BLOCK_HANDLE_HEIGHT)).toBe(106);
+    });
+  });
+
+  test("a line height of normal falls back to the top of the first line", () => {
+    const multiline = elementAt("div", 100, 52);
+    withComputedStyle({ paddingTop: "4px", borderTopWidth: "1px", lineHeight: "normal" }, () => {
+      expect(blockHandleContentTop(multiline, BLOCK_HANDLE_HEIGHT)).toBe(105);
+    });
+  });
+
+  test("a tall marked anchor puts the handle at its top", () => {
+    const blockEl = elementAt("div", 100, 240);
+    const media = elementAt("figure", 120, 200);
+    media.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+    blockEl.append(media);
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(120);
+  });
+
+  test("a marked anchor up to the anchor centre limit is centred", () => {
+    for (const [height, expected] of [
+      [58, 100 + (58 - BLOCK_HANDLE_HEIGHT) / 2],
+      [
+        BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+        100 + (BLOCK_HANDLE_ANCHOR_CENTER_MAX - BLOCK_HANDLE_HEIGHT) / 2,
+      ],
+    ] as const) {
+      const blockEl = elementAt("div", 90, height + 20);
+      const card = elementAt("figure", 100, height);
+      card.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+      blockEl.append(card);
+      expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(expected);
+    }
+  });
+
+  test("a marked anchor taller than the anchor centre limit keeps the handle at its top", () => {
+    const blockEl = elementAt("div", 90, 85);
+    const media = elementAt("figure", 100, BLOCK_HANDLE_ANCHOR_CENTER_MAX + 1);
+    media.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+    blockEl.append(media);
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(100);
+  });
+
+  test("a block without an anchor of 52 px keeps the first-line rule", () => {
+    withComputedStyle({ paddingTop: "0px", borderTopWidth: "0px", lineHeight: "26px" }, () => {
+      expect(blockHandleContentTop(elementAt("div", 100, 52), BLOCK_HANDLE_HEIGHT)).toBe(101);
+    });
+  });
+
+  test("a short marked anchor centres the handle on the anchor", () => {
+    const blockEl = elementAt("div", 100, 60);
+    const card = elementAt("div", 110, 30);
+    card.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+    blockEl.append(card);
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(113);
   });
 
   test("places the handle top at the block's top edge with a gap before the block", () => {
@@ -800,6 +923,9 @@ describe("block handle overlay", () => {
       expect(document.querySelector("[data-block-handle-grip]")?.getAttribute("aria-label")).toBe(
         "Drag to move · Click to open menu",
       );
+      // Both controls are plain buttons, not the shadcn Button.
+      expect(document.querySelector("[data-block-handle-add]")?.tagName).toBe("BUTTON");
+      expect(document.querySelector("[data-block-handle-grip]")?.tagName).toBe("BUTTON");
 
       const editable = mounted.host.querySelector("[data-slate-editor]");
       await act(async () => {

@@ -58,6 +58,11 @@ import {
   setTextColor,
 } from "../../lib/commands/editor-commands";
 import {
+  shortcutText,
+  ariaKeyShortcuts,
+  type EditorShortcutId,
+} from "../../lib/features/editor-shortcuts";
+import {
   FONT_FAMILIES,
   FONT_SIZES,
   LINE_HEIGHTS,
@@ -90,6 +95,7 @@ import { useSelectionToolbar } from "../../hooks/use-selection-toolbar";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import { editorControlLabel, focusEditorWithoutScroll, retainScroll } from "./block-toolbar";
 import { BlockPickerGroups } from "./block-picker";
+import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea, ScrollFadeArea } from "./editor-scroll";
 import { SelectionColorMenu } from "./selection-color-menu";
 
@@ -149,12 +155,9 @@ function returnToEditor(editor: SlateEditor, range: TRange | null): void {
   });
 }
 
-function tip(label: string, shortcut?: string, reason?: string, disabled?: boolean): string {
+function tip(label: string, reason?: string, disabled?: boolean): string {
   if (disabled && reason) {
     return reason;
-  }
-  if (shortcut) {
-    return `${label} (${shortcut})`;
   }
 
   return label;
@@ -168,15 +171,22 @@ function ControlTip({
   children,
 }: {
   label: string;
-  shortcut?: string;
+  shortcut?: EditorShortcutId;
   reason?: string;
   disabled?: boolean;
   children: ReactNode;
 }) {
+  const showsShortcut = shortcut !== undefined && !(disabled && reason);
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent>{tip(label, shortcut, reason, disabled)}</TooltipContent>
+      <TooltipContent>
+        {showsShortcut ? (
+          <ShortcutLabel label={label} shortcut={shortcut} />
+        ) : (
+          tip(label, reason, disabled)
+        )}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -500,6 +510,7 @@ function ToolbarControls({
   onClear: () => void;
 }) {
   const model = selectionToolbarModel(editor);
+  const platform = useShortcutPlatform();
   const turnItems = model.turnInto ? blockPickerTurnItems(editor, model.turnInto.path) : [];
   const currentTurn = turnItems.find((item) => item.checked);
   const TurnIcon = currentTurn?.icon ?? Type;
@@ -546,6 +557,7 @@ function ToolbarControls({
                 items={turnItems}
                 value={model.turnInto.currentId}
                 radio
+                shortcuts
                 onChoose={onTurn}
               />
             </MenuScrollArea>
@@ -571,6 +583,11 @@ function ToolbarControls({
               aria-label={mark.label}
               disabled={mark.disabled}
               data-toolbar-control={mark.id}
+              aria-keyshortcuts={
+                mark.shortcut !== undefined && platform !== null
+                  ? ariaKeyShortcuts(mark.shortcut, platform)
+                  : undefined
+              }
               data-state-mixed={mark.mixed ? "" : undefined}
               tabIndex={tabOf(mark.id, mark.disabled, firstEnabled)}
               className="size-8 px-0 disabled:pointer-events-auto"
@@ -599,6 +616,7 @@ function ToolbarControls({
           aria-pressed={model.link.pressed}
           disabled={model.link.disabled}
           data-toolbar-control="link"
+          aria-keyshortcuts={platform !== null ? ariaKeyShortcuts("link", platform) : undefined}
           data-state={model.link.pressed ? "on" : "off"}
           tabIndex={tabOf("link", model.link.disabled, firstEnabled)}
           className={cn("disabled:pointer-events-auto", model.link.pressed && "bg-muted")}
@@ -621,6 +639,9 @@ function ToolbarControls({
           aria-label="Equation"
           disabled={model.equation.disabled}
           data-toolbar-control="equation"
+          aria-keyshortcuts={
+            platform !== null ? ariaKeyShortcuts("inlineEquation", platform) : undefined
+          }
           tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
           className="disabled:pointer-events-auto"
           onMouseDown={keepSelection}
@@ -763,6 +784,7 @@ function MoreMenu({
   onOutdent: () => void;
   onClear: () => void;
 }) {
+  const platform = useShortcutPlatform();
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
       <ControlTip label="More">
@@ -878,8 +900,10 @@ function MoreMenu({
                 </span>
               ) : null}
             </span>
-            {model.indent.shortcut ? (
-              <DropdownMenuShortcut>{model.indent.shortcut}</DropdownMenuShortcut>
+            {platform !== null && model.indent.shortcut ? (
+              <DropdownMenuShortcut>
+                {shortcutText(model.indent.shortcut, platform)}
+              </DropdownMenuShortcut>
             ) : null}
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -896,8 +920,10 @@ function MoreMenu({
                 </span>
               ) : null}
             </span>
-            {model.outdent.shortcut ? (
-              <DropdownMenuShortcut>{model.outdent.shortcut}</DropdownMenuShortcut>
+            {platform !== null && model.outdent.shortcut ? (
+              <DropdownMenuShortcut>
+                {shortcutText(model.outdent.shortcut, platform)}
+              </DropdownMenuShortcut>
             ) : null}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -915,8 +941,10 @@ function MoreMenu({
                 </span>
               ) : null}
             </span>
-            {model.clear.shortcut ? (
-              <DropdownMenuShortcut>{model.clear.shortcut}</DropdownMenuShortcut>
+            {platform !== null && model.clear.shortcut ? (
+              <DropdownMenuShortcut>
+                {shortcutText(model.clear.shortcut, platform)}
+              </DropdownMenuShortcut>
             ) : null}
           </DropdownMenuItem>
         </MenuScrollArea>
@@ -934,6 +962,7 @@ function CheckItem({
   icon: ReactNode;
   onToggle: () => void;
 }) {
+  const platform = useShortcutPlatform();
   return (
     <DropdownMenuCheckboxItem
       checked={mark.mixed ? "indeterminate" : mark.pressed}
@@ -946,7 +975,9 @@ function CheckItem({
     >
       {icon}
       <span>{mark.label}</span>
-      {mark.shortcut ? <DropdownMenuShortcut>{mark.shortcut}</DropdownMenuShortcut> : null}
+      {platform !== null && mark.shortcut ? (
+        <DropdownMenuShortcut>{shortcutText(mark.shortcut, platform)}</DropdownMenuShortcut>
+      ) : null}
     </DropdownMenuCheckboxItem>
   );
 }

@@ -889,7 +889,7 @@ describe("column rendering", () => {
     ]);
     const menu = await openGroupMenu(mounted.host, "g");
     const remove = [...menu.querySelectorAll("[role='menuitem']")].find(
-      (item) => item.textContent === "Delete",
+      (item) => item.textContent?.startsWith("Delete") === true,
     );
     if (!(remove instanceof HTMLElement)) {
       throw new Error("Missing delete item.");

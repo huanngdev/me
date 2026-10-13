@@ -21,7 +21,6 @@ import {
 import { GripVertical, Plus } from "lucide-react";
 import { useEditorReadOnly, useEditorRef } from "platejs/react";
 
-import { Button } from "@/components/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
@@ -43,10 +42,16 @@ import {
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
 import { BlockPickerGroups } from "./block-picker";
+import { ShortcutLabel } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
 const ADD_LABEL = "Add block below";
+
+// The two handle controls are plain buttons, not the shadcn Button, so they can
+// be 24 px tall. Colours mirror the shadcn ghost variant.
+const HANDLE_BUTTON_CLASS =
+  "inline-flex shrink-0 items-center justify-center rounded-sm p-0 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground dark:aria-expanded:bg-muted/50 dark:data-[state=open]:bg-muted/50";
 
 type BlockHandleProps = {
   onInsertedBelow?: (blockId: string) => void;
@@ -258,16 +263,15 @@ function BlockHandleContent({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button
+                    <button
                       type="button"
-                      size="icon"
-                      variant="ghost"
+                      className={cn(HANDLE_BUTTON_CLASS, "size-6")}
                       aria-label={ADD_LABEL}
                       data-block-handle-add=""
                       onMouseDown={keepEditorSelection}
                     >
-                      <Plus aria-hidden="true" />
-                    </Button>
+                      <Plus aria-hidden="true" className="size-4" />
+                    </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent data-block-handle-tooltip="">{ADD_LABEL}</TooltipContent>
@@ -301,14 +305,16 @@ function BlockHandleContent({
             </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   ref={(node) => {
                     gripRef.current = node;
                     drag.setNodeRef(node);
                   }}
                   type="button"
-                  size="icon"
-                  variant="ghost"
+                  className={cn(
+                    HANDLE_BUTTON_CLASS,
+                    "h-6 w-[18px] cursor-grab active:cursor-grabbing",
+                  )}
                   aria-label={BLOCK_MENU_GRIP_LABEL}
                   data-block-handle-grip=""
                   {...drag.attributes}
@@ -336,10 +342,12 @@ function BlockHandleContent({
                     openMenu.current(paint.target);
                   }}
                 >
-                  <GripVertical aria-hidden="true" />
-                </Button>
+                  <GripVertical aria-hidden="true" className="size-4" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+              <TooltipContent data-block-handle-tooltip="">
+                <ShortcutLabel label={BLOCK_MENU_GRIP_LABEL} shortcut="blockMenu" />
+              </TooltipContent>
             </Tooltip>
           </div>
           <div

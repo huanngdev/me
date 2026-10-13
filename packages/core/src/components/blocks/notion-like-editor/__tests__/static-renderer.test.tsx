@@ -414,7 +414,12 @@ describe("static renderer", () => {
     const root: Root = createRoot(host);
     await act(async () => {
       root.render(
-        <EditorSurface editor={editor} readOnly placeholder="Type something…" className="editor" />,
+        <EditorSurface
+          editor={editor}
+          readOnly
+          placeholder='Type something, or type "/" for commands'
+          className="editor"
+        />,
       );
     });
     const staticHost = document.createElement("div");
@@ -476,7 +481,12 @@ describe("static renderer", () => {
     const root: Root = createRoot(host);
     await act(async () => {
       root.render(
-        <EditorSurface editor={editor} readOnly placeholder="Type something…" className="editor" />,
+        <EditorSurface
+          editor={editor}
+          readOnly
+          placeholder='Type something, or type "/" for commands'
+          className="editor"
+        />,
       );
     });
     const staticHost = document.createElement("div");

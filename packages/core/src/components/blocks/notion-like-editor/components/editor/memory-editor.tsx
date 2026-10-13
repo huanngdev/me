@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 
 import { EditorSurface } from "./editor-surface";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -11,7 +12,7 @@ export function MemoryEditor({
   initialValue,
   onChange,
   readOnly = false,
-  placeholder = "Type something…",
+  placeholder = DEFAULT_PLACEHOLDER,
   ariaLabel = "Rich text editor",
   className,
   linkPreview = null,
@@ -35,7 +36,7 @@ export function MemoryEditor({
         pageProvider={pageProvider}
         onOpenPage={onOpenPage}
         fileUpload={fileUpload}
-        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[700px] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
+        className="text-foreground caret-foreground mx-auto min-h-full w-full max-w-[var(--editor-max-width,700px)] py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>
   );

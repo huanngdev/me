@@ -51,7 +51,7 @@ import {
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
-import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
+import { ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "../../components/elements/block-list";
 import { BlockquoteElement } from "../../components/elements/blockquote-element";
@@ -92,6 +92,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { EDITOR_SHORTCUTS } from "../features/editor-shortcuts";
 import { AUDIO_KEY } from "../features/editor-audio";
 import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
@@ -341,20 +342,20 @@ const underlinePlugin = configureMarkPlugin(UnderlinePlugin, formatUnderline, {
   rules: underlineRules,
 });
 const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrikethrough, {
-  keys: [[Key.Mod, Key.Shift, "x"]],
+  keys: [[...EDITOR_SHORTCUTS.strikethrough]],
   rules: strikethroughRules,
 });
 const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
-  keys: [[Key.Mod, "e"]],
+  keys: [[...EDITOR_SHORTCUTS.code]],
   className: codeLeafClassName,
 });
 // SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
 const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
-  keys: [[Key.Mod, "period"]],
+  keys: [[...EDITOR_SHORTCUTS.superscript]],
 });
 // SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
-  keys: [[Key.Mod, "comma"]],
+  keys: [[...EDITOR_SHORTCUTS.subscript]],
 });
 // KbdPlugin ships no shortcut. Toggled from the More menu only.
 const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
@@ -543,7 +544,7 @@ function configureHeadingPlugin<
     },
     shortcuts: {
       toggle: {
-        keys: [[Key.Mod, Key.Alt, String(level)]],
+        keys: [[...EDITOR_SHORTCUTS[`h${level}` as const]]],
         handler: ({ editor }) => {
           runEditorCommand(editor, command, undefined, {
             readOnly: editor.dom.readOnly,
@@ -1068,7 +1069,7 @@ const listPlugin = ListPlugin.configure({
   },
   shortcuts: {
     toggleBulleted: {
-      keys: [[Key.Mod, Key.Shift, "8"]],
+      keys: [[...EDITOR_SHORTCUTS.bulleted]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleBulletedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -1076,7 +1077,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleNumbered: {
-      keys: [[Key.Mod, Key.Shift, "7"]],
+      keys: [[...EDITOR_SHORTCUTS.numbered]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleNumberedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -1084,7 +1085,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleTodo: {
-      keys: [[Key.Mod, Key.Shift, "9"]],
+      keys: [[...EDITOR_SHORTCUTS.todo]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleTodoList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -1092,7 +1093,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleChecked: {
-      keys: [[Key.Mod, "Enter"]],
+      keys: [[...EDITOR_SHORTCUTS.todoCheck]],
       handler: ({ editor }) => {
         // Plate stops the event when a shortcut handler returns, so a definition is handled here:
         // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
@@ -1240,7 +1241,7 @@ const blockIndentPlugin = createSlatePlugin({
   },
   shortcuts: {
     indent: {
-      keys: [[Key.Mod, "BracketRight"]],
+      keys: [[...EDITOR_SHORTCUTS.indent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
     },
   },
@@ -1250,7 +1251,7 @@ const blockOutdentPlugin = createSlatePlugin({
   key: "blockOutdent",
   shortcuts: {
     outdent: {
-      keys: [[Key.Mod, "BracketLeft"]],
+      keys: [[...EDITOR_SHORTCUTS.outdent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
     },
   },
@@ -1290,7 +1291,7 @@ const clearFormattingPlugin = createSlatePlugin({
   key: "clearFormatting",
   shortcuts: {
     clear: {
-      keys: [[Key.Mod, "Backslash"]],
+      keys: [[...EDITOR_SHORTCUTS.clearFormatting]],
       handler: ({ editor }) => {
         runEditorCommand(editor, clearFormatting, undefined, {
           readOnly: editor.dom.readOnly,
