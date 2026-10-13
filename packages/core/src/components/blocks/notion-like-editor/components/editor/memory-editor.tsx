@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 
 import { EditorSurface } from "./editor-surface";
+import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -11,7 +12,7 @@ export function MemoryEditor({
   initialValue,
   onChange,
   readOnly = false,
-  placeholder = "Type something…",
+  placeholder = DEFAULT_PLACEHOLDER,
   ariaLabel = "Rich text editor",
   className,
   linkPreview = null,

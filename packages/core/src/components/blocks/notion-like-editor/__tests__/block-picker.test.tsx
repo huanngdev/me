@@ -153,54 +153,70 @@ describe("placeholder spec", () => {
 
   test("typed blocks show a placeholder whenever empty", () => {
     expect(
-      placeholderSpec({ type: KEYS.h1, children: [{ text: "" }] }, top, "Type something…"),
+      placeholderSpec(
+        { type: KEYS.h1, children: [{ text: "" }] },
+        top,
+        'Type something, or type "/" for commands',
+      ),
     ).toEqual({ text: "Heading 1", always: true });
     expect(
       placeholderSpec(
         { type: KEYS.p, listStyleType: "disc", children: [{ text: "" }] },
         top,
-        "Type something…",
+        'Type something, or type "/" for commands',
       ),
     ).toEqual({ text: "List", always: true });
     expect(
       placeholderSpec(
         { type: KEYS.p, listStyleType: "todo", children: [{ text: "" }] },
         top,
-        "Type something…",
+        'Type something, or type "/" for commands',
       ),
     ).toEqual({ text: "To-do", always: true });
     expect(
-      placeholderSpec({ type: KEYS.codeLine, children: [{ text: "" }] }, top, "Type something…"),
+      placeholderSpec(
+        { type: KEYS.codeLine, children: [{ text: "" }] },
+        top,
+        'Type something, or type "/" for commands',
+      ),
     ).toEqual({ text: "Code", always: true });
     expect(
       placeholderSpec(
         { type: KEYS.p, children: [{ text: "" }] },
         { parentType: KEYS.toggle, index: 0 },
-        "Type something…",
+        'Type something, or type "/" for commands',
       ),
     ).toEqual({ text: "Toggle", always: true });
     expect(
       placeholderSpec(
         { type: KEYS.p, children: [{ text: "" }] },
         { parentType: KEYS.blockquote, index: 0 },
-        "Type something…",
+        'Type something, or type "/" for commands',
       ),
     ).toEqual({ text: "Quote", always: true });
     expect(
       placeholderSpec(
         { type: KEYS.p, children: [{ text: "" }] },
         { parentType: KEYS.callout, index: 0 },
-        "Type something…",
+        'Type something, or type "/" for commands',
       ),
-    ).toEqual({ text: "Type something…", always: true });
+    ).toEqual({ text: 'Type something, or type "/" for commands', always: true });
   });
 
   test("a plain paragraph shows only while it holds the caret, and non-empty is null", () => {
     expect(
-      placeholderSpec({ type: KEYS.p, children: [{ text: "" }] }, top, "Type something…"),
-    ).toEqual({ text: "Type something…", always: false });
+      placeholderSpec(
+        { type: KEYS.p, children: [{ text: "" }] },
+        top,
+        'Type something, or type "/" for commands',
+      ),
+    ).toEqual({ text: 'Type something, or type "/" for commands', always: false });
     expect(
-      placeholderSpec({ type: KEYS.p, children: [{ text: "hi" }] }, top, "Type something…"),
+      placeholderSpec(
+        { type: KEYS.p, children: [{ text: "hi" }] },
+        top,
+        'Type something, or type "/" for commands',
+      ),
     ).toBeNull();
   });
 });
@@ -227,7 +243,7 @@ describe("block placeholders in the DOM", () => {
         <EditorSurface
           editor={editor}
           readOnly={readOnly}
-          placeholder="Type something…"
+          placeholder='Type something, or type "/" for commands'
           className="editor"
         />,
       );
@@ -269,7 +285,9 @@ describe("block placeholders in the DOM", () => {
           focus: { path: [1, 0], offset: 0 },
         });
       });
-      expect(placeholderOf(mounted.host, "spacer")).toBe("Type something…");
+      expect(placeholderOf(mounted.host, "spacer")).toBe(
+        'Type something, or type "/" for commands',
+      );
     } finally {
       await mounted.cleanup();
     }

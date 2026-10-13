@@ -110,7 +110,7 @@ describe("DEV-149 placeholder is out of flow", () => {
         <EditorSurface
           editor={editor}
           readOnly={false}
-          placeholder="Type something…"
+          placeholder='Type something, or type "/" for commands'
           className="editor"
         />,
       );

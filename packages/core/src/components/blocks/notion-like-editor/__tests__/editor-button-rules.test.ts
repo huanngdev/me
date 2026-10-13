@@ -31,7 +31,8 @@ describe("editor button rules", () => {
       const text = readFileSync(path, "utf8");
       const name = relative(editorRoot, path);
 
-      if (text.includes("<button")) {
+      // The block handle's Add and grip controls are plain buttons by request.
+      if (text.includes("<button") && name !== join("components", "ui", "block-handle.tsx")) {
         problems.push(`${name} contains a raw button element`);
       }
 

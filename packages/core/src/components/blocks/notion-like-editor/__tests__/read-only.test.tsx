@@ -103,7 +103,7 @@ async function mount(
       <EditorSurface
         editor={editor}
         readOnly={readOnly}
-        placeholder="Type something…"
+        placeholder='Type something, or type "/" for commands'
         className="editor"
         onValueChange={(next) => {
           changes.push(next);
