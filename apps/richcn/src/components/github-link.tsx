@@ -13,7 +13,7 @@ export async function GitHubLink() {
       : `GitHub repository, ${stars} ${stars === 1 ? "star" : "stars"}`;
 
   return (
-    <Button asChild variant="outline" size="sm" className="px-2 min-[400px]:px-2.5">
+    <Button asChild variant="outline" className="px-2 min-[400px]:px-2.5">
       <a href={SITE.repoUrl} target="_blank" rel="noopener noreferrer" aria-label={label}>
         <GitHubMark className="size-4" />
         {stars === null ? null : (

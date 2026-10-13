@@ -18,7 +18,7 @@ export function BuyMeACoffee() {
       aria-label="Buy me a coffee"
       className={cn(
         cookie.className,
-        "focus-visible:outline-ring inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[min(var(--radius-md),12px)] bg-[#FFDD00] px-2 text-lg leading-none text-black transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3",
+        "focus-visible:outline-ring inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[min(var(--radius-md),12px)] bg-[#FFDD00] px-2 text-lg leading-none text-black transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3",
       )}
     >
       <Image
