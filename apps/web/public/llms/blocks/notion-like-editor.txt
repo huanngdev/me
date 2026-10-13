@@ -23966,7 +23966,7 @@ import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_HANDLE_GAP = 4;
+export const BLOCK_HANDLE_GAP = 8;
 export const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
