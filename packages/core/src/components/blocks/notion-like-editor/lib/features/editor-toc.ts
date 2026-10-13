@@ -1,36 +1,28 @@
-import { ElementApi, KEYS, NodeApi, PathApi, type SlateEditor, type TElement } from "platejs";
+import { ElementApi, KEYS, PathApi, type SlateEditor, type TElement } from "platejs";
 
 import type { EditorCommand } from "../commands/editor-commands";
-import { headingAnchorId } from "../../components/elements/heading-element";
+import { headingAnchorId } from "../../components/elements/heading-styles";
 import { toggleOpen } from "../plugins/editor-toggle";
+import {
+  TOC_DEFAULT_DEPTH,
+  headingPlainText,
+  isTocDepth,
+  type TocDepth,
+  type TocEntry,
+} from "./editor-toc-outline";
 
-export const TOC_DEPTHS = [1, 2, 3] as const;
-export type TocDepth = (typeof TOC_DEPTHS)[number];
-export const TOC_DEFAULT_DEPTH: TocDepth = 3;
-export const TOC_EMPTY_PLACEHOLDER = "Add headings to build a table of contents.";
-export const TOC_UNTITLED = "Untitled";
-
-export type TocEntry = {
-  id: string;
-  depth: TocDepth;
-  title: string;
-  path: number[];
-};
-
-// @platejs/toc 53.0.0 getHeadingList drops an empty title, keeps raw NodeApi.string,
-// and lists h4–h6. onContentScroll uses behavior "instant" and does not move the
-// caret or open a toggle. This outline is the document's h1–h3 blocks instead.
-export function isTocDepth(value: unknown): value is TocDepth {
-  return value === 1 || value === 2 || value === 3;
-}
-
-export function storedTocDepth(node: TElement): TocDepth {
-  return isTocDepth(node.maxDepth) ? node.maxDepth : TOC_DEFAULT_DEPTH;
-}
-
-export function headingPlainText(node: TElement): string {
-  return NodeApi.string(node).replace(/\s+/g, " ").trim();
-}
+export {
+  TOC_DEFAULT_DEPTH,
+  TOC_DEPTHS,
+  TOC_EMPTY_PLACEHOLDER,
+  TOC_UNTITLED,
+  headingPlainText,
+  isTocDepth,
+  shallowestDepth,
+  storedTocDepth,
+  type TocDepth,
+  type TocEntry,
+} from "./editor-toc-outline";
 
 function headingDepth(type: string): TocDepth | undefined {
   if (type === KEYS.h1) {
@@ -73,16 +65,6 @@ export function tocEntries(editor: SlateEditor, maxDepth: TocDepth): TocEntry[] 
     });
   }
   return entries;
-}
-
-export function shallowestDepth(entries: readonly TocEntry[]): TocDepth {
-  let shallowest: TocDepth = TOC_DEFAULT_DEPTH;
-  for (const entry of entries) {
-    if (entry.depth < shallowest) {
-      shallowest = entry.depth;
-    }
-  }
-  return shallowest;
 }
 
 export function prefersReducedMotion(): boolean {

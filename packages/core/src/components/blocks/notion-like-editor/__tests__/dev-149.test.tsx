@@ -141,7 +141,15 @@ describe("DEV-149 placeholder is out of flow", () => {
 
 describe("DEV-149 bookmark card", () => {
   test("the card is a fixed-height rounded container", () => {
-    const text = readFileSync(join(editorRoot, "components/elements/bookmark-element.tsx"), "utf8");
+    const element = readFileSync(
+      join(editorRoot, "components/elements/bookmark-element.tsx"),
+      "utf8",
+    );
+    const imported = element.match(/bookmark-classes/);
+    const shared = imported
+      ? readFileSync(join(editorRoot, "components/elements/bookmark-classes.ts"), "utf8")
+      : "";
+    const text = `${element}\n${shared}`;
     expect(text).toContain("@container/card");
     expect(text).toContain("rounded-xl");
     expect(text).toContain("h-[150px]");

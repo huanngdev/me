@@ -57,6 +57,22 @@ import {
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
+// The viewport size is read when the editor selection is synced to the DOM, and happy-dom leaves it undefined.
+if (!("innerWidth" in globalThis)) {
+  Reflect.set(globalThis, "innerWidth", 1024);
+  Reflect.set(globalThis, "innerHeight", 768);
+}
+
+// The suggestion list uses cmdk, which needs ResizeObserver. happy-dom has none, so a no-op stands in.
+if (!("ResizeObserver" in globalThis)) {
+  class ResizeObserverStub {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  Reflect.set(globalThis, "ResizeObserver", ResizeObserverStub);
+}
+
 const ALEX_A: MentionEntity = {
   entityType: MENTION_ENTITY_TYPE,
   entityId: "person-alex-kim",
@@ -909,5 +925,118 @@ describe("mention render", () => {
     expect(stored?.entityId).toBe("person-alex-kim");
     expect(stored?.label).toBe("Alex Kim");
     expect(stored?.entityType).toBe("person");
+  });
+});
+
+describe("mention focus", () => {
+  async function mountMention(provider: MentionProvider) {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const editor = createPlateEditor({
+      plugins: createEditorPlugins(),
+      value: [paragraph("", "p")],
+    });
+    if (!isReactContainer(host)) {
+      throw new Error("Missing mount node.");
+    }
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(host);
+      root.render(
+        <EditorSurface
+          editor={editor}
+          readOnly={false}
+          placeholder=""
+          className="editor"
+          mentionProvider={provider}
+        />,
+      );
+    });
+
+    return {
+      editor,
+      host,
+      cleanup: async () => {
+        await act(async () => {
+          root?.unmount();
+        });
+        host.remove();
+      },
+    };
+  }
+
+  function mentionInput(root: ParentNode): HTMLInputElement {
+    const input = root.querySelector("input[aria-label='Mention']");
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error("Missing mention input.");
+    }
+
+    return input;
+  }
+
+  function pressInput(input: HTMLInputElement, key: string): void {
+    input.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  }
+
+  // Plate focuses the editor on a short timer when edits are pending, so a test waits past it.
+  async function settleFocus(): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+    });
+  }
+
+  test("escape keeps the typed text and returns focus to the editor after it", async () => {
+    const mounted = await mountMention(peopleProvider());
+    try {
+      await act(async () => {
+        mounted.editor.tf.select(caret([0, 0], 0));
+        mounted.editor.tf.insertText("@");
+      });
+      const input = mentionInput(mounted.host);
+      await act(async () => {
+        setMentionQuery(mounted.editor, "al");
+      });
+
+      await act(async () => {
+        pressInput(input, "Escape");
+      });
+      await settleFocus();
+      expect(mounted.host.querySelector("input[aria-label='Mention']")).toBeNull();
+      expect(mounted.editor.api.string([0])).toBe("@al");
+      expect(document.activeElement).toBe(mounted.host.querySelector("[data-slate-editor]"));
+      expect(mounted.editor.selection).toEqual(caret([0, 0], 3));
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("choosing a suggestion returns focus to the editor", async () => {
+    const mounted = await mountMention(peopleProvider());
+    try {
+      await act(async () => {
+        mounted.editor.tf.select(caret([0, 0], 0));
+        mounted.editor.tf.insertText("@");
+      });
+      const input = mentionInput(mounted.host);
+      await act(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, MENTION_SEARCH_DEBOUNCE_MS + 50);
+        });
+      });
+
+      await act(async () => {
+        pressInput(input, "Enter");
+      });
+      await settleFocus();
+      expect(nodesOfType(mounted.editor.children, KEYS.mention)).toHaveLength(1);
+      expect(mounted.host.querySelector("input[aria-label='Mention']")).toBeNull();
+      expect(document.activeElement).toBe(mounted.host.querySelector("[data-slate-editor]"));
+      expect(mounted.editor.api.isCollapsed()).toBe(true);
+    } finally {
+      await mounted.cleanup();
+    }
   });
 });

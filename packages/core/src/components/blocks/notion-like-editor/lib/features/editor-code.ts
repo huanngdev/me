@@ -1,7 +1,7 @@
 import type { LanguageFn } from "highlight.js";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import { createLowlight } from "lowlight";
-import { KEYS, type SlateEditor, type TElement } from "platejs";
+import { KEYS, TextApi, type SlateEditor, type TElement } from "platejs";
 
 import { CODE_LANGS, codeLangFromToken, type CodeLang } from "../document/editor-document-schema";
 
@@ -154,4 +154,23 @@ export function insertCodeText(editor: SlateEditor, text: string): void {
 
 export function selectionInCodeBlock(editor: SlateEditor): boolean {
   return editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } }) !== undefined;
+}
+
+export function caretInCodeMark(editor: SlateEditor): boolean {
+  const selection = editor.selection;
+  if (!selection || !editor.api.isCollapsed()) {
+    return false;
+  }
+
+  const entry = editor.api.node(selection.anchor.path);
+  return entry !== undefined && TextApi.isText(entry[0]) && entry[0][KEYS.code] === true;
+}
+
+export function htmlToPlainText(html: string): string {
+  if (html.length === 0) {
+    return "";
+  }
+
+  const body = new DOMParser().parseFromString(html, "text/html").body;
+  return body.textContent ?? "";
 }

@@ -1,4 +1,4 @@
-import { KEYS, nanoid } from "platejs";
+import { ElementApi, KEYS, TextApi, nanoid, type Descendant } from "platejs";
 
 import {
   EDITOR_DOCUMENT_LIMITS,
@@ -9,6 +9,7 @@ import {
 } from "./editor-document";
 import { normalizeBlockIds, type Repair } from "./editor-document-ids";
 import {
+  INLINE_ELEMENT_TYPES,
   allowedChildTypes,
   allowedElementAttrs,
   allowsFirstChild,
@@ -18,6 +19,7 @@ import {
   isAllowedElementAttrValue,
   isAllowedMark,
   isAllowedMarkValue,
+  isChildOnlyElementType,
   isVoidElementType,
   elementChildIssues,
   maxChildren,
@@ -26,9 +28,23 @@ import {
   requiredAttr,
   unsatisfiedDependentAttrs,
 } from "./editor-document-schema";
-import { repairColumnContent } from "../commands/editor-columns";
+import { isEditorValue, repairColumnContent } from "./editor-column-repair";
+import { AUDIO_KEY, AUDIO_URL_REMOVED } from "../features/editor-audio";
+import { FILE_KEY, FILE_URL_REMOVED } from "../features/editor-file";
+import { IMAGE_KEY, IMAGE_URL_REMOVED } from "../features/editor-image";
+import { VIDEO_KEY, VIDEO_URL_REMOVED } from "../features/editor-video";
+import {
+  EMBED_ATTRS_CLEANED,
+  EMBED_KEY,
+  EMBED_SOURCE_REMOVED,
+  applyCleanedEmbed,
+  cleanEmbedFields,
+} from "../features/editor-embed";
+import { isMediaBlockType } from "../features/editor-media-source";
 import { repairMentionInputs } from "../features/editor-mention-node";
-import { syncedRefRepairs } from "../features/editor-synced-block";
+import { repairPageLinkContent } from "../features/editor-page-link";
+import { repairFootnoteContent } from "../features/editor-footnote-repair";
+import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
 export type Issue = {
@@ -205,7 +221,7 @@ function childIsAllowed(parentType: string, child: unknown): boolean {
     }
 
     return (
-      (childType === KEYS.link || childType === KEYS.mention) && parentAllowsInlineLink(parentType)
+      INLINE_ELEMENT_TYPES.some((type) => type === childType) && parentAllowsInlineLink(parentType)
     );
   }
 
@@ -260,18 +276,31 @@ function walkElement(
     });
   }
 
-  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  // An embed is cleaned as one block. A bad source clears it, and any other bad field is dropped.
+  if (type === EMBED_KEY) {
+    const cleaned = cleanEmbedFields(value);
+    if (cleaned.cleared) {
+      state.repairs.push({ path, message: EMBED_SOURCE_REMOVED });
+    } else if (cleaned.dropped) {
+      state.repairs.push({ path, message: EMBED_ATTRS_CLEANED });
+    }
+  }
 
-  for (const key of Object.keys(value)) {
+  const unsatisfied = new Set(unsatisfiedDependentAttrs(type, value));
+  const attrKeys = type === EMBED_KEY ? [] : Object.keys(value);
+
+  for (const key of attrKeys) {
     if (key === "type" || key === "children" || key === "id") {
       continue;
     }
 
     const attr = value[key];
     // An unknown block is already unsupported. A known block with a blob or data url stays invalid.
+    // A media block is the exception: its bad url is repaired to a placeholder, like any bad attribute.
     if (
       allowed !== undefined &&
       type !== KEYS.link &&
+      !isMediaBlockType(type) &&
       (key === "url" || key === "src") &&
       typeof attr === "string" &&
       (attr.startsWith("blob:") || attr.startsWith("data:"))
@@ -290,7 +319,7 @@ function walkElement(
         if (repairAttrKeys(type).some((name) => name === key)) {
           state.repairs.push({
             path,
-            message: repairAttrMessage(path, key, attr),
+            message: repairAttrMessage(path, type, key, attr),
           });
           continue;
         }
@@ -404,8 +433,21 @@ function walkElement(
   }
 }
 
-function repairAttrMessage(path: number[], key: string, value: unknown): string {
+function repairAttrMessage(path: number[], type: string, key: string, value: unknown): string {
   const label = markValueLabel(value);
+  if (type === IMAGE_KEY && key === "url") {
+    return IMAGE_URL_REMOVED;
+  }
+  if (type === FILE_KEY && key === "url") {
+    return FILE_URL_REMOVED;
+  }
+  if (type === VIDEO_KEY && key === "url") {
+    return VIDEO_URL_REMOVED;
+  }
+  if (type === AUDIO_KEY && key === "url") {
+    return AUDIO_URL_REMOVED;
+  }
+
   if (key === "lang" && value === "plaintext") {
     return `${formatBlockLabel(path)} stores lang "plaintext". Plaintext is the default, so the language was cleared.`;
   }
@@ -448,6 +490,11 @@ function dropRepairedAttrs(content: EditorValue, repairs: readonly Repair[]): Ed
   for (const repair of repairs) {
     const node = nodeAt(copy, repair.path);
     if (node === undefined || typeof node.type !== "string") {
+      continue;
+    }
+
+    if (node.type === EMBED_KEY) {
+      applyCleanedEmbed(node);
       continue;
     }
 
@@ -509,7 +556,61 @@ function walkTopLevel(
     return;
   }
 
+  if (typeof value.type === "string" && isChildOnlyElementType(value.type)) {
+    state.unsupported.push({
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported top-level type "${value.type}". Restore from a backup or remove the block.`,
+    });
+  }
+
   walkElement(value, path, state, nesting);
+}
+
+function isInlineNode(node: Descendant): boolean {
+  return ElementApi.isElement(node) && INLINE_ELEMENT_TYPES.some((type) => type === node.type);
+}
+
+// Slate needs a text leaf before and after each inline element, and between two of them.
+// Adds the empty leaves a stored document already has. Void elements keep their own leaf.
+// Input is not checked yet, so anything that is not an element with a children array is returned as it is.
+function spaceInlineChildren(node: Descendant): Descendant {
+  if (!ElementApi.isElement(node) || isVoidElementType(node.type)) {
+    return node;
+  }
+
+  let changed = false;
+  const children: Descendant[] = [];
+  for (const child of node.children) {
+    const last = children.at(-1);
+    if (isInlineNode(child) && (last === undefined || !TextApi.isText(last))) {
+      children.push({ text: "" });
+      changed = true;
+    }
+
+    const spaced = spaceInlineChildren(child);
+    if (spaced !== child) {
+      changed = true;
+    }
+    children.push(spaced);
+  }
+
+  const last = children.at(-1);
+  if (last !== undefined && isInlineNode(last)) {
+    children.push({ text: "" });
+    changed = true;
+  }
+
+  return changed ? { ...node, children } : node;
+}
+
+// Returns the same array when no block needs a leaf.
+function spaceInlineContent(content: EditorValue): EditorValue {
+  const spaced: Descendant[] = content.map((block) => spaceInlineChildren(block));
+  if (spaced.every((block, index) => block === content[index]) || !isEditorValue(spaced)) {
+    return content;
+  }
+
+  return spaced;
 }
 
 export function parseEditorDocument(raw: unknown): ParseResult {
@@ -554,9 +655,12 @@ export function parseEditorDocument(raw: unknown): ParseResult {
     unsupported: [],
     repairs: [],
   };
-  const structurally = repairColumnContent(envelope.data.content);
+  // Leaves go in before any repair, so the walk and every repair path match the returned content.
+  const footnotes = repairFootnoteContent(spaceInlineContent(envelope.data.content));
+  const structurally = repairColumnContent(footnotes.content);
   const mentions = repairMentionInputs(structurally.content);
-  const content = mentions.content;
+  const pageLinks = repairPageLinkContent(mentions.content);
+  const content = pageLinks.content;
 
   for (let index = 0; index < content.length; index += 1) {
     walkTopLevel(content[index], [index], state);
@@ -588,8 +692,10 @@ export function parseEditorDocument(raw: unknown): ParseResult {
       content: normalized.content,
     },
     repairs: [
+      ...footnotes.repairs,
       ...structurally.repairs,
       ...mentions.repairs,
+      ...pageLinks.repairs,
       ...state.repairs,
       ...normalized.repairs,
       ...syncedRefRepairs(normalized.content),

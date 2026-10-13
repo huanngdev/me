@@ -38,6 +38,7 @@ import {
   retainScroll,
 } from "../ui/block-toolbar";
 import { ScrollFadeArea } from "../ui/editor-scroll";
+import { EQUATION_BLOCK_CLASS } from "./equation-classes";
 
 import "katex/dist/katex.min.css";
 
@@ -56,7 +57,7 @@ function EquationView({
   katex: KatexModule | undefined;
   empty: "placeholder" | "blank";
 }) {
-  let body: ReactNode = null;
+  let body: ReactNode;
   if (expression.length === 0) {
     body =
       empty === "blank" ? null : (
@@ -218,10 +219,7 @@ export function EquationElement(props: PlateElementProps) {
   return (
     <PlateElement
       {...props}
-      className={cn(
-        "group bg-muted relative my-2 max-w-full min-w-0 rounded-md px-3 py-2",
-        selected && focused && !readOnly && "bg-muted",
-      )}
+      className={cn(EQUATION_BLOCK_CLASS, selected && focused && !readOnly && "bg-muted")}
     >
       <Popover
         open={open}
@@ -243,6 +241,7 @@ export function EquationElement(props: PlateElementProps) {
           </div>
         </PopoverAnchor>
         <PopoverContent
+          aria-label="Equation editor"
           className="w-[min(28rem,calc(100vw-2rem))]"
           collisionPadding={8}
           hideWhenDetached
@@ -309,7 +308,7 @@ export function EquationElement(props: PlateElementProps) {
         </PopoverContent>
       </Popover>
       {readOnly && expression.length > 0 ? (
-        <div className="mt-1 flex justify-end" contentEditable={false}>
+        <div className="absolute right-3 bottom-2" contentEditable={false}>
           <EditorIconButton
             label="Copy source"
             icon={<Copy aria-hidden="true" />}

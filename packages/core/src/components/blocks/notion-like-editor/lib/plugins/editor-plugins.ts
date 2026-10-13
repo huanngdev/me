@@ -7,6 +7,7 @@ import {
   H3Plugin,
   HorizontalRulePlugin,
   ItalicPlugin,
+  KbdPlugin,
   StrikethroughPlugin,
   SubscriptPlugin,
   SuperscriptPlugin,
@@ -37,13 +38,16 @@ import {
   TableRowPlugin,
 } from "@platejs/table/react";
 import {
+  ElementApi,
   KEYS,
   NodeIdPlugin,
   PathApi,
+  TextApi,
   combineTransformMatchOptions,
   createSlatePlugin,
   someHtmlElement,
   type AnyPluginConfig,
+  type Descendant,
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
@@ -55,10 +59,31 @@ import { CalloutElement } from "../../components/elements/callout-element";
 import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
 import { HrElement } from "../../components/elements/hr-element";
 import { BookmarkElement } from "../../components/elements/bookmark-element";
+import { AudioElement } from "../../components/elements/audio-element";
+import { EmbedElement } from "../../components/elements/embed-element";
+import { FileElement } from "../../components/elements/file-element";
+import { ImageElement } from "../../components/elements/image-element";
+import { VideoElement } from "../../components/elements/video-element";
+import { PageLinkElement } from "../../components/elements/page-link-element";
 import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
 import { EquationElement } from "../../components/elements/equation-element";
+import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
+import { FootnoteRefElement } from "../../components/elements/footnote-ref-element";
+import { InlineDateElement } from "../../components/elements/inline-date-element";
+import { InlineEquationElement } from "../../components/elements/inline-equation-element";
 import { TocElement } from "../../components/elements/toc-element";
 import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
+import { inlineDatePlugin } from "../features/editor-inline-date";
+import { footnoteRefPlugin } from "../features/editor-footnote";
+import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
+import {
+  jumpFromCaretDefinition,
+  onFootnoteDefKeyDown,
+  onFootnoteRefKeyDown,
+} from "./editor-footnote-ui";
+import { inlineEquationPlugin } from "../features/editor-inline-equation";
+import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
+import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
 import {
   SYNCED_REF_KEY,
   goToSyncedOriginal,
@@ -67,7 +92,25 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { AUDIO_KEY } from "../features/editor-audio";
+import { EMBED_KEY } from "../features/editor-embed";
+import { FILE_KEY } from "../features/editor-file";
+import { IMAGE_KEY } from "../features/editor-image";
+import { VIDEO_KEY } from "../features/editor-video";
+import { PAGE_LINK_KEY } from "../features/editor-page-link";
+import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
+import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
+import {
+  BLOCK_INDENT_TYPES,
+  blockIndentNodeProps,
+  blockIndentOf,
+  isListParagraph,
+  listIndentInjects,
+  listIndentOf,
+} from "../features/editor-block-indent-style";
+import { blockIndentTargets, indentBlocks, outdentBlocks } from "../features/editor-block-indent";
 import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
+import { findPlugin } from "./editor-find";
 import { LinkElement } from "../../components/elements/link-element";
 import {
   mentionPlugin,
@@ -77,6 +120,19 @@ import {
 } from "./editor-mention";
 import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
+import { registerEmbedPasteAction } from "../paste/editor-embed-paste";
+import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
+import { pageLinkPickerPlugin } from "./editor-page-link-picker";
+import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
+import { mediaUiPlatePlugin } from "./editor-media-ui";
+import { editorInputRulesPlugin } from "./editor-input-rules";
+import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
+import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
+import {
+  blockSelectionEnterPlugin,
+  blockSelectionPlugin,
+  blockSelectionWatchPlugin,
+} from "./editor-block-selection";
 import { ToggleElement } from "../../components/elements/toggle-element";
 import {
   backspaceToggleLabel,
@@ -93,6 +149,7 @@ import {
   formatBold,
   formatCode,
   formatItalic,
+  formatKeyboard,
   formatStrikethrough,
   formatSubscript,
   formatSuperscript,
@@ -129,13 +186,17 @@ import {
   unsatisfiedDependentAttrs,
 } from "../document/editor-document-schema";
 import {
+  caretInCodeMark,
   codeBlockHtmlDeserializer,
   codeClipboardText,
   codeLowlight,
+  htmlToPlainText,
   insertCodeText,
   selectionInCodeBlock,
 } from "../features/editor-code";
 import { HeadingElement } from "../../components/elements/heading-element";
+import { codeLeafClassName } from "../static/mark-classes";
+import { KBD_CLASS } from "../../components/elements/kbd-classes";
 import {
   PasteFallbackPlugin,
   clearHtmlTableWidths,
@@ -206,8 +267,6 @@ type MarkPluginOptions = {
 };
 
 // The paragraph is text-base (16px). 0.9em would be 14.4px, under the body-text floor.
-const codeLeafClassName =
-  "border-border bg-muted text-foreground rounded-md border px-1.5 py-0.5 font-mono text-base";
 
 const underlineDecorations = ["underline", "underline line-through", "line-through underline"];
 
@@ -297,6 +356,8 @@ const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscri
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
   keys: [[Key.Mod, "comma"]],
 });
+// KbdPlugin ships no shortcut. Toggled from the More menu only.
+const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
 
 type TokenNodePropsOptions = {
   nodeValue?: unknown;
@@ -496,25 +557,6 @@ function configureHeadingPlugin<
 const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
 const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
 const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
-
-function isListParagraph(node: unknown): boolean {
-  return (
-    typeof node === "object" &&
-    node !== null &&
-    "type" in node &&
-    node.type === KEYS.p &&
-    "listStyleType" in node &&
-    typeof node.listStyleType === "string"
-  );
-}
-
-function listIndentOf(node: unknown): number {
-  if (typeof node !== "object" || node === null || !("indent" in node)) {
-    return 1;
-  }
-
-  return typeof node.indent === "number" ? node.indent : 1;
-}
 
 function isElementRecord(node: unknown): node is Record<string, unknown> & { type: string } {
   return (
@@ -729,6 +771,12 @@ function normalizeDisallowedChild(
     // leave it inside the row, so move it to after the table and keep the cell.
     if (
       (child.type === BOOKMARK_KEY ||
+        child.type === IMAGE_KEY ||
+        child.type === FILE_KEY ||
+        child.type === VIDEO_KEY ||
+        child.type === AUDIO_KEY ||
+        child.type === EMBED_KEY ||
+        child.type === PAGE_LINK_KEY ||
         child.type === KEYS.toc ||
         child.type === KEYS.equation ||
         child.type === SYNCED_REF_KEY) &&
@@ -863,11 +911,16 @@ const childTypesPlugin = createSlatePlugin({
   },
 }));
 
-// Targets stay on paragraphs. Headings are not list items in this milestone.
+// Targets are list paragraphs. Plain paragraphs, headings and quotes take the indent
+// through blockIndentPlugin. The indent normalizer unsets indent on any other type, so
+// the same types stay targets here. Only list paragraphs get Plate's margin, through query.
 // offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
 const indentPlugin = IndentPlugin.configure({
   inject: {
-    targetPlugins: [KEYS.p],
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: {
+      query: listIndentInjects,
+    },
   },
   options: {
     indentMax: LIST_INDENT_MAX,
@@ -899,6 +952,34 @@ function storedListStyle(style: string | undefined): "disc" | "decimal" | undefi
   }
 
   return undefined;
+}
+
+// The table paste path deserializes HTML itself, so Plate's list transformData
+// does not run. Mark each li the same way that transform does.
+function annotatePastedLists(body: HTMLElement): void {
+  for (const element of Array.from(body.querySelectorAll("li"))) {
+    let indent = 0;
+    let parent = element.parentElement;
+    while (parent && parent !== body) {
+      if (parent.tagName === "UL" || parent.tagName === "OL") {
+        indent += 1;
+      }
+      parent = parent.parentElement;
+    }
+
+    if (indent > 0 && element.dataset.indent === undefined) {
+      element.dataset.indent = String(indent);
+    }
+
+    if (element.dataset.listStyleType === undefined) {
+      const listParent = element.closest("ul, ol");
+      if (listParent?.tagName === "UL") {
+        element.dataset.listStyleType = "disc";
+      } else if (listParent?.tagName === "OL") {
+        element.dataset.listStyleType = "decimal";
+      }
+    }
+  }
 }
 
 // Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
@@ -937,7 +1018,6 @@ function listRestartFromStart(element: HTMLElement): number | undefined {
   return start;
 }
 
-// The "1. " markdown trigger is deferred to DEV-126. OrderedListRules stays unregistered.
 const listPlugin = ListPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p],
@@ -1014,6 +1094,11 @@ const listPlugin = ListPlugin.configure({
     toggleChecked: {
       keys: [[Key.Mod, "Enter"]],
       handler: ({ editor }) => {
+        // Plate stops the event when a shortcut handler returns, so a definition is handled here:
+        // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
+        if (jumpFromCaretDefinition(editor)) {
+          return;
+        }
         // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
         const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
         runEditorCommand(editor, command, undefined, {
@@ -1099,6 +1184,18 @@ const listKeyboardPlugin = createSlatePlugin({
         return;
       }
 
+      // A plain indented block steps out one level instead of merging with the block above.
+      if (
+        block &&
+        !isListParagraph(block[0]) &&
+        blockIndentOf(block[0]) > 0 &&
+        editor.api.isCollapsed() &&
+        editor.api.isAt({ start: true })
+      ) {
+        runEditorCommand(editor, outdentBlocks, undefined, { readOnly: editor.dom.readOnly });
+        return;
+      }
+
       deleteBackward(unit);
     },
   },
@@ -1107,6 +1204,55 @@ const listKeyboardPlugin = createSlatePlugin({
 const textAlignPlugin = TextAlignPlugin.configure({
   inject: {
     targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
+  },
+});
+
+// Block tones are injected by the block itself, so the leaf token helpers do not apply.
+const blockTonePlugin = createSlatePlugin({
+  key: "blockTone",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_TONE_TYPES],
+    nodeProps: blockToneNodeProps(),
+  },
+});
+
+// Plain blocks get their margin from the injector. Cmd+] and Cmd+[ are browser history keys
+// on some platforms. A block at its limit still takes the key, so the browser never sees it.
+function runBlockIndentShortcut(editor: SlateEditor, command: EditorCommand): boolean {
+  if (editor.dom.readOnly) {
+    return false;
+  }
+
+  if (runEditorCommand(editor, command, undefined, { readOnly: false })) {
+    return true;
+  }
+
+  return blockIndentTargets(editor).length > 0;
+}
+
+const blockIndentPlugin = createSlatePlugin({
+  key: "blockIndent",
+  inject: {
+    isElement: true,
+    targetPlugins: [...BLOCK_INDENT_TYPES],
+    nodeProps: blockIndentNodeProps(),
+  },
+  shortcuts: {
+    indent: {
+      keys: [[Key.Mod, "BracketRight"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
+    },
+  },
+});
+
+const blockOutdentPlugin = createSlatePlugin({
+  key: "blockOutdent",
+  shortcuts: {
+    outdent: {
+      keys: [[Key.Mod, "BracketLeft"]],
+      handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
+    },
   },
 });
 
@@ -1464,7 +1610,6 @@ const breakAbovePlugin = createSlatePlugin({
   },
 }));
 
-// The ``` trigger is DEV-126. CodeBlockRules stays unregistered, so ``` inside a block is text.
 // Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
 // Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
 // Tab inside code returns before the list handler, and Tab outside still reaches it.
@@ -1494,12 +1639,20 @@ const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
         insertSoftBreak();
       },
       insertData(data: DataTransfer) {
-        if (!selectionInCodeBlock(editor)) {
-          insertData(data);
+        if (selectionInCodeBlock(editor)) {
+          insertCodeText(editor, codeClipboardText(data));
           return;
         }
 
-        insertCodeText(editor, codeClipboardText(data));
+        if (caretInCodeMark(editor)) {
+          const plain = data.getData("text/plain");
+          editor.tf.insertText(
+            plain.length > 0 ? plain : htmlToPlainText(data.getData("text/html")),
+          );
+          return;
+        }
+
+        insertData(data);
       },
     },
   }));
@@ -1512,6 +1665,46 @@ const bookmarkPlugin = createSlatePlugin({
   key: BOOKMARK_KEY,
   node: { isElement: true, isVoid: true },
   render: { node: BookmarkElement },
+});
+
+const imagePlugin = createSlatePlugin({
+  key: IMAGE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: ImageElement },
+});
+
+const filePlugin = createSlatePlugin({
+  key: FILE_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: FileElement },
+});
+
+const videoPlugin = createSlatePlugin({
+  key: VIDEO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: VideoElement },
+});
+
+const audioPlugin = createSlatePlugin({
+  key: AUDIO_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: AudioElement },
+});
+
+const embedPlugin = createSlatePlugin({
+  key: EMBED_KEY,
+  node: { isElement: true, isVoid: true },
+  render: { node: EmbedElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Enter on the selected bookmark opens its action popover.
+const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onBookmarkToolbarKeyDown(editor, event);
+    },
+  },
 });
 
 const tocPlugin = TocPlugin.configure({
@@ -1542,6 +1735,63 @@ const linkPlatePlugin = toPlatePlugin(linkPlugin, {
     },
     onCompositionEnd: ({ editor }) => {
       setLinkComposing(editor, false);
+    },
+  },
+});
+
+const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
+  render: { node: InlineEquationElement },
+});
+
+// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
+// Holds the popover state. Mod+Shift+E and Enter on the selected equation are handled here.
+const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineEquationKeyDown(editor, event);
+    },
+  },
+});
+
+// Registered after the inline equation, so its setFragmentData override wraps the equation's.
+const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
+  render: { node: InlineDateElement },
+});
+
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
+  render: { node: FootnoteRefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteRefKeyDown(editor, event);
+    },
+  },
+});
+
+const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
+  render: { node: FootnoteDefElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onFootnoteDefKeyDown(editor, event);
+    },
+  },
+});
+
+// Mod+; inserts today's date, and Enter on a selected inline date opens it.
+const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onInlineDateKeyDown(editor, event);
+    },
+  },
+});
+
+// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
+const pageLinkPlatePlugin = toPlatePlugin(pageLinkPlugin, {
+  render: { node: PageLinkElement },
+  handlers: {
+    onKeyDown: ({ editor, event }) => {
+      onPageLinkKeyDown(editor, event);
     },
   },
 });
@@ -1656,6 +1906,56 @@ function htmlHasTable(html: string): boolean {
   return html.toLowerCase().includes("<table");
 }
 
+// The empty top-level paragraph that holds a collapsed caret, when a single table is pasted.
+// A paste into a non-empty block or a table cell returns undefined.
+function emptyParagraphForTablePaste(
+  editor: SlateEditor,
+  fragment: readonly Descendant[],
+): { path: number[]; id: unknown } | undefined {
+  const first = fragment[0];
+  if (fragment.length !== 1 || !ElementApi.isElement(first) || first.type !== KEYS.table) {
+    return undefined;
+  }
+
+  if (!editor.selection || !editor.api.isCollapsed()) {
+    return undefined;
+  }
+
+  const top = editor.selection.anchor.path[0];
+  const block = top === undefined ? undefined : editor.children[top];
+  if (top === undefined || !ElementApi.isElement(block) || block.type !== KEYS.p) {
+    return undefined;
+  }
+
+  if (!block.children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return undefined;
+  }
+
+  return { path: [top], id: block.id };
+}
+
+// Removes the paragraph the table was pasted into, if it is still that empty paragraph and a table follows it.
+function removeEmptyParagraphBeforeTable(
+  editor: SlateEditor,
+  replaced: { path: number[]; id: unknown },
+): void {
+  const entry = editor.api.node(replaced.path);
+  const next = editor.api.node(PathApi.next(replaced.path));
+  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== replaced.id) {
+    return;
+  }
+
+  if (!entry[0].children.every((child) => TextApi.isText(child) && child.text === "")) {
+    return;
+  }
+
+  if (!next || !ElementApi.isElement(next[0]) || next[0].type !== KEYS.table) {
+    return;
+  }
+
+  editor.tf.removeNodes({ at: replaced.path });
+}
+
 // Tab inside a table, including a list item in a cell, belongs to the table.
 // Registered after codeBlock and listKeyboard, so this tab runs first and the
 // previous tab is code, then list. Outside a table, Tab is unchanged.
@@ -1679,7 +1979,12 @@ const tablePlugin = TablePlugin.configure({
         // Sanitize here so that path keeps spans, caps the grid, and
         // omits an id the document already uses.
         insertFragment(fragment, options) {
-          insertFragment(preparePastedFragment(editor, fragment), options);
+          const prepared = preparePastedFragment(editor, fragment);
+          const replaced = emptyParagraphForTablePaste(editor, prepared);
+          insertFragment(prepared, options);
+          if (replaced !== undefined) {
+            removeEmptyParagraphBeforeTable(editor, replaced);
+          }
         },
         tab(options?: { reverse?: boolean }) {
           // Plate's tab reads options.reverse and throws when options is missing.
@@ -1746,6 +2051,7 @@ const tablePlugin = TablePlugin.configure({
             rememberHtmlTableWidths(html);
             try {
               const body = new DOMParser().parseFromString(html, "text/html").body;
+              annotatePastedLists(body);
               // happy-dom hoists a bare <col> out of the table. Widths are already
               // recorded; leaving the column in the body pastes an empty paragraph.
               for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
@@ -1787,8 +2093,11 @@ const toggleRevealPlugin = createSlatePlugin({
 });
 
 export function createEditorPlugins(): AnyPluginConfig[] {
+  registerEmbedPasteAction();
   return [
-    NodeIdPlugin,
+    // A split keeps the id it carries unless a block already has it, so undo of a merge restores
+    // the second block's id. Enter still gives the new half a fresh id, because the original keeps its own.
+    NodeIdPlugin.configure({ options: { reuseId: true } }),
     paragraphPlugin,
     boldPlugin,
     italicPlugin,
@@ -1797,6 +2106,7 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     codePlugin,
     superscriptPlugin,
     subscriptPlugin,
+    kbdPlugin,
     textColorPlugin,
     highlightPlugin,
     fontSizePlugin,
@@ -1807,9 +2117,11 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     blockquotePlugin,
     calloutPlugin,
     togglePlugin,
-    // HorizontalRuleRules stays unregistered. The --- trigger is DEV-126.
     horizontalRulePlugin,
     textAlignPlugin,
+    blockTonePlugin,
+    blockIndentPlugin,
+    blockOutdentPlugin,
     lineHeightPlugin,
     clearFormattingPlugin,
     indentPlugin,
@@ -1818,16 +2130,37 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     listKeyboardPlugin,
     codeBlockPlugin,
     bookmarkPlugin,
+    imagePlugin,
+    filePlugin,
+    videoPlugin,
+    audioPlugin,
+    embedPlugin,
     tocPlugin,
     equationPlatePlugin,
     syncedRefPlugin,
     columnPlugin,
     blockMovePlugin,
+    blockSelectionPlugin,
+    blockSelectionEnterPlugin,
     tablePlugin,
     linkPlatePlugin,
     linkUiPlugin,
+    findPlugin,
     mentionPlatePlugin,
+    inlineEquationPlatePlugin,
+    inlineEquationUiPlatePlugin,
+    inlineDatePlatePlugin,
+    inlineDateUiPlatePlugin,
+    pageLinkPlatePlugin,
+    footnoteRefPlatePlugin,
+    footnoteDefPlatePlugin,
     mentionUiPlugin,
+    slashUiPlugin,
+    slashWatchPlugin,
+    emojiUiPlugin,
+    emojiWatchPlugin,
+    bookmarkUrlPlugin,
+    pageLinkPickerPlugin,
     pasteUrlPlugin,
     unsupportedMediaPlugin,
     PasteFallbackPlugin,
@@ -1835,7 +2168,14 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     breakAbovePlugin,
     childTypesPlugin,
     columnNormalizePlugin,
+    // Registered after the column and child-type normalizers, so it runs first and a definition
+    // moved into a container becomes a paragraph before those see it.
+    footnoteNormalizePlugin,
     voidPropsPlugin,
     toggleRevealPlugin,
+    blockSelectionWatchPlugin,
+    editorInputRulesPlugin,
+    bookmarkToolbarPlatePlugin,
+    mediaUiPlatePlugin,
   ];
 }

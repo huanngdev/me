@@ -30,6 +30,12 @@ import {
 } from "../lib/features/editor-bookmark-url";
 import { demoLinkPreviewAdapter } from "../demo/demo-link-preview";
 import { EditorSurface } from "../components/editor/editor-surface";
+import {
+  bookmarkToolbarOpen,
+  onBookmarkToolbarKeyDown,
+  openBookmarkToolbar,
+} from "../lib/plugins/editor-bookmark-toolbar";
+import { blockSelectionActive, setBlockSelection } from "../lib/plugins/editor-block-selection";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { pasteRepairsOf } from "../lib/paste/editor-paste";
 import {
@@ -547,7 +553,13 @@ describe("bookmark preview adapter", () => {
     expect(field(mounted.editor.children[0], "title")).toBe("First");
     const undos = mounted.editor.history.undos.length;
     title = "Second";
-    const button = mounted.host.querySelector("[aria-label='Refresh preview']");
+    const card = mounted.host.querySelector("[data-bookmark-card]");
+    await act(async () => {
+      card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const button = document.querySelector(
+      "[data-bookmark-toolbar-popover] [aria-label='Refresh preview']",
+    );
     if (!(button instanceof HTMLButtonElement)) {
       throw new Error("Missing refresh button.");
     }
@@ -567,7 +579,7 @@ describe("bookmark preview adapter", () => {
 
 describe("bookmark paste menu", () => {
   test("bookmark is offered for every url, including a video url", async () => {
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     const editor = plateEditor([paragraph("", "empty")]);
     editor.tf.select(caret([0, 0], 0));
     pasteText(editor, `  ${FALLBACK_URL}  `);
@@ -587,7 +599,7 @@ describe("bookmark paste menu", () => {
     expect(offerOf(video)?.url).toBe(YOUTUBE);
     expect(
       pasteUrlActions.filter((action) => action.match(YOUTUBE)).map((action) => action.label),
-    ).toEqual(["Bookmark"]);
+    ).toEqual(["Bookmark", "Embed"]);
 
     const mounted = await mountBookmark([paragraph("", "empty")]);
     mounted.editor.tf.select(caret([0, 0], 0));
@@ -596,7 +608,7 @@ describe("bookmark paste menu", () => {
     });
     const menu = document.querySelector("[data-paste-url-menu]");
     expect(menu?.textContent).toContain("Bookmark");
-    expect(menu?.textContent).not.toContain("Embed");
+    expect(menu?.textContent).toContain("Embed");
     expect(menu?.textContent).toContain("Keep as link");
     await act(async () => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -772,14 +784,21 @@ describe("bookmark render", () => {
     ]);
     const card = editable.host.querySelector("[data-bookmark-card]");
     expect(card?.tagName).toBe("DIV");
-    const open = editable.host.querySelector("[aria-label='Open']");
-    expect(open?.tagName).toBe("A");
-    expect(open?.getAttribute("rel")).toBe("noopener noreferrer nofollow");
+    expect(editable.host.querySelector("[data-bookmark-toolbar]")).toBeNull();
+    expect(editable.host.querySelector("[aria-label='Open']")).toBeNull();
     await act(async () => {
       card?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     });
     expect(editable.editor.selection?.anchor.path[0]).toBe(0);
     expect(blockIds(editable.editor)).toEqual(["rich"]);
+    await act(async () => {
+      card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const popover = document.querySelector("[data-bookmark-toolbar-popover]");
+    expect(popover).not.toBeNull();
+    const open = popover?.querySelector("[aria-label='Open']");
+    expect(open?.tagName).toBe("A");
+    expect(open?.getAttribute("rel")).toBe("noopener noreferrer nofollow");
     await editable.cleanup();
   });
 });
@@ -858,5 +877,269 @@ describe("bookmark containers and keyboard", () => {
     expect(typesOf(lifted)).toEqual(["table", BOOKMARK_KEY, "p"]);
     expect(field(lifted.children[1], "id")).toBe("clip");
     expect(field(lifted.children[1], "url")).toBe(PLATE_DOCS);
+  });
+});
+
+async function openPopover(
+  mounted: Awaited<ReturnType<typeof mountBookmark>>,
+): Promise<Element | null> {
+  const card = mounted.host.querySelector("[data-bookmark-card]");
+  await act(async () => {
+    card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  return card;
+}
+
+function popover(): Element | null {
+  return document.querySelector("[data-bookmark-toolbar-popover]");
+}
+
+function actionLabels(): (string | null)[] {
+  return [...(popover()?.querySelectorAll("button, a") ?? [])].map((node) =>
+    node.getAttribute("aria-label"),
+  );
+}
+
+describe("bookmark action popover", () => {
+  const rich = () => bookmark("rich", { title: "Plate", fetchedAt: "2026-10-08T00:00:00.000Z" });
+
+  test("the card has no toolbar and no hover-only class, and hovering renders nothing new", async () => {
+    const mounted = await mountBookmark([rich()]);
+    const card = mounted.host.querySelector("[data-bookmark-card]");
+    expect(mounted.host.querySelector("[data-bookmark-toolbar]")).toBeNull();
+    const className = card?.className ?? "";
+    expect(className).not.toContain("group-hover");
+    expect(className).not.toContain("opacity-0");
+    await act(async () => {
+      card?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      card?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+    });
+    expect(mounted.host.querySelector("[data-bookmark-toolbar]")).toBeNull();
+    expect(popover()).toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("a click opens the popover with the four actions, and a second click keeps it open", async () => {
+    const mounted = await mountBookmark([rich()]);
+    const card = await openPopover(mounted);
+    expect(popover()).not.toBeNull();
+    expect(actionLabels()).toEqual(["Open", "Convert to text", "Delete"]);
+
+    await act(async () => {
+      card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(popover()).not.toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("an adapter adds Refresh preview to the popover", async () => {
+    const mounted = await mountBookmark([rich()], previewAdapter({ title: "Plate" }, [], []));
+    await flush();
+    await openPopover(mounted);
+    expect(actionLabels()).toEqual(["Open", "Refresh preview", "Convert to text", "Delete"]);
+    await mounted.cleanup();
+  });
+
+  test("the actions stay on one nowrap row and Left/Right move focus", async () => {
+    const mounted = await mountBookmark([rich()], previewAdapter({ title: "Plate" }, [], []));
+    await flush();
+    await openPopover(mounted);
+    const content = popover();
+    expect(content?.className).not.toContain("max-w-56");
+    const row = content?.firstElementChild;
+    expect(row?.className).toContain("flex-nowrap");
+    expect(row?.className).not.toContain("flex-wrap");
+
+    const open = content?.querySelector<HTMLElement>("[aria-label='Open']");
+    open?.focus();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Open");
+    await act(async () => {
+      content?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Refresh preview");
+    await act(async () => {
+      content?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Open");
+    await mounted.cleanup();
+  });
+
+  test("a plain click does not navigate, cmd/ctrl click opens the url", async () => {
+    const mounted = await mountBookmark([rich()]);
+    const card = mounted.host.querySelector("[data-bookmark-card]");
+    const calls: unknown[][] = [];
+    const original = window.open;
+    window.open = (...args: unknown[]) => {
+      calls.push(args);
+      return null;
+    };
+    try {
+      await act(async () => {
+        card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(calls).toEqual([]);
+      expect(mounted.editor.selection?.anchor.path[0]).toBe(0);
+      expect(popover()).not.toBeNull();
+
+      await act(async () => {
+        card?.dispatchEvent(new MouseEvent("click", { bubbles: true, metaKey: true }));
+      });
+      expect(calls.map((args) => args[0])).toEqual([PLATE_DOCS]);
+
+      await act(async () => {
+        card?.dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true }));
+      });
+      expect(calls).toHaveLength(2);
+    } finally {
+      window.open = original;
+    }
+    await mounted.cleanup();
+  });
+
+  test("Open keeps the safe rel and target, and closes the popover", async () => {
+    const mounted = await mountBookmark([rich()]);
+    await openPopover(mounted);
+    const open = popover()?.querySelector("[aria-label='Open']");
+    expect(open?.tagName).toBe("A");
+    expect(open?.getAttribute("href")).toBe(PLATE_DOCS);
+    expect(open?.getAttribute("target")).toBe("_blank");
+    expect(open?.getAttribute("rel")).toBe("noopener noreferrer nofollow");
+    await act(async () => {
+      (open as HTMLElement | null)?.click();
+    });
+    expect(popover()).toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("Convert to text and Delete run the bar commands and close the popover", async () => {
+    const converted = await mountBookmark([rich()]);
+    await openPopover(converted);
+    const convert = popover()?.querySelector("[aria-label='Convert to text']");
+    await act(async () => {
+      (convert as HTMLElement | null)?.click();
+    });
+    expect(typesOf(converted.editor)).toEqual(["p"]);
+    expect(texts(converted.editor)).toEqual([PLATE_DOCS]);
+    expect(popover()).toBeNull();
+    await converted.cleanup();
+
+    const removed = await mountBookmark([rich()]);
+    await openPopover(removed);
+    const remove = popover()?.querySelector("[aria-label='Delete']");
+    await act(async () => {
+      (remove as HTMLElement | null)?.click();
+    });
+    expect(typesOf(removed.editor)).toEqual(["p"]);
+    expect(texts(removed.editor)).toEqual([""]);
+    expect(popover()).toBeNull();
+    await removed.cleanup();
+  });
+
+  test("Escape closes and keeps the selection, and an outside press closes", async () => {
+    const mounted = await mountBookmark([rich(), paragraph("Next", "next")]);
+    await openPopover(mounted);
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(popover()).toBeNull();
+    expect(mounted.editor.selection?.anchor.path[0]).toBe(0);
+    expect(bookmarkToolbarOpen(mounted.editor)).toBe(false);
+
+    await openPopover(mounted);
+    await act(async () => {
+      document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    });
+    expect(popover()).toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("moving the selection to another block and removing the block close it", async () => {
+    const mounted = await mountBookmark([rich(), paragraph("Next", "next")]);
+    await openPopover(mounted);
+    await act(async () => {
+      mounted.editor.tf.select(caret([1, 0], 0));
+    });
+    expect(popover()).toBeNull();
+
+    await openPopover(mounted);
+    await act(async () => {
+      runEditorCommand(mounted.editor, removeBookmark, "rich");
+    });
+    expect(popover()).toBeNull();
+    expect(bookmarkToolbarOpen(mounted.editor)).toBe(false);
+    await mounted.cleanup();
+  });
+
+  test("the editor becoming read-only closes it", async () => {
+    const mounted = await mountBookmark([rich()]);
+    await openPopover(mounted);
+    await act(async () => {
+      mounted.editor.dom.readOnly = true;
+      if (typeof mounted.editor.onChange === "function") {
+        mounted.editor.onChange();
+      }
+    });
+    expect(popover()).toBeNull();
+    expect(bookmarkToolbarOpen(mounted.editor)).toBe(false);
+    await mounted.cleanup();
+  });
+
+  test("Enter on the selected bookmark opens the popover and focuses the first action", async () => {
+    const mounted = await mountBookmark([rich()]);
+    const anchor = mounted.editor.api.start([0]);
+    const focus = mounted.editor.api.end([0]);
+    if (!anchor || !focus) {
+      throw new Error("Missing bookmark.");
+    }
+    await act(async () => {
+      mounted.editor.tf.select({ anchor, focus });
+    });
+    await act(async () => {
+      const handled = onBookmarkToolbarKeyDown(mounted.editor, {
+        key: "Enter",
+        preventDefault() {},
+      });
+      expect(handled).toBe(true);
+    });
+    expect(popover()).not.toBeNull();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Open");
+    await mounted.cleanup();
+  });
+
+  test("read-only shows no popover and the card is a plain link", async () => {
+    const mounted = await mountBookmark([rich()], null, true);
+    expect(popover()).toBeNull();
+    expect(mounted.host.querySelector("[data-bookmark-toolbar]")).toBeNull();
+    const card = mounted.host.querySelector("[data-bookmark-card]");
+    expect(card?.tagName).toBe("A");
+    expect(card?.getAttribute("target")).toBe("_blank");
+    await act(async () => {
+      card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(popover()).toBeNull();
+    await mounted.cleanup();
+  });
+
+  test("a block selection shows no popover", async () => {
+    const previousWidth = window.innerWidth;
+    const previousHeight = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    try {
+      const mounted = await mountBookmark([rich(), paragraph("Next", "next")]);
+      await act(async () => {
+        setBlockSelection(mounted.editor, ["rich"]);
+      });
+      expect(blockSelectionActive(mounted.editor)).toBe(true);
+      await act(async () => {
+        openBookmarkToolbar(mounted.editor, "rich");
+      });
+      expect(popover()).toBeNull();
+      expect(bookmarkToolbarOpen(mounted.editor)).toBe(false);
+      await mounted.cleanup();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: previousWidth });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: previousHeight });
+    }
   });
 });

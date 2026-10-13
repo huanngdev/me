@@ -1,43 +1,22 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Columns2, Columns3, Trash2, Ungroup } from "lucide-react";
 import { ElementApi, KEYS, type TElement } from "platejs";
 import {
   PlateElement,
   useEditorRef,
-  useEditorSelector,
   useElement,
   useReadOnly,
-  useSelected,
   type PlateElementProps,
 } from "platejs/react";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/dropdown-menu";
-import { cn } from "@/lib/utils";
-
-import {
   clampAndNormalizeWidths,
-  removeColumnGroup,
-  setColumnCount,
+  COLUMN_MIN_PERCENT,
   setColumnWidths,
-  unwrapColumns,
 } from "../../lib/commands/editor-columns";
-import { MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
-import {
-  MEDIA_TOOLBAR_CLASS,
-  EditorMenuTrigger,
-  EditorTextButton,
-  keepMediaSelection,
-} from "../ui/block-toolbar";
 
-export const COLUMN_GROUP_LAYOUT_CLASS =
-  "grid grid-cols-1 gap-4 sm:[grid-template-columns:var(--column-widths)]";
-export const COLUMN_GROUP_SELECTED_CLASS = "rounded-md bg-muted";
-export const COLUMN_REMOVE_CONFIRM = "Delete columns and content?";
+import { COLUMN_GROUP_LAYOUT_CLASS } from "./column-classes";
+
+export { COLUMN_GROUP_LAYOUT_CLASS };
 
 const RESIZE_STEP = 5;
 const RESIZE_SHIFT_STEP = 10;
@@ -88,18 +67,16 @@ export function ColumnGroupElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const readOnly = useReadOnly();
-  const selected = useSelected();
   const columns = columnNodes(element);
   const saved = storedWidths(columns);
   const [preview, setPreview] = useState<string[] | null>(null);
-  const [confirmKey, setConfirmKey] = useState<string | null>(null);
+  // The handle being dragged, so its pill stays shown while the pointer is captured.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ index: number; startX: number; width: number; start: number[] } | null>(
     null,
   );
   const shown = preview ?? saved;
-  const selectionKey = useEditorSelector((instance) => JSON.stringify(instance.selection), []);
-  const confirmRemove = confirmKey !== null && confirmKey === selectionKey;
 
   function commitWidths(numbers: readonly number[]): void {
     const path = editor.api.findPath(element);
@@ -152,6 +129,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     event.preventDefault();
     dragRef.current = { index, startX: event.clientX, width, start: widthNumbers(saved) };
     event.currentTarget.setPointerCapture(event.pointerId);
+    setDragIndex(index);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
@@ -177,6 +155,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
     const drag = dragRef.current;
     dragRef.current = null;
     setPreview(null);
+    setDragIndex(null);
     if (!drag) {
       return;
     }
@@ -205,26 +184,8 @@ export function ColumnGroupElement(props: PlateElementProps) {
     }
   }
 
-  function runOnGroup(run: () => void): void {
-    const path = editor.api.findPath(element);
-    const start = path ? editor.api.start(path.concat([0, 0])) : undefined;
-    editor.tf.withNewBatch(() => {
-      if (start) {
-        editor.tf.select(start);
-      }
-      run();
-    });
-    editor.tf.setSplittingOnce(true);
-  }
-
   return (
-    <PlateElement
-      {...props}
-      className={cn(
-        "group group/columns relative my-2",
-        !readOnly && selected && COLUMN_GROUP_SELECTED_CLASS,
-      )}
-    >
+    <PlateElement {...props} className="group/columns relative my-2">
       <div
         ref={gridRef}
         data-column-layout="stack"
@@ -236,9 +197,12 @@ export function ColumnGroupElement(props: PlateElementProps) {
       {readOnly ? null : (
         <>
           {columns.slice(0, -1).map((_, index) => {
-            const left = widthNumbers(shown)
-              .slice(0, index + 1)
-              .reduce((total, value) => total + value, 0);
+            const widths = widthNumbers(shown);
+            const left = widths.slice(0, index + 1).reduce((total, value) => total + value, 0);
+            // The value is the rounded width of the column on the left. The limits match
+            // clampAndNormalizeWidths, so the value stays in range.
+            const leftWidth = Math.round(widths[index] ?? 0);
+            const maxWidth = 100 - COLUMN_MIN_PERCENT * (columns.length - 1);
             return (
               // A resize handle is dragged and stepped with the arrow keys. It is a
               // separator, not a Button, because it does not run a command.
@@ -247,9 +211,13 @@ export function ColumnGroupElement(props: PlateElementProps) {
                 role="separator"
                 aria-orientation="vertical"
                 aria-label={`Resize column ${index + 1}`}
+                aria-valuenow={leftWidth}
+                aria-valuemin={COLUMN_MIN_PERCENT}
+                aria-valuemax={maxWidth}
                 tabIndex={0}
                 data-column-resize={index}
-                className="hover:bg-border focus-visible:bg-border absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
+                data-dragging={dragIndex === index ? "" : undefined}
+                className="group/handle absolute top-1 bottom-1 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full sm:block"
                 style={{ left: `${left}%` }}
                 onPointerDown={(event) => {
                   onPointerDown(index, event);
@@ -263,88 +231,15 @@ export function ColumnGroupElement(props: PlateElementProps) {
                   event.preventDefault();
                   onResizeKey(index, event.key, event.shiftKey);
                 }}
-              />
+              >
+                {/* The visible pill. It is hidden until the columns, the handle or its focus are active. */}
+                <span
+                  aria-hidden="true"
+                  className="bg-foreground/40 group-hover/handle:bg-foreground/60 group-focus-visible/handle:bg-foreground/60 group-focus-visible/handle:ring-ring/50 group-data-[dragging]/handle:bg-foreground/60 absolute top-1/2 left-1/2 h-12 max-h-full w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-[opacity,background-color] duration-150 ease-out group-hover/columns:opacity-100 group-hover/handle:opacity-100 group-focus-visible/handle:opacity-100 group-focus-visible/handle:ring-[3px] group-data-[dragging]/handle:opacity-100 motion-reduce:transition-none"
+                />
+              </div>
             );
           })}
-          <div
-            data-column-toolbar
-            className={cn(MEDIA_TOOLBAR_CLASS, selected && "pointer-events-auto opacity-100")}
-          >
-            <DropdownMenu modal={false}>
-              <EditorMenuTrigger
-                label="Columns"
-                text="Columns"
-                icon={
-                  columns.length === 3 ? (
-                    <Columns3 aria-hidden="true" />
-                  ) : (
-                    <Columns2 aria-hidden="true" />
-                  )
-                }
-                onMouseDown={keepMediaSelection}
-              />
-              <DropdownMenuContent
-                align="start"
-                collisionPadding={8}
-                hideWhenDetached
-                onCloseAutoFocus={(event) => {
-                  event.preventDefault();
-                }}
-              >
-                <DropdownMenuRadioGroup
-                  value={columns.length === 3 ? "3" : "2"}
-                  onValueChange={(next) => {
-                    if (next !== "2" && next !== "3") {
-                      return;
-                    }
-                    runOnGroup(() => {
-                      setColumnCount(editor, next === "3" ? 3 : 2);
-                    });
-                  }}
-                >
-                  <DropdownMenuRadioItem
-                    value="2"
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepMediaSelection}
-                  >
-                    2 columns
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem
-                    value="3"
-                    className={MENU_ITEM_ACTIVE_CHECKED}
-                    onMouseDown={keepMediaSelection}
-                  >
-                    3 columns
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <EditorTextButton
-              label="Turn into blocks"
-              icon={<Ungroup aria-hidden="true" />}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                runOnGroup(() => {
-                  unwrapColumns(editor);
-                });
-              }}
-            />
-            <EditorTextButton
-              variant="destructive"
-              label={confirmRemove ? COLUMN_REMOVE_CONFIRM : "Delete"}
-              icon={<Trash2 aria-hidden="true" />}
-              onMouseDown={keepMediaSelection}
-              onClick={() => {
-                if (!confirmRemove) {
-                  setConfirmKey(selectionKey);
-                  return;
-                }
-                runOnGroup(() => {
-                  removeColumnGroup(editor);
-                });
-              }}
-            />
-          </div>
         </>
       )}
     </PlateElement>

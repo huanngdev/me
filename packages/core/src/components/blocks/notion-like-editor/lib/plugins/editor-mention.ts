@@ -157,13 +157,22 @@ export function setMentionInputComposing(editor: SlateEditor, composing: boolean
   inputComposing.set(editor, composing);
 }
 
-function mentionIsComposing(editor: SlateEditor): boolean {
+export function editorIsComposing(editor: SlateEditor): boolean {
   if (editor.composing === true || inputComposing.get(editor) === true) {
     return true;
   }
 
   const dom: unknown = editor.dom;
   return typeof dom === "object" && dom !== null && "composing" in dom && dom.composing === true;
+}
+
+export function inlineTriggerBlocked(editor: SlateEditor): boolean {
+  return (
+    selectionInCodeBlock(editor) ||
+    caretInLink(editor) ||
+    caretHasCodeMark(editor) ||
+    mentionInputEntry(editor) !== undefined
+  );
 }
 
 function mentionInputEntry(editor: SlateEditor): [TElement, number[]] | undefined {
@@ -193,7 +202,7 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
 }
 
 export function mentionTriggerAllowed(editor: SlateEditor): boolean {
-  if (editor.dom.readOnly === true || mentionIsComposing(editor)) {
+  if (editor.dom.readOnly === true || editorIsComposing(editor)) {
     return false;
   }
 
@@ -205,14 +214,11 @@ export function mentionTriggerAllowed(editor: SlateEditor): boolean {
     return false;
   }
 
-  if (selectionInCodeBlock(editor) || caretInLink(editor) || caretHasCodeMark(editor)) {
-    return false;
-  }
-
-  return mentionInputEntry(editor) === undefined;
+  return !inlineTriggerBlocked(editor);
 }
 
 export const mentionPlugin = BaseMentionPlugin.configure({
+  node: { isMarkableVoid: false },
   options: {
     trigger: "@",
     triggerPreviousCharPattern: /^\s?$/,
@@ -309,7 +315,7 @@ function scheduleMentionSearch(editor: SlateEditor, query: string): void {
 export function setMentionQuery(editor: SlateEditor, query: string): void {
   editor.setOption(mentionUiPlugin, "query", query);
   editor.setOption(mentionUiPlugin, "activeIndex", 0);
-  if (mentionIsComposing(editor) || editor.dom.readOnly === true) {
+  if (editorIsComposing(editor) || editor.dom.readOnly === true) {
     return;
   }
 
@@ -370,6 +376,8 @@ function insertMentionAtom(editor: SlateEditor, entity: MentionEntity): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on commit, so focus goes back to the editor after the mention.
+  editor.tf.focus();
 }
 
 export function commitMention(editor: SlateEditor, entity: MentionEntity): boolean {
@@ -415,6 +423,8 @@ export function cancelMentionInput(editor: SlateEditor): void {
   });
   editor.tf.setSplittingOnce(true);
   resetMentionUi(editor);
+  // The input is removed on cancel, so focus goes back to the editor after the typed text.
+  editor.tf.focus();
 }
 
 export function onMentionInputKeyDown(editor: SlateEditor, event: MentionInputKey): boolean {

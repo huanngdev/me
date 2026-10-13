@@ -50,7 +50,11 @@ export const DEMO_DOCUMENT_VALUE = [
   {
     type: "p",
     id: "demo-unicode",
-    children: [{ text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽." }],
+    children: [
+      {
+        text: "Unicode and emoji stay intact: Tiếng Việt, 日本語, 👩‍💻 👍🏽. Type :smile to pick an emoji.",
+      },
+    ],
   },
   {
     type: "p",
@@ -145,6 +149,15 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "This is " },
       { text: "inline code", code: true },
       { text: ". Press Cmd+E or Ctrl+E." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-kbd",
+    children: [
+      { text: "Press " },
+      { text: "⌘K", kbd: true },
+      { text: " to open a menu. Select text and choose Keyboard in the More menu." },
     ],
   },
   {
@@ -272,6 +285,24 @@ export const DEMO_DOCUMENT_VALUE = [
       { text: "Select " },
       { text: "formatted text", bold: true, italic: true, color: "red" },
       { text: " and press Cmd+\\ or Ctrl+\\ to clear it." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-block-color",
+    backgroundTone: "blue",
+    children: [
+      {
+        text: "A whole block can have a background or text colour. Open the block menu and choose Color.",
+      },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-indent",
+    indent: 1,
+    children: [
+      { text: "This paragraph is indented one level. Press Cmd+] to indent and Cmd+[ to outdent." },
     ],
   },
   {
@@ -1039,6 +1070,36 @@ export const DEMO_DOCUMENT_VALUE = [
   },
   {
     type: "h3",
+    id: "demo-page-links",
+    children: [{ text: "Page links" }],
+  },
+  // The stored title is the fallback. The live title comes from the demo page provider.
+  {
+    type: "page_link",
+    id: "demo-page-link-roadmap",
+    pageId: "page-roadmap",
+    title: "Roadmap draft",
+    kind: "link",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-notes",
+    pageId: "page-notes",
+    title: "Meeting notes",
+    kind: "child",
+    children: [{ text: "" }],
+  },
+  {
+    type: "page_link",
+    id: "demo-page-link-missing",
+    pageId: "page-archived",
+    title: "Old spec",
+    kind: "link",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
     id: "demo-columns",
     children: [{ text: "Columns" }],
   },
@@ -1100,6 +1161,48 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [{ text: "" }],
   },
   {
+    type: "p",
+    id: "demo-inline-math",
+    children: [
+      { text: "Inline math such as " },
+      {
+        type: "inline_equation",
+        id: "demo-inline-equation",
+        texExpression: "e^{i\\pi}+1=0",
+        children: [{ text: "" }],
+      },
+      { text: " sits inside a sentence. Select text and press Cmd+Shift+E." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-inline-date-line",
+    children: [
+      { text: "The next review is on " },
+      {
+        type: "date",
+        id: "demo-inline-date",
+        date: "2026-10-12",
+        children: [{ text: "" }],
+      },
+      { text: ". Click the date to change it, or press Cmd+; to insert today." },
+    ],
+  },
+  {
+    type: "p",
+    id: "demo-footnote-line",
+    children: [
+      { text: "Footnotes keep asides out of the sentence." },
+      {
+        type: "footnote_ref",
+        id: "demo-footnote-ref",
+        footnoteId: "demo-footnote",
+        children: [{ text: "" }],
+      },
+      { text: " Type /footnote to add one." },
+    ],
+  },
+  {
     type: "h3",
     id: "demo-synced",
     children: [{ text: "Synced block" }],
@@ -1145,6 +1248,101 @@ export const DEMO_DOCUMENT_VALUE = [
     children: [
       {
         text: "Your changes save in this browser. Reload the page and they are still here. Undo with Cmd+Z or Ctrl+Z.",
+      },
+    ],
+  },
+  {
+    type: "h3",
+    id: "demo-images",
+    children: [{ text: "Images" }],
+  },
+  {
+    type: "image",
+    id: "demo-image",
+    url: "/blocks/notion-like-editor/image-demo.svg",
+    name: "image-demo.svg",
+    mime: "image/svg+xml",
+    width: 60,
+    align: "center",
+    caption: "A violet card with a pale circle.",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-files",
+    children: [{ text: "Files" }],
+  },
+  {
+    type: "file",
+    id: "demo-file",
+    url: "/blocks/notion-like-editor/file-demo.txt",
+    name: "file-demo.txt",
+    size: 113,
+    mime: "text/plain",
+    children: [{ text: "" }],
+  },
+  {
+    type: "file",
+    id: "demo-pdf",
+    url: "/blocks/notion-like-editor/pdf-demo.pdf",
+    name: "pdf-demo.pdf",
+    size: 591,
+    mime: "application/pdf",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-videos",
+    children: [{ text: "Video" }],
+  },
+  {
+    type: "video",
+    id: "demo-video",
+    url: "/blocks/notion-like-editor/video-demo.webm",
+    name: "video-demo.webm",
+    size: 2331,
+    mime: "video/webm",
+    width: 60,
+    align: "center",
+    caption: "A short clip of a few frames.",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-audios",
+    children: [{ text: "Audio" }],
+  },
+  {
+    type: "audio",
+    id: "demo-audio",
+    url: "/blocks/notion-like-editor/audio-demo.wav",
+    name: "audio-demo.wav",
+    size: 8044,
+    mime: "audio/wav",
+    caption: "A short tone.",
+    children: [{ text: "" }],
+  },
+  {
+    type: "h3",
+    id: "demo-embeds",
+    children: [{ text: "Embed" }],
+  },
+  {
+    type: "embed",
+    id: "demo-embed",
+    provider: "youtube",
+    videoId: "aqz-KE-bpKQ",
+    url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    caption: "Big Buck Bunny, a YouTube embed.",
+    children: [{ text: "" }],
+  },
+  {
+    type: "footnote_def",
+    id: "demo-footnote-def",
+    footnoteId: "demo-footnote",
+    children: [
+      {
+        text: "A footnote definition sits at the end of the page. Click its number to jump back.",
       },
     ],
   },

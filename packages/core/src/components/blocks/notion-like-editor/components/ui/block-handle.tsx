@@ -33,6 +33,7 @@ import {
   type BlockPickerItem,
 } from "../../lib/features/editor-block-picker";
 import { BLOCK_MENU_GRIP_LABEL } from "../../lib/features/editor-block-menu";
+import { blockSelectionIds, setBlockSelection } from "../../lib/plugins/editor-block-selection";
 import type { BlockHandleHit } from "../../lib/features/editor-block-handle";
 import {
   BlockDropIndicator,
@@ -313,13 +314,26 @@ function BlockHandleContent({
                   {...drag.attributes}
                   {...drag.listeners}
                   onMouseDown={keepEditorSelection}
-                  onClick={() => {
+                  onClick={(event) => {
                     if (drag.consumeClick()) {
                       return;
                     }
-                    if (paint) {
-                      openMenu.current(paint.target);
+                    if (!paint) {
+                      return;
                     }
+                    const selected = blockSelectionIds(editor);
+                    if (event.shiftKey && selected.length > 0) {
+                      const anchor = selected[0] ?? paint.target.id;
+                      setBlockSelection(editor, [anchor, paint.target.id], {
+                        anchorId: anchor,
+                        focusId: paint.target.id,
+                      });
+                      return;
+                    }
+                    if (!selected.includes(paint.target.id) || selected.length < 2) {
+                      setBlockSelection(editor, [paint.target.id]);
+                    }
+                    openMenu.current(paint.target);
                   }}
                 >
                   <GripVertical aria-hidden="true" />

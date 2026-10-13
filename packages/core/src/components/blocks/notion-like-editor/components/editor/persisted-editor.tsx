@@ -15,10 +15,14 @@ export function PersistedEditor({
   onChange,
   readOnly = false,
   placeholder = "Type something…",
+  ariaLabel = "Rich text editor",
   className,
   adapter,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
+  fileUpload = null,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
 
@@ -41,10 +45,14 @@ export function PersistedEditor({
           initialValue={session.document.content}
           readOnly={readOnly}
           placeholder={placeholder}
+          ariaLabel={ariaLabel}
           onChange={onChange}
           onContentChange={session.onContentChange}
           linkPreview={linkPreview}
           mentionProvider={mentionProvider}
+          pageProvider={pageProvider}
+          onOpenPage={onOpenPage}
+          fileUpload={fileUpload}
           status={session.status}
           message={session.message}
           onRetry={() => {

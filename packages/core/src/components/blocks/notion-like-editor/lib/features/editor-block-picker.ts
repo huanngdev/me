@@ -49,6 +49,8 @@ export type BlockPickerId = BlockMenuKind | "divider" | "table" | "columns" | "e
 export type BlockPickerItem = {
   id: BlockPickerId;
   label: string;
+  description: string;
+  keywords: readonly string[];
   icon: LucideIcon;
   group: BlockPickerGroup;
   kind?: BlockMenuKind;
@@ -78,6 +80,28 @@ const ICONS: Record<BlockPickerId, LucideIcon> = {
   columns: Columns2,
   equation: Sigma,
   toc: ListTree,
+};
+
+const DETAILS: Record<BlockPickerId, { description: string; keywords: readonly string[] }> = {
+  paragraph: { description: "Plain text", keywords: [] },
+  h1: { description: "Big section heading", keywords: ["h1"] },
+  h2: { description: "Medium section heading", keywords: ["h2"] },
+  h3: { description: "Small section heading", keywords: ["h3"] },
+  bulleted: { description: "Simple bulleted list", keywords: ["ul"] },
+  numbered: { description: "Ordered list of items", keywords: ["ol"] },
+  todo: { description: "Track tasks with a to-do list", keywords: ["checkbox", "task", "todo"] },
+  toggle: { description: "Hide content in a toggle", keywords: ["collapse"] },
+  "toggle-h1": { description: "Collapsible big heading", keywords: ["h1"] },
+  "toggle-h2": { description: "Collapsible medium heading", keywords: ["h2"] },
+  "toggle-h3": { description: "Collapsible small heading", keywords: ["h3"] },
+  quote: { description: "Capture a quote", keywords: ["blockquote"] },
+  callout: { description: "Call out a short note", keywords: ["note"] },
+  code: { description: "Write a code snippet", keywords: ["snippet"] },
+  divider: { description: "Visually divide blocks", keywords: ["hr", "line"] },
+  equation: { description: "Block of math", keywords: ["math", "latex"] },
+  toc: { description: "List the headings", keywords: ["toc"] },
+  table: { description: "Grid of cells", keywords: ["grid"] },
+  columns: { description: "Side by side columns", keywords: [] },
 };
 
 const GROUPS: Record<BlockPickerId, BlockPickerGroup> = {
@@ -271,6 +295,51 @@ export function addPlacement(
   return { parentType, toIndex: index + 1 };
 }
 
+function parentTypeAt(editor: SlateEditor, path: readonly number[]): string | null | undefined {
+  const parentPath = path.slice(0, -1);
+  if (parentPath.length === 0) {
+    return null;
+  }
+  const parent = editor.api.node(parentPath);
+  const node = parent?.[0];
+  if (!parent || !ElementApi.isElement(node) || typeof node.type !== "string") {
+    return undefined;
+  }
+  return node.type;
+}
+
+function pickerItems(
+  editor: SlateEditor,
+  path: readonly number[],
+  toIndex: number,
+): BlockPickerItem[] {
+  const parentType = parentTypeAt(editor, path);
+  if (parentType === undefined) {
+    return [];
+  }
+  return ADD_DEFINITIONS.map((definition) => {
+    const reason = blockPlacementRefusal(
+      parentType,
+      toIndex,
+      definition.childType,
+      definition.asList,
+    );
+    const details = DETAILS[definition.id];
+    return {
+      id: definition.id,
+      label: definition.label,
+      description: details.description,
+      keywords: details.keywords,
+      icon: ICONS[definition.id],
+      group: GROUPS[definition.id],
+      kind: definition.kind,
+      structural: definition.structural,
+      disabled: reason !== undefined,
+      reason,
+    };
+  });
+}
+
 // Add mode items with the parent's verdict. An item the parent cannot hold is
 // disabled with the reason, exactly like the block menu.
 export function blockPickerAddItems(
@@ -281,24 +350,20 @@ export function blockPickerAddItems(
   if (!placement) {
     return [];
   }
-  return ADD_DEFINITIONS.map((definition) => {
-    const reason = blockPlacementRefusal(
-      placement.parentType,
-      placement.toIndex,
-      definition.childType,
-      definition.asList,
-    );
-    return {
-      id: definition.id,
-      label: definition.label,
-      icon: ICONS[definition.id],
-      group: GROUPS[definition.id],
-      kind: definition.kind,
-      structural: definition.structural,
-      disabled: reason !== undefined,
-      reason,
-    };
-  });
+  return pickerItems(editor, path, placement.toIndex);
+}
+
+// The same list, checked at a specific sibling index. The slash menu uses the
+// paragraph's own index when a block would replace it, and index + 1 otherwise.
+export function blockPickerItemsAt(
+  editor: SlateEditor,
+  path: readonly number[],
+  toIndex: number,
+): BlockPickerItem[] {
+  if (path.length === 0) {
+    return [];
+  }
+  return pickerItems(editor, path, toIndex);
 }
 
 // Turn-into mode items come from the existing conversion matrix, so its
@@ -316,9 +381,12 @@ export function blockPickerTurnItems(
   const byKind = new Map(decisions.map((decision) => [decision.kind, decision]));
   return BLOCK_MENU_TURNS.map((turn) => {
     const decision = byKind.get(turn.kind);
+    const details = DETAILS[turn.kind];
     return {
       id: turn.kind,
       label: turn.label,
+      description: details.description,
+      keywords: details.keywords,
       icon: ICONS[turn.kind],
       group: GROUPS[turn.kind],
       kind: turn.kind,
@@ -345,12 +413,13 @@ export function insertPickedBlock(
   editor: SlateEditor,
   path: readonly number[],
   item: BlockPickerItem,
+  options?: { batch?: boolean },
 ): string | null {
   const at = PathApi.next([...path]);
   if (!at) {
     return null;
   }
-  editor.tf.withNewBatch(() => {
+  const insert = (): void => {
     if (item.kind !== undefined && item.kind !== "paragraph") {
       editor.tf.insertNodes({ type: KEYS.p, id: nanoid(10), children: [{ text: "" }] }, { at });
       const start = editor.api.start(at);
@@ -390,7 +459,12 @@ export function insertPickedBlock(
       default:
         break;
     }
-  });
+  };
+  if (options?.batch === false) {
+    insert();
+  } else {
+    editor.tf.withNewBatch(insert);
+  }
   return idAt(editor, at);
 }
 

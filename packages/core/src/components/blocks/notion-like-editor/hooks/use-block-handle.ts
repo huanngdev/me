@@ -15,6 +15,7 @@ import {
   isBlockDragArmed,
   isTypingKey,
   pickHandleBandAtY,
+  blockHandleContentTop,
   placeBlockHandle,
   reduceHandleUi,
   sortHandleBands,
@@ -74,10 +75,23 @@ function editableOf(editor: SlateEditor): HTMLElement | null {
 
 // One band per rendered target, in document order. Gaps between blocks have no
 // hit element, so the handle resolves a target from these bands instead.
-function handleBands(editor: SlateEditor): HandleBand[] {
+export function handleBands(editor: SlateEditor): HandleBand[] {
   const editable = editableOf(editor);
   if (!editable) {
     return [];
+  }
+  // One walk of the document maps each block id to its path. The first match in
+  // document order wins, as findBlockById does.
+  const paths = new Map<string, number[]>();
+  for (const entry of editor.api.nodes({
+    at: [],
+    match: (node) => ElementApi.isElement(node) && typeof node.id === "string",
+    voids: true,
+  })) {
+    const node = entry[0];
+    if (ElementApi.isElement(node) && typeof node.id === "string" && !paths.has(node.id)) {
+      paths.set(node.id, entry[1]);
+    }
   }
   const byId = new Map<string, HandleBand>();
   for (const node of editable.querySelectorAll("[data-block-id]")) {
@@ -88,11 +102,11 @@ function handleBands(editor: SlateEditor): HandleBand[] {
     if (id === null || id.length === 0) {
       continue;
     }
-    const entry = findBlockById(editor, id);
-    if (!entry) {
+    const path = paths.get(id);
+    if (!path) {
       continue;
     }
-    const target = blockHandleTarget(chainAtPath(editor, entry[1]));
+    const target = blockHandleTarget(chainAtPath(editor, path));
     if (!target) {
       continue;
     }
@@ -111,10 +125,10 @@ function handleBands(editor: SlateEditor): HandleBand[] {
     }
     byId.set(target.id, {
       id: target.id,
-      path: entry[1],
+      path,
       top: rect.top,
       bottom: rect.bottom,
-      depth: entry[1].length,
+      depth: path.length,
     });
   }
   return sortHandleBands([...byId.values()]);
@@ -139,7 +153,7 @@ function isControlLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
     target.closest(
-      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu]",
+      "[data-block-handle-add], [data-block-handle-grip], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
     ) !== null
   );
 }
@@ -173,7 +187,11 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
   if (!(hit instanceof Element)) {
     return false;
   }
-  if (hit.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]")) {
+  if (
+    hit.closest(
+      "[data-block-handle], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
+    )
+  ) {
     return false;
   }
   const block = hit.closest("[data-block-id]");
@@ -186,7 +204,9 @@ function foreignHit(x: number, y: number, chainIds: readonly string[]): boolean 
 function isHandleLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("[data-block-handle], [data-block-handle-tooltip], [data-block-menu]") !== null
+    target.closest(
+      "[data-block-handle], [data-block-handle-tooltip], [data-block-menu], [data-block-menu-portal]",
+    ) !== null
   );
 }
 
@@ -221,7 +241,7 @@ function measurePaint(
     }
   }
   const placed = placeBlockHandle(
-    { blockTop: box.top, blockBottom: box.bottom, blockLeft: gutterLeft },
+    { blockTop: blockHandleContentTop(dom), blockBottom: box.bottom, blockLeft: gutterLeft },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),

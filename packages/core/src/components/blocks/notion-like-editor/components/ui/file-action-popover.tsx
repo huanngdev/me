@@ -1,0 +1,167 @@
+import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { useEditorRef } from "platejs/react";
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
+import { Separator } from "@/components/separator";
+
+import { runEditorCommand } from "../../lib/commands/editor-commands";
+import { removeFile } from "../../lib/features/editor-file-commands";
+import { closeMediaActions } from "../../lib/plugins/editor-media-ui";
+import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
+import {
+  mediaActionsHoverProps,
+  useMediaActionsLifecycle,
+  useMediaActionsOpen,
+} from "../elements/media-card";
+import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
+import { EditorIconButton, EditorTextButton, moveActionFocus } from "./block-toolbar";
+import { MediaDownloadButton } from "./media-download-button";
+
+// One row of file actions, opened by hovering the file, by a click on the file row, or by Enter on the
+// selected file. Preview for a PDF, then Download, then Rename and Replace, then Delete, with separators.
+export function FileActionPopover({
+  id,
+  name,
+  href,
+  readAnchor,
+  onPreview,
+  onRename,
+  onReplace,
+}: {
+  id: string;
+  name: string;
+  href: string | undefined; // the resolved url; undefined while it resolves or when unavailable
+  readAnchor: () => HTMLElement | null;
+  onPreview?: () => void; // set only for a PDF the browser can show
+  onRename: () => void;
+  onReplace: () => void;
+}) {
+  "use no memo";
+
+  const editor = useEditorRef();
+  const { open, explicit } = useMediaActionsOpen(id);
+  const anchor = virtualAnchor(
+    () => elementRect(readAnchor()),
+    () => anchorContext(readAnchor()),
+  );
+  // Leaving the block, entering read-only mode, or removing the block closes the popover.
+  useMediaActionsLifecycle(id, explicit);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <Popover open key={explicit ? "actions" : "hover"}>
+      <PopoverAnchor virtualRef={anchor} />
+      <PopoverContent
+        data-file-actions=""
+        data-media-actions=""
+        aria-label="File actions"
+        side="top"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+        hideWhenDetached
+        className="w-auto gap-1 p-1 text-xs whitespace-nowrap"
+        {...mediaActionsHoverProps(editor)}
+        onOpenAutoFocus={(event) => {
+          // The row takes focus, not a control, so no tooltip opens over the text above the file.
+          // A hover toolbar takes no focus at all.
+          event.preventDefault();
+          if (!explicit) {
+            return;
+          }
+          const content = event.currentTarget as HTMLElement | null;
+          content?.querySelector<HTMLElement>("[data-file-actions-row]")?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          // A second click on the file row keeps the popover open.
+          const target = event.detail.originalEvent.target;
+          if (target instanceof Element && target.closest("[data-file-card]") !== null) {
+            event.preventDefault();
+            return;
+          }
+
+          closeMediaActions(editor);
+        }}
+        onKeyDown={(event) => {
+          // Keys typed here never reach the editor. Escape closes the popover and returns to the editor.
+          event.stopPropagation();
+          if (onPopoverHistoryKey(editor, event)) {
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeMediaActions(editor);
+            editor.tf.focus();
+            return;
+          }
+          moveActionFocus(event);
+        }}
+      >
+        <div
+          data-file-actions-row=""
+          tabIndex={-1}
+          className="flex flex-nowrap items-center gap-1 focus:outline-none"
+        >
+          {onPreview === undefined ? null : (
+            <>
+              <EditorTextButton
+                label="Preview"
+                icon={<Eye aria-hidden="true" />}
+                data-file-action="preview"
+                onClick={() => {
+                  closeMediaActions(editor);
+                  onPreview();
+                }}
+              />
+              <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+            </>
+          )}
+          <MediaDownloadButton
+            kind="file"
+            href={href}
+            name={name}
+            onDownload={() => {
+              closeMediaActions(editor);
+            }}
+          />
+          <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+          <EditorTextButton
+            label="Rename"
+            icon={<Pencil aria-hidden="true" />}
+            data-file-action="rename"
+            onClick={() => {
+              closeMediaActions(editor);
+              onRename();
+            }}
+          />
+          <EditorTextButton
+            label="Replace"
+            icon={<RefreshCw aria-hidden="true" />}
+            data-file-action="replace"
+            onClick={() => {
+              onReplace();
+            }}
+          />
+          <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+          <EditorIconButton
+            variant="destructive"
+            label="Delete"
+            icon={<Trash2 aria-hidden="true" />}
+            data-file-action="delete"
+            onClick={() => {
+              closeMediaActions(editor);
+              runEditorCommand(editor, removeFile, { id });
+              editor.tf.focus();
+            }}
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}

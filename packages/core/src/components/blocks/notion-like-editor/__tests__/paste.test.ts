@@ -473,13 +473,12 @@ describe("paste", () => {
     expect(markedText(editor, "superscript")).toEqual(["2"]);
   });
 
-  test("pasting kbd stays plain text", () => {
+  test("pasting kbd makes only that text keyboard", () => {
     const editor = pasteHtml("<p>a <kbd>b</kbd> c</p>");
-    const serialized = JSON.stringify(editor.children);
 
     expect(plainText(editor)).toBe("a b c");
     expect(markedText(editor, "code")).toEqual([]);
-    expect(serialized).not.toContain('"kbd"');
+    expect(markedText(editor, "kbd")).toEqual(["b"]);
     expect(editor.children.every((block) => block.type === "p")).toBe(true);
   });
 

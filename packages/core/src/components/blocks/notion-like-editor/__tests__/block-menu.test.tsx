@@ -22,6 +22,7 @@ import {
   BLOCK_MENU_GRIP_LABEL,
   BLOCK_MENU_TURNS,
   blockMenuDecisions,
+  columnGroupMenu,
   currentBlockMenuKind,
   isBlockMenuShortcut,
   keepNativeContextMenu,
@@ -196,6 +197,18 @@ const nativeClear: NativeMenuProbe = {
 };
 
 describe("block menu conversion matrix", () => {
+  test("a column group menu is the count and unwrap, and other blocks are not", () => {
+    const column = { type: KEYS.column, rich: false };
+    expect(columnGroupMenu(view({ type: KEYS.columnGroup, children: [column, column] }))).toEqual({
+      count: 2,
+    });
+    expect(
+      columnGroupMenu(view({ type: KEYS.columnGroup, children: [column, column, column] })),
+    ).toEqual({ count: 3 });
+    expect(columnGroupMenu(view({ type: KEYS.p }))).toBeNull();
+    expect(columnGroupMenu(view({ type: KEYS.table }))).toBeNull();
+  });
+
   test("structural blocks are not offered a turn into submenu", () => {
     for (const type of [
       KEYS.table,

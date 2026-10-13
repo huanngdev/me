@@ -697,7 +697,7 @@ describe("code block render", () => {
 
     expect(html).toContain("<pre");
     expect(html).toMatch(/contenteditable="false"/i);
-    expect(html).toContain("Change code language");
+    expect(html).toContain('aria-label="Change code language, current: TypeScript"');
     expect(html).toContain("TypeScript");
     expect(html).toContain("bg-muted");
     expect(html).not.toContain("border-l-2");

@@ -46,6 +46,22 @@ export function sanitizeLinkUrl(raw: string): string | undefined {
   return raw;
 }
 
+// Typed space/Enter autolink only. Popover, paste, HTML, and stored links still use sanitizeLinkUrl.
+export function typedAutolinkUrl(raw: string): string | undefined {
+  const url = sanitizeLinkUrl(raw);
+  if (url === undefined) {
+    return undefined;
+  }
+
+  const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(url);
+  const scheme = match?.[1];
+  if (scheme === undefined || !ALLOWED_SCHEMES.has(scheme.toLowerCase())) {
+    return undefined;
+  }
+
+  return url;
+}
+
 // Only the link popover uses this. Paste and autolink keep the typed characters.
 export function normalizeLinkInput(raw: string): string {
   const trimmed = raw.trim();

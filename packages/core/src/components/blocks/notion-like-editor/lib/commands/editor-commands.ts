@@ -15,6 +15,7 @@ import {
   type TText,
 } from "platejs";
 
+import { blockIndentOf } from "../features/editor-block-indent-style";
 import {
   applyBlockTurn,
   deleteBlockAt,
@@ -30,6 +31,7 @@ import {
   siblingMove,
 } from "../features/editor-block-drop";
 import { openAncestorToggle } from "../plugins/editor-toggle";
+import { footnoteDefinitionIdAt, removeFootnote } from "../features/editor-footnote";
 import {
   CALLOUT_ICONS,
   CALLOUT_TONES,
@@ -71,7 +73,8 @@ export type EditorCommand<Payload = void> = {
   /** Shown when the command cannot run. Absent means the control stays quiet. */
   disabledReason?: (editor: SlateEditor) => string | undefined;
   getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
-  run: (editor: SlateEditor, payload: Payload) => void;
+  /** Returning false refuses the command: no change, and runEditorCommand returns false. */
+  run: (editor: SlateEditor, payload: Payload) => void | boolean;
 };
 
 export type RunEditorCommandOptions = {
@@ -180,6 +183,7 @@ export const formatStrikethrough: EditorCommand = createMarkCommand({
 export const formatCode: EditorCommand = createMarkCommand({
   key: KEYS.code,
   label: "Inline code",
+  excludes: [KEYS.kbd],
 });
 
 export const formatSuperscript: EditorCommand = createMarkCommand({
@@ -192,6 +196,13 @@ export const formatSubscript: EditorCommand = createMarkCommand({
   key: KEYS.sub,
   label: "Subscript",
   excludes: [KEYS.sup],
+});
+
+// Formatting only. Inline code and kbd exclude each other, so turning either on clears the other.
+export const formatKeyboard: EditorCommand = createMarkCommand({
+  key: KEYS.kbd,
+  label: "Keyboard",
+  excludes: [KEYS.code],
 });
 
 export type TextColorState = TextColorToken | null | "mixed";
@@ -1086,7 +1097,9 @@ function paragraphEntries(editor: SlateEditor) {
   ];
 }
 
-// Orphan indent and numbering attrs are removed by dependentAttrsPlugin, not here.
+// A list item that leaves its list drops its level with it. A plain paragraph keeps its own
+// indent, so the unset is explicit here and not a normalizer. A plain indent that becomes a
+// list keeps its level as depth, where Plate's toggle would add one.
 export function createToggleList(style: ListStyle): EditorCommand {
   const command = TOGGLE_LIST_COMMAND[style];
 
@@ -1095,11 +1108,32 @@ export function createToggleList(style: ListStyle): EditorCommand {
     label: command.label,
     group: "turn-into",
     run: (editor) => {
-      if (paragraphEntries(editor).length === 0) {
+      const entries = paragraphEntries(editor);
+      if (entries.length === 0) {
         return;
       }
 
+      const paths = entries.map(([, path]) => [...path]);
+      const plainLevels = entries.map(([node]) =>
+        ElementApi.isElement(node) && isPlainParagraph(node) ? blockIndentOf(node) : 0,
+      );
       toggleList(editor, { listStyleType: style });
+      paths.forEach((path, index) => {
+        const node = editor.api.node(path)?.[0];
+        if (!ElementApi.isElement(node)) {
+          return;
+        }
+        if (isPlainParagraph(node)) {
+          if ("indent" in node) {
+            editor.tf.unsetNodes(KEYS.indent, { at: path });
+          }
+          return;
+        }
+        const level = plainLevels[index] ?? 0;
+        if (level > 0 && node.indent !== level) {
+          editor.tf.setNodes({ indent: level }, { at: path });
+        }
+      });
     },
   };
 }
@@ -1231,7 +1265,6 @@ function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
   editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
 }
 
-// No shortcut. Notion and Google Docs have none. The --- trigger is DEV-126.
 export const insertDivider: EditorCommand = {
   id: "block.insert.divider",
   label: "Divider",
@@ -1319,9 +1352,7 @@ export const turnBlockInto: EditorCommand<BlockMenuTurnPayload> = {
   id: "block.menu.turn-into",
   label: "Turn into",
   group: "turn-into",
-  run: (editor, payload) => {
-    applyBlockTurn(editor, payload.path, payload.kind);
-  },
+  run: (editor, payload) => applyBlockTurn(editor, payload.path, payload.kind),
 };
 
 export const duplicateBlock: EditorCommand<{ path: number[] }> = {
@@ -1333,11 +1364,17 @@ export const duplicateBlock: EditorCommand<{ path: number[] }> = {
   },
 };
 
+// A definition goes with its references, in the same undo step. Other blocks delete as before.
 export const deleteBlock: EditorCommand<{ path: number[] }> = {
   id: "block.menu.delete",
   label: "Delete",
   group: "action",
   run: (editor, payload) => {
+    const footnoteId = footnoteDefinitionIdAt(editor, payload.path);
+    if (footnoteId !== undefined) {
+      removeFootnote.run(editor, { footnoteId });
+      return;
+    }
     deleteBlockAt(editor, payload.path);
   },
 };
@@ -1431,20 +1468,27 @@ export function runEditorCommand<Payload>(
   payload: Payload,
   options?: RunEditorCommandOptions,
 ): boolean {
-  if (options?.readOnly === true || command.isEnabled?.(editor) === false) {
+  if (
+    options?.readOnly === true ||
+    editor.dom.readOnly === true ||
+    command.isEnabled?.(editor) === false
+  ) {
     return false;
   }
 
+  let accepted = true;
   editor.tf.withNewBatch(() => {
     if (options?.selection) {
       editor.tf.select(options.selection);
     }
 
-    command.run(editor, payload);
+    if (command.run(editor, payload) === false) {
+      accepted = false;
+    }
   });
   // The batch splits from earlier typing, then later keystrokes would merge
   // into it. Leave the split flag so the next saved operation starts its own entry.
   editor.tf.setSplittingOnce(true);
 
-  return true;
+  return accepted;
 }

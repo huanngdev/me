@@ -26,6 +26,7 @@ import {
   UNSAFE_LINK_PASTE,
   normalizeLinkInput,
   sanitizeLinkUrl,
+  typedAutolinkUrl,
 } from "../lib/features/editor-link-url";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { pasteRepairsOf } from "../lib/paste/editor-paste";
@@ -48,6 +49,12 @@ import {
 } from "./test-utils";
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
+
+// The viewport size is read when the editor selection is synced to the DOM, and happy-dom leaves it undefined.
+if (!("innerWidth" in globalThis)) {
+  Reflect.set(globalThis, "innerWidth", 1024);
+  Reflect.set(globalThis, "innerHeight", 768);
+}
 
 const HTTPS = "https://example.com";
 const MAIL = "mailto:a@b.c";
@@ -221,6 +228,15 @@ function renderLinks(value: EditorValue, readOnly = false): string {
   );
 }
 
+// Plate focuses the editor on a short timer when edits are pending, so a test waits past it.
+async function settleFocus(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 30);
+    });
+  });
+}
+
 function maxUrl(extra = 0): string {
   const prefix = "https://example.com/";
   return prefix + "a".repeat(LINK_URL_MAX - prefix.length + extra);
@@ -336,7 +352,10 @@ describe("link schema", () => {
     const parsed = expectOk(parseEditorDocument(JSON.parse(serializeEditorDocument(document))));
 
     expect(parsed.repairs).toEqual([]);
-    expect(parsed.document.content).toEqual(content);
+    // The validator adds the empty leaf Slate needs after a trailing link.
+    expect(parsed.document.content).toEqual([
+      { ...content[0], children: [...content[0].children, { text: "" }] },
+    ]);
   });
 
   test("target, rel, and unknown attrs are rejected and the raw document is kept", () => {
@@ -498,6 +517,17 @@ describe("link editing", () => {
     expect(nestedText(linkNodes(editor.children)[0])).toBe("mail");
   });
 
+  test("the link popover still saves a root-relative path and an anchor", () => {
+    for (const url of ["/blog", "#top"]) {
+      const editor = createEditor([paragraph("")]);
+      editor.tf.select(caret([0, 0], 0));
+      openLinkPopover(editor);
+      expect(commitLinkPopover(editor, url, "")).toBe(true);
+      expect(linkNodes(editor.children)[0]?.url).toBe(url);
+      expect(nestedText(linkNodes(editor.children)[0])).toBe(url);
+    }
+  });
+
   test("an invalid url shows an error and writes nothing, and escape closes without writing", () => {
     const editor = createEditor([paragraph("Hello")]);
     editor.tf.select(textRange([0, 0], 0, 5));
@@ -591,6 +621,45 @@ describe("autolink", () => {
     expect(nestedText(code.children)).toBe(`${HTTPS} `);
   });
 
+  test("typed slash and hash text stays plain, and scheme urls still link", () => {
+    for (const token of ["/table", "/blog/post", "#section"]) {
+      for (const end of [" ", "enter"] as const) {
+        const editor = createEditor([paragraph("")]);
+        editor.tf.select(caret([0, 0], 0));
+        editor.tf.insertText(token);
+        if (end === " ") {
+          editor.tf.insertText(" ");
+          expect(blockString(editor)).toBe(`${token} `);
+        } else {
+          editor.tf.insertBreak();
+          expect(editor.children).toHaveLength(2);
+          expect(blockString(editor, 0)).toBe(token);
+        }
+        expect(linkNodes(editor.children)).toEqual([]);
+      }
+    }
+
+    for (const token of ["https://example.com", "http://x.dev/a", "mailto:a@b.co", "tel:+123"]) {
+      const editor = createEditor([paragraph("")]);
+      editor.tf.select(caret([0, 0], 0));
+      editor.tf.insertText(token);
+      const typed = editor.history.undos.length;
+      editor.tf.insertText(" ");
+      expect(linkNodes(editor.children).map((node) => node.url)).toEqual([token]);
+      expect(blockString(editor)).toBe(`${token} `);
+      editor.tf.undo();
+      expect(linkNodes(editor.children)).toEqual([]);
+      expect(blockString(editor)).toBe(token);
+      expect(editor.history.undos.length).toBe(typed);
+      expect(typedAutolinkUrl(token)).toBe(token);
+    }
+
+    expect(typedAutolinkUrl("/blog")).toBeUndefined();
+    expect(typedAutolinkUrl("#section")).toBeUndefined();
+    expect(sanitizeLinkUrl("/blog")).toBe("/blog");
+    expect(sanitizeLinkUrl("#section")).toBe("#section");
+  });
+
   test("composition does not autolink", () => {
     const editor = createEditor([paragraph("")]);
     editor.tf.select(caret([0, 0], 0));
@@ -632,7 +701,7 @@ describe("link paste", () => {
     expect(nestedText(linkNodes(editor.children)[0])).toBe(`${HTTPS}/docs`);
     expect(blockString(editor)).toBe(`${HTTPS}/docs`);
     expect(editor.getOption(pasteUrlPlugin, "offer")?.url).toBe(`${HTTPS}/docs`);
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     expect(
       pasteUrlActions
         .filter((action) => action.match(`${HTTPS}/docs`))
@@ -649,7 +718,7 @@ describe("link paste", () => {
     expect(offered.getOption(pasteUrlPlugin, "offer")?.url).toBe(video);
     expect(
       pasteUrlActions.filter((action) => action.match(video)).map((action) => action.label),
-    ).toEqual(["Bookmark"]);
+    ).toEqual(["Bookmark", "Embed"]);
     runEditorCommand(offered, applyPasteUrlAction, "bookmark");
     expect(offered.children.map((block) => block.type)).toEqual(["p", "bookmark"]);
     expect(blockString(offered)).toBe("See ");
@@ -896,5 +965,88 @@ describe("link render and clicks", () => {
     expect(document.querySelector("[data-link-popover]")).toBeNull();
     expect(mounted.editor.children).toEqual(before);
     await mounted.cleanup();
+  });
+
+  test("escape returns focus to the editor on the selected range", async () => {
+    const mounted = await mountLink([paragraph("Hello world", "p")]);
+    mounted.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(mounted.editor);
+      });
+      expect(document.querySelector("[data-link-popover]")).not.toBeNull();
+
+      await act(async () => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(mounted.host.querySelector("[data-slate-editor]"));
+      expect(mounted.editor.selection).toEqual(textRange([0, 0], 0, 5));
+    } finally {
+      await mounted.cleanup();
+    }
+  });
+
+  test("save and remove return focus to the editor, and a click outside keeps focus on the clicked control", async () => {
+    const saved = await mountLink([paragraph("Hello world", "p")]);
+    saved.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(saved.editor);
+      });
+      await act(async () => {
+        commitLinkPopover(saved.editor, HTTPS, "");
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(saved.host.querySelector("[data-slate-editor]"));
+    } finally {
+      await saved.cleanup();
+    }
+
+    const removed = await mountLink([
+      { type: "p", id: "p", children: [linkNode(HTTPS, "site", "site")] },
+    ]);
+    removed.editor.tf.select(caret([0, 0, 0], 1));
+    try {
+      await act(async () => {
+        openLinkPopover(removed.editor);
+      });
+      const remove = Array.from(document.querySelectorAll("[data-link-popover] button")).find(
+        (button) => button.textContent === "Remove link",
+      );
+      if (!(remove instanceof HTMLButtonElement)) {
+        throw new Error("Missing Remove link.");
+      }
+      await act(async () => {
+        remove.click();
+      });
+      await settleFocus();
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(linkNodes(removed.editor.children)).toEqual([]);
+      expect(document.activeElement).toBe(removed.host.querySelector("[data-slate-editor]"));
+    } finally {
+      await removed.cleanup();
+    }
+
+    const outside = await mountLink([paragraph("Hello world", "p")]);
+    const other = document.createElement("button");
+    document.body.appendChild(other);
+    outside.editor.tf.select(textRange([0, 0], 0, 5));
+    try {
+      await act(async () => {
+        openLinkPopover(outside.editor);
+      });
+      other.focus();
+      await act(async () => {
+        other.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      });
+      expect(document.querySelector("[data-link-popover]")).toBeNull();
+      expect(document.activeElement).toBe(other);
+    } finally {
+      other.remove();
+      await outside.cleanup();
+    }
   });
 });

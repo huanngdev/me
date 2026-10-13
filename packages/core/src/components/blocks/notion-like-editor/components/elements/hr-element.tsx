@@ -8,12 +8,9 @@ import {
 
 import { cn } from "@/lib/utils";
 
-// A selected void uses the muted surface. The focus ring stays on real buttons.
-// Plate wraps an <hr> the same way (react/index.js FastIntrinsicElement): a div,
-// <hr contentEditable={false}>, then the Slate children. There is no click handler.
-export const HR_RULE_CLASS_NAME = "my-0 border-0 border-t border-border";
-export const BLOCK_SELECTED_CLASS = "bg-muted";
-export const HR_SELECTED_CLASS_NAME = BLOCK_SELECTED_CLASS;
+import { BLOCK_SELECTED_CLASS, HR_RULE_CLASS_NAME, HR_SELECTED_CLASS_NAME } from "./hr-classes";
+
+export { BLOCK_SELECTED_CLASS, HR_RULE_CLASS_NAME, HR_SELECTED_CLASS_NAME };
 
 export function hrElementClassName(
   selected: boolean,
@@ -32,7 +29,11 @@ export function HrElement(props: PlateElementProps) {
 
   return (
     <PlateElement {...props} className={cn("py-2", className)}>
-      <hr contentEditable={false} className={HR_RULE_CLASS_NAME} />
+      <hr
+        contentEditable={false}
+        className={HR_RULE_CLASS_NAME}
+        data-block-handle-anchor="center"
+      />
       {props.children}
     </PlateElement>
   );

@@ -4,7 +4,9 @@ import { EditorSaveStatus } from "./editor-save-status";
 import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
+import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
 import { useNotionLikeEditor } from "../../hooks/use-notion-like-editor";
 
@@ -13,6 +15,7 @@ type ReadyEditorProps = {
   initialValue: EditorValue;
   readOnly: boolean;
   placeholder: string;
+  ariaLabel: string;
   onChange?: (value: EditorValue) => void;
   onContentChange: (value: EditorValue) => void;
   status: AutosaveStatus;
@@ -20,6 +23,9 @@ type ReadyEditorProps = {
   onRetry: () => void;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
+  fileUpload?: FileUploadAdapter | null;
 };
 
 export function ReadyEditor({
@@ -27,6 +33,7 @@ export function ReadyEditor({
   initialValue,
   readOnly,
   placeholder,
+  ariaLabel,
   onChange,
   onContentChange,
   status,
@@ -34,6 +41,9 @@ export function ReadyEditor({
   onRetry,
   linkPreview = null,
   mentionProvider = null,
+  pageProvider = null,
+  onOpenPage,
+  fileUpload = null,
 }: ReadyEditorProps) {
   const { editor } = useNotionLikeEditor({ documentId, initialValue });
   // The healthy states render nothing, so the row takes no space. Only the
@@ -51,12 +61,16 @@ export function ReadyEditor({
         editor={editor}
         readOnly={readOnly}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         onValueChange={(value) => {
           onChange?.(value);
           onContentChange(value);
         }}
         linkPreview={linkPreview}
         mentionProvider={mentionProvider}
+        pageProvider={pageProvider}
+        onOpenPage={onOpenPage}
+        fileUpload={fileUpload}
         className="text-foreground caret-foreground min-h-full w-full min-w-0 py-8 text-base leading-relaxed wrap-break-word outline-none sm:py-12"
       />
     </div>

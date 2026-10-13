@@ -13,6 +13,7 @@ const installed: Record<string, unknown> = {
   HTMLInputElement: dom.HTMLInputElement,
   HTMLButtonElement: dom.HTMLButtonElement,
   HTMLIFrameElement: dom.HTMLIFrameElement,
+  HTMLFormElement: dom.HTMLFormElement,
   Event: dom.Event,
   CustomEvent: dom.CustomEvent,
   FocusEvent: dom.FocusEvent,
@@ -34,6 +35,23 @@ const installed: Record<string, unknown> = {
 
 for (const [key, value] of Object.entries(installed)) {
   Reflect.set(globalThis, key, value);
+}
+
+// Radix and the media player observe their size and visibility. Nothing here lays out or scrolls, so the
+// observers never report. A real implementation already present is kept.
+class InertObserver {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): [] {
+    return [];
+  }
+}
+if (!("ResizeObserver" in globalThis)) {
+  Reflect.set(globalThis, "ResizeObserver", InertObserver);
+}
+if (!("IntersectionObserver" in globalThis)) {
+  Reflect.set(globalThis, "IntersectionObserver", InertObserver);
 }
 
 export const testWindow: Window = dom;

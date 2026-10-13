@@ -11,6 +11,7 @@ import {
   BLOCK_HANDLE_GAP,
   BLOCK_HANDLE_HEIGHT,
   BLOCK_HANDLE_WIDTH,
+  blockHandleContentTop,
   blockHandleGutterId,
   blockHandleTarget,
   chainAtPath,
@@ -28,7 +29,9 @@ import {
   type HandleChainNode,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
-import { SYNCED_REF_KEY } from "../lib/features/editor-synced-block";
+import { SYNCED_REF_KEY, findBlockById } from "../lib/features/editor-synced-block";
+import { handleBands } from "../hooks/use-block-handle";
+import { DEMO_DOCUMENT_VALUE } from "../demo/demo-document";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { caret, createEditor, paragraphValue } from "./test-utils";
 
@@ -506,6 +509,70 @@ describe("block handle placement", () => {
   const viewport = { width: 1280, height: 800 };
   const block = { blockTop: 100, blockBottom: 124, blockLeft: 300 };
 
+  test("a marked visible child supplies the handle top", () => {
+    const blockEl = document.createElement("div");
+    const card = document.createElement("div");
+    card.setAttribute("data-block-handle-anchor", "");
+    blockEl.append(card);
+    document.body.append(blockEl);
+    blockEl.getBoundingClientRect = () =>
+      ({
+        top: 10,
+        bottom: 50,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 40,
+        x: 0,
+        y: 10,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    card.getBoundingClientRect = () =>
+      ({
+        top: 14,
+        bottom: 46,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 32,
+        x: 0,
+        y: 14,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    expect(blockHandleContentTop(blockEl)).toBe(14);
+    card.remove();
+    expect(blockHandleContentTop(blockEl)).toBe(10);
+    blockEl.remove();
+  });
+
+  test("a center anchor places the handle midline on the anchor", () => {
+    const blockEl = document.createElement("div");
+    const rule = document.createElement("hr");
+    rule.setAttribute("data-block-handle-anchor", "center");
+    blockEl.append(rule);
+    document.body.append(blockEl);
+    rule.getBoundingClientRect = () =>
+      ({
+        top: 20,
+        bottom: 21,
+        left: 0,
+        right: 40,
+        width: 40,
+        height: 1,
+        x: 0,
+        y: 20,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+    expect(blockHandleContentTop(blockEl)).toBe(20.5 - BLOCK_HANDLE_HEIGHT / 2);
+    blockEl.remove();
+  });
+
   test("places the handle top at the block's top edge with a gap before the block", () => {
     const placed = placeBlockHandle(block, handle, viewport, null);
 
@@ -784,6 +851,141 @@ describe("block handle overlay", () => {
       });
       mounted.host.remove();
       restore();
+    }
+  });
+});
+
+// Same contract as before handleBands resolved ids in one walk: every rendered block
+// is looked up with findBlockById, one document walk per block.
+function referenceBands(editor: SlateEditor, editable: HTMLElement): HandleBand[] {
+  const byId = new Map<string, HandleBand>();
+  for (const node of editable.querySelectorAll("[data-block-id]")) {
+    if (!(node instanceof HTMLElement) || node.closest("[data-preview-path]")) {
+      continue;
+    }
+    const id = node.getAttribute("data-block-id");
+    if (id === null || id.length === 0) {
+      continue;
+    }
+    const entry = findBlockById(editor, id);
+    if (!entry) {
+      continue;
+    }
+    const target = blockHandleTarget(chainAtPath(editor, entry[1]));
+    if (!target) {
+      continue;
+    }
+    const rect = node.getBoundingClientRect();
+    if (rect.height <= 0) {
+      continue;
+    }
+    const existing = byId.get(target.id);
+    if (existing && existing.bottom - existing.top <= rect.height) {
+      continue;
+    }
+    byId.set(target.id, {
+      id: target.id,
+      path: entry[1],
+      top: rect.top,
+      bottom: rect.bottom,
+      depth: entry[1].length,
+    });
+  }
+  return sortHandleBands([...byId.values()]);
+}
+
+// jsdom has no layout. Each rendered block gets a 30px-tall rect, stacked 40px apart in
+// document order, which is what the browser reports for a plain stack of blocks.
+function stubBlockRects(host: HTMLElement): void {
+  let top = 0;
+  for (const node of host.querySelectorAll<HTMLElement>("[data-block-id]")) {
+    const rect = {
+      top,
+      bottom: top + 30,
+      left: 100,
+      right: 500,
+      width: 400,
+      height: 30,
+      x: 100,
+      y: top,
+    };
+    Reflect.set(node, "getBoundingClientRect", () => ({ ...rect, toJSON: () => rect }));
+    top += 40;
+  }
+}
+
+async function mountSurface(value: EditorValue): Promise<{
+  editor: ReturnType<typeof createPlateEditor>;
+  host: HTMLDivElement;
+  unmount: () => Promise<void>;
+}> {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const editor = createPlateEditor({ plugins: createEditorPlugins(), value });
+  if (!isReactContainer(host)) {
+    throw new Error("Missing mount node.");
+  }
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(
+      <EditorSurface editor={editor} readOnly={false} placeholder="" className="editor" />,
+    );
+  });
+  return {
+    editor,
+    host,
+    unmount: async () => {
+      await act(async () => {
+        root.unmount();
+      });
+      host.remove();
+    },
+  };
+}
+
+describe("block handle bands", () => {
+  test("the demo document gets the same bands as a per-block findBlockById lookup", async () => {
+    const mounted = await mountSurface(DEMO_DOCUMENT_VALUE);
+    try {
+      stubBlockRects(mounted.host);
+      const editable = mounted.host.querySelector<HTMLElement>("[data-slate-editor]");
+      if (!editable) {
+        throw new Error("Missing editable.");
+      }
+      const bands = handleBands(mounted.editor);
+      expect(bands.length).toBeGreaterThan(0);
+      expect(bands).toEqual(referenceBands(mounted.editor, editable));
+    } finally {
+      await mounted.unmount();
+    }
+  });
+
+  test("one call walks the document a constant number of times, not once per block", async () => {
+    const value = Array.from({ length: 300 }, (_, index) =>
+      paragraph(`p${index}`, `Line ${index}`),
+    );
+    const mounted = await mountSurface(value);
+    const api = mounted.editor.api;
+    const nodes = api.nodes;
+    const rootAts: unknown[] = [];
+    const counted = (...args: Parameters<typeof nodes>): ReturnType<typeof nodes> => {
+      const at: unknown = Reflect.get(args[0] ?? {}, "at");
+      if (at === undefined || (Array.isArray(at) && at.length === 0)) {
+        rootAts.push(at);
+      }
+      return nodes(...args);
+    };
+    try {
+      stubBlockRects(mounted.host);
+      Reflect.set(api, "nodes", counted);
+      const bands = handleBands(mounted.editor);
+      expect(bands.length).toBe(300);
+      // The counter is installed, so a zero count below would be a real result.
+      expect(rootAts.length).toBeGreaterThan(0);
+      expect(rootAts.length).toBeLessThanOrEqual(2);
+    } finally {
+      Reflect.set(api, "nodes", nodes);
+      await mounted.unmount();
     }
   });
 });

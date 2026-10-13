@@ -9,6 +9,7 @@ const STATIC_ROUTES = [
   { path: "/blocks", priority: 0.6 },
   { path: "/blocks/crm-data-table", priority: 0.5 },
   { path: "/blocks/error-page", priority: 0.5 },
+  { path: "/components/audio-player", priority: 0.6 },
   { path: "/components/github-contributions-3d", priority: 0.6 },
   { path: "/components/scroll-minimap", priority: 0.6 },
   { path: "/components/shadcn-tags-input", priority: 0.6 },

@@ -44,24 +44,16 @@ import {
   setCalloutTone,
 } from "../../lib/commands/editor-commands";
 import {
-  CALLOUT_DEFAULT_ICON,
   CALLOUT_ICONS,
   CALLOUT_TONES,
   type CalloutIcon,
-  type CalloutTone,
 } from "../../lib/document/editor-document-schema";
 import { MENU_ITEM_ACTIVE, MENU_ITEM_ACTIVE_CHECKED } from "../../lib/features/editor-menu-active";
 import { Button } from "@/components/button";
 
-// role="note" is an ancillary note. An aside would be a complementary landmark.
-// AGENTS.md keeps the accent for active states. The fill is the tone surface.
-export const CALLOUT_TONE_CLASS_NAME = {
-  default: "border-editor-callout-default-border bg-editor-callout-default-bg text-foreground",
-  info: "border-editor-callout-info-border bg-editor-callout-info-bg text-foreground",
-  success: "border-editor-callout-success-border bg-editor-callout-success-bg text-foreground",
-  warning: "border-editor-callout-warning-border bg-editor-callout-warning-bg text-foreground",
-  danger: "border-editor-callout-danger-border bg-editor-callout-danger-bg text-foreground",
-} as const;
+import { CALLOUT_TONE_CLASS_NAME, calloutIcon, calloutTone } from "./callout-classes";
+
+export { CALLOUT_TONE_CLASS_NAME, calloutIcon, calloutTone };
 
 const TONE_LABEL = {
   default: "Default",
@@ -93,16 +85,6 @@ function CalloutIconGlyph({ icon }: { icon: CalloutIcon }) {
   const { Icon } = CALLOUT_ICON_GLYPH[icon];
 
   return <Icon aria-hidden="true" className={CALLOUT_ICON_CLASS} />;
-}
-
-export function calloutIcon(value: unknown): CalloutIcon {
-  const found = CALLOUT_ICONS.find((icon) => icon === value);
-  return found ?? CALLOUT_DEFAULT_ICON;
-}
-
-export function calloutTone(value: unknown): "default" | CalloutTone {
-  const found = CALLOUT_TONES.find((tone) => tone === value);
-  return found ?? "default";
 }
 
 function elementAttr(element: object, key: string): unknown {

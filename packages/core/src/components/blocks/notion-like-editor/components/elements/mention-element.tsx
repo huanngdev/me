@@ -238,6 +238,7 @@ export function MentionInputElement({ attributes, children, element }: PlateElem
       </span>
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
+        aria-label="Mention suggestions"
         side="bottom"
         align="start"
         sideOffset={4}

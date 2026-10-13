@@ -1,6 +1,13 @@
 import { ElementApi, KEYS, type SlateEditor } from "platejs";
 
+import { FOOTNOTE_DEF_KEY } from "../document/editor-document-schema";
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
+import { FILE_KEY } from "./editor-file";
+import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
+import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 4;
@@ -18,18 +25,25 @@ const ELIGIBLE = new Set<string>([
   KEYS.toggle,
   KEYS.hr,
   BOOKMARK_KEY,
+  IMAGE_KEY,
+  FILE_KEY,
+  VIDEO_KEY,
+  AUDIO_KEY,
+  EMBED_KEY,
+  PAGE_LINK_KEY,
   KEYS.toc,
   KEYS.equation,
   SYNCED_REF_KEY,
   KEYS.codeBlock,
   KEYS.table,
   KEYS.columnGroup,
+  FOOTNOTE_DEF_KEY,
 ]);
 
-// The handle is top-aligned to the target block's border box: the handle's top
-// edge and the block's top edge are flush, for every block type. There is no
-// first-text-line mode and no per-type list; a child that has its own handle
-// uses its own border box. `placeBlockHandle` is the one pure placement rule.
+// The handle's top edge is flush with the top of the block's visible content.
+// A block that pads around that content marks it with `data-block-handle-anchor`;
+// placement reads that marker and otherwise uses the block element. There is no
+// per-type list. `placeBlockHandle` is the one pure placement rule.
 
 // One vertical band per rendered target block. The bands are how the handle
 // keeps a target in the gaps between blocks, where no element is hit. `depth`
@@ -322,9 +336,28 @@ export function isTypingKey(event: {
   return event.key.length === 1;
 }
 
-// The target block's border box, in viewport coordinates. `blockTop` is the
-// handle's top; `blockLeft` is the horizontal anchor (the gutter anchor for a
-// nested block). `blockBottom` is only used for the visibility test.
+export const BLOCK_HANDLE_ANCHOR = "data-block-handle-anchor";
+
+// Visible-content top. A marked child wins; otherwise the block element's top.
+export function blockHandleContentTop(block: HTMLElement): number {
+  const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
+  if (anchor instanceof HTMLElement) {
+    const rect = anchor.getBoundingClientRect();
+    if (rect.height > 0) {
+      // "center" puts the handle's midline on the anchor (the divider rule).
+      if (anchor.getAttribute(BLOCK_HANDLE_ANCHOR) === "center") {
+        return rect.top + rect.height / 2 - BLOCK_HANDLE_HEIGHT / 2;
+      }
+      return rect.top;
+    }
+  }
+
+  return block.getBoundingClientRect().top;
+}
+
+// The target block's box, in viewport coordinates. `blockTop` is the handle's
+// top (the visible content); `blockLeft` is the horizontal anchor (the gutter
+// anchor for a nested block). `blockBottom` is only used for the visibility test.
 export type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;

@@ -10,12 +10,8 @@ import { createPlateEditor } from "platejs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
+import { COLUMN_GROUP_LAYOUT_CLASS } from "../components/elements/column-element";
 import {
-  COLUMN_GROUP_LAYOUT_CLASS,
-  COLUMN_REMOVE_CONFIRM,
-} from "../components/elements/column-element";
-import {
-  COLUMN_CHILD_LIFTED,
   COLUMN_LIFT_CALLOUT,
   COLUMN_LIFT_QUOTE,
   COLUMN_LIFT_TABLE,
@@ -374,7 +370,7 @@ describe("column schema", () => {
     }
   });
 
-  test("a one-column group unwraps, a nested group lifts, and a disallowed child lifts", () => {
+  test("a one-column group unwraps, a nested group lifts, and a disallowed child lifts to the top level, where it is unsupported", () => {
     const unwrapped = expectOk(
       documentOf([group("g", [column("a", "100%", [paragraph("Only", "only")])])]),
     );
@@ -407,20 +403,14 @@ describe("column schema", () => {
       id: "line-1",
       children: [{ text: "code" }],
     };
-    const lifted = expectOk(
-      documentOf([
-        group("g", [
-          column("a", "50%", [paragraph("A", "a"), line]),
-          column("b", "50%", [paragraph("B", "b")]),
-        ]),
+    // The lifted code line lands at the top level, which the validator rejects, so the document is kept raw.
+    const lifted = documentOf([
+      group("g", [
+        column("a", "50%", [paragraph("A", "a"), line]),
+        column("b", "50%", [paragraph("B", "b")]),
       ]),
-    );
-    expect(messages(lifted)).toContain(COLUMN_CHILD_LIFTED);
-    expect(lifted.document.content.map((block) => block.type)).toEqual([
-      "column_group",
-      "code_line",
     ]);
-    expect(paragraphs(lifted.document.content)).toEqual(["A", "B", "code"]);
+    expect(lifted.status).toBe("unsupported");
   });
 
   test("an unknown attribute keeps the raw document", () => {
@@ -753,7 +743,15 @@ describe("column rendering", () => {
     expect(layout?.className).toContain("grid-cols-1");
     expect(COLUMN_GROUP_LAYOUT_CLASS).toContain("grid-cols-1");
     expect(mounted.host.querySelectorAll("[data-column-resize]")).toHaveLength(1);
-    expect(mounted.host.querySelector("[data-column-toolbar]")).toBeTruthy();
+    expect(mounted.host.querySelector("[data-column-toolbar]")).toBeNull();
+    const groupNode = mounted.host.querySelector("[data-block-id='g']");
+    await act(async () => {
+      groupNode?.dispatchEvent(new PointerEvent("pointermove", { bubbles: true }));
+      if (groupNode instanceof HTMLElement) {
+        groupNode.focus();
+      }
+    });
+    expect(document.querySelector("[data-column-toolbar]")).toBeNull();
     await mounted.cleanup();
 
     const readOnly = await mountColumns(value, true);
@@ -825,7 +823,63 @@ describe("column rendering", () => {
     await mounted.cleanup();
   });
 
-  test("removing the group asks for a second click and then deletes its content", async () => {
+  test("the resize separator exposes its left width and limits and follows the keyboard", async () => {
+    const mounted = await mountColumns([
+      group("g", [
+        column("a", "34%", [paragraph("Left", "left")]),
+        column("b", "33%", [paragraph("Middle", "middle")]),
+        column("c", "33%", [paragraph("Right", "right")]),
+      ]),
+    ]);
+    const handle = mounted.host.querySelector("[data-column-resize]");
+    if (!(handle instanceof HTMLElement)) {
+      throw new Error("Missing column resize handle.");
+    }
+
+    expect(handle.getAttribute("aria-valuenow")).toBe("34");
+    expect(handle.getAttribute("aria-valuemin")).toBe("20");
+    expect(handle.getAttribute("aria-valuemax")).toBe("60");
+    handle.focus();
+    await act(async () => {
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    expect(widthsOf(mounted.editor.children[0])).toEqual(["29%", "38%", "33%"]);
+    expect(handle.getAttribute("aria-valuenow")).toBe("29");
+    await mounted.cleanup();
+  });
+
+  test("the handle keeps its separator attributes and draws one hidden pill", async () => {
+    const mounted = await mountColumns([
+      group("g", [
+        column("a", "50%", [paragraph("Left", "left")]),
+        column("b", "50%", [paragraph("Right", "right")]),
+      ]),
+    ]);
+    const handle = mounted.host.querySelector("[data-column-resize]");
+    if (!(handle instanceof HTMLElement)) {
+      throw new Error("Missing column resize handle.");
+    }
+
+    expect(handle.getAttribute("role")).toBe("separator");
+    expect(handle.getAttribute("aria-label")).toBe("Resize column 1");
+    expect(handle.getAttribute("aria-valuenow")).toBe("50");
+    expect(handle.getAttribute("tabindex")).toBe("0");
+    expect(handle.getAttribute("data-column-resize")).toBe("0");
+    expect(handle.className).not.toContain("hover:bg-border");
+    expect(handle.className).not.toContain("focus-visible:bg-border");
+
+    expect(handle.children).toHaveLength(1);
+    const pills = handle.querySelectorAll("[aria-hidden='true']");
+    expect(pills).toHaveLength(1);
+    const pill = pills[0]?.className ?? "";
+    expect(pill).toContain("h-12");
+    expect(pill).toContain("w-1.5");
+    expect(pill).toContain("rounded-full");
+    expect(pill).toContain("opacity-0");
+    await mounted.cleanup();
+  });
+
+  test("the block menu deletes a column group in one click and undoes it", async () => {
     const mounted = await mountColumns([
       paragraph("Stay", "stay"),
       group("g", [
@@ -833,23 +887,16 @@ describe("column rendering", () => {
         column("b", "50%", [paragraph("Too", "too")]),
       ]),
     ]);
-    const remove = mounted.host.querySelector("[aria-label='Delete']");
-    if (!(remove instanceof HTMLButtonElement)) {
-      throw new Error("Missing remove button.");
+    const menu = await openGroupMenu(mounted.host, "g");
+    const remove = [...menu.querySelectorAll("[role='menuitem']")].find(
+      (item) => item.textContent === "Delete",
+    );
+    if (!(remove instanceof HTMLElement)) {
+      throw new Error("Missing delete item.");
     }
-
+    expect(document.querySelector("[data-column-toolbar]")).toBeNull();
     await act(async () => {
       remove.click();
-    });
-    expect(mounted.host.textContent).toContain(COLUMN_REMOVE_CONFIRM);
-    expect(paragraphs(mounted.editor)).toEqual(["Stay", "Gone", "Too"]);
-
-    const confirm = mounted.host.querySelector(`[aria-label='${COLUMN_REMOVE_CONFIRM}']`);
-    if (!(confirm instanceof HTMLButtonElement)) {
-      throw new Error("Missing confirm button.");
-    }
-    await act(async () => {
-      confirm.click();
     });
     expect(paragraphs(mounted.editor)).toEqual(["Stay"]);
     await act(async () => {
@@ -859,48 +906,89 @@ describe("column rendering", () => {
     await mounted.cleanup();
   });
 
-  test("the columns menu checks the current count and changes it in one undo", async () => {
+  test("the block menu sets the column count and unwraps the group", async () => {
+    const plainMounted = await mountColumns([paragraph("Stay", "stay")]);
+    const plain = await openGroupMenu(plainMounted.host, "stay");
+    expect(plain.textContent).not.toContain("Turn into blocks");
+    expect(plain.querySelector("[data-block-menu-columns]")).toBeNull();
+    const turnInto = plain.querySelector("[data-block-menu-turn-into]");
+    if (!(turnInto instanceof HTMLElement)) {
+      throw new Error("Missing turn into.");
+    }
+    await act(async () => {
+      turnInto.click();
+    });
+    const turnMenu = document.querySelector("[data-block-turn-into-menu]");
+    expect(turnMenu).not.toBeNull();
+    expect(plain.contains(turnMenu)).toBe(false);
+    await plainMounted.cleanup();
+
     const mounted = await mountColumns([
+      paragraph("Stay", "stay"),
       group("g", [
         column("a", "50%", [paragraph("Left", "left")]),
         column("b", "50%", [paragraph("Right", "right")]),
       ]),
     ]);
     try {
-      const trigger = mounted.host.querySelector("[aria-label='Columns']");
-      if (!(trigger instanceof HTMLElement)) {
-        throw new Error("Missing the columns menu.");
-      }
-      const view = trigger.ownerDocument.defaultView;
-      if (!view) {
-        throw new Error("Missing window.");
+      const menu = await openGroupMenu(mounted.host, "g");
+      expect(menu.textContent).toContain("Turn into blocks");
+      const columns = menu.querySelector("[data-block-menu-columns]");
+      if (!(columns instanceof HTMLElement)) {
+        throw new Error("Missing columns submenu.");
       }
       await act(async () => {
-        trigger.dispatchEvent(
-          new view.PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }),
-        );
+        columns.click();
       });
-      const checked = document.querySelector("[role='menuitemradio'][aria-checked='true']");
-      const three = [...document.querySelectorAll("[role='menuitemradio']")].find((item) =>
-        item.textContent?.includes("3 columns"),
-      );
+      const submenu = document.querySelector("[data-block-columns-menu]");
+      expect(submenu).not.toBeNull();
+      expect(menu.contains(submenu)).toBe(false);
+      const checked = submenu?.querySelector("[role='menuitemradio'][aria-checked='true']");
+      const three = submenu?.querySelector("[data-column-count='3']");
       expect(checked?.textContent).toContain("2 columns");
-      expect(three instanceof HTMLElement).toBe(true);
       if (!(three instanceof HTMLElement)) {
-        return;
+        throw new Error("Missing 3 columns.");
       }
       const undos = mounted.editor.history.undos.length;
       await act(async () => {
-        three.dispatchEvent(new view.MouseEvent("click", { bubbles: true, cancelable: true }));
+        three.click();
       });
-      expect(mounted.editor.children[0]?.children).toHaveLength(3);
+      expect(mounted.editor.children[1]?.children).toHaveLength(3);
       expect(mounted.editor.history.undos.length).toBe(undos + 1);
       await act(async () => {
         mounted.editor.tf.undo();
       });
-      expect(mounted.editor.children[0]?.children).toHaveLength(2);
+      expect(mounted.editor.children[1]?.children).toHaveLength(2);
+
+      const again = await openGroupMenu(mounted.host, "g");
+      const unwrap = again.querySelector("[data-block-menu-unwrap]");
+      if (!(unwrap instanceof HTMLElement)) {
+        throw new Error("Missing turn into blocks.");
+      }
+      await act(async () => {
+        unwrap.click();
+      });
+      expect(mounted.editor.children.map((block) => block.type)).toEqual(["p", "p", "p"]);
+      expect(paragraphs(mounted.editor)).toEqual(["Stay", "Left", "Right"]);
     } finally {
       await mounted.cleanup();
     }
   });
 });
+
+async function openGroupMenu(host: HTMLElement, id: string): Promise<HTMLElement> {
+  const block = host.querySelector(`[data-block-id='${id}']`);
+  if (!(block instanceof HTMLElement)) {
+    throw new Error(`Missing block ${id}.`);
+  }
+  await act(async () => {
+    block.dispatchEvent(
+      new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 24, clientY: 24 }),
+    );
+  });
+  const menu = document.querySelector(`[data-block-menu][data-block-menu-for='${id}']`);
+  if (!(menu instanceof HTMLElement)) {
+    throw new Error(`Missing block menu for ${id}.`);
+  }
+  return menu;
+}

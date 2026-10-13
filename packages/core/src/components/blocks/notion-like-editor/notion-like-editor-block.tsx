@@ -1,7 +1,9 @@
 "use client";
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
+import type { FileUploadAdapter } from "./lib/features/editor-file-upload";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
+import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
 import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
 import type { EditorValue } from "./lib/document/editor-value";
 import { MemoryEditor } from "./components/editor/memory-editor";
@@ -13,10 +15,14 @@ export type NotionLikeEditorBlockProps = {
   onChange?: (value: EditorValue) => void;
   readOnly?: boolean;
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
   adapter?: EditorPersistenceAdapter;
   linkPreview?: LinkPreviewAdapter | null;
   mentionProvider?: MentionProvider | null;
+  pageProvider?: PageProvider | null;
+  onOpenPage?: (request: PageOpenRequest) => void;
+  fileUpload?: FileUploadAdapter | null;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {

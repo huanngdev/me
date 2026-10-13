@@ -12,7 +12,6 @@ import {
 import { allowsFirstChild } from "../document/editor-document-schema";
 
 // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
-// No shortcut. The "> " trigger is DEV-126.
 export const togglePlugin = createSlatePlugin({
   key: KEYS.toggle,
   node: { isElement: true },

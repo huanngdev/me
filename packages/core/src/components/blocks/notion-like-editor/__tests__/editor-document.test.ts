@@ -229,16 +229,17 @@ describe("document validation", () => {
   });
 
   test("an unknown attribute is unsupported and the raw input is kept", () => {
+    // indent is valid on a plain paragraph now, so the unknown attr is a made-up name.
     const raw = envelope("doc-attr", [
-      { type: "p", id: "p", indent: 1, children: [{ text: "Hi" }] },
+      { type: "p", id: "p", bogus: 1, children: [{ text: "Hi" }] },
     ]);
 
     const result = expectUnsupported(parseEditorDocument(raw));
 
     expect(result.raw).toBe(raw);
     expect(result.issues[0]?.path).toEqual([0]);
-    expect(result.issues[0]?.message).toContain("indent");
-    expect(field(raw.content[0], "indent")).toBe(1);
+    expect(result.issues[0]?.message).toContain("bogus");
+    expect(field(raw.content[0], "bogus")).toBe(1);
   });
 
   test("an unknown mark is unsupported and the raw input is kept", () => {

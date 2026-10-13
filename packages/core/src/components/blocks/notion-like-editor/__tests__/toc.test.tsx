@@ -714,10 +714,11 @@ describe("toc commands", () => {
       heading("h2", "Two", "two"),
       toc("outline"),
     ]);
-    const trigger = mounted.host.querySelector('[aria-label="Table of contents depth"]');
+    const trigger = mounted.host.querySelector('[aria-label^="Table of contents depth, current:"]');
     if (!(trigger instanceof HTMLElement)) {
       throw new Error("Missing the depth menu.");
     }
+    expect(trigger.getAttribute("aria-label")).toBe("Table of contents depth, current: H1–H3");
     const undos = mounted.editor.history.undos.length;
 
     await act(async () => {

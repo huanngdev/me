@@ -623,6 +623,7 @@ describe("equation editing", () => {
         await Promise.resolve();
       });
       expect(writes).toEqual([QUADRATIC]);
+      expect(button(mounted.host, "Copy source").parentElement?.className).toContain("absolute");
       expect(mounted.host.querySelector('[aria-label="Edit"]')).toBeNull();
       expect(mounted.host.querySelector('[aria-label="Delete"]')).toBeNull();
       expect(mounted.host.querySelector("[data-equation-toolbar]")).toBeNull();

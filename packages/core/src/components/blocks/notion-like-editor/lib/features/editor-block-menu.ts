@@ -10,11 +10,23 @@ import {
 } from "platejs";
 
 import { BOOKMARK_KEY } from "./editor-bookmark-url";
+import { AUDIO_KEY } from "./editor-audio";
+import { EMBED_KEY } from "./editor-embed";
+import { FILE_KEY } from "./editor-file";
+import { IMAGE_KEY } from "./editor-image";
+import { VIDEO_KEY } from "./editor-video";
+import { PAGE_LINK_KEY } from "./editor-page-link";
+import { isInsideTable } from "./editor-block-tone";
+import { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
+import { blockIndentOf, isListParagraph } from "./editor-block-indent-style";
 import { SYNCED_REF_KEY } from "./editor-synced-block";
 import {
+  FOOTNOTE_DEF_KEY,
+  FOOTNOTE_REF_KEY,
   allowedChildTypes,
   allowsFirstChild,
   containerContentType,
+  isPaletteToken,
   maxNesting,
 } from "../document/editor-document-schema";
 
@@ -108,13 +120,23 @@ const STRUCTURAL = new Set<string>([
   KEYS.th,
   KEYS.hr,
   BOOKMARK_KEY,
+  IMAGE_KEY,
+  FILE_KEY,
+  VIDEO_KEY,
+  AUDIO_KEY,
+  EMBED_KEY,
+  PAGE_LINK_KEY,
   KEYS.equation,
   KEYS.toc,
   SYNCED_REF_KEY,
   KEYS.codeLine,
+  // A definition is neither a Turn into source nor a target.
+  FOOTNOTE_DEF_KEY,
 ]);
 
 const TOGGLE_KINDS = new Set<BlockMenuKind>(["toggle", "toggle-h1", "toggle-h2", "toggle-h3"]);
+
+const TONE_KEYS = ["textTone", "backgroundTone"] as const;
 
 const LIST_ATTRS = [
   "listStyleType",
@@ -172,6 +194,20 @@ export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null 
   return currentKind(view);
 }
 
+export type ColumnGroupMenu = {
+  count: 2 | 3;
+};
+
+// The column hover bar is gone. These two actions live on the block menu when
+// the target is a column group, and nowhere else.
+export function columnGroupMenu(view: MenuBlockView): ColumnGroupMenu | null {
+  if (view.type !== KEYS.columnGroup) {
+    return null;
+  }
+
+  return { count: view.children.length === 3 ? 3 : 2 };
+}
+
 export function menuBlockView(editor: SlateEditor, path: number[]): MenuBlockView | null {
   const entry = editor.api.node(path);
   const node = entry?.[0];
@@ -192,12 +228,22 @@ export function applyBlockTurn(editor: SlateEditor, path: number[], kind: BlockM
 
   const view = viewAt(editor, node, entry[1]);
   const decision = blockMenuDecisions(view)?.find((item) => item.kind === kind);
-  if (!decision || !decision.allowed || decision.effect === "same") {
+  if (!decision || !decision.allowed) {
     return false;
+  }
+  // Turning into the same kind changes nothing, and that is still an accepted turn.
+  if (decision.effect === "same") {
+    return true;
   }
 
   const seen = collectIds(editor);
   const replacement = replacementNodes(node, decision.effect, kind, seen);
+  // Table cells own their colour, so nothing inside a table keeps a tone.
+  if (isInsideTable(editor, at)) {
+    for (const next of replacement) {
+      unsetTones(next);
+    }
+  }
   editor.tf.withoutNormalizing(() => {
     replaceAt(editor, at, replacement);
   });
@@ -552,6 +598,21 @@ function article(type: string): string {
   if (type === KEYS.hr) {
     return "a divider";
   }
+  if (type === IMAGE_KEY) {
+    return "an image";
+  }
+  if (type === FILE_KEY) {
+    return "a file";
+  }
+  if (type === VIDEO_KEY) {
+    return "a video";
+  }
+  if (type === AUDIO_KEY) {
+    return "an audio file";
+  }
+  if (type === EMBED_KEY) {
+    return "an embed";
+  }
   return "that block";
 }
 
@@ -633,10 +694,26 @@ function replacementNodes(
   return [structuredClone(node)];
 }
 
+// A plain indent moves to the next block. A list item's depth is not a plain indent, so it stops here.
+function plainIndentOf(node: TElement): number | undefined {
+  if (isListParagraph(node)) {
+    return undefined;
+  }
+  return blockIndentOf(node) || undefined;
+}
+
 function retypeLeaf(node: TElement, kind: BlockMenuKind): TElement {
   const align = stringProp(node, "align");
   const lineHeight = stringProp(node, "lineHeight");
-  return textBlock(nodeId(node), kind, structuredClone(node.children), align, lineHeight);
+  return textBlock(
+    nodeId(node),
+    kind,
+    structuredClone(node.children),
+    align,
+    lineHeight,
+    node,
+    plainIndentOf(node),
+  );
 }
 
 function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -644,8 +721,14 @@ function wrapLeaf(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElem
   const lineHeight = stringProp(node, "lineHeight");
   const inlines = structuredClone(node.children);
   const label = labelKind(kind, node);
-  const inner = textBlock(createId(seen), label, inlines, align, lineHeight);
-  return containerNode(nodeId(node), kind, [inner]);
+  const inner = textBlock(createId(seen), label, inlines, align, lineHeight, node);
+  const outer = containerNode(nodeId(node), kind, [inner]);
+  // Only a quote keeps a plain indent on its own element. Callout and toggle drop it.
+  const indent = plainIndentOf(node);
+  if (kind === "quote" && indent !== undefined) {
+    setProp(outer, "indent", indent);
+  }
+  return outer;
 }
 
 function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>): TElement {
@@ -654,6 +737,9 @@ function retypeContainer(node: TElement, kind: BlockMenuKind, seen: Set<string>)
   unsetProp(next, "icon");
   unsetProp(next, "variant");
   unsetProp(next, "lineHeight");
+  if (!BLOCK_TONE_TYPES.includes(next.type)) {
+    unsetTones(next);
+  }
   for (const key of LIST_ATTRS) {
     unsetProp(next, key);
   }
@@ -679,19 +765,33 @@ function containerToLeaf(
 ): { leaf: TElement; rest: TElement[] } {
   const children = blockElements(node);
   const first = children[0];
+  // A quote's indent comes along, else the first plain child's, as align does.
+  const quoteIndent = plainIndentOf(node);
   if (first && canRepresent(childView(first), kind)) {
+    // A toned quote keeps its tone. Otherwise the first child's tone comes along, as align does.
+    const toned = hasTone(node) ? node : first;
     const leaf = textBlock(
       nodeId(node),
       kind,
       structuredClone(first.children),
       stringProp(first, "align"),
       stringProp(first, "lineHeight"),
+      toned,
+      quoteIndent ?? plainIndentOf(first),
     );
     return { leaf, rest: children.slice(1).map((child) => structuredClone(child)) };
   }
 
   return {
-    leaf: textBlock(nodeId(node), kind, [{ text: "" }]),
+    leaf: textBlock(
+      nodeId(node),
+      kind,
+      [{ text: "" }],
+      undefined,
+      undefined,
+      undefined,
+      quoteIndent,
+    ),
     rest: children.map((child) => structuredClone(child)),
   };
 }
@@ -773,14 +873,21 @@ function childView(node: TElement): MenuChildView {
   };
 }
 
+// A list kind takes indent as its depth, and 1 when there is none. A plain paragraph or
+// heading takes indent only when given one.
 function textBlock(
   id: string,
   kind: BlockMenuKind,
   children: Descendant[],
   align?: string,
   lineHeight?: string,
+  toneSource?: TElement,
+  indent?: number,
 ): TElement {
   const node: TElement = { type: slateType(kind), id, children };
+  if (toneSource !== undefined) {
+    copyTones(node, toneSource);
+  }
   if (align !== undefined && allowsAlign(kind)) {
     setProp(node, "align", align);
   }
@@ -790,7 +897,9 @@ function textBlock(
   const style = listStyleOf(kind);
   if (style !== undefined) {
     setProp(node, "listStyleType", style);
-    setProp(node, "indent", 1);
+    setProp(node, "indent", indent ?? 1);
+  } else if (indent !== undefined && isPlainIndentKind(kind)) {
+    setProp(node, "indent", indent);
   }
   if (kind === "numbered") {
     setProp(node, "listStart", 1);
@@ -807,6 +916,34 @@ function containerNode(id: string, kind: BlockMenuKind, children: Descendant[]):
 
 function codeLine(id: string, text: string): TElement {
   return { type: KEYS.codeLine, id, children: [{ text }] };
+}
+
+// Tones move only onto block types that store them. Callout and toggle drop them.
+function copyTones(target: TElement, source: TElement): void {
+  if (!BLOCK_TONE_TYPES.includes(target.type)) {
+    return;
+  }
+
+  for (const key of TONE_KEYS) {
+    const value = stringProp(source, key);
+    if (isPaletteToken(value)) {
+      setProp(target, key, value);
+    }
+  }
+}
+
+function unsetTones(node: TElement): void {
+  for (const key of TONE_KEYS) {
+    unsetProp(node, key);
+  }
+}
+
+function hasTone(node: TElement): boolean {
+  return TONE_KEYS.some((key) => stringProp(node, key) !== undefined);
+}
+
+function isPlainIndentKind(kind: BlockMenuKind): boolean {
+  return kind === "paragraph" || kind === "h1" || kind === "h2" || kind === "h3";
 }
 
 function allowsAlign(kind: BlockMenuKind): boolean {
@@ -907,7 +1044,13 @@ function blockElements(node: TElement): TElement[] {
     if (!ElementApi.isElement(child) || typeof child.type !== "string") {
       continue;
     }
-    if (child.type === KEYS.link || child.type === KEYS.mention) {
+    if (
+      child.type === KEYS.link ||
+      child.type === KEYS.mention ||
+      child.type === KEYS.inlineEquation ||
+      child.type === KEYS.date ||
+      child.type === FOOTNOTE_REF_KEY
+    ) {
       continue;
     }
     blocks.push(child);
@@ -953,7 +1096,13 @@ function viewAt(editor: SlateEditor, node: TElement, path: number[]): MenuBlockV
 
 function isRich(node: Descendant): boolean {
   if (ElementApi.isElement(node)) {
-    if (node.type === KEYS.link || node.type === KEYS.mention) {
+    if (
+      node.type === KEYS.link ||
+      node.type === KEYS.mention ||
+      node.type === KEYS.inlineEquation ||
+      node.type === KEYS.date ||
+      node.type === FOOTNOTE_REF_KEY
+    ) {
       return true;
     }
     return node.children.some((child) => isRich(child));
@@ -991,7 +1140,7 @@ function selectStart(editor: SlateEditor, path: number[]): void {
   }
 }
 
-function collectIds(editor: SlateEditor): Set<string> {
+export function collectIds(editor: SlateEditor): Set<string> {
   const seen = new Set<string>();
   const visit = (node: Descendant): void => {
     if (!ElementApi.isElement(node)) {
@@ -1009,6 +1158,12 @@ function collectIds(editor: SlateEditor): Set<string> {
     visit(child);
   }
   return seen;
+}
+
+export function cloneWithFreshIds(node: TElement, seen: Set<string>): TElement {
+  const copy = structuredClone(node);
+  assignNewIds(copy, seen);
+  return copy;
 }
 
 function assignNewIds(node: TElement, seen: Set<string>): void {

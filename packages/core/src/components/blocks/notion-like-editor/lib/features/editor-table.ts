@@ -495,6 +495,7 @@ export function fillTableWithTsv(
   return { handled: true, truncated };
 }
 
+// A root table always gets a paragraph after it: that paragraph is the only place for a caret below the table.
 function followingParagraphAllowed(editor: SlateEditor, tablePath: number[]): boolean {
   if (tablePath.length === 1) {
     return true;

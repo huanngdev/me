@@ -11,7 +11,7 @@ import { MEDIA_NOT_SUPPORTED, pasteRepairsOf, rejectDroppedFiles } from "../lib/
 import { pasteUrlActions } from "../lib/paste/editor-paste-url";
 import { EditorSurface } from "../components/editor/editor-surface";
 import type { EditorValue } from "../lib/document/editor-value";
-import { caret, createEditor, expectUnsupported, field } from "./test-utils";
+import { caret, createEditor, expectOk, expectUnsupported, field } from "./test-utils";
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
@@ -125,21 +125,48 @@ describe("legacy media documents", () => {
     expectLegacyKept("img", { url: "blob:https://local/shot", alt: "Hill" });
   });
 
-  test("a stored video node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("video", { url: "/clip.webm", mimeType: "video/webm" });
+  // A video or audio node is a block now. Only a field it does not have makes it unsupported.
+  test("a stored video node with its own fields is a video block, not unsupported", () => {
+    const raw = legacyDocument("video", { url: "/clip.webm", mime: "video/webm", width: 60 });
+    const result = expectOk(parseEditorDocument(raw));
+    expect(result.document.content.map((node) => node.type)).toEqual(["p", "video"]);
+    expect(field(result.document.content[1], "mime")).toBe("video/webm");
   });
 
-  test("a stored audio node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("audio", { url: "/tone.wav", mimeType: "audio/wav" });
+  test("a stored audio node with its own fields is an audio block, not unsupported", () => {
+    const raw = legacyDocument("audio", { url: "/tone.wav", mime: "audio/wav", caption: "Tone" });
+    const result = expectOk(parseEditorDocument(raw));
+    expect(result.document.content.map((node) => node.type)).toEqual(["p", "audio"]);
+    expect(field(result.document.content[1], "caption")).toBe("Tone");
   });
 
-  test("a stored file node is unsupported and the raw document is kept", () => {
-    expectLegacyKept("file", {
+  test("a stored video node with a field it does not have is unsupported, and the raw document is kept", () => {
+    const raw = legacyDocument("video", { url: "/clip.webm", mimeType: "video/webm" });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes("mimeType"))).toBe(true);
+  });
+
+  test("a stored audio node with a field it does not have is unsupported, and the raw document is kept", () => {
+    const raw = legacyDocument("audio", { url: "/tone.wav", mimeType: "audio/wav" });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes("mimeType"))).toBe(true);
+  });
+
+  // "file" is a block now. The old attributes mimeType and byteSize are not file attributes, so a
+  // stored file with them is unsupported and kept raw, and the message names the attribute.
+  test("a stored file node with the old mimeType and byteSize attributes is unsupported and kept raw", () => {
+    const raw = legacyDocument("file", {
       url: "/notes.pdf",
       mimeType: "application/pdf",
       name: "notes.pdf",
       byteSize: 591,
     });
+    const result = expectUnsupported(parseEditorDocument(raw));
+    expect(result.raw).toBe(raw);
+    expect(result.issues.some((issue) => issue.message.includes('"mimeType"'))).toBe(true);
+    expect(raw.content.map((node) => node.type)).toEqual(["p", "file"]);
   });
 
   test("a stored media_embed node is unsupported and the raw document is kept", () => {
@@ -181,7 +208,7 @@ describe("file and html media paste", () => {
     expect(documentText(editor)).toBe("Stay");
   });
 
-  test("html img, video, audio, and iframe nodes are dropped with one repair", () => {
+  test("html img, video, audio, and iframe nodes are dropped with one repair, and alt text is kept", () => {
     const editor = createEditor([paragraph("")]);
     editor.tf.select(caret([0, 0], 0));
     pasteHtml(
@@ -194,14 +221,14 @@ describe("file and html media paste", () => {
     expect(stored).not.toContain("audio");
     expect(stored).not.toContain("media_embed");
     expect(stored).not.toContain("unsupported_media");
-    expect(stored).not.toContain("world");
+    expect(stored).toContain("world");
     expect(stored).not.toContain("youtube.com");
     expect(documentText(editor)).toContain("Hello");
     expect(documentText(editor)).toContain("there");
     expect(pasteRepairsOf(editor)).toEqual([{ path: [], message: MEDIA_NOT_SUPPORTED }]);
   });
 
-  test("a pasted editor image fragment inserts nothing", () => {
+  test("a pasted editor image fragment keeps the alt text and reports the drop", () => {
     const editor = createEditor([paragraph("Stay")]);
     editor.tf.select(caret([0, 0], 0));
     editor.tf.insertFragment([
@@ -213,17 +240,17 @@ describe("file and html media paste", () => {
         children: [{ text: "" }],
       },
     ]);
-    expect(editor.children.map((block) => block.type)).toEqual(["p"]);
-    expect(documentText(editor)).toBe("Stay");
-    expect(JSON.stringify(editor.children)).not.toContain("Hill");
+    expect(documentText(editor)).toContain("Stay");
+    expect(documentText(editor)).toContain("Hill");
+    expect(JSON.stringify(editor.children)).not.toContain("images.example");
     expect(pasteRepairsOf(editor)).toEqual([{ path: [], message: MEDIA_NOT_SUPPORTED }]);
   });
 });
 
-describe("paste url menu without embed", () => {
-  test("a youtube url offers bookmark and keep as link only", async () => {
-    expect(pasteUrlActions.map((action) => action.id)).toEqual(["bookmark"]);
-    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark"]);
+describe("paste url menu for a video link", () => {
+  test("a youtube url offers bookmark and embed, and keep as link", async () => {
+    expect(pasteUrlActions.map((action) => action.id)).toEqual(["bookmark", "embed"]);
+    expect(pasteUrlActions.map((action) => action.label)).toEqual(["Bookmark", "Embed"]);
     const mounted = await mountEditor([paragraph("")]);
     try {
       mounted.editor.tf.select(caret([0, 0], 0));
@@ -236,8 +263,7 @@ describe("paste url menu without embed", () => {
       const labels = [...(menu?.querySelectorAll("button") ?? [])].map(
         (button) => button.textContent,
       );
-      expect(labels).toEqual(["Bookmark", "Keep as link"]);
-      expect(menu?.textContent).not.toContain("Embed");
+      expect(labels).toEqual(["Bookmark", "Embed", "Keep as link"]);
     } finally {
       await mounted.cleanup();
     }

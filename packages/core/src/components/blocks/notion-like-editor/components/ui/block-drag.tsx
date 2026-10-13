@@ -19,6 +19,12 @@ import { useEditorRef } from "platejs/react";
 
 import { moveBlock, runEditorCommand } from "../../lib/commands/editor-commands";
 import {
+  blockSelectionIds,
+  clearBlockSelection,
+  moveBlocks,
+  selectedRunDrop,
+} from "../../lib/plugins/editor-block-selection";
+import {
   captureEditorScroll,
   listItemUnit,
   resolveDropIndicator,
@@ -26,6 +32,7 @@ import {
   type DropRect,
 } from "../../lib/features/editor-block-drop";
 import { setBlockDragArmed, type BlockHandleHit } from "../../lib/features/editor-block-handle";
+import { stripPreviewChrome } from "../../lib/features/editor-block-selection";
 import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
@@ -47,6 +54,8 @@ type SavedSelection = SlateEditor["selection"];
 type DragSession = {
   path: number[];
   id: string;
+  span?: readonly [number, number];
+  blockMode: boolean;
   startX: number;
   startY: number;
   pointerX: number;
@@ -64,6 +73,7 @@ type PreviewData = {
   cap: number;
   offsetX: number;
   offsetY: number;
+  extra: number;
 };
 
 function cloneSelection(selection: SavedSelection): SavedSelection {
@@ -96,7 +106,11 @@ function elementIdOf(node: Descendant | undefined): string {
   return typeof id === "string" ? id : "";
 }
 
-function movingBlockIds(editor: SlateEditor, path: readonly number[]): string[] {
+function movingBlockIds(
+  editor: SlateEditor,
+  path: readonly number[],
+  span?: readonly [number, number],
+): string[] {
   const index = path[path.length - 1];
   if (index === undefined) {
     return [];
@@ -115,7 +129,7 @@ function movingBlockIds(editor: SlateEditor, path: readonly number[]): string[] 
   if (!siblings) {
     return [];
   }
-  const [start, end] = listItemUnit(siblings, index);
+  const [start, end] = span ?? listItemUnit(siblings, index);
   const ids: string[] = [];
   for (let cursor = start; cursor < end; cursor += 1) {
     const id = elementIdOf(siblings[cursor]);
@@ -286,6 +300,7 @@ function sourceNodes(id: string): HTMLElement[] {
 // editor queries on the document is stripped so the copy stays invisible to it.
 function sanitizeClone(source: HTMLElement): HTMLElement {
   const clone = source.cloneNode(true) as HTMLElement;
+  stripPreviewChrome(clone);
   for (const node of [clone, ...clone.querySelectorAll("*")]) {
     if (!(node instanceof HTMLElement)) {
       continue;
@@ -293,6 +308,7 @@ function sanitizeClone(source: HTMLElement): HTMLElement {
     // The source block is dimmed before the copy is taken; the copy must not
     // carry that dim class or the overlay's own opacity multiplies it.
     node.classList.remove(SOURCE_DIM);
+    node.removeAttribute("data-block-selected");
     node.removeAttribute("data-block-id");
     node.removeAttribute("data-cell-selected");
     node.removeAttribute("id");
@@ -332,12 +348,14 @@ function buildPreview(
     width = Math.max(width, source.getBoundingClientRect().width);
   }
   const rect = first.getBoundingClientRect();
+  const shown = sources.slice(0, 3);
   return {
-    nodes: sources.map((source) => sanitizeClone(source)),
+    nodes: shown.map((source) => sanitizeClone(source)),
     width,
     cap: Math.max(120, Math.round(window.innerHeight * PREVIEW_MAX_VIEWPORT_RATIO)),
     offsetX: activeRect ? rect.left - activeRect.left : 0,
     offsetY: activeRect ? rect.top - activeRect.top : 0,
+    extra: sources.length - shown.length,
   };
 }
 
@@ -371,20 +389,35 @@ function DragPreview({ preview }: { preview: PreviewData | null }) {
   }
   return (
     <div
+      className="relative"
       data-block-drag-overlay=""
-      ref={hostRef}
       aria-hidden="true"
       inert
       contentEditable={false}
-      className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
-      style={{
-        width: preview.width,
-        maxHeight: preview.cap,
-        overflow: "hidden",
-        opacity: PREVIEW_OPACITY,
-        transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
-      }}
-    />
+    >
+      <div
+        ref={hostRef}
+        aria-hidden="true"
+        inert
+        contentEditable={false}
+        className="pointer-events-none space-y-4 select-none [&>[data-list-item]:has(+[data-list-item])]:mb-1"
+        style={{
+          width: preview.width,
+          maxHeight: preview.cap,
+          overflow: "hidden",
+          opacity: PREVIEW_OPACITY,
+          transform: `translate(${preview.offsetX}px, ${preview.offsetY}px)`,
+        }}
+      />
+      {preview.extra > 0 ? (
+        <span
+          data-block-drag-more=""
+          className="bg-primary text-primary-foreground absolute right-2 bottom-2 rounded-md px-1.5 py-0.5 text-xs"
+        >
+          {`+${preview.extra}`}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -446,6 +479,14 @@ export function useBlockDrag({
   const userSelectRef = useRef("");
   const suppressClickRef = useRef(false);
   const caretTimerRef = useRef(0);
+  const endDragRef = useRef<() => void>(() => undefined);
+  const cancelDragOnEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape") {
+      return;
+    }
+    event.preventDefault();
+    endDragRef.current();
+  };
 
   useEffect(() => {
     closeRef.current = closeMenu;
@@ -496,6 +537,7 @@ export function useBlockDrag({
       session.path,
       rectsRef.current,
       session.pointerY,
+      session.span,
     );
     document.documentElement.style.cursor = line ? "grabbing" : "not-allowed";
     setLine(line);
@@ -521,6 +563,7 @@ export function useBlockDrag({
       setOverlay(null);
       window.removeEventListener("scroll", refreshRects, true);
       window.removeEventListener("resize", refreshRects);
+      window.removeEventListener("keydown", cancelDragOnEscape, true);
       if (!restoreSelection || !session) {
         return;
       }
@@ -555,20 +598,40 @@ export function useBlockDrag({
     clearPointerRef.current();
     const live = editorRef.current;
     const movedId = session.id;
+    const keepBlocks = session.blockMode;
+    const span = session.span;
     const snap = captureEditorScroll();
     retainScroll(() => {
-      runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
+      if (span) {
+        runEditorCommand(live, moveBlocks, {
+          from: [...session.path],
+          to: line.to,
+          span,
+        });
+      } else {
+        runEditorCommand(live, moveBlock, { from: [...session.path], to: line.to });
+      }
     });
     requestAnimationFrame(() => {
       restoreEditorScroll(snap);
       rehoverRef.current(session.pointerX, session.pointerY);
       clearCaretTimer();
+      if (keepBlocks) {
+        return;
+      }
       caretTimerRef.current = window.setTimeout(() => {
         caretTimerRef.current = 0;
         placeMovedCaret(editorRef.current, movedId);
       }, CARET_DELAY_MS);
     });
   }, [clearCaretTimer, stop]);
+
+  useEffect(() => {
+    endDragRef.current = () => {
+      suppressClickRef.current = true;
+      stop(true);
+    };
+  }, [stop]);
 
   const onDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -584,9 +647,17 @@ export function useBlockDrag({
       suppressClickRef.current = true;
       setBlockDragArmed(true);
       const live = editorRef.current;
+      const selected = blockSelectionIds(live);
+      const inSelection = selected.includes(data.id);
+      if (selected.length > 0 && !inSelection) {
+        clearBlockSelection(live, false);
+      }
+      const dragged = inSelection && selected.length > 1 ? selectedRunDrop(live, data.path) : null;
       sessionRef.current = {
-        path: [...data.path],
+        path: dragged ? [...dragged.from] : [...data.path],
         id: data.id,
+        span: dragged?.span,
+        blockMode: inSelection && selected.length > 0,
         startX,
         startY,
         pointerX: startX,
@@ -598,7 +669,7 @@ export function useBlockDrag({
       document.body.style.userSelect = "none";
       document.body.setAttribute("data-block-dragging", "");
       document.documentElement.style.cursor = "grabbing";
-      const ids = movingBlockIds(live, data.path);
+      const ids = movingBlockIds(live, sessionRef.current.path, sessionRef.current.span);
       for (const id of ids) {
         for (const node of sourceNodes(id)) {
           node.classList.add(SOURCE_DIM);
@@ -623,6 +694,7 @@ export function useBlockDrag({
       bandRef.current = buildBand(live, rectsRef.current);
       window.addEventListener("scroll", refreshRects, true);
       window.addEventListener("resize", refreshRects);
+      window.addEventListener("keydown", cancelDragOnEscape, true);
       updateIndicator();
     },
     [clearCaretTimer, refreshRects, updateIndicator],

@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { createPlateEditor } from "platejs/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import * as ts from "typescript";
 
 import { EditorSurface } from "../components/editor/editor-surface";
 import type { EditorValue } from "../lib/document/editor-value";
@@ -19,6 +20,11 @@ const editorRoot = join(import.meta.dir, "..");
 // Every portaled editor surface. The prop is the shared detach behavior.
 const floatingSources = [
   "components/ui/link-popover.tsx",
+  "components/ui/bookmark-url-popover.tsx",
+  "components/ui/bookmark-toolbar-popover.tsx",
+  "components/ui/page-link-picker.tsx",
+  "components/ui/inline-equation-popover.tsx",
+  "components/ui/inline-date-popover.tsx",
   "components/ui/paste-url-menu.tsx",
   "components/elements/link-element.tsx",
   "components/elements/mention-element.tsx",
@@ -26,13 +32,44 @@ const floatingSources = [
   "components/ui/table-controls.tsx",
   "components/elements/callout-element.tsx",
   "components/elements/toc-element.tsx",
-  "components/elements/column-element.tsx",
   "components/elements/code-block-element.tsx",
   "components/ui/block-menu.tsx",
+  "components/ui/block-color-menu.tsx",
+  "components/ui/selection-toolbar.tsx",
+  "components/ui/selection-color-menu.tsx",
+  "components/ui/slash-menu.tsx",
+  "components/ui/emoji-suggest.tsx",
+  "components/ui/find-bar.tsx",
+  "components/ui/file-action-popover.tsx",
+  "components/ui/video-action-popover.tsx",
+  "components/ui/audio-action-popover.tsx",
+  "components/ui/embed-action-popover.tsx",
+  "components/ui/embed-link-popover.tsx",
 ];
 
 function isReactContainer(value: object): value is Parameters<typeof createRoot>[0] {
   return "nodeType" in value && value.nodeType === 1;
+}
+
+// Counts the <PopoverContent> elements in a file that have no aria-label attribute.
+function unlabeledPopovers(path: string, text: string): number {
+  const file = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let unlabeled = 0;
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+      node.tagName.getText(file) === "PopoverContent" &&
+      !node.attributes.properties.some(
+        (attribute) =>
+          ts.isJsxAttribute(attribute) && attribute.name.getText(file) === "aria-label",
+      )
+    ) {
+      unlabeled += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return unlabeled;
 }
 
 describe("floating ui positioning", () => {
@@ -53,6 +90,10 @@ describe("floating ui positioning", () => {
       }
       if (padding.length !== surfaces.length) {
         problems.push(`${path} pads ${padding.length} of ${surfaces.length} surfaces`);
+      }
+      const unlabeled = unlabeledPopovers(path, text);
+      if (unlabeled > 0) {
+        problems.push(`${path} has ${unlabeled} popover contents without aria-label`);
       }
     }
 

@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { ElementApi, KEYS, NodeApi, type SlateEditor } from "platejs";
+
+import { FOOTNOTE_DEF_KEY } from "../../lib/document/editor-document-schema";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 const PLACEHOLDER_ATTR = "data-block-placeholder";
@@ -24,7 +26,14 @@ function placeholderInset(block: HTMLElement): number {
 }
 
 // Block types that own an editable text line and can show a placeholder.
-const PLACEHOLDER_TYPES = new Set<string>([KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3, KEYS.codeLine]);
+const PLACEHOLDER_TYPES = new Set<string>([
+  KEYS.p,
+  KEYS.h1,
+  KEYS.h2,
+  KEYS.h3,
+  KEYS.codeLine,
+  FOOTNOTE_DEF_KEY,
+]);
 
 const HEADING_TEXT: Record<string, string> = {
   [KEYS.h1]: "Heading 1",
@@ -70,6 +79,9 @@ export function placeholderSpec(
   }
   if (type === KEYS.codeLine) {
     return { text: "Code", always: true };
+  }
+  if (type === FOOTNOTE_DEF_KEY) {
+    return { text: "Footnote", always: true };
   }
   const listStyle = typeof node.listStyleType === "string" ? node.listStyleType : null;
   if (listStyle === KEYS.listTodo) {

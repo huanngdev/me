@@ -1,4 +1,10 @@
-import { createElement, Fragment, type ComponentProps, type ReactNode } from "react";
+import {
+  createElement,
+  Fragment,
+  type ComponentProps,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { TElement } from "platejs";
 
 import { Button } from "@/components/button";
@@ -20,6 +26,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export const MEDIA_TOOLBAR_CLASS =
   "absolute top-1 right-1 z-10 flex max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-background p-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+// The chosen option of a row of toggles, such as the align buttons. The same tint as a selection mark.
+export const TOOLBAR_PRESSED_CLASS = "aria-pressed:bg-muted";
 
 type EditorButtonVariant = "default" | "outline" | "ghost" | "destructive";
 
@@ -94,12 +103,14 @@ export function EditorIconButton({
 
 export function EditorMenuTrigger({
   label,
+  accessibleName,
   icon,
   text,
   onMouseDown,
   onPointerDown,
 }: {
   label: string;
+  accessibleName?: string;
   icon?: ReactNode;
   text?: string;
   onMouseDown?: ComponentProps<typeof Button>["onMouseDown"];
@@ -111,7 +122,7 @@ export function EditorMenuTrigger({
         type="button"
         size={text === undefined ? "icon" : "sm"}
         variant="ghost"
-        aria-label={label}
+        aria-label={accessibleName ?? label}
         onMouseDown={onMouseDown}
         onPointerDown={onPointerDown}
       >
@@ -207,4 +218,40 @@ export function focusEditorWithoutScroll(editorRoot: Element | null): void {
 export function mediaStringAttr(element: TElement, key: string): string | undefined {
   const value: unknown = Reflect.get(element, key);
   return typeof value === "string" ? value : undefined;
+}
+
+// Arrow keys, Home and End move focus between the controls of an action popover.
+export function moveActionFocus(event: ReactKeyboardEvent<HTMLDivElement>): void {
+  if (
+    event.key !== "ArrowDown" &&
+    event.key !== "ArrowUp" &&
+    event.key !== "ArrowRight" &&
+    event.key !== "ArrowLeft" &&
+    event.key !== "Home" &&
+    event.key !== "End"
+  ) {
+    return;
+  }
+
+  const items = Array.from(
+    event.currentTarget.querySelectorAll<HTMLElement>('button, a[href], [role="menuitem"]'),
+  ).filter((item) => item.getAttribute("aria-disabled") !== "true");
+  if (items.length === 0) {
+    return;
+  }
+
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  let next = current;
+  if (event.key === "Home") {
+    next = 0;
+  } else if (event.key === "End") {
+    next = items.length - 1;
+  } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+    next = current < 0 ? 0 : (current + 1) % items.length;
+  } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+    next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+  }
+
+  event.preventDefault();
+  items[next]?.focus();
 }

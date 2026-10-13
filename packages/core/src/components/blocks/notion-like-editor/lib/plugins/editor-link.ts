@@ -21,6 +21,7 @@ import {
   normalizeLinkInput,
   noteUnsafePastedLink,
   sanitizeLinkUrl,
+  typedAutolinkUrl,
 } from "../features/editor-link-url";
 
 // Native LinkRules.autolink (dist/index.js getAutolinkMatch) keeps trailing
@@ -84,13 +85,12 @@ export const linkUiPlugin = createSlatePlugin({
     draftLabel: "",
     error: "",
     hoverId: "",
+    hold: null as TRange | null,
   },
   decorate: ({ editor, entry }) => {
-    if (editor.getOption(linkUiPlugin, "mode") === "closed") {
-      return undefined;
-    }
-
-    const anchor = savedSelections.get(editor);
+    const mode = editor.getOption(linkUiPlugin, "mode");
+    const anchor =
+      mode === "closed" ? editor.getOption(linkUiPlugin, "hold") : savedSelections.get(editor);
     const node = entry[0];
     const path = entry[1];
     if (!anchor || !TextApi.isText(node)) {
@@ -255,11 +255,35 @@ export function openLinkPopover(editor: SlateEditor): void {
   editor.api.redecorate();
 }
 
+export function holdSelectionHighlight(editor: SlateEditor, range: TRange | null): void {
+  const current = editor.getOption(linkUiPlugin, "hold");
+  if (current === range) {
+    return;
+  }
+  if (current && range && JSON.stringify(current) === JSON.stringify(range)) {
+    return;
+  }
+
+  editor.setOption(linkUiPlugin, "hold", range);
+  editor.api.redecorate();
+}
+
 export function closeLinkPopover(editor: SlateEditor): void {
   savedSelections.delete(editor);
   editor.setOption(linkUiPlugin, "mode", "closed");
   editor.setOption(linkUiPlugin, "error", "");
   editor.api.redecorate();
+}
+
+// Escape and Remove link: the popover input is removed, so focus goes back to the editor
+// on the range the popover was opened on.
+export function cancelLinkPopover(editor: SlateEditor): void {
+  const saved = savedSelections.get(editor);
+  closeLinkPopover(editor);
+  if (saved !== undefined) {
+    editor.tf.select(saved);
+  }
+  editor.tf.focus();
 }
 
 export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw: string): boolean {
@@ -291,6 +315,8 @@ export function commitLinkPopover(editor: SlateEditor, urlRaw: string, labelRaw:
   });
   editor.tf.setSplittingOnce(true);
   closeLinkPopover(editor);
+  // Save keeps the selection the command left, so focus goes to the editor without restoring it.
+  editor.tf.focus();
   return true;
 }
 
@@ -589,13 +615,13 @@ function trimLinkToken(text: string): { url: string; lead: number; trailing: str
     end -= 1;
   }
 
-  const direct = sanitizeLinkUrl(text.slice(0, end));
+  const direct = typedAutolinkUrl(text.slice(0, end));
   if (direct !== undefined) {
     return { url: direct, lead: 0, trailing: text.slice(end) };
   }
 
   if (end > 1 && LEADING_PUNCTUATION.has(text.charAt(0))) {
-    const wrapped = sanitizeLinkUrl(text.slice(1, end));
+    const wrapped = typedAutolinkUrl(text.slice(1, end));
     if (wrapped !== undefined) {
       return { url: wrapped, lead: 1, trailing: text.slice(end) };
     }

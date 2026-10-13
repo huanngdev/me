@@ -227,7 +227,7 @@ describe("numbered list allowlist", () => {
     );
   });
 
-  test("normalize drops listRestart on a disc item and indent without a list", () => {
+  test("normalize drops listRestart on a disc item and keeps indent on a plain paragraph", () => {
     const editor = createEditor([
       {
         type: "p",
@@ -251,7 +251,8 @@ describe("numbered list allowlist", () => {
 
     expect(field(editor.children[0], "listRestart")).toBeUndefined();
     expect(field(editor.children[0], "listStyleType")).toBe("disc");
-    expect(field(editor.children[1], "indent")).toBeUndefined();
+    // A plain paragraph keeps its stored indent. Only list-only attrs are dropped here.
+    expect(field(editor.children[1], "indent")).toBe(2);
   });
 });
 
@@ -596,14 +597,14 @@ describe("numbered list behavior", () => {
     expect(renderedStarts(renderList(editor.children))).toEqual([3, 4]);
   });
 
-  test("typing 1. space does not start a numbered list", () => {
+  test("typing 1. space starts a numbered list", () => {
     const editor = createEditor([{ type: "p", id: "block-a", children: [{ text: "" }] }]);
     editor.tf.select(caret([0, 0], 0));
 
     editor.tf.insertText("1. ");
 
-    expect(texts(editor)).toEqual(["1. "]);
-    expect(field(editor.children[0], "listStyleType")).toBeUndefined();
+    expect(texts(editor)).toEqual([""]);
+    expect(field(editor.children[0], "listStyleType")).toBe("decimal");
   });
 });
 

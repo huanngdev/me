@@ -12,7 +12,15 @@ import {
   storedBookmarkUrl,
 } from "../features/editor-bookmark-url";
 import { sanitizeLinkUrl } from "../features/editor-link-url";
+import { isStoredDate } from "../features/editor-date-value";
+import { isFootnoteId } from "../features/editor-footnote-id";
+import { AUDIO_KEY, isStoredAudioAttr } from "../features/editor-audio";
+import { FILE_KEY, isStoredFileAttr } from "../features/editor-file";
+import { IMAGE_KEY, isStoredImageAttr } from "../features/editor-image";
+import { VIDEO_KEY, isStoredVideoAttr } from "../features/editor-video";
+import { EMBED_FIELD_KEYS, EMBED_KEY, isStoredEmbedAttr } from "../features/editor-embed";
 import { checkMentionNode } from "../features/editor-mention-node";
+import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
 export type IntegerAttrRange = {
@@ -217,6 +225,7 @@ export const CODE_LANG_ALIASES = {
   yml: "yaml",
   xml: "html",
   html: "html",
+  md: "markdown",
 } as const satisfies Record<string, CodeLang>;
 
 function aliasCodeLang(token: string): CodeLang | undefined {
@@ -244,9 +253,15 @@ export function codeLangFromToken(token: string): CodeLang | null {
   return stored ?? null;
 }
 
+// Plain indent is the same integer as list depth. It is stored only in the 1..6 range.
 const headingElementRule = {
-  attrs: ["id", "align"],
-  attrValues: { align: TEXT_ALIGNS },
+  attrs: ["id", "align", "indent", "textTone", "backgroundTone"],
+  attrValues: {
+    align: TEXT_ALIGNS,
+    indent: LIST_INDENTS,
+    textTone: PALETTE_TOKENS,
+    backgroundTone: PALETTE_TOKENS,
+  },
 } as const;
 
 export const EQUATION_EXPRESSION_MAX = 4000;
@@ -282,6 +297,43 @@ export function checkEquationNode(
     {
       path,
       message: `${formatBlockLabel(path)} has an unsupported texExpression. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
+export function checkDateNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if ("date" in node && isStoredDate(node.date)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported date. Restore from a backup or remove the block.`,
+    },
+  ];
+}
+
+// Footnote nodes. The reference is an inline void, the definition a top-level block. Numbers are derived.
+export const FOOTNOTE_REF_KEY = "footnote_ref";
+export const FOOTNOTE_DEF_KEY = "footnote_def";
+
+export function checkFootnoteRefNode(
+  node: Record<string, unknown>,
+  path: number[],
+): readonly TableGridIssue[] {
+  if (isFootnoteId(node.footnoteId)) {
+    return [];
+  }
+
+  return [
+    {
+      path,
+      message: `${formatBlockLabel(path)} has an unsupported footnoteId. Restore from a backup or remove the block.`,
     },
   ];
 }
@@ -388,6 +440,8 @@ export const EDITOR_ELEMENT_RULES = [
       "listRestart",
       "listRestartPolite",
       "checked",
+      "textTone",
+      "backgroundTone",
     ],
     attrValues: {
       align: TEXT_ALIGNS,
@@ -395,18 +449,19 @@ export const EDITOR_ELEMENT_RULES = [
       indent: LIST_INDENTS,
       listStyleType: LIST_STYLES,
       checked: [true, false],
+      textTone: PALETTE_TOKENS,
+      backgroundTone: PALETTE_TOKENS,
     },
     attrRanges: {
       listStart: LIST_NUMBER_RANGE,
       listRestart: LIST_NUMBER_RANGE,
       listRestartPolite: LIST_NUMBER_RANGE,
     },
-    // Standalone block indent is a later task. Indent is kept only with a list style.
+    // indent is a list depth with listStyleType, and a plain block indent without it.
     // Numbering attrs are kept only on decimal items. checked is kept only on todo items.
     // Plate deletes listStart on disc and leaves listRestart, so a disc item would not
     // round-trip those attrs.
     attrRequires: {
-      indent: { attr: "listStyleType" },
       listStart: { attr: "listStyleType", values: ["decimal"] },
       listRestart: { attr: "listStyleType", values: ["decimal"] },
       listRestartPolite: { attr: "listStyleType", values: ["decimal"] },
@@ -417,10 +472,12 @@ export const EDITOR_ELEMENT_RULES = [
   { type: "h1", ...headingElementRule },
   { type: "h2", ...headingElementRule },
   { type: "h3", ...headingElementRule },
-  // Alignment and line height stay on the child paragraphs. A quote stores only its id.
+  // Alignment and line height stay on the child paragraphs. A quote stores its id, plain indent,
+  // and tones. Tones and indent are block attrs on the quote itself. Child paragraphs keep their own.
   {
     type: KEYS.blockquote,
-    attrs: ["id"],
+    attrs: ["id", "indent", "textTone", "backgroundTone"],
+    attrValues: { indent: LIST_INDENTS, textTone: PALETTE_TOKENS, backgroundTone: PALETTE_TOKENS },
     childTypes: [KEYS.p],
   },
   // A divider is a void. It stores only its id, never align, line height, or list attrs.
@@ -436,6 +493,52 @@ export const EDITOR_ELEMENT_RULES = [
     attrs: ["id", "url", "title", "description", "siteName", "imageUrl", "fetchedAt"],
     isVoid: true,
     validateChildren: (node, path) => checkBookmarkNode(node, path),
+  },
+  // Custom void, like the bookmark. A file or embed link with its own width, alignment and caption.
+  // An invalid attribute is dropped with a repair, so the block stays. A bad url makes a placeholder.
+  {
+    type: IMAGE_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "width", "align", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
+  },
+  // Custom void, like the image without its width, alignment or caption. A bad url makes a placeholder.
+  {
+    type: FILE_KEY,
+    attrs: ["id", "url", "name", "size", "mime"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime"],
+  },
+  // Custom void, like the image: a video file or embed link with the same width, alignment and caption.
+  {
+    type: VIDEO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "width", "align", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "width", "align", "caption"],
+  },
+  // Custom void, like the file with a caption and no width or alignment.
+  {
+    type: AUDIO_KEY,
+    attrs: ["id", "url", "name", "size", "mime", "caption"],
+    isVoid: true,
+    repairAttrs: ["url", "name", "size", "mime", "caption"],
+  },
+  // Custom void, like the video: a YouTube or Vimeo link. Its source is read as one, so a bad provider,
+  // id or hash clears it, and any other bad field is dropped. The validator does that, not repairAttrs.
+  {
+    type: EMBED_KEY,
+    attrs: ["id", ...EMBED_FIELD_KEYS],
+    isVoid: true,
+    repairAttrs: EMBED_FIELD_KEYS,
+  },
+  // A link to a page the host resolves. title is the fallback shown while or when the page
+  // cannot be resolved, and kind (link or child) only picks the icon. Same places as a bookmark.
+  {
+    type: PAGE_LINK_KEY,
+    attrs: ["id", "pageId", "title", "kind"],
+    attrValues: { kind: PAGE_LINK_KINDS },
+    isVoid: true,
+    validateChildren: (node, path) => checkPageLinkNode(node, path),
   },
   // Plate's toc node (@platejs/toc 53.0.0, key "toc") is a void. The outline is
   // derived on render. maxDepth is 1, 2, or 3, and absence means 3.
@@ -474,7 +577,6 @@ export const EDITOR_ELEMENT_RULES = [
     childTypes: [KEYS.p],
   },
   // Own container, not @platejs/toggle: its flat indent model collides with indent → listStyleType.
-  // No shortcut. The "> " trigger is DEV-126.
   {
     type: KEYS.toggle,
     attrs: ["id"],
@@ -485,6 +587,12 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.callout,
       KEYS.hr,
       BOOKMARK_KEY,
+      IMAGE_KEY,
+      FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
+      EMBED_KEY,
+      PAGE_LINK_KEY,
       KEYS.codeBlock,
       KEYS.table,
       KEYS.toc,
@@ -502,7 +610,6 @@ export const EDITOR_ELEMENT_RULES = [
     },
   },
   // Plate's code block. lang is absent for plaintext. Tokens are decorations, not children.
-  // The ``` trigger is DEV-126, so this block has no markdown rule.
   {
     type: KEYS.codeBlock,
     attrs: ["id", "lang"],
@@ -570,6 +677,12 @@ export const EDITOR_ELEMENT_RULES = [
       KEYS.hr,
       KEYS.codeBlock,
       BOOKMARK_KEY,
+      IMAGE_KEY,
+      FILE_KEY,
+      VIDEO_KEY,
+      AUDIO_KEY,
+      EMBED_KEY,
+      PAGE_LINK_KEY,
       KEYS.table,
       KEYS.toc,
       KEYS.equation,
@@ -590,6 +703,34 @@ export const EDITOR_ELEMENT_RULES = [
     isVoid: true,
     validateChildren: (node, path) => checkMentionNode(node, path),
   },
+  // Inline equation. Same stored expression as the block equation. Lives where the
+  // mention lives. Its own type, so the block equation's rules do not change.
+  {
+    type: KEYS.inlineEquation,
+    attrs: ["id", "texExpression"],
+    isVoid: true,
+    validateChildren: (node, path) => checkEquationNode(node, path),
+  },
+  // Inline date. A calendar date only. Lives where the inline equation and mention live.
+  {
+    type: KEYS.date,
+    attrs: ["id", "date"],
+    isVoid: true,
+    validateChildren: (node, path) => checkDateNode(node, path),
+  },
+  // Inline footnote reference. Lives where the inline date lives. The number is derived, not stored.
+  {
+    type: FOOTNOTE_REF_KEY,
+    attrs: ["id", "footnoteId"],
+    isVoid: true,
+    validateChildren: (node, path) => checkFootnoteRefNode(node, path),
+  },
+  // Top-level footnote definition. It holds inline text, with no tone, indent, or alignment.
+  // The footnote repair moves a definition anywhere else into a paragraph before this rule runs.
+  {
+    type: FOOTNOTE_DEF_KEY,
+    attrs: ["id", "footnoteId"],
+  },
 ] as const satisfies readonly EditorElementRule[];
 
 export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
@@ -600,6 +741,7 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
   { type: KEYS.code },
   { type: KEYS.sup },
   { type: KEYS.sub },
+  { type: KEYS.kbd },
   { type: KEYS.color, values: PALETTE_TOKENS },
   { type: KEYS.backgroundColor, values: PALETTE_TOKENS },
   { type: KEYS.fontSize, values: FONT_SIZES },
@@ -607,6 +749,28 @@ export const EDITOR_MARK_RULES: readonly EditorMarkRule[] = [
 ];
 
 export const CLEARABLE_MARK_KEYS: readonly string[] = EDITOR_MARK_RULES.map((rule) => rule.type);
+
+// Only valid inside a parent. The document root may not hold these. A bare column is not
+// listed: the column repair unwraps it before the validator checks the root.
+const CHILD_ONLY_ELEMENT_TYPES: ReadonlySet<string> = new Set<string>([
+  KEYS.codeLine,
+  KEYS.tr,
+  KEYS.td,
+  KEYS.th,
+]);
+
+export function isChildOnlyElementType(type: string): boolean {
+  return CHILD_ONLY_ELEMENT_TYPES.has(type);
+}
+
+// Inline elements. Slate needs a text leaf before and after each one, and between two of them.
+export const INLINE_ELEMENT_TYPES: readonly string[] = [
+  KEYS.link,
+  KEYS.mention,
+  KEYS.inlineEquation,
+  KEYS.date,
+  FOOTNOTE_REF_KEY,
+];
 
 const elementAttrs = new Map<string, ReadonlySet<string>>(
   EDITOR_ELEMENT_RULES.map((rule) => [rule.type, new Set<string>(rule.attrs)]),
@@ -868,6 +1032,26 @@ export function allowedElementAttrValues(
 }
 
 export function isAllowedElementAttrValue(type: string, attr: string, value: unknown): boolean {
+  if (type === IMAGE_KEY) {
+    return isStoredImageAttr(attr, value);
+  }
+
+  if (type === FILE_KEY) {
+    return isStoredFileAttr(attr, value);
+  }
+
+  if (type === VIDEO_KEY) {
+    return isStoredVideoAttr(attr, value);
+  }
+
+  if (type === EMBED_KEY) {
+    return isStoredEmbedAttr(attr, value);
+  }
+
+  if (type === AUDIO_KEY) {
+    return isStoredAudioAttr(attr, value);
+  }
+
   if (type === KEYS.link && attr === "url") {
     return typeof value === "string" && sanitizeLinkUrl(value) === value;
   }

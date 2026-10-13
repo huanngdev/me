@@ -23,6 +23,7 @@ import { isVoidElementType } from "../lib/document/editor-document-schema";
 import { parseEditorDocument } from "../lib/document/editor-document-validate";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { EditorSurface } from "../components/editor/editor-surface";
+import { parseHtml } from "../../../../../test/setup-dom";
 import type { EditorValue } from "../lib/document/editor-value";
 import {
   HR_RULE_CLASS_NAME,
@@ -151,6 +152,20 @@ function renderDivider(value: EditorValue, readOnly = false): string {
   );
 }
 
+// The surface also renders the document menu, whose ghost button carries hover:bg-muted.
+// The selected-ring checks therefore look only at the divider block's own markup.
+function dividerBlockHtml(html: string): string {
+  const body: unknown = parseHtml(html);
+  if (typeof body !== "object" || body === null || !("querySelector" in body)) {
+    throw new Error("The HTML parser did not return a body element.");
+  }
+  const block = (body as Element).querySelector("hr")?.closest("[data-slate-node]");
+  if (!block) {
+    throw new Error("Missing the divider block.");
+  }
+  return block.outerHTML;
+}
+
 describe("divider schema", () => {
   test("the void rule is hr and only hr", () => {
     expect(isVoidElementType(KEYS.hr)).toBe(true);
@@ -250,7 +265,7 @@ describe("divider rendering", () => {
     expect(html).toContain("<hr");
     expect(html.toLowerCase()).toContain('contenteditable="false"');
     expect(html).toContain(HR_RULE_CLASS_NAME);
-    expect(html).not.toContain(HR_SELECTED_CLASS_NAME);
+    expect(dividerBlockHtml(html)).not.toContain(HR_SELECTED_CLASS_NAME);
   });
 
   test("a read-only divider has the same rule and no selected ring", () => {
@@ -258,7 +273,7 @@ describe("divider rendering", () => {
 
     expect(html).toContain("<hr");
     expect(html).toContain(HR_RULE_CLASS_NAME);
-    expect(html).not.toContain(HR_SELECTED_CLASS_NAME);
+    expect(dividerBlockHtml(html)).not.toContain(HR_SELECTED_CLASS_NAME);
   });
 
   test("the selected ring requires selection, focus, and an editable editor", () => {
@@ -749,14 +764,14 @@ describe("divider keyboard", () => {
     expect(editor.api.start([])?.path[0]).toBe(0);
   });
 
-  test("plain text --- stays text", () => {
+  test("typing --- replaces the paragraph with a divider", () => {
     const editor = createEditor();
     editor.tf.select(caret([0, 0], 0));
 
     editor.tf.insertText("---");
 
-    expect(typesOf(editor)).toEqual(["p"]);
-    expect(texts(editor)).toEqual(["---"]);
+    expect(typesOf(editor)[0]).toBe("hr");
+    expect(typesOf(editor)[1]).toBe("p");
   });
 });
 

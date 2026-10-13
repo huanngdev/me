@@ -63,6 +63,6 @@ describe("editor value", () => {
 
     expect(blockIds(first).at(1)?.length).toBeGreaterThan(0);
     expect(blockIds(second).at(1)?.length).toBeGreaterThan(0);
-    expect(createEditorPlugins()).toContain(NodeIdPlugin);
+    expect(createEditorPlugins().map((plugin) => pluginKey(plugin))).toContain(NodeIdPlugin.key);
   });
 });

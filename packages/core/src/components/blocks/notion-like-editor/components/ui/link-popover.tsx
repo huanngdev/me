@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useEditorRef, usePluginOption, useReadOnly } from "platejs/react";
+import { useEditorReadOnly, useEditorRef, usePluginOption } from "platejs/react";
 
 import { ExternalLink, Save, Unlink } from "lucide-react";
 import { Input } from "@/components/input";
@@ -10,6 +10,7 @@ import { EditorTextButton } from "./block-toolbar";
 import { runEditorCommand } from "../../lib/commands/editor-commands";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
 import {
+  cancelLinkPopover,
   closeLinkPopover,
   commitLinkPopover,
   linkAnchorRange,
@@ -22,7 +23,7 @@ export function LinkPopover() {
   "use no memo";
 
   const editor = useEditorRef();
-  const readOnly = useReadOnly();
+  const readOnly = useEditorReadOnly();
   const mode = usePluginOption(linkUiPlugin, "mode");
   const error = usePluginOption(linkUiPlugin, "error");
   const draftUrl = usePluginOption(linkUiPlugin, "draftUrl");
@@ -79,7 +80,7 @@ function LinkPopoverForm({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
-        closeLinkPopover(editor);
+        cancelLinkPopover(editor);
       }
     };
     const onPointerDown = (event: PointerEvent): void => {
@@ -103,6 +104,7 @@ function LinkPopoverForm({
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         data-link-popover=""
+        aria-label="Link"
         data-link-mode={mode}
         side="bottom"
         align="start"
@@ -182,7 +184,7 @@ function LinkPopoverForm({
                   event.preventDefault();
                 }}
                 onClick={() => {
-                  closeLinkPopover(editor);
+                  cancelLinkPopover(editor);
                   runEditorCommand(editor, removeInlineLink, undefined);
                 }}
               />

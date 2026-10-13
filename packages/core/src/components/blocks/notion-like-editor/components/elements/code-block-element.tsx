@@ -39,13 +39,13 @@ import {
   type CodeLang,
 } from "../../lib/document/editor-document-schema";
 
-const CODE_BLOCK_CLASS_NAME =
-  "editor-code group relative my-0 max-w-full overflow-hidden rounded-md border border-border bg-muted text-foreground [font-family:var(--editor-font-mono)] [tab-size:2]";
+import {
+  CODE_BLOCK_CLASS_NAME,
+  CODE_SCROLL_CLASS_NAME,
+  CODE_TOOLBAR_CLASS_NAME,
+} from "./code-block-classes";
 
-const CODE_SCROLL_CLASS_NAME = "block px-3 py-2 font-mono text-base whitespace-pre [tab-size:2]";
-
-const TOOLBAR_CLASS_NAME =
-  "absolute top-1.5 right-1.5 z-10 flex items-center gap-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+const TOOLBAR_CLASS_NAME = CODE_TOOLBAR_CLASS_NAME;
 
 function elementLang(element: object): CodeLang | null {
   if (!("lang" in element)) {
@@ -150,6 +150,7 @@ export function CodeBlockElement(props: PlateElementProps) {
           <DropdownMenu modal={false}>
             <EditorMenuTrigger
               label="Change code language"
+              accessibleName={`Change code language, current: ${languageLabel(lang)}`}
               text={languageLabel(lang)}
               icon={<ChevronDown aria-hidden="true" />}
               onMouseDown={keepEditorSelection}
