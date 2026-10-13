@@ -22,7 +22,7 @@ export const MENTION_UNKNOWN_LABEL = "Unknown person";
 
 export type { MentionEntity, MentionProvider };
 
-export type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
+type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
 
 type MentionSearchClock = {
   setTimeout: (callback: () => void, delayMs: number) => unknown;
@@ -202,7 +202,7 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
   return marks !== null && Reflect.get(marks, KEYS.code) === true;
 }
 
-export function mentionTriggerAllowed(editor: SlateEditor): boolean {
+function mentionTriggerAllowed(editor: SlateEditor): boolean {
   if (
     editor.dom.readOnly === true ||
     editorIsComposing(editor) ||

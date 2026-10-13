@@ -29,7 +29,7 @@ type AutosaveOptions = {
 // A change is saved this long after the last edit, unless a caller passes debounceMs.
 export const DEFAULT_AUTOSAVE_DEBOUNCE_MS = 800;
 
-export type AutosaveController = {
+type AutosaveController = {
   schedule: (content: EditorValue) => void;
   flush: () => Promise<void>;
   retry: () => Promise<void>;

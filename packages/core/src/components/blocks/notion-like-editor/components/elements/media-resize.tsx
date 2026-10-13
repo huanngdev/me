@@ -26,7 +26,7 @@ import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
 // until the pointer is up. Escape cancels it. The parent shows the preview width while a drag runs.
 
 // The rendered width of a block as a whole percent of the column, read now from the DOM.
-export function measuredMediaPercent(
+function measuredMediaPercent(
   anchor: HTMLElement | null,
   figure: HTMLElement | null,
 ): number | undefined {
@@ -89,7 +89,7 @@ type DragState = {
   detach: () => void;
 };
 
-export type MediaResizeKind = "image" | "video" | "embed";
+type MediaResizeKind = "image" | "video" | "embed";
 
 // The two edge handles of a block that is selected and ready. `value` is the width the handles report.
 // `onPreview` gets the width during a drag, and null when the drag ends. `onCommit` gets the final width.

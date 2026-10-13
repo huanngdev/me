@@ -12,7 +12,7 @@ import { targetBlockAtPath } from "./editor-block-handle";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_DRAG_THRESHOLD_PX = 4;
+const BLOCK_DRAG_THRESHOLD_PX = 4;
 
 export const MOVE_ALREADY_FIRST = "This block is already first.";
 export const MOVE_ALREADY_LAST = "This block is already last.";
@@ -22,14 +22,14 @@ const TOGGLE_NESTING = "Toggles can only nest three levels deep.";
 
 const UNMOVABLE = new Set<string>([KEYS.td, KEYS.th, KEYS.tr, KEYS.column, KEYS.codeLine]);
 
-export type BlockDropDecision = {
+type BlockDropDecision = {
   allowed: boolean;
   noop: boolean;
   reason?: string;
   unit: readonly [number, number];
 };
 
-export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
+type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
 
 // A rendered block box, cached at drag start. Falling back to these means the
 // slot comes from the pointer's vertical position, not from a hit-test, so a
@@ -44,7 +44,7 @@ export type DropRect = {
 
 // The normal vertical gap between blocks (Tailwind space-y-4). A line before the
 // first or after the last block sits half a gap outside.
-export const BLOCK_GAP_PX = 16;
+const BLOCK_GAP_PX = 16;
 
 export type DropIndicator = {
   top: number;

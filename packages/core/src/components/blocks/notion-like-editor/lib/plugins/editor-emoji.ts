@@ -85,7 +85,7 @@ export function emojiMenuItems(editor: SlateEditor): EmojiEntry[] {
   return searchEmoji(entries, session.token, EMOJI_SUGGEST_LIMIT);
 }
 
-export function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
+function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
   const count = emojiMenuItems(editor).length;
   if (count === 0) {
     return;
@@ -117,7 +117,7 @@ function setEmojiQuery(editor: SlateEditor, query: string): void {
   }
 }
 
-export function syncEmojiMenu(editor: SlateEditor): void {
+function syncEmojiMenu(editor: SlateEditor): void {
   const session = slashMenuOpen(editor) ? null : readEmojiSession(editor);
   setEmojiQuery(editor, session?.token ?? "");
   if (session === null) {

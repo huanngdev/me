@@ -198,7 +198,7 @@ function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): 
 }
 // toggleBlock writes only the type. It resets to a paragraph only when a selected
 // block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
-export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
+function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
   const type = HEADING_TYPE[level];
 
   return {
@@ -400,7 +400,7 @@ export const turnIntoCodeBlock: EditorCommand = {
     });
   },
 };
-export type CodeLanguagePayload = {
+type CodeLanguagePayload = {
   lang: CodeLang | null;
   at?: number[];
 };
@@ -466,7 +466,7 @@ export const turnIntoToggle = createTurnIntoContainer(
   },
   { afterWrap: openAncestorToggle, unwrapFromFirstChild: true, liftContentOut: true },
 );
-export type CalloutAttrPayload = {
+type CalloutAttrPayload = {
   value: string | null;
   at?: number[];
 };
@@ -570,7 +570,7 @@ export function createTurnIntoToggleHeading(level: HeadingLevel): EditorCommand 
     },
   };
 }
-export type BlockMenuTurnPayload = {
+type BlockMenuTurnPayload = {
   path: number[];
   kind: BlockMenuKind;
 };

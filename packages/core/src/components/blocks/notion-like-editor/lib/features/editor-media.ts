@@ -26,7 +26,7 @@ export const MEDIA_FILE_LIMIT_MESSAGE = "Only the first 10 files were added.";
 
 // The block kind a file becomes. Image, video and audio files become their own block. Every other
 // file becomes a file block.
-export type MediaKind = MediaBlockType;
+type MediaKind = MediaBlockType;
 
 // The one place that routes a file to a block kind.
 export function mediaKindForFile(file: { readonly type: string }): MediaKind {

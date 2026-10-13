@@ -2570,18 +2570,18 @@ import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
-export type IntegerAttrRange = {
+type IntegerAttrRange = {
   readonly min: number;
   readonly max: number;
 };
 
-export type AttrRequirement = {
+type AttrRequirement = {
   attr: string;
   /** When set, the required attribute must be one of these values. */
   values?: readonly (string | number)[];
 };
 
-export type EditorElementRule = {
+type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number | boolean)[]>>;
@@ -2633,7 +2633,7 @@ export type EditorElementRule = {
   validateChildren?: (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[];
 };
 
-export type EditorMarkRule = {
+type EditorMarkRule = {
   type: string;
   values?: readonly string[];
 };
@@ -2763,7 +2763,7 @@ export const CODE_LANG_LABELS = {
 } as const satisfies Record<CodeLang | "plaintext", string>;
 
 // Paste and insert class tokens. Stored names that are not listed here stay themselves.
-export const CODE_LANG_ALIASES = {
+const CODE_LANG_ALIASES = {
   ts: "typescript",
   js: "javascript",
   sh: "bash",
@@ -2832,7 +2832,7 @@ export function isStoredEquationExpression(value: unknown): value is string {
   return true;
 }
 
-export function checkEquationNode(
+function checkEquationNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -2849,10 +2849,7 @@ export function checkEquationNode(
 }
 
 // A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
-export function checkDateNode(
-  node: Record<string, unknown>,
-  path: number[],
-): readonly TableGridIssue[] {
+function checkDateNode(node: Record<string, unknown>, path: number[]): readonly TableGridIssue[] {
   if ("date" in node && isStoredDate(node.date)) {
     return [];
   }
@@ -2869,7 +2866,7 @@ export function checkDateNode(
 export const FOOTNOTE_REF_KEY = "footnote_ref";
 export const FOOTNOTE_DEF_KEY = "footnote_def";
 
-export function checkFootnoteRefNode(
+function checkFootnoteRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -2905,7 +2902,7 @@ export function isStoredSyncedTargetId(value: unknown): value is string {
   return true;
 }
 
-export function checkSyncedRefNode(
+function checkSyncedRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -2921,7 +2918,7 @@ export function checkSyncedRefNode(
   ];
 }
 
-export function checkBookmarkNode(
+function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -3914,7 +3911,7 @@ import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
-export type Issue = {
+type Issue = {
   path: number[];
   message: string;
 };
@@ -4725,7 +4722,7 @@ export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
 
 export { pasteRepairsOf, setPasteRepairs };
 
-export type PasteSanitizeOptions = {
+type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
   /** True for a node type whose feature is off. Such a node never becomes its own type. */
@@ -6192,7 +6189,7 @@ function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
   return kept;
 }
 
-export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
   let next = value;
   if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
     next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });
@@ -8241,7 +8238,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
 export const DRAG_ACTIVATION_DISTANCE_PX = 4;
-export const DRAG_HORIZONTAL_BAND_PX = 200;
+const DRAG_HORIZONTAL_BAND_PX = 200;
 
 const HORIZONTAL_BAND_PX = DRAG_HORIZONTAL_BAND_PX;
 const VERTICAL_BAND_PX = 32;
@@ -8632,7 +8629,7 @@ export type BlockDragHandlers = {
   onDragCancel: () => void;
 };
 
-export type BlockDragApi = BlockDragHandlers & {
+type BlockDragApi = BlockDragHandlers & {
   attributes: DraggableAttributes;
   listeners: DragListeners;
   setNodeRef: (node: HTMLElement | null) => void;
@@ -8997,7 +8994,7 @@ function sameIndicator(current: DropIndicator | null, next: DropIndicator | null
 // contextElement is how Floating UI finds those scroll parents. The anchor
 // element itself renders nothing.
 
-export type VirtualAnchor = {
+type VirtualAnchor = {
   getBoundingClientRect: () => DOMRect;
   readonly contextElement?: Element;
 };
@@ -9637,7 +9634,7 @@ export function openAncestorToggle(editor: SlateEditor): void {
 
 // Selection that lands in hidden content opens that toggle. Slate flushes editor.onChange
 // in a microtask after select, undo, paste, and programmatic selection changes.
-export function revealClosedToggleContent(editor: SlateEditor): void {
+function revealClosedToggleContent(editor: SlateEditor): void {
   const selection = editor.selection;
   if (!selection) {
     return;
@@ -10831,7 +10828,7 @@ function emptyParagraph(text = ""): TElement {
   return { type: KEYS.p, children: [{ text }] };
 }
 
-export function emptyTableCell(header: boolean, text = ""): TElement {
+function emptyTableCell(header: boolean, text = ""): TElement {
   return {
     type: header ? KEYS.th : KEYS.td,
     children: [emptyParagraph(text)],
@@ -11136,7 +11133,7 @@ export function repairTableGrid(node: TElement, repairs: Repair[] | undefined): 
   return elementFromRecord(checked.next) ?? node;
 }
 
-export function tsvGrid(text: string): string[][] | undefined {
+function tsvGrid(text: string): string[][] | undefined {
   if (!text.includes("\t")) {
     return undefined;
   }
@@ -11401,12 +11398,12 @@ export type TableGridIssue = {
   message: string;
 };
 
-export type TableGridLimits = {
+type TableGridLimits = {
   maxRows: number;
   maxColumns: number;
 };
 
-export type TableGridResult = {
+type TableGridResult = {
   issues: TableGridIssue[];
   repairs: TableGridIssue[];
   next?: Record<string, unknown>;
@@ -12113,16 +12110,6 @@ export function rowSliceIsClean(node: Record<string, unknown>, row: number): boo
   );
 }
 
-export function columnSliceIsClean(node: Record<string, unknown>, column: number): boolean {
-  const coverage = tableCoverage(node);
-  return coverage.cells.every(
-    (cell) =>
-      cell.column + cell.colSpan - 1 < column ||
-      cell.column > column ||
-      (cell.column === column && cell.colSpan === 1),
-  );
-}
-
 // One-shot "fit to width". Proportions come from the current widths.
 // A non-positive or non-finite width stands in for a column that has no stored size.
 // When the minimums cannot fit, every column becomes the minimum and the caller scrolls.
@@ -12405,7 +12392,7 @@ function columnCanDuplicate(node: TElement, column: number): boolean {
   });
 }
 
-export function duplicateRowReason(editor: SlateEditor): string | undefined {
+function duplicateRowReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }
@@ -12426,7 +12413,7 @@ export function duplicateRowReason(editor: SlateEditor): string | undefined {
   return undefined;
 }
 
-export function duplicateColumnReason(editor: SlateEditor): string | undefined {
+function duplicateColumnReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }
@@ -14215,7 +14202,7 @@ import { clipboardWithinHtmlLimit } from "./editor-paste";
 import { featureEnabled } from "../plugins/editor-config";
 import type { EditorFeature } from "../features/editor-features";
 
-export type PasteUrlOffer = {
+type PasteUrlOffer = {
   url: string;
   raw: string;
   path: number[];
@@ -15564,7 +15551,7 @@ export function insertColumnsBelow(
   });
 }
 
-export function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
+function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
   const group = columnGroupAbove(editor);
   if (!group || group.node.children.length === count) {
     return;
@@ -15675,7 +15662,7 @@ function replaceGroupWithChildren(editor: SlateEditor, groupPath: number[]): voi
   selectPath(editor, groupPath);
 }
 
-export function removeColumnAt(editor: SlateEditor, index: number): void {
+function removeColumnAt(editor: SlateEditor, index: number): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -15706,7 +15693,7 @@ export function removeColumnAt(editor: SlateEditor, index: number): void {
   });
 }
 
-export function unwrapColumns(editor: SlateEditor): void {
+function unwrapColumns(editor: SlateEditor): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -15736,18 +15723,6 @@ export function setColumnWidths(editor: SlateEditor, widths: readonly number[]):
       editor.tf.setNodes({ width }, { at: group.path.concat(index) });
     });
   });
-}
-
-export function removeColumnGroup(editor: SlateEditor): void {
-  const group = columnGroupAbove(editor);
-  if (!group) {
-    return;
-  }
-
-  editor.tf.removeNodes({ at: group.path });
-  if (editor.children.length === 0) {
-    editor.tf.insertNodes(emptyParagraph(), { at: [0], select: true });
-  }
 }
 
 function columnBlockEntry(
@@ -15782,7 +15757,7 @@ function columnBlockEntry(
   };
 }
 
-export function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
+function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
   const located = columnBlockEntry(editor);
   if (!located) {
     return false;
@@ -16401,7 +16376,7 @@ function tocNode(): TElement {
   return { type: KEYS.toc, children: [{ text: "" }] };
 }
 
-export function insertTocBlock(editor: SlateEditor): void {
+function insertTocBlock(editor: SlateEditor): void {
   const current = editor.api.block({ highest: true });
   if (!current) {
     editor.tf.insertNodes(tocNode(), { at: [0], select: true });
@@ -16424,7 +16399,7 @@ export function insertTocBelow(editor: SlateEditor, path: readonly number[]): vo
   editor.tf.insertNodes(tocNode(), { at, select: true });
 }
 
-export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
+function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
     voids: true,
@@ -16818,7 +16793,7 @@ function equationNode(id: string): TElement {
   };
 }
 
-export function insertEquationBlock(editor: SlateEditor): void {
+function insertEquationBlock(editor: SlateEditor): void {
   const id = nanoid();
   const current = editor.api.block({ highest: true });
   if (!current) {
@@ -16845,25 +16820,6 @@ export function insertEquationBelow(editor: SlateEditor, path: readonly number[]
   editor.tf.insertNodes(equationNode(id), { at, select: true });
   openEquationEditor(editor, id);
   return id;
-}
-
-export function setEquationExpression(
-  editor: SlateEditor,
-  path: number[],
-  expression: string,
-): boolean {
-  const node = editor.api.node(path);
-  if (!node || !ElementApi.isElement(node[0]) || node[0].type !== KEYS.equation) {
-    return false;
-  }
-
-  const current = typeof node[0].texExpression === "string" ? node[0].texExpression : "";
-  if (current === expression) {
-    return false;
-  }
-
-  editor.tf.setNodes({ texExpression: expression }, { at: path });
-  return true;
 }
 
 export function removeEquation(editor: SlateEditor, path: number[]): void {
@@ -17367,7 +17323,7 @@ export function insertInlineEquation(editor: SlateEditor, expression: string): s
   return id;
 }
 
-export type InlineEquationRefusal = "span" | "unavailable";
+type InlineEquationRefusal = "span" | "unavailable";
 
 // Why an inline equation cannot be inserted over the current selection, or undefined when it can.
 export function inlineEquationRefusal(editor: SlateEditor): InlineEquationRefusal | undefined {
@@ -17802,15 +17758,6 @@ function resetInlineEquationState(editor: SlateEditor): void {
   editor.setOption(inlineEquationUiPlugin, "createdUndoDepth", -1);
 }
 
-// Drops the popover state without writing the document.
-export function closeInlineEquationEditor(editor: SlateEditor): void {
-  if (inlineEquationEditingId(editor).length === 0) {
-    return;
-  }
-
-  resetInlineEquationState(editor);
-}
-
 export function setInlineEquationDraft(editor: SlateEditor, draft: string): void {
   if (inlineEquationEditingId(editor).length === 0) {
     return;
@@ -18073,7 +18020,7 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
 // A stored date is a calendar date only: "YYYY-MM-DD", with no time and no zone. Every conversion
 // below reads and writes plain Y-M-D numbers, so no Date is ever parsed from a string.
 
-export type StoredDateParts = { year: number; month: number; day: number };
+type StoredDateParts = { year: number; month: number; day: number };
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -18307,7 +18254,7 @@ export function insertInlineDate(editor: SlateEditor, date: string): string | nu
   return id;
 }
 
-export type InlineDateRefusal = "span" | "unavailable";
+type InlineDateRefusal = "span" | "unavailable";
 
 // Why an inline date cannot be inserted over the current selection, or undefined when it can.
 export function inlineDateRefusal(editor: SlateEditor): InlineDateRefusal | undefined {
@@ -18887,9 +18834,9 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
 ```ts
 // Shared by the editor elements and the static renderer, so both produce the same markup.
 // The reference is a superscript with line-height 0, so it does not grow the line box.
-export const FOOTNOTE_REF_CLASS =
+const FOOTNOTE_REF_CLASS =
   "text-[0.75em] font-medium text-muted-foreground px-0.5 rounded-sm cursor-pointer select-none";
-export const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
+const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
 
 export function footnoteRefClassName(selected: boolean): string {
   return selected ? `${FOOTNOTE_REF_CLASS} ${FOOTNOTE_REF_SELECTED_CLASS}` : FOOTNOTE_REF_CLASS;
@@ -19000,10 +18947,6 @@ export function selectMissingFootnoteReference(editor: SlateEditor, path: readon
   }
   selectAfterFootnoteReference(editor, [...path]);
   editor.tf.focus();
-}
-
-export function scrollReferenceIntoView(editor: SlateEditor, path: readonly number[]): void {
-  scrollPathIntoView(editor, path);
 }
 
 type FootnoteKeyEvent = {
@@ -19144,16 +19087,16 @@ import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-
 import type { EditorValue } from "../document/editor-value";
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 
-export const FOOTNOTE_NESTED_MESSAGE =
+const FOOTNOTE_NESTED_MESSAGE =
   "A footnote definition outside the top level was turned into a paragraph.";
-export const FOOTNOTE_INVALID_ID_MESSAGE =
+const FOOTNOTE_INVALID_ID_MESSAGE =
   "A footnote definition had an invalid footnote id. It was turned into a paragraph.";
-export const FOOTNOTE_DUPLICATE_MESSAGE =
+const FOOTNOTE_DUPLICATE_MESSAGE =
   "A footnote definition reused a footnote id. A new id was assigned so each definition stays unique.";
-export const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
+const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
   "A footnote reference inside a footnote definition was removed.";
 
-export type FootnoteRepairResult = {
+type FootnoteRepairResult = {
   content: EditorValue;
   repairs: Repair[];
 };
@@ -19495,7 +19438,7 @@ export function footnoteDefinitionNode(footnoteId: string, id?: string): TElemen
 }
 
 // A reference sits where an inline date sits: not in a link, a void, a code line, or a definition.
-export function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
+function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
   const block = editor.api.block({ at: point });
   if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
     return false;
@@ -19635,7 +19578,7 @@ export function footnoteInsertAllowed(editor: SlateEditor): boolean {
 // Top-level index for a new definition with this number. It goes into the trailing run of
 // definitions, before the first one with a larger number or with no reference. With no such
 // run, or no such position, it goes last. Existing definitions are never moved.
-export function definitionInsertIndex(editor: SlateEditor, number: number): number {
+function definitionInsertIndex(editor: SlateEditor, number: number): number {
   const children = editor.children;
   const isDefinition = (node: Descendant | undefined): boolean =>
     node !== undefined && ElementApi.isElement(node) && node.type === FOOTNOTE_DEF_KEY;
@@ -19748,7 +19691,7 @@ function footnoteDefinitionBlock(editor: SlateEditor): [TElement, number[]] | un
 // splitNodes, not insertBreak: at offset 0 Plate's break inserts an empty block above and would
 // turn the definition itself into a paragraph. Both halves change in one batch, so normalize
 // never sees two definitions with one id.
-export function breakFootnoteDefinition(editor: SlateEditor): boolean {
+function breakFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed()) {
     return false;
@@ -19768,7 +19711,7 @@ export function breakFootnoteDefinition(editor: SlateEditor): boolean {
 }
 
 // Backspace at the start keeps the text. The definition becomes a paragraph and nothing merges.
-export function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
+function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
     return false;
@@ -19796,11 +19739,7 @@ function footnoteReferencePaths(editor: SlateEditor, path: number[]): number[][]
 
 // Live rules for a definition that the editor creates or moves. Each rule makes one change and
 // returns true, so Slate normalizes again. Every path ends as a valid block, so the loop stops.
-export function normalizeFootnoteDefinition(
-  editor: SlateEditor,
-  node: TElement,
-  path: number[],
-): boolean {
+function normalizeFootnoteDefinition(editor: SlateEditor, node: TElement, path: number[]): boolean {
   if (node.type !== FOOTNOTE_DEF_KEY) {
     return false;
   }
@@ -20138,7 +20077,7 @@ export const SYNCED_FROM_ABOVE = "Synced from above";
 export const SYNCED_FROM_BELOW = "Synced from below";
 export const SYNCED_INVALID_PLACEHOLDER = "Invalid reference";
 export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
-export const SYNCED_CREATE_LABEL = "Create synced copy";
+const SYNCED_CREATE_LABEL = "Create synced copy";
 export const SYNCED_GO_LABEL = "Go to original";
 export const SYNCED_CONVERT_LABEL = "Convert to copy";
 export const SYNCED_REMOVE_LABEL = "Delete";
@@ -20333,7 +20272,7 @@ function isSyncableBlock(node: TElement): boolean {
   return syncedTargetStatus(node, id) === "live";
 }
 
-export function createSyncedRefReason(editor: SlateEditor): string | undefined {
+function createSyncedRefReason(editor: SlateEditor): string | undefined {
   const current = editor.api.block({ highest: true });
   if (!current || !ElementApi.isElement(current[0]) || elementId(current[0]) === undefined) {
     return SYNCED_SELECT_REASON;
@@ -20355,7 +20294,7 @@ function syncedRefNode(id: string, targetBlockId: string): TElement {
   };
 }
 
-export function insertSyncedRef(editor: SlateEditor): boolean {
+function insertSyncedRef(editor: SlateEditor): boolean {
   if (!isEditable(editor) || createSyncedRefReason(editor) !== undefined) {
     return false;
   }
@@ -21077,7 +21016,7 @@ const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 const savedSelections = new WeakMap<SlateEditor, TRange>();
 const hoverCloseTimers = new WeakMap<SlateEditor, ReturnType<typeof setTimeout>>();
 
-export const LINK_HOVER_CLOSE_MS = 200;
+const LINK_HOVER_CLOSE_MS = 200;
 
 export function linkAnchorRange(editor: SlateEditor): TRange | null {
   return savedSelections.get(editor) ?? editor.selection;
@@ -21384,7 +21323,7 @@ export function setLinkHover(editor: SlateEditor, id: string): void {
   editor.setOption(linkUiPlugin, "hoverId", id);
 }
 
-export function openLinkUrl(url: string): void {
+function openLinkUrl(url: string): void {
   const safe = sanitizeLinkUrl(url);
   if (safe === undefined || typeof window === "undefined") {
     return;
@@ -22462,7 +22401,7 @@ export const MENTION_UNKNOWN_LABEL = "Unknown person";
 
 export type { MentionEntity, MentionProvider };
 
-export type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
+type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
 
 type MentionSearchClock = {
   setTimeout: (callback: () => void, delayMs: number) => unknown;
@@ -22642,7 +22581,7 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
   return marks !== null && Reflect.get(marks, KEYS.code) === true;
 }
 
-export function mentionTriggerAllowed(editor: SlateEditor): boolean {
+function mentionTriggerAllowed(editor: SlateEditor): boolean {
   if (
     editor.dom.readOnly === true ||
     editorIsComposing(editor) ||
@@ -23621,7 +23560,7 @@ export const EMOJI_SUGGEST_LIMIT = 8;
 const TRIGGER_PATTERN = /(^|\s):([a-z0-9_+-]{2,})$/i;
 const CLOSING_PATTERN = /(^|\s):([a-z0-9_+-]{2,}):$/i;
 
-export type EmojiSession = {
+type EmojiSession = {
   blockId: string;
   blockPath: number[];
   // Block text offsets of the colon and of the caret. The token is the text between them, without the colon.
@@ -24217,7 +24156,7 @@ export function emojiMenuItems(editor: SlateEditor): EmojiEntry[] {
   return searchEmoji(entries, session.token, EMOJI_SUGGEST_LIMIT);
 }
 
-export function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
+function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
   const count = emojiMenuItems(editor).length;
   if (count === 0) {
     return;
@@ -24249,7 +24188,7 @@ function setEmojiQuery(editor: SlateEditor, query: string): void {
   }
 }
 
-export function syncEmojiMenu(editor: SlateEditor): void {
+function syncEmojiMenu(editor: SlateEditor): void {
   const session = slashMenuOpen(editor) ? null : readEmojiSession(editor);
   setEmojiQuery(editor, session?.token ?? "");
   if (session === null) {
@@ -24452,7 +24391,7 @@ import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 12;
-export const BLOCK_HANDLE_PAD = 8;
+const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
 
@@ -24573,7 +24512,7 @@ export type HandleChainNode = {
   parentType: string | null;
 };
 
-export type BlockHandleTarget = {
+type BlockHandleTarget = {
   id: string;
   type: string;
 };
@@ -24794,7 +24733,7 @@ export type BlockHandleOptions = {
   anchorCenterMax: number;
 };
 
-export const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
   gap: BLOCK_HANDLE_GAP,
   centerMax: BLOCK_HANDLE_CENTER_MAX,
   anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
@@ -24851,7 +24790,7 @@ function firstLineTop(block: HTMLElement, handleHeight: number): number {
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
 // top (the visible content); `blockLeft` is the horizontal anchor (the gutter
 // anchor for a nested block). `blockBottom` is only used for the visibility test.
-export type HandleBlockBox = {
+type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;
   blockLeft: number;
@@ -24864,17 +24803,17 @@ export type HandleFrame = {
   left: number;
 };
 
-export type HandleViewport = {
+type HandleViewport = {
   width: number;
   height: number;
 };
 
-export type HandleSize = {
+type HandleSize = {
   width: number;
   height: number;
 };
 
-export type PlacedHandle = {
+type PlacedHandle = {
   top: number;
   left: number;
 };
@@ -24936,7 +24875,7 @@ export type HandleUiState = {
   hoverNone: boolean;
 };
 
-export type HandleUiEvent =
+type HandleUiEvent =
   | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }
@@ -25114,10 +25053,10 @@ export const BLOCK_MENU_TURNS: readonly {
   { kind: "code", label: "Code", commandId: "block.turn-into.code-block" },
 ];
 
-export type TurnEffect =
+type TurnEffect =
   "same" | "retype-leaf" | "wrap" | "retype-container" | "lift" | "to-code" | "from-code";
 
-export type TurnDecision = {
+type TurnDecision = {
   kind: BlockMenuKind;
   label: string;
   commandId: string;
@@ -25126,7 +25065,7 @@ export type TurnDecision = {
   effect: TurnEffect;
 };
 
-export type MenuChildView = {
+type MenuChildView = {
   type: string;
   listStyleType?: string;
   rich: boolean;
@@ -25235,7 +25174,7 @@ export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null 
   return currentKind(view);
 }
 
-export type ColumnGroupMenu = {
+type ColumnGroupMenu = {
   count: 2 | 3;
 };
 
@@ -26276,7 +26215,7 @@ import { targetBlockAtPath } from "./editor-block-handle";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_DRAG_THRESHOLD_PX = 4;
+const BLOCK_DRAG_THRESHOLD_PX = 4;
 
 export const MOVE_ALREADY_FIRST = "This block is already first.";
 export const MOVE_ALREADY_LAST = "This block is already last.";
@@ -26286,14 +26225,14 @@ const TOGGLE_NESTING = "Toggles can only nest three levels deep.";
 
 const UNMOVABLE = new Set<string>([KEYS.td, KEYS.th, KEYS.tr, KEYS.column, KEYS.codeLine]);
 
-export type BlockDropDecision = {
+type BlockDropDecision = {
   allowed: boolean;
   noop: boolean;
   reason?: string;
   unit: readonly [number, number];
 };
 
-export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
+type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
 
 // A rendered block box, cached at drag start. Falling back to these means the
 // slot comes from the pointer's vertical position, not from a hit-test, so a
@@ -26308,7 +26247,7 @@ export type DropRect = {
 
 // The normal vertical gap between blocks (Tailwind space-y-4). A line before the
 // first or after the last block sits half a gap outside.
-export const BLOCK_GAP_PX = 16;
+const BLOCK_GAP_PX = 16;
 
 export type DropIndicator = {
   top: number;
@@ -27013,7 +26952,7 @@ import {
 export { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockSelectionActive, blockSelectionIds } from "../plugins/editor-block-selection";
 
-export type BlockTonePayload = {
+type BlockTonePayload = {
   ids: readonly string[];
   kind: BlockToneKind;
   token: PaletteToken | null;
@@ -27306,7 +27245,7 @@ export const BLOCK_INDENT_TYPES: readonly string[] = [
 
 export const BLOCK_INDENT_MAX = 6;
 
-export const BLOCK_INDENT_STEP_PX = 24;
+const BLOCK_INDENT_STEP_PX = 24;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -27367,13 +27306,8 @@ export function listIndentInjects({ nodeProps }: { nodeProps: { element?: unknow
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
 export { HISTORY_COMMANDS, runEditorCommand } from "./editor-command-runner";
-export type {
-  EditorCommandGroup,
-  EditorCommand,
-  RunEditorCommandOptions,
-} from "./editor-command-runner";
+export type { EditorCommand } from "./editor-command-runner";
 export {
-  createMarkCommand,
   formatBold,
   formatItalic,
   formatUnderline,
@@ -27382,8 +27316,6 @@ export {
   formatSuperscript,
   formatSubscript,
   formatKeyboard,
-  getValueMark,
-  createValueMarkCommand,
   getTextColor,
   setTextColor,
   getHighlight,
@@ -27393,7 +27325,6 @@ export {
   getFontFamily,
   setFontFamily,
   getBlockAttr,
-  createBlockAttrCommand,
   getTextAlign,
   setTextAlign,
   getLineHeight,
@@ -27415,7 +27346,6 @@ export {
   containerParentType,
   getBlockType,
   HEADING_TYPE,
-  createTurnIntoHeading,
   turnIntoHeading1,
   turnIntoHeading2,
   turnIntoHeading3,
@@ -27434,14 +27364,8 @@ export {
   turnIntoParagraph,
   turnBlockInto,
 } from "./editor-turn-into-commands";
-export type {
-  HeadingLevel,
-  CodeLanguagePayload,
-  CalloutAttrPayload,
-  BlockMenuTurnPayload,
-} from "./editor-turn-into-commands";
+export type { HeadingLevel } from "./editor-turn-into-commands";
 export {
-  createToggleList,
   toggleBulletedList,
   toggleNumberedList,
   toggleTodoList,
@@ -27563,7 +27487,7 @@ type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
 };
 
-export type BlockHandleController = {
+type BlockHandleController = {
   paint: BlockHandlePaint | null;
   shown: boolean;
   setMeasuredSize: (width: number, height: number) => void;
@@ -28425,7 +28349,7 @@ type AutosaveOptions = {
 // A change is saved this long after the last edit, unless a caller passes debounceMs.
 export const DEFAULT_AUTOSAVE_DEBOUNCE_MS = 800;
 
-export type AutosaveController = {
+type AutosaveController = {
   schedule: (content: EditorValue) => void;
   flush: () => Promise<void>;
   retry: () => Promise<void>;
@@ -31800,13 +31724,6 @@ import sql from "highlight.js/lib/languages/sql";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
-type HastNode = {
-  type: string;
-  value?: string;
-  children?: HastNode[];
-  properties?: { className?: string | string[] };
-};
-
 import { codeLowlight } from "../../lib/features/editor-code";
 import { CODE_LANGS, type CodeLang } from "../../lib/document/editor-document-schema";
 
@@ -31842,47 +31759,6 @@ export function ensureStaticCodeLanguages(): void {
       codeLowlight.register(lang, GRAMMARS[lang]);
     }
   }
-}
-
-export type HighlightSpan = { text: string; className?: string };
-
-function classNameOf(node: HastNode): string | undefined {
-  if (node.type !== "element") {
-    return undefined;
-  }
-  const value = node.properties?.className;
-  if (Array.isArray(value)) {
-    return value.join(" ");
-  }
-  return typeof value === "string" ? value : undefined;
-}
-
-function walk(node: HastNode, className: string | undefined, spans: HighlightSpan[]): void {
-  if (node.type === "text") {
-    spans.push({ text: node.value ?? "", className });
-    return;
-  }
-  if (node.type !== "element") {
-    return;
-  }
-  const next = classNameOf(node) ?? className;
-  for (const child of node.children ?? []) {
-    walk(child, next, spans);
-  }
-}
-
-export function highlightCode(lang: string | null, text: string): HighlightSpan[] {
-  ensureStaticCodeLanguages();
-  const language = lang !== null && codeLowlight.registered(lang) ? lang : "plaintext";
-  const tree = codeLowlight.highlight(language, text) as { children: HastNode[] };
-  const spans: HighlightSpan[] = [];
-  for (const child of tree.children) {
-    walk(child, undefined, spans);
-  }
-  if (spans.length === 0) {
-    spans.push({ text });
-  }
-  return spans;
 }
 ```
 

@@ -1,16 +1,16 @@
 export type FeatureKind = "block" | "inline" | "mark" | "block-attribute" | "ux";
 
-export type FeatureEntryVia =
+type FeatureEntryVia =
   "slash" | "toolbar" | "block-menu" | "shortcut" | "input-rule" | "paste" | "pointer" | "host";
 
-export type FeatureEntryPoint = {
+type FeatureEntryPoint = {
   via: FeatureEntryVia;
   id?: string;
   keys?: string;
   note?: string;
 };
 
-export type FeatureStatic = "rendered" | "not-applicable";
+type FeatureStatic = "rendered" | "not-applicable";
 
 export type FeatureEntry = {
   key: string;

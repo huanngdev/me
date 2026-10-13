@@ -352,7 +352,7 @@ export function openAncestorToggle(editor: SlateEditor): void {
 
 // Selection that lands in hidden content opens that toggle. Slate flushes editor.onChange
 // in a microtask after select, undo, paste, and programmatic selection changes.
-export function revealClosedToggleContent(editor: SlateEditor): void {
+function revealClosedToggleContent(editor: SlateEditor): void {
   const selection = editor.selection;
   if (!selection) {
     return;

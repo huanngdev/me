@@ -7,12 +7,8 @@ import {
   sanitizeMediaEmbedUrl,
 } from "./editor-media-source";
 import {
-  MEDIA_ALIGNS,
   MEDIA_CAPTION_MAX,
-  MEDIA_RESIZE_FINE_STEP,
-  MEDIA_RESIZE_STEP,
   MEDIA_WIDTH_MAX,
-  MEDIA_WIDTH_MIN,
   clampMediaWidth,
   cleanMediaLayoutFields,
   dragMediaWidth,
@@ -30,15 +26,9 @@ import {
 
 export const IMAGE_KEY = "image";
 
-// The image names of the shared layout rules.
-export const IMAGE_WIDTH_MIN = MEDIA_WIDTH_MIN;
 export const IMAGE_WIDTH_MAX = MEDIA_WIDTH_MAX;
-export const IMAGE_ALIGNS = MEDIA_ALIGNS;
 export type ImageAlign = MediaAlign;
 export const IMAGE_CAPTION_MAX = MEDIA_CAPTION_MAX;
-export const IMAGE_RESIZE_STEP = MEDIA_RESIZE_STEP;
-export const IMAGE_RESIZE_FINE_STEP = MEDIA_RESIZE_FINE_STEP;
-
 export const IMAGE_URL_REMOVED =
   "An image has an unsupported url. The image was cleared to an empty placeholder.";
 export const IMAGE_ATTRS_CLEANED =
@@ -54,7 +44,7 @@ export type ImageFields = {
   caption?: string;
 };
 
-export type CleanedImage = {
+type CleanedImage = {
   fields: ImageFields;
   dropped: boolean; // true when a field was present and removed
 };
@@ -70,9 +60,6 @@ const IMAGE_FIELD_KEYS = [
   "caption",
 ] as const satisfies readonly (keyof ImageFields)[];
 
-export const isImageWidth = isMediaWidth;
-export const isImageAlign = isMediaAlign;
-export const isImageCaption = isMediaCaption;
 export const clampImageWidth = clampMediaWidth;
 export const naturalImagePercent = naturalMediaPercent;
 export const dragImageWidth = dragMediaWidth;

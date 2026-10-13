@@ -34,7 +34,7 @@ import { insertEquationBelow } from "./editor-equation";
 import { insertTocBelow } from "./editor-toc";
 import { itemFeatureEnabled } from "../plugins/editor-config";
 
-export type BlockPickerGroup = "Basic" | "Lists" | "Containers" | "Advanced";
+type BlockPickerGroup = "Basic" | "Lists" | "Containers" | "Advanced";
 
 export const BLOCK_PICKER_GROUPS: readonly BlockPickerGroup[] = [
   "Basic",
@@ -45,7 +45,7 @@ export const BLOCK_PICKER_GROUPS: readonly BlockPickerGroup[] = [
 
 // Structural inserts have no BlockMenuKind: they are inserted, never a
 // conversion. A turn kind is inserted as a paragraph and then turned.
-export type BlockPickerId = BlockMenuKind | "divider" | "table" | "columns" | "equation" | "toc";
+type BlockPickerId = BlockMenuKind | "divider" | "table" | "columns" | "equation" | "toc";
 
 export type BlockPickerItem = {
   id: BlockPickerId;
@@ -275,7 +275,7 @@ const ADD_DEFINITIONS: readonly AddDefinition[] = [
 
 // The item the caret/selection sits in, and the index a picker choice would
 // take. Both come from the target path, matching insertParagraphBelow.
-export function addPlacement(
+function addPlacement(
   editor: SlateEditor,
   path: readonly number[],
 ): { parentType: string | null; toIndex: number } | null {

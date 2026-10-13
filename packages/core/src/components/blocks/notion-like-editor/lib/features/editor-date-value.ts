@@ -2,7 +2,7 @@
 // A stored date is a calendar date only: "YYYY-MM-DD", with no time and no zone. Every conversion
 // below reads and writes plain Y-M-D numbers, so no Date is ever parsed from a string.
 
-export type StoredDateParts = { year: number; month: number; day: number };
+type StoredDateParts = { year: number; month: number; day: number };
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 

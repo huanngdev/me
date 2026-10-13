@@ -44,7 +44,7 @@ const HEADING_TEXT: Record<string, string> = {
   [KEYS.h3]: "Heading 3",
 };
 
-export type Placement = { parentType: string | null; index: number };
+type Placement = { parentType: string | null; index: number };
 
 function placementOf(editor: SlateEditor, path: readonly number[]): Placement {
   const index = path[path.length - 1] ?? 0;
@@ -60,7 +60,7 @@ function placementOf(editor: SlateEditor, path: readonly number[]): Placement {
   return { parentType, index };
 }
 
-export type PlaceholderSpec = { text: string; always: boolean };
+type PlaceholderSpec = { text: string; always: boolean };
 
 // The placeholder text for an empty block, and whether it shows whenever the
 // block is empty (typed blocks with a role) or only while it holds the caret

@@ -9,14 +9,14 @@ export const MEDIA_WIDTH_MIN = 10;
 export const MEDIA_WIDTH_MAX = 100;
 
 // Absence means center. Commands store the align they are given.
-export const MEDIA_ALIGNS = ["left", "center", "right"] as const;
+const MEDIA_ALIGNS = ["left", "center", "right"] as const;
 export type MediaAlign = (typeof MEDIA_ALIGNS)[number];
 
 export const MEDIA_CAPTION_MAX = 500;
 
 // Keyboard steps on a resize handle. Shift uses the fine step.
-export const MEDIA_RESIZE_STEP = 5;
-export const MEDIA_RESIZE_FINE_STEP = 1;
+const MEDIA_RESIZE_STEP = 5;
+const MEDIA_RESIZE_FINE_STEP = 1;
 
 export type MediaLayoutFields = {
   width?: number;
@@ -24,7 +24,7 @@ export type MediaLayoutFields = {
   caption?: string;
 };
 
-export type CleanedMediaLayout = {
+type CleanedMediaLayout = {
   fields: MediaLayoutFields;
   dropped: boolean; // true when a field was present and removed
 };

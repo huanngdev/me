@@ -40,13 +40,13 @@ export type BlockRun = {
   ids: string[];
 };
 
-export type VerticalBox = {
+type VerticalBox = {
   id: string;
   top: number;
   bottom: number;
 };
 
-export type CaretLanding = "previous-end" | "next-start" | "empty-document" | "empty-container";
+type CaretLanding = "previous-end" | "next-start" | "empty-document" | "empty-container";
 
 function elementId(node: Descendant | undefined): string {
   if (!node || !ElementApi.isElement(node)) {
@@ -80,7 +80,7 @@ function childrenOf(editor: SlateEditor, parent: readonly number[]): readonly De
   return node.children;
 }
 
-export function blockUnitId(editor: SlateEditor, id: string): string | null {
+function blockUnitId(editor: SlateEditor, id: string): string | null {
   const entry = findBlockById(editor, id);
   if (!entry) {
     return null;
@@ -377,7 +377,7 @@ export function runMoveTarget(
   return { ok: true, to: [...run.parent, toIndex] };
 }
 
-export function blockText(node: TElement): string {
+function blockText(node: TElement): string {
   return NodeApi.string(node);
 }
 

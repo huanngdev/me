@@ -206,7 +206,7 @@ function columnCanDuplicate(node: TElement, column: number): boolean {
   });
 }
 
-export function duplicateRowReason(editor: SlateEditor): string | undefined {
+function duplicateRowReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }
@@ -227,7 +227,7 @@ export function duplicateRowReason(editor: SlateEditor): string | undefined {
   return undefined;
 }
 
-export function duplicateColumnReason(editor: SlateEditor): string | undefined {
+function duplicateColumnReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }

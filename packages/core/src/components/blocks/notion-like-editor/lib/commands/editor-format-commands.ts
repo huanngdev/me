@@ -57,7 +57,7 @@ function markState(editor: SlateEditor, key: string): MarkState {
 
   return sawMarked ? "on" : "off";
 }
-export function createMarkCommand(options: {
+function createMarkCommand(options: {
   key: string;
   label: string;
   excludes?: readonly string[];
@@ -128,7 +128,7 @@ export const formatKeyboard: EditorCommand = createMarkCommand({
 });
 export type TextColorState = TextColorToken | null | "mixed";
 export type HighlightState = HighlightToken | null | "mixed";
-export function getValueMark<T extends string>(
+function getValueMark<T extends string>(
   editor: SlateEditor,
   key: string,
   values: readonly T[],
@@ -176,7 +176,7 @@ export function getValueMark<T extends string>(
 
   return token;
 }
-export function createValueMarkCommand<T extends string>(options: {
+function createValueMarkCommand<T extends string>(options: {
   key: string;
   label: string;
   id: string;
@@ -310,7 +310,7 @@ export function getBlockAttr<T extends string | number>(
 
   return token;
 }
-export function createBlockAttrCommand<T extends string | number>(options: {
+function createBlockAttrCommand<T extends string | number>(options: {
   key: string;
   label: string;
   id: string;

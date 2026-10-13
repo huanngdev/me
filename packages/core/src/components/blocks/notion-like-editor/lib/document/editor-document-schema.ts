@@ -23,18 +23,18 @@ import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
-export type IntegerAttrRange = {
+type IntegerAttrRange = {
   readonly min: number;
   readonly max: number;
 };
 
-export type AttrRequirement = {
+type AttrRequirement = {
   attr: string;
   /** When set, the required attribute must be one of these values. */
   values?: readonly (string | number)[];
 };
 
-export type EditorElementRule = {
+type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number | boolean)[]>>;
@@ -86,7 +86,7 @@ export type EditorElementRule = {
   validateChildren?: (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[];
 };
 
-export type EditorMarkRule = {
+type EditorMarkRule = {
   type: string;
   values?: readonly string[];
 };
@@ -216,7 +216,7 @@ export const CODE_LANG_LABELS = {
 } as const satisfies Record<CodeLang | "plaintext", string>;
 
 // Paste and insert class tokens. Stored names that are not listed here stay themselves.
-export const CODE_LANG_ALIASES = {
+const CODE_LANG_ALIASES = {
   ts: "typescript",
   js: "javascript",
   sh: "bash",
@@ -285,7 +285,7 @@ export function isStoredEquationExpression(value: unknown): value is string {
   return true;
 }
 
-export function checkEquationNode(
+function checkEquationNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -302,10 +302,7 @@ export function checkEquationNode(
 }
 
 // A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
-export function checkDateNode(
-  node: Record<string, unknown>,
-  path: number[],
-): readonly TableGridIssue[] {
+function checkDateNode(node: Record<string, unknown>, path: number[]): readonly TableGridIssue[] {
   if ("date" in node && isStoredDate(node.date)) {
     return [];
   }
@@ -322,7 +319,7 @@ export function checkDateNode(
 export const FOOTNOTE_REF_KEY = "footnote_ref";
 export const FOOTNOTE_DEF_KEY = "footnote_def";
 
-export function checkFootnoteRefNode(
+function checkFootnoteRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -358,7 +355,7 @@ export function isStoredSyncedTargetId(value: unknown): value is string {
   return true;
 }
 
-export function checkSyncedRefNode(
+function checkSyncedRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -374,7 +371,7 @@ export function checkSyncedRefNode(
   ];
 }
 
-export function checkBookmarkNode(
+function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {

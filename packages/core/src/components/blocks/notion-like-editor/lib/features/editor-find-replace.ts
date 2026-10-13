@@ -6,10 +6,10 @@ import { truncateUnits, type FindMatch } from "./editor-find";
 
 export const FIND_REPLACEMENT_MAX = 1000;
 
-export type FindReplacePayload = { replacement: string };
+type FindReplacePayload = { replacement: string };
 
 // Plain text on one line. Each line break becomes one space.
-export function normalizeFindReplacement(raw: string): string {
+function normalizeFindReplacement(raw: string): string {
   return truncateUnits(raw.replace(/\r\n|\r|\n/g, " "), FIND_REPLACEMENT_MAX);
 }
 

@@ -150,7 +150,7 @@ export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
 
 export { pasteRepairsOf, setPasteRepairs };
 
-export type PasteSanitizeOptions = {
+type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
   /** True for a node type whose feature is off. Such a node never becomes its own type. */
@@ -1617,7 +1617,7 @@ function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
   return kept;
 }
 
-export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
   let next = value;
   if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
     next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });

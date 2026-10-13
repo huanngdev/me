@@ -37,7 +37,7 @@ type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
 };
 
-export type BlockHandleController = {
+type BlockHandleController = {
   paint: BlockHandlePaint | null;
   shown: boolean;
   setMeasuredSize: (width: number, height: number) => void;

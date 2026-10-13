@@ -1,6 +1,6 @@
 import { type SlateEditor, type TRange } from "platejs";
 
-export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
+type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
 export type EditorCommand<Payload = void> = {
   id: string;
   label: string;
@@ -12,7 +12,7 @@ export type EditorCommand<Payload = void> = {
   /** Returning false refuses the command: no change, and runEditorCommand returns false. */
   run: (editor: SlateEditor, payload: Payload) => void | boolean;
 };
-export type RunEditorCommandOptions = {
+type RunEditorCommandOptions = {
   selection?: TRange;
   readOnly?: boolean;
 };

@@ -73,10 +73,10 @@ export const BLOCK_MENU_TURNS: readonly {
   { kind: "code", label: "Code", commandId: "block.turn-into.code-block" },
 ];
 
-export type TurnEffect =
+type TurnEffect =
   "same" | "retype-leaf" | "wrap" | "retype-container" | "lift" | "to-code" | "from-code";
 
-export type TurnDecision = {
+type TurnDecision = {
   kind: BlockMenuKind;
   label: string;
   commandId: string;
@@ -85,7 +85,7 @@ export type TurnDecision = {
   effect: TurnEffect;
 };
 
-export type MenuChildView = {
+type MenuChildView = {
   type: string;
   listStyleType?: string;
   rich: boolean;
@@ -194,7 +194,7 @@ export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null 
   return currentKind(view);
 }
 
-export type ColumnGroupMenu = {
+type ColumnGroupMenu = {
   count: 2 | 3;
 };
 

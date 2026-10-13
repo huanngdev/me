@@ -1,11 +1,6 @@
 export { HISTORY_COMMANDS, runEditorCommand } from "./editor-command-runner";
-export type {
-  EditorCommandGroup,
-  EditorCommand,
-  RunEditorCommandOptions,
-} from "./editor-command-runner";
+export type { EditorCommand } from "./editor-command-runner";
 export {
-  createMarkCommand,
   formatBold,
   formatItalic,
   formatUnderline,
@@ -14,8 +9,6 @@ export {
   formatSuperscript,
   formatSubscript,
   formatKeyboard,
-  getValueMark,
-  createValueMarkCommand,
   getTextColor,
   setTextColor,
   getHighlight,
@@ -25,7 +18,6 @@ export {
   getFontFamily,
   setFontFamily,
   getBlockAttr,
-  createBlockAttrCommand,
   getTextAlign,
   setTextAlign,
   getLineHeight,
@@ -47,7 +39,6 @@ export {
   containerParentType,
   getBlockType,
   HEADING_TYPE,
-  createTurnIntoHeading,
   turnIntoHeading1,
   turnIntoHeading2,
   turnIntoHeading3,
@@ -66,14 +57,8 @@ export {
   turnIntoParagraph,
   turnBlockInto,
 } from "./editor-turn-into-commands";
-export type {
-  HeadingLevel,
-  CodeLanguagePayload,
-  CalloutAttrPayload,
-  BlockMenuTurnPayload,
-} from "./editor-turn-into-commands";
+export type { HeadingLevel } from "./editor-turn-into-commands";
 export {
-  createToggleList,
   toggleBulletedList,
   toggleNumberedList,
   toggleTodoList,

@@ -39,7 +39,7 @@ import { PageLinkBody } from "../static/page-link-body";
 import { hrElementClassName } from "./hr-element";
 import { PAGE_LINK_ROW_CLASS } from "./page-link-classes";
 
-export const PAGE_LINK_RESOLVE_TIMEOUT_MS = 5000;
+const PAGE_LINK_RESOLVE_TIMEOUT_MS = 5000;
 
 let resolveTimeoutMs = PAGE_LINK_RESOLVE_TIMEOUT_MS;
 

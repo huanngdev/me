@@ -31,7 +31,7 @@ function paragraphEntries(editor: SlateEditor) {
 // A list item that leaves its list drops its level with it. A plain paragraph keeps its own
 // indent, so the unset is explicit here and not a normalizer. A plain indent that becomes a
 // list keeps its level as depth, where Plate's toggle would add one.
-export function createToggleList(style: ListStyle): EditorCommand {
+function createToggleList(style: ListStyle): EditorCommand {
   const command = TOGGLE_LIST_COMMAND[style];
 
   return {

@@ -11,7 +11,7 @@ import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 12;
-export const BLOCK_HANDLE_PAD = 8;
+const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
 
@@ -132,7 +132,7 @@ export type HandleChainNode = {
   parentType: string | null;
 };
 
-export type BlockHandleTarget = {
+type BlockHandleTarget = {
   id: string;
   type: string;
 };
@@ -353,7 +353,7 @@ export type BlockHandleOptions = {
   anchorCenterMax: number;
 };
 
-export const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
   gap: BLOCK_HANDLE_GAP,
   centerMax: BLOCK_HANDLE_CENTER_MAX,
   anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
@@ -410,7 +410,7 @@ function firstLineTop(block: HTMLElement, handleHeight: number): number {
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
 // top (the visible content); `blockLeft` is the horizontal anchor (the gutter
 // anchor for a nested block). `blockBottom` is only used for the visibility test.
-export type HandleBlockBox = {
+type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;
   blockLeft: number;
@@ -423,17 +423,17 @@ export type HandleFrame = {
   left: number;
 };
 
-export type HandleViewport = {
+type HandleViewport = {
   width: number;
   height: number;
 };
 
-export type HandleSize = {
+type HandleSize = {
   width: number;
   height: number;
 };
 
-export type PlacedHandle = {
+type PlacedHandle = {
   top: number;
   left: number;
 };
@@ -495,7 +495,7 @@ export type HandleUiState = {
   hoverNone: boolean;
 };
 
-export type HandleUiEvent =
+type HandleUiEvent =
   | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }

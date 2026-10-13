@@ -9,7 +9,7 @@ import {
 import { toPlatePlugin } from "platejs/react";
 
 import { runEditorCommand, type EditorCommand } from "../commands/editor-commands";
-import { blockDropDecision, moveBlockAt } from "../features/editor-block-drop";
+import { moveBlockAt } from "../features/editor-block-drop";
 import { targetBlockAtPath } from "../features/editor-block-handle";
 import { cloneWithFreshIds, collectIds, deleteBlockAt } from "../features/editor-block-menu";
 import {
@@ -25,8 +25,8 @@ import {
 import { findBlockById } from "../features/editor-synced-block";
 import { slashMenuOpen } from "./editor-slash";
 
-export const BLOCK_SELECTION_PRIORITY = 3000;
-export const BLOCK_SELECTION_ENTER_PRIORITY = 50;
+const BLOCK_SELECTION_PRIORITY = 3000;
+const BLOCK_SELECTION_ENTER_PRIORITY = 50;
 
 type SelectionOptions = {
   ids: string[];
@@ -749,18 +749,4 @@ export function selectedRunDrop(
     return { from: [...path] };
   }
   return { from: [...run.parent, run.start], span: [run.start, run.end] };
-}
-
-export function runDropAllowed(
-  editor: SlateEditor,
-  from: readonly number[],
-  span: readonly [number, number] | undefined,
-  to: readonly number[],
-): boolean {
-  const toIndex = to[to.length - 1];
-  if (toIndex === undefined) {
-    return false;
-  }
-  const decision = blockDropDecision(editor.children, from, to.slice(0, -1), toIndex, span);
-  return decision.allowed && !decision.noop;
 }

@@ -61,15 +61,6 @@ function resetInlineEquationState(editor: SlateEditor): void {
   editor.setOption(inlineEquationUiPlugin, "createdUndoDepth", -1);
 }
 
-// Drops the popover state without writing the document.
-export function closeInlineEquationEditor(editor: SlateEditor): void {
-  if (inlineEquationEditingId(editor).length === 0) {
-    return;
-  }
-
-  resetInlineEquationState(editor);
-}
-
 export function setInlineEquationDraft(editor: SlateEditor, draft: string): void {
   if (inlineEquationEditingId(editor).length === 0) {
     return;

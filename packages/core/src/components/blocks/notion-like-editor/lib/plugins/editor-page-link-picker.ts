@@ -118,7 +118,7 @@ export function choosePageLink(editor: SlateEditor, page: PageEntity): boolean {
   return inserted;
 }
 
-export function clearPageLinkPicker(editor: SlateEditor): void {
+function clearPageLinkPicker(editor: SlateEditor): void {
   editor.setOption(pageLinkPickerPlugin, "open", false);
   editor.setOption(pageLinkPickerPlugin, "blockId", "");
   editor.setOption(pageLinkPickerPlugin, "offset", 0);

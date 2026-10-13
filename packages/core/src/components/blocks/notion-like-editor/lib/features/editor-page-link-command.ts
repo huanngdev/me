@@ -4,7 +4,7 @@ import type { EditorCommand } from "../commands/editor-commands";
 import { PAGE_LINK_KEY, isStoredPageId, pageLinkNode, type PageLinkKind } from "./editor-page-link";
 import { placeBlockBesideSlash } from "../plugins/editor-bookmark-popover";
 
-export type PageLinkInsert = {
+type PageLinkInsert = {
   pageId: string;
   title: string;
   kind?: PageLinkKind;

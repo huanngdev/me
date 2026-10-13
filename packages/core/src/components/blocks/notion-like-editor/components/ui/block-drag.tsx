@@ -37,7 +37,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
 export const DRAG_ACTIVATION_DISTANCE_PX = 4;
-export const DRAG_HORIZONTAL_BAND_PX = 200;
+const DRAG_HORIZONTAL_BAND_PX = 200;
 
 const HORIZONTAL_BAND_PX = DRAG_HORIZONTAL_BAND_PX;
 const VERTICAL_BAND_PX = 32;
@@ -428,7 +428,7 @@ export type BlockDragHandlers = {
   onDragCancel: () => void;
 };
 
-export type BlockDragApi = BlockDragHandlers & {
+type BlockDragApi = BlockDragHandlers & {
   attributes: DraggableAttributes;
   listeners: DragListeners;
   setNodeRef: (node: HTMLElement | null) => void;

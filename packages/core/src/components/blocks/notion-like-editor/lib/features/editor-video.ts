@@ -25,9 +25,9 @@ export const VIDEO_URL_REMOVED =
 export const VIDEO_ATTRS_CLEANED =
   "A video lost an attribute that is not valid. The video was kept.";
 
-export type VideoFields = Partial<MediaSource> & MediaLayoutFields;
+type VideoFields = Partial<MediaSource> & MediaLayoutFields;
 
-export type CleanedVideo = {
+type CleanedVideo = {
   fields: VideoFields;
   dropped: boolean; // true when a field was present and removed
 };

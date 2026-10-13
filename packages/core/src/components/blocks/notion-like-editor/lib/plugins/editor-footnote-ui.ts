@@ -91,10 +91,6 @@ export function selectMissingFootnoteReference(editor: SlateEditor, path: readon
   editor.tf.focus();
 }
 
-export function scrollReferenceIntoView(editor: SlateEditor, path: readonly number[]): void {
-  scrollPathIntoView(editor, path);
-}
-
 type FootnoteKeyEvent = {
   key: string;
   altKey: boolean;

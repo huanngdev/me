@@ -124,7 +124,7 @@ export function insertInlineEquation(editor: SlateEditor, expression: string): s
   return id;
 }
 
-export type InlineEquationRefusal = "span" | "unavailable";
+type InlineEquationRefusal = "span" | "unavailable";
 
 // Why an inline equation cannot be inserted over the current selection, or undefined when it can.
 export function inlineEquationRefusal(editor: SlateEditor): InlineEquationRefusal | undefined {

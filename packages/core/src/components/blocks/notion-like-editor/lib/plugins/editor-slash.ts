@@ -116,7 +116,7 @@ export function slashMenuItems(editor: SlateEditor): SlashItem[] {
   return slashItemsForSession(editor, session);
 }
 
-export function moveSlashHighlight(editor: SlateEditor, delta: number): void {
+function moveSlashHighlight(editor: SlateEditor, delta: number): void {
   const items = slashMenuItems(editor);
   if (items.length === 0) {
     return;
@@ -126,7 +126,7 @@ export function moveSlashHighlight(editor: SlateEditor, delta: number): void {
   editor.setOption(slashUiPlugin, "activeIndex", next);
 }
 
-export function syncSlashMenu(editor: SlateEditor): void {
+function syncSlashMenu(editor: SlateEditor): void {
   if (!slashMenuOpen(editor)) {
     return;
   }

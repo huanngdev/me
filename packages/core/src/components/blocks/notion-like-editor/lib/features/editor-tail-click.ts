@@ -6,7 +6,7 @@ import { insertParagraphBelow, runEditorCommand } from "../commands/editor-comma
 import { clearBlockSelection } from "../plugins/editor-block-selection";
 import { editorOptions } from "../plugins/editor-config";
 
-export type TailClickAction = "append" | "focus-last" | "none";
+type TailClickAction = "append" | "focus-last" | "none";
 
 // An empty plain paragraph: no list marker and no text, so nothing to add to.
 function isEmptyPlainParagraph(node: TNode): boolean {

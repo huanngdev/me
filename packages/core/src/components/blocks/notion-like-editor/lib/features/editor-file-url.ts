@@ -2,9 +2,9 @@ import { sanitizeBookmarkText } from "./editor-bookmark-url";
 import { truncateUnits } from "./editor-find";
 import type { FileUploadAdapter, UploadedFile } from "./editor-file-upload";
 
-export const STORED_FILE_URL_MAX = 2048;
+const STORED_FILE_URL_MAX = 2048;
 export const FILE_NAME_MAX = 255;
-export const FILE_MIME_MAX = 127;
+const FILE_MIME_MAX = 127;
 
 const DENIED_SCHEMES: readonly string[] = ["javascript", "data", "vbscript"];
 const SCHEME_PREFIX = /^[^/?#:]*:/;

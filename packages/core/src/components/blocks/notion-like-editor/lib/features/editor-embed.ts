@@ -41,7 +41,7 @@ export const EMBED_FIELD_KEYS = [
   "caption",
 ] as const;
 
-export type EmbedFields = MediaLayoutFields & {
+type EmbedFields = MediaLayoutFields & {
   provider?: EmbedProvider;
   videoId?: string;
   hash?: string;
@@ -49,7 +49,7 @@ export type EmbedFields = MediaLayoutFields & {
   url?: string; // the normalized https link the embed came from, for Open original
 };
 
-export type CleanedEmbed = {
+type CleanedEmbed = {
   fields: EmbedFields;
   dropped: boolean; // true when a field was present and removed
   cleared: boolean; // true when the source was not valid, so the block is a placeholder

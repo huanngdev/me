@@ -180,7 +180,7 @@ export function insertColumnsBelow(
   });
 }
 
-export function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
+function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
   const group = columnGroupAbove(editor);
   if (!group || group.node.children.length === count) {
     return;
@@ -291,7 +291,7 @@ function replaceGroupWithChildren(editor: SlateEditor, groupPath: number[]): voi
   selectPath(editor, groupPath);
 }
 
-export function removeColumnAt(editor: SlateEditor, index: number): void {
+function removeColumnAt(editor: SlateEditor, index: number): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -322,7 +322,7 @@ export function removeColumnAt(editor: SlateEditor, index: number): void {
   });
 }
 
-export function unwrapColumns(editor: SlateEditor): void {
+function unwrapColumns(editor: SlateEditor): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -352,18 +352,6 @@ export function setColumnWidths(editor: SlateEditor, widths: readonly number[]):
       editor.tf.setNodes({ width }, { at: group.path.concat(index) });
     });
   });
-}
-
-export function removeColumnGroup(editor: SlateEditor): void {
-  const group = columnGroupAbove(editor);
-  if (!group) {
-    return;
-  }
-
-  editor.tf.removeNodes({ at: group.path });
-  if (editor.children.length === 0) {
-    editor.tf.insertNodes(emptyParagraph(), { at: [0], select: true });
-  }
 }
 
 function columnBlockEntry(
@@ -398,7 +386,7 @@ function columnBlockEntry(
   };
 }
 
-export function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
+function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
   const located = columnBlockEntry(editor);
   if (!located) {
     return false;

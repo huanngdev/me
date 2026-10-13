@@ -15,7 +15,7 @@ import { clipboardWithinHtmlLimit } from "./editor-paste";
 import { featureEnabled } from "../plugins/editor-config";
 import type { EditorFeature } from "../features/editor-features";
 
-export type PasteUrlOffer = {
+type PasteUrlOffer = {
   url: string;
   raw: string;
   path: number[];

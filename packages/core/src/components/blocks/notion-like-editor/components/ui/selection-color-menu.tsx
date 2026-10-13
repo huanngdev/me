@@ -14,7 +14,7 @@ export function tokenLabel(token: string): string {
   return token.charAt(0).toUpperCase() + token.slice(1);
 }
 
-export function colorControlLabel(
+function colorControlLabel(
   textColor: PaletteToken | null | "mixed",
   highlight: PaletteToken | null | "mixed",
 ): string {

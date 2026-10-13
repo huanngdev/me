@@ -59,7 +59,7 @@ export type SlashItem = {
   pageLink?: boolean;
 };
 
-export type SlashAnchor = {
+type SlashAnchor = {
   blockId: string;
   offset: number;
 };

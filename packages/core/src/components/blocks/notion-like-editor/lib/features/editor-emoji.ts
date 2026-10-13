@@ -12,7 +12,7 @@ export const EMOJI_SUGGEST_LIMIT = 8;
 const TRIGGER_PATTERN = /(^|\s):([a-z0-9_+-]{2,})$/i;
 const CLOSING_PATTERN = /(^|\s):([a-z0-9_+-]{2,}):$/i;
 
-export type EmojiSession = {
+type EmojiSession = {
   blockId: string;
   blockPath: number[];
   // Block text offsets of the colon and of the caret. The token is the text between them, without the colon.
