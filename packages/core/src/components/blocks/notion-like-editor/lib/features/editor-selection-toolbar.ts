@@ -42,23 +42,21 @@ import { bookmarkUrlOpen } from "../plugins/editor-bookmark-popover";
 import { editInlineLink, insertInlineLink, linkUiPlugin } from "../plugins/editor-link";
 import { toggleInlineEquation } from "../plugins/editor-inline-equation-ui";
 import { slashMenuOpen } from "../plugins/editor-slash";
+import type { EditorShortcutId } from "./editor-shortcuts";
 
 export const SELECTION_TOOLBAR_MEDIA = "(hover: none), (pointer: coarse)";
 
-export const LINK_SHORTCUT_KEYS = ["Mod", "k"] as const;
-export const EQUATION_SHORTCUT_KEYS = ["Mod", "Shift", "e"] as const;
-
 const MARKS = [
-  { id: "bold", label: "Bold", command: formatBold, pluginKey: "bold" },
-  { id: "italic", label: "Italic", command: formatItalic, pluginKey: "italic" },
-  { id: "underline", label: "Underline", command: formatUnderline, pluginKey: "underline" },
+  { id: "bold", label: "Bold", command: formatBold, shortcut: "bold" },
+  { id: "italic", label: "Italic", command: formatItalic, shortcut: "italic" },
+  { id: "underline", label: "Underline", command: formatUnderline, shortcut: "underline" },
   {
     id: "strikethrough",
     label: "Strikethrough",
     command: formatStrikethrough,
-    pluginKey: "strikethrough",
+    shortcut: "strikethrough",
   },
-  { id: "code", label: "Code", command: formatCode, pluginKey: "code" },
+  { id: "code", label: "Code", command: formatCode, shortcut: "code" },
 ] as const;
 
 export type SelectionToolbarMarkId = (typeof MARKS)[number]["id"];
@@ -83,7 +81,7 @@ export type SelectionToolbarSnapshot = {
 export type SelectionToolbarMarkState = {
   id: string;
   label: string;
-  shortcut?: string;
+  shortcut?: EditorShortcutId;
   pressed: boolean;
   mixed: boolean;
   disabled: boolean;
@@ -101,7 +99,7 @@ export type SelectionToolbarModel = {
   marks: SelectionToolbarMarkState[];
   link: {
     label: string;
-    shortcut?: string;
+    shortcut?: EditorShortcutId;
     pressed: boolean;
     editing: boolean;
     disabled: boolean;
@@ -109,7 +107,7 @@ export type SelectionToolbarModel = {
   };
   equation: {
     label: string;
-    shortcut?: string;
+    shortcut?: EditorShortcutId;
     disabled: boolean;
     reason?: string;
   };
@@ -125,9 +123,9 @@ export type SelectionToolbarModel = {
   fontSize: FontSizeState;
   fontFamily: FontFamilyState;
   lineHeight: LineHeightState;
-  indent: { disabled: boolean; reason?: string; shortcut?: string };
-  outdent: { disabled: boolean; reason?: string; shortcut?: string };
-  clear: { disabled: boolean; reason?: string; shortcut?: string };
+  indent: { disabled: boolean; reason?: string; shortcut?: EditorShortcutId };
+  outdent: { disabled: boolean; reason?: string; shortcut?: EditorShortcutId };
+  clear: { disabled: boolean; reason?: string; shortcut?: EditorShortcutId };
 };
 
 export function showingToolbarSnapshot(
@@ -225,12 +223,10 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
 
   return {
     turnInto: selectionTurnTarget(editor),
-    marks: MARKS.map((mark) =>
-      markState(editor, mark.id, mark.label, mark.command, mark.pluginKey),
-    ),
+    marks: MARKS.map((mark) => markState(editor, mark.id, mark.label, mark.command, mark.shortcut)),
     link: {
       label: "Link",
-      shortcut: formatShortcut(LINK_SHORTCUT_KEYS),
+      shortcut: "link",
       pressed: linkEditing,
       editing: linkEditing,
       disabled: linkFlags.disabled,
@@ -238,7 +234,7 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     },
     equation: {
       label: "Equation",
-      shortcut: formatShortcut(EQUATION_SHORTCUT_KEYS),
+      shortcut: "inlineEquation",
       disabled: equationFlags.disabled,
       reason: equationFlags.reason,
     },
@@ -247,7 +243,7 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     colorDisabled: false,
     superscript: markState(editor, "superscript", "Superscript", formatSuperscript, "superscript"),
     subscript: markState(editor, "subscript", "Subscript", formatSubscript, "subscript"),
-    keyboard: markState(editor, "keyboard", "Keyboard", formatKeyboard, "kbd"),
+    keyboard: markState(editor, "keyboard", "Keyboard", formatKeyboard),
     align: getTextAlign(editor),
     alignDisabled: commandFlags(editor, setTextAlign).disabled,
     alignReason: commandFlags(editor, setTextAlign).reason,
@@ -256,15 +252,15 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
     lineHeight: getLineHeight(editor),
     indent: {
       ...commandFlags(editor, indentBlocks),
-      shortcut: pluginShortcutLabel(editor, "blockIndent"),
+      shortcut: "indent",
     },
     outdent: {
       ...commandFlags(editor, outdentBlocks),
-      shortcut: pluginShortcutLabel(editor, "blockOutdent"),
+      shortcut: "outdent",
     },
     clear: {
       ...commandFlags(editor, clearFormatting),
-      shortcut: pluginShortcutLabel(editor, "clearFormatting"),
+      shortcut: "clearFormatting",
     },
   };
 }
@@ -332,41 +328,6 @@ export function applyTurnInto(
   return ok;
 }
 
-export function pluginShortcutLabel(editor: SlateEditor, pluginKey: string): string | undefined {
-  let shortcuts: Record<string, { keys?: string[][] }> | undefined;
-  try {
-    const plugin: unknown = editor.getPlugin({ key: pluginKey });
-    if (typeof plugin === "object" && plugin !== null && "shortcuts" in plugin) {
-      const value: unknown = plugin.shortcuts;
-      if (typeof value === "object" && value !== null) {
-        shortcuts = value as Record<string, { keys?: string[][] }>;
-      }
-    }
-  } catch {
-    return undefined;
-  }
-  if (!shortcuts) {
-    return undefined;
-  }
-
-  for (const spec of Object.values(shortcuts)) {
-    const keys = spec?.keys?.[0];
-    if (keys && keys.length > 0) {
-      return formatShortcut(keys);
-    }
-  }
-
-  return undefined;
-}
-
-export function formatShortcut(keys: readonly string[]): string {
-  const mac =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPad/.test(`${navigator.platform}${navigator.userAgent}`);
-  const labels = keys.map((key) => shortcutKeyLabel(key, mac));
-  return mac ? labels.join("") : labels.join("+");
-}
-
 export function markCommand(
   id: SelectionToolbarMarkId | "superscript" | "subscript" | "keyboard",
 ): EditorCommand {
@@ -389,14 +350,14 @@ function markState(
   id: string,
   label: string,
   command: EditorCommand,
-  pluginKey: string,
+  shortcut?: EditorShortcutId,
 ): SelectionToolbarMarkState {
   const state = command.getState?.(editor) ?? "off";
   const flags = commandFlags(editor, command);
   return {
     id,
     label,
-    shortcut: pluginShortcutLabel(editor, pluginKey),
+    shortcut,
     pressed: state === "on",
     mixed: state === "mixed",
     disabled: flags.disabled,
@@ -525,36 +486,4 @@ function cloneRange(range: TRange): TRange {
     anchor: { path: [...range.anchor.path], offset: range.anchor.offset },
     focus: { path: [...range.focus.path], offset: range.focus.offset },
   };
-}
-
-function shortcutKeyLabel(key: string, mac: boolean): string {
-  if (key === "Mod") {
-    return mac ? "⌘" : "Ctrl";
-  }
-  if (key === "Shift") {
-    return mac ? "⇧" : "Shift";
-  }
-  if (key === "Alt") {
-    return mac ? "⌥" : "Alt";
-  }
-  if (key === "period") {
-    return ".";
-  }
-  if (key === "comma") {
-    return ",";
-  }
-  if (key === "Backslash") {
-    return "\\";
-  }
-  if (key === "BracketLeft") {
-    return "[";
-  }
-  if (key === "BracketRight") {
-    return "]";
-  }
-  if (key.length === 1) {
-    return key.toUpperCase();
-  }
-
-  return key;
 }

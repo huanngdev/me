@@ -23,6 +23,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -38,6 +39,7 @@ import {
   turnBlockInto,
 } from "../../lib/commands/editor-commands";
 import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
+import { shortcutText, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
 import {
   settleMovedBlock,
   siblingMove,
@@ -69,6 +71,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { BlockColorMenu } from "./block-color-menu";
 import { footnoteMenuOffersTurn } from "../../lib/features/editor-footnote";
 import { BlockPickerGroups } from "./block-picker";
+import { useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
@@ -176,8 +179,13 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
+function MenuHint({ text }: { text: string | undefined }) {
+  return text === undefined ? null : <DropdownMenuShortcut>{text}</DropdownMenuShortcut>;
+}
+
 function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
   const editor = useEditorRef();
+  const platform = useShortcutPlatform();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
   const turnItems = path === undefined ? [] : blockPickerTurnItems(editor, path);
@@ -241,6 +249,12 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   const selectedIds = blockSelectionIds(editor);
+  // The block shortcuts act on the block selection, so a row shows its hint only when this block is selected.
+  function hint(id: EditorShortcutId): string | undefined {
+    return platform !== null && selectedIds.includes(target.id)
+      ? shortcutText(id, platform)
+      : undefined;
+  }
   const multi =
     path !== undefined && selectedIds.length > 1 && selectedIds.includes(target.id)
       ? blockRun(editor, selectedIds)
@@ -298,6 +312,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Copy aria-hidden="true" />
           Duplicate
+          <MenuHint text={hint("duplicateBlocks")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={up === null || !up.ok}
@@ -313,6 +328,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksUp")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={down === null || !down.ok}
@@ -328,6 +344,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksDown")} />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -338,6 +355,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Trash2 aria-hidden="true" />
           Delete
+          <MenuHint text={hint("deleteBlocks")} />
         </DropdownMenuItem>
       </>
     );
@@ -362,7 +380,13 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
             >
               <MenuScrollArea>
-                <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+                <BlockPickerGroups
+                  items={turnItems}
+                  value={currentTurn}
+                  radio
+                  shortcuts
+                  onChoose={turn}
+                />
               </MenuScrollArea>
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
@@ -426,6 +450,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Copy aria-hidden="true" />
         Duplicate
+        <MenuHint text={hint("duplicateBlocks")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={up === null || !up.ok}
@@ -441,6 +466,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksUp")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={down === null || !down.ok}
@@ -456,6 +482,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksDown")} />
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
@@ -466,6 +493,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Trash2 aria-hidden="true" />
         Delete
+        <MenuHint text={hint("deleteBlocks")} />
       </DropdownMenuItem>
     </>
   );

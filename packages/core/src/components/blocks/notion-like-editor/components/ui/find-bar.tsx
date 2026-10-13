@@ -345,6 +345,7 @@ export function FindBar() {
           <ToolbarSeparator />
           <EditorIconButton
             label="Previous match"
+            shortcut="findPrevious"
             icon={<ChevronUp aria-hidden="true" />}
             disabled={state.count === 0}
             onClick={() => {
@@ -354,6 +355,7 @@ export function FindBar() {
           />
           <EditorIconButton
             label="Next match"
+            shortcut="findNext"
             icon={<ChevronDown aria-hidden="true" />}
             disabled={state.count === 0}
             onClick={() => {
@@ -377,6 +379,7 @@ export function FindBar() {
           <ToolbarSeparator />
           <EditorIconButton
             label="Close"
+            shortcut="escape"
             icon={<X aria-hidden="true" />}
             onClick={() => {
               closeFindBar(editor);

@@ -1,6 +1,7 @@
 import { PathApi, RangeApi, type SlateEditor } from "platejs";
 
 import { FIND_QUERY_MAX } from "../features/editor-find";
+import { shortcutPlatformOf } from "../features/editor-shortcuts";
 import { blockSelectionActive } from "./editor-block-selection";
 import { findPlugin, openFind, revealFindMatch, setFindQuery } from "./editor-find";
 
@@ -13,7 +14,7 @@ type FindKeyEvent = {
 };
 
 export function isMacPlatform(): boolean {
-  return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  return shortcutPlatformOf(typeof navigator === "undefined" ? undefined : navigator) === "mac";
 }
 
 // Cmd+F on macOS, Ctrl+F elsewhere. Shift or Alt makes it another shortcut.

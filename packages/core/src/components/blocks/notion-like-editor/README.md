@@ -294,6 +294,8 @@ The embed block plays a YouTube or Vimeo video from a link. Only these hosts are
 
 Shortcuts are generated from the same inventory as the feature list. `Mod` is Cmd on macOS and Ctrl elsewhere.
 
+The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
+
 <!-- shortcut-list:start -->
 
 - Mod+Alt+0 — Paragraph

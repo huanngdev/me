@@ -6520,6 +6520,9 @@ import { Button } from "@/components/button";
 import { DropdownMenuTrigger } from "@/components/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
+import { ariaKeyShortcuts, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
+import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
+
 // Editor controls (DEV-142):
 // Every clickable control is Button, Toggle or ToggleGroup for on/off state,
 // or a menu item. Text actions use size sm. Icon-only actions use size icon.
@@ -6557,6 +6560,7 @@ type EditorIconButtonProps = Omit<
   label: string;
   icon: ReactNode;
   variant?: EditorButtonVariant;
+  shortcut?: EditorShortcutId;
 };
 
 function inlineIcon(icon: ReactNode): ReactNode {
@@ -6594,17 +6598,32 @@ export function EditorIconButton({
   icon,
   variant = "ghost",
   type = "button",
+  shortcut,
   ...props
 }: EditorIconButtonProps) {
+  const platform = useShortcutPlatform();
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button {...props} type={type} size="icon" variant={variant} aria-label={label}>
+          <Button
+            {...props}
+            type={type}
+            size="icon"
+            variant={variant}
+            aria-label={label}
+            aria-keyshortcuts={
+              shortcut !== undefined && platform !== null
+                ? ariaKeyShortcuts(shortcut, platform)
+                : undefined
+            }
+          >
             {icon}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        <TooltipContent>
+          {shortcut === undefined ? label : <ShortcutLabel label={label} shortcut={shortcut} />}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -6812,6 +6831,7 @@ import {
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
 import { BlockPickerGroups } from "./block-picker";
+import { ShortcutLabel } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
@@ -7114,7 +7134,9 @@ function BlockHandleContent({
                   <GripVertical aria-hidden="true" className="size-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+              <TooltipContent data-block-handle-tooltip="">
+                <ShortcutLabel label={BLOCK_MENU_GRIP_LABEL} shortcut="blockMenu" />
+              </TooltipContent>
             </Tooltip>
           </div>
           <div
@@ -7162,6 +7184,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -7177,6 +7200,7 @@ import {
   turnBlockInto,
 } from "../../lib/commands/editor-commands";
 import { blockPickerTurnItems, type BlockPickerItem } from "../../lib/features/editor-block-picker";
+import { shortcutText, type EditorShortcutId } from "../../lib/features/editor-shortcuts";
 import {
   settleMovedBlock,
   siblingMove,
@@ -7208,6 +7232,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { BlockColorMenu } from "./block-color-menu";
 import { footnoteMenuOffersTurn } from "../../lib/features/editor-footnote";
 import { BlockPickerGroups } from "./block-picker";
+import { useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
@@ -7315,8 +7340,13 @@ function contextProbe(editor: SlateEditor, event: MouseEvent): NativeMenuProbe {
   };
 }
 
+function MenuHint({ text }: { text: string | undefined }) {
+  return text === undefined ? null : <DropdownMenuShortcut>{text}</DropdownMenuShortcut>;
+}
+
 function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: () => void }) {
   const editor = useEditorRef();
+  const platform = useShortcutPlatform();
   const located = findBlockById(editor, target.id);
   const path = located?.[1];
   const turnItems = path === undefined ? [] : blockPickerTurnItems(editor, path);
@@ -7380,6 +7410,12 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
   }
 
   const selectedIds = blockSelectionIds(editor);
+  // The block shortcuts act on the block selection, so a row shows its hint only when this block is selected.
+  function hint(id: EditorShortcutId): string | undefined {
+    return platform !== null && selectedIds.includes(target.id)
+      ? shortcutText(id, platform)
+      : undefined;
+  }
   const multi =
     path !== undefined && selectedIds.length > 1 && selectedIds.includes(target.id)
       ? blockRun(editor, selectedIds)
@@ -7437,6 +7473,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Copy aria-hidden="true" />
           Duplicate
+          <MenuHint text={hint("duplicateBlocks")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={up === null || !up.ok}
@@ -7452,6 +7489,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksUp")} />
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={down === null || !down.ok}
@@ -7467,6 +7505,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
             ) : null}
           </span>
+          <MenuHint text={hint("moveBlocksDown")} />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -7477,6 +7516,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
         >
           <Trash2 aria-hidden="true" />
           Delete
+          <MenuHint text={hint("deleteBlocks")} />
         </DropdownMenuItem>
       </>
     );
@@ -7501,7 +7541,13 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
               className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-hidden"
             >
               <MenuScrollArea>
-                <BlockPickerGroups items={turnItems} value={currentTurn} radio onChoose={turn} />
+                <BlockPickerGroups
+                  items={turnItems}
+                  value={currentTurn}
+                  radio
+                  shortcuts
+                  onChoose={turn}
+                />
               </MenuScrollArea>
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
@@ -7565,6 +7611,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Copy aria-hidden="true" />
         Duplicate
+        <MenuHint text={hint("duplicateBlocks")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={up === null || !up.ok}
@@ -7580,6 +7627,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{up.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksUp")} />
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={down === null || !down.ok}
@@ -7595,6 +7643,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
             <span className="text-muted-foreground text-xs whitespace-normal">{down.reason}</span>
           ) : null}
         </span>
+        <MenuHint text={hint("moveBlocksDown")} />
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
@@ -7605,6 +7654,7 @@ function BlockMenuItems({ target, onActed }: { target: BlockHandleHit; onActed: 
       >
         <Trash2 aria-hidden="true" />
         Delete
+        <MenuHint text={hint("deleteBlocks")} />
       </DropdownMenuItem>
     </>
   );
@@ -9040,7 +9090,7 @@ import {
   type SlateEditor,
 } from "platejs";
 import type { JSX } from "react";
-import { Key, ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
+import { ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
 
 import { BlockList, ListParagraph } from "../../components/elements/block-list";
 import { BlockquoteElement } from "../../components/elements/blockquote-element";
@@ -9081,6 +9131,7 @@ import {
 import { SyncedRefElement } from "../../components/elements/synced-ref-element";
 import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
 import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
+import { EDITOR_SHORTCUTS } from "../features/editor-shortcuts";
 import { AUDIO_KEY } from "../features/editor-audio";
 import { EMBED_KEY } from "../features/editor-embed";
 import { FILE_KEY } from "../features/editor-file";
@@ -9330,20 +9381,20 @@ const underlinePlugin = configureMarkPlugin(UnderlinePlugin, formatUnderline, {
   rules: underlineRules,
 });
 const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrikethrough, {
-  keys: [[Key.Mod, Key.Shift, "x"]],
+  keys: [[...EDITOR_SHORTCUTS.strikethrough]],
   rules: strikethroughRules,
 });
 const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
-  keys: [[Key.Mod, "e"]],
+  keys: [[...EDITOR_SHORTCUTS.code]],
   className: codeLeafClassName,
 });
 // SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
 const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
-  keys: [[Key.Mod, "period"]],
+  keys: [[...EDITOR_SHORTCUTS.superscript]],
 });
 // SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
 const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
-  keys: [[Key.Mod, "comma"]],
+  keys: [[...EDITOR_SHORTCUTS.subscript]],
 });
 // KbdPlugin ships no shortcut. Toggled from the More menu only.
 const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
@@ -9532,7 +9583,7 @@ function configureHeadingPlugin<
     },
     shortcuts: {
       toggle: {
-        keys: [[Key.Mod, Key.Alt, String(level)]],
+        keys: [[...EDITOR_SHORTCUTS[`h${level}` as const]]],
         handler: ({ editor }) => {
           runEditorCommand(editor, command, undefined, {
             readOnly: editor.dom.readOnly,
@@ -10057,7 +10108,7 @@ const listPlugin = ListPlugin.configure({
   },
   shortcuts: {
     toggleBulleted: {
-      keys: [[Key.Mod, Key.Shift, "8"]],
+      keys: [[...EDITOR_SHORTCUTS.bulleted]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleBulletedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -10065,7 +10116,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleNumbered: {
-      keys: [[Key.Mod, Key.Shift, "7"]],
+      keys: [[...EDITOR_SHORTCUTS.numbered]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleNumberedList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -10073,7 +10124,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleTodo: {
-      keys: [[Key.Mod, Key.Shift, "9"]],
+      keys: [[...EDITOR_SHORTCUTS.todo]],
       handler: ({ editor }) => {
         runEditorCommand(editor, toggleTodoList, undefined, {
           readOnly: editor.dom.readOnly,
@@ -10081,7 +10132,7 @@ const listPlugin = ListPlugin.configure({
       },
     },
     toggleChecked: {
-      keys: [[Key.Mod, "Enter"]],
+      keys: [[...EDITOR_SHORTCUTS.todoCheck]],
       handler: ({ editor }) => {
         // Plate stops the event when a shortcut handler returns, so a definition is handled here:
         // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
@@ -10229,7 +10280,7 @@ const blockIndentPlugin = createSlatePlugin({
   },
   shortcuts: {
     indent: {
-      keys: [[Key.Mod, "BracketRight"]],
+      keys: [[...EDITOR_SHORTCUTS.indent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
     },
   },
@@ -10239,7 +10290,7 @@ const blockOutdentPlugin = createSlatePlugin({
   key: "blockOutdent",
   shortcuts: {
     outdent: {
-      keys: [[Key.Mod, "BracketLeft"]],
+      keys: [[...EDITOR_SHORTCUTS.outdent]],
       handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
     },
   },
@@ -10279,7 +10330,7 @@ const clearFormattingPlugin = createSlatePlugin({
   key: "clearFormatting",
   shortcuts: {
     clear: {
-      keys: [[Key.Mod, "Backslash"]],
+      keys: [[...EDITOR_SHORTCUTS.clearFormatting]],
       handler: ({ editor }) => {
         runEditorCommand(editor, clearFormatting, undefined, {
           readOnly: editor.dom.readOnly,

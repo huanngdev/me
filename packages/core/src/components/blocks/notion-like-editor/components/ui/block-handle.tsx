@@ -42,6 +42,7 @@ import {
 } from "./block-drag";
 import { BlockMenu } from "./block-menu";
 import { BlockPickerGroups } from "./block-picker";
+import { ShortcutLabel } from "./editor-shortcut";
 import { MenuScrollArea } from "./editor-scroll";
 import { retainScroll } from "./block-toolbar";
 
@@ -344,7 +345,9 @@ function BlockHandleContent({
                   <GripVertical aria-hidden="true" className="size-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent data-block-handle-tooltip="">{BLOCK_MENU_GRIP_LABEL}</TooltipContent>
+              <TooltipContent data-block-handle-tooltip="">
+                <ShortcutLabel label={BLOCK_MENU_GRIP_LABEL} shortcut="blockMenu" />
+              </TooltipContent>
             </Tooltip>
           </div>
           <div
