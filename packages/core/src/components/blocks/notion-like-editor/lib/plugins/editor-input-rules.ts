@@ -180,7 +180,9 @@ function charAfterInBlock(editor: SlateEditor, blockPath: number[]): string | un
 }
 
 function paragraphAllowsTrigger(editor: SlateEditor): number[] | null {
-  const block = editor.api.block();
+  // The lowest block above the caret, read from its ancestors. `api.block()` would walk
+  // the document from its root to the caret.
+  const block = editor.selection ? editor.api.above({ block: true }) : undefined;
   if (!block || !ElementApi.isElement(block[0])) {
     return null;
   }

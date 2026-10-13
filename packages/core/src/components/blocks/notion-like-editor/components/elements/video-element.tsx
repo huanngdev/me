@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useMemo,
   useRef,
@@ -19,7 +21,6 @@ import {
 } from "platejs/react";
 
 import { Skeleton } from "@/components/skeleton";
-import { VideoPlayer } from "@/components/video-player/video-player";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
@@ -67,6 +68,14 @@ import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-
 import { MediaResizeHandles, useNaturalMediaPercent } from "./media-resize";
 import { mediaResolveState, type MediaState } from "./media-state";
 import { useResolvedFileUrl, useUploadController, useUploadState } from "./file-upload-scope";
+
+// The player (vidstack with its HLS and DASH engines) loads the first time a video
+// is shown, so a text-only document never downloads it.
+const VideoPlayer = lazy(() =>
+  import("@/components/video-player/video-player").then((module) => ({
+    default: module.VideoPlayer,
+  })),
+);
 
 // What the block shows. An upload state takes priority over the stored file's state.
 type VideoPhase = MediaState | "uploading" | "failed";
@@ -306,13 +315,24 @@ export function VideoElement(props: PlateElementProps) {
             onKeyUp={onPlayerKeyUp}
           >
             {/* The box is 16:9 until the metadata gives the file's own width and height. */}
-            <VideoPlayer
-              title={displayFileName(fields)}
-              src={playerSource}
-              crossOrigin={null}
-              aspectRatio={ratio}
-              className={imageMediaClassName(boxWidth)}
-            />
+            {/* While the player loads, the same box stands in, so nothing shifts when it arrives. */}
+            <Suspense
+              fallback={
+                <div
+                  aria-hidden="true"
+                  className={cn(imageMediaClassName(boxWidth), "bg-muted")}
+                  style={{ aspectRatio: ratio ?? "16/9" }}
+                />
+              }
+            >
+              <VideoPlayer
+                title={displayFileName(fields)}
+                src={playerSource}
+                crossOrigin={null}
+                aspectRatio={ratio}
+                className={imageMediaClassName(boxWidth)}
+              />
+            </Suspense>
           </div>
           {handles}
         </div>

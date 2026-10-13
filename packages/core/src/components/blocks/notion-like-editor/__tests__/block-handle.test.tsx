@@ -1116,6 +1116,156 @@ describe("block handle bands", () => {
   });
 });
 
+// Each block is a 30px box, 40px apart, in DOM order, so a block inserted later
+// takes its place in the layout. The viewport covers the whole frame. Every box
+// read is counted.
+function installOrderedLayout(host: HTMLElement): { restore: () => void; reads: () => number } {
+  const original = HTMLElement.prototype.getBoundingClientRect;
+  let count = 0;
+  const box = (top: number, height: number, left: number, width: number): DOMRect =>
+    ({
+      top,
+      bottom: top + height,
+      left,
+      right: left + width,
+      x: left,
+      y: top,
+      width,
+      height,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  HTMLElement.prototype.getBoundingClientRect = function () {
+    count += 1;
+    if (this.hasAttribute("data-block-viewport")) {
+      return box(0, 800, 0, 1280);
+    }
+    if (this.hasAttribute("data-block-id") && host.contains(this)) {
+      const index = Array.from(host.querySelectorAll("[data-block-id]")).indexOf(this);
+      return box(100 + Math.max(0, index) * 40, 30, 300, 400);
+    }
+    return box(0, 0, 0, 0);
+  };
+  return {
+    restore: () => {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    },
+    reads: () => count,
+  };
+}
+
+async function mountInViewport(value: EditorValue): Promise<{
+  editor: ReturnType<typeof createPlateEditor>;
+  host: HTMLDivElement;
+  unmount: () => Promise<void>;
+}> {
+  const host = document.createElement("div");
+  host.setAttribute("data-block-viewport", "");
+  document.body.appendChild(host);
+  const editor = createPlateEditor({ plugins: createEditorPlugins(), value });
+  if (!isReactContainer(host)) {
+    throw new Error("Missing mount node.");
+  }
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(
+      <EditorSurface editor={editor} readOnly={false} placeholder="" className="editor" />,
+    );
+  });
+  return {
+    editor,
+    host,
+    unmount: async () => {
+      await act(async () => {
+        root.unmount();
+      });
+      host.remove();
+    },
+  };
+}
+
+function movePointer(block: Element | null, clientY: number): void {
+  block?.dispatchEvent(
+    new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 320,
+      clientY,
+      pointerType: "mouse",
+      isPrimary: true,
+    }),
+  );
+}
+
+describe("block handle typing cost", () => {
+  test("typing with a still pointer reads no block box, so the bands are never rebuilt", async () => {
+    const value = Array.from({ length: 300 }, (_, index) =>
+      paragraph(`p${index}`, `Line ${index}`),
+    );
+    const mounted = await mountInViewport(value);
+    const layout = installOrderedLayout(mounted.host);
+    try {
+      await act(async () => {
+        mounted.editor.tf.select({ path: [3, 0], offset: 0 });
+      });
+      const editable = mounted.host.querySelector("[data-slate-editor]");
+      // The caret block is painted before typing, so the layout is measured once.
+      expect(document.querySelector("[data-block-handle]")?.getAttribute("data-visible")).toBe(
+        "true",
+      );
+      const readsBefore = layout.reads();
+      for (let index = 0; index < 20; index += 1) {
+        await act(async () => {
+          editable?.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+          mounted.editor.tf.insertText("x");
+        });
+      }
+
+      // Each key is one flush. A rebuild reads every block box, which would be 300 per key.
+      expect(layout.reads() - readsBefore).toBe(0);
+      expect(document.querySelector("[data-block-handle]")?.getAttribute("data-visible")).toBe(
+        "false",
+      );
+    } finally {
+      layout.restore();
+      await mounted.unmount();
+    }
+  });
+
+  test("after a block is inserted, a pointer over the new block targets it", async () => {
+    const value = Array.from({ length: 5 }, (_, index) => paragraph(`p${index}`, `Line ${index}`));
+    const mounted = await mountInViewport(value);
+    const layout = installOrderedLayout(mounted.host);
+    try {
+      // Index 2 sits at 180 to 210 in the layout. The pointer rests at 185.
+      const before = mounted.host.querySelector("[data-block-id='p2']");
+      await act(async () => {
+        movePointer(before, 185);
+      });
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("p2");
+
+      await act(async () => {
+        mounted.editor.tf.insertNodes(paragraph("inserted", "New"), { at: [2] });
+      });
+      // The insert moved p2 down, and the new block now covers 180 to 210.
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("inserted");
+
+      await act(async () => {
+        movePointer(mounted.host.querySelector("[data-block-id='inserted']"), 185);
+      });
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("inserted");
+    } finally {
+      layout.restore();
+      await mounted.unmount();
+    }
+  });
+});
+
 describe("block handle options", () => {
   const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
   const viewport = { width: 1280, height: 800 };

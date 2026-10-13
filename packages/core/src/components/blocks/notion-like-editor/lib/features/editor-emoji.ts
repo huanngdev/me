@@ -110,7 +110,9 @@ function readEmojiBlock(
   ) {
     return null;
   }
-  const block = editor.api.block();
+  // The lowest block above the caret, read from its ancestors. `api.block()` would walk
+  // the document from its root to the caret.
+  const block = editor.api.above({ block: true });
   if (!block || !ElementApi.isElement(block[0]) || typeof block[0].id !== "string") {
     return null;
   }
