@@ -23,12 +23,15 @@ function pointOf(event: { clientX: number; clientY: number }): MediaPoint {
   return { x: event.clientX, y: event.clientY };
 }
 
-// Clicks and keys on these controls belong to the control, not to the media card. A video or audio
-// player is a control, so a click on it does not select the block.
+// Clicks and keys on these controls belong to the control, not to the media card. A player is a control:
+// the block marks its player with data-media-control, so every part of it counts, including the sliders
+// of the audio player and the video surface.
 export function isControlTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest("input, textarea, button, a, video, audio, [role='separator']") !== null
+    target.closest(
+      "input, textarea, button, a, video, audio, [role='separator'], [role='slider'], [data-media-control]",
+    ) !== null
   );
 }
 
@@ -99,6 +102,37 @@ export function useMediaCardSelect(
       node.removeEventListener("click", onClick);
     };
   }, [editor, id, active, cardRef]);
+}
+
+function isMediaElementEvent(target: EventTarget | null): boolean {
+  return target instanceof Element && ["AUDIO", "VIDEO", "SOURCE"].includes(target.tagName);
+}
+
+// A media element reports its load events on itself, and most of them do not bubble. The player renders
+// the element, so React does not hear them. A capture listener on the wrapper around the player does, and
+// `onEvent` gets each `type` event from the element or its source while `active` is true.
+export function useMediaElementEvent(
+  wrapperRef: RefObject<HTMLElement | null>,
+  type: "error" | "loadedmetadata",
+  active: boolean,
+  onEvent: (event: Event) => void,
+): void {
+  useEffect(() => {
+    const node = wrapperRef.current;
+    if (node === null || !active) {
+      return;
+    }
+
+    const onMediaEvent = (event: Event): void => {
+      if (isMediaElementEvent(event.target)) {
+        onEvent(event);
+      }
+    };
+    node.addEventListener(type, onMediaEvent, true);
+    return () => {
+      node.removeEventListener(type, onMediaEvent, true);
+    };
+  }, [wrapperRef, type, active, onEvent]);
 }
 
 // The action popover of a media block closes when its block loses the selection, when the editor

@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Music, RefreshCw, VolumeX } from "lucide-react";
 import {
   PlateElement,
@@ -9,6 +9,9 @@ import {
   useSelected,
   type PlateElementProps,
 } from "platejs/react";
+
+import { AudioPlayer } from "@/components/audio-player/audio-player";
+import type { AudioMimeType } from "@vidstack/react";
 
 import { Skeleton } from "@/components/skeleton";
 import { cn } from "@/lib/utils";
@@ -21,28 +24,21 @@ import {
   setAudioSource,
 } from "../../lib/features/editor-audio-commands";
 import { displayFileName } from "../../lib/features/editor-file";
-import { formatFileSize } from "../../lib/features/editor-file-url";
-import { blockSelectionActive } from "../../lib/plugins/editor-block-selection";
-import {
-  openMediaActions,
-  openMediaSource,
-  selectMediaBlock,
-} from "../../lib/plugins/editor-media-ui";
+import { openMediaSource, selectMediaBlock } from "../../lib/plugins/editor-media-ui";
 import { MediaUnavailableRow } from "../static/media-unavailable-row";
-import { FileRowText } from "../static/file-row";
 import { EditorTextButton } from "../ui/block-toolbar";
 import { AudioActionPopover } from "../ui/audio-action-popover";
 import { MediaSourcePopover, type MediaSourceConfig } from "../ui/media-source-popover";
 import { hrElementClassName } from "./hr-element";
 import { IMAGE_CAPTION_CLASS } from "./image-classes";
-import { MEDIA_CARD_CLASS, MEDIA_ICON_CLASS } from "./media-classes";
+import { MEDIA_ICON_CLASS } from "./media-classes";
 import {
-  isControlTarget,
   onPlayerClick,
   onPlayerKeyDown,
   onPlayerKeyUp,
   useMediaCardSelect,
   useMediaHover,
+  useMediaElementEvent,
 } from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
@@ -63,8 +59,8 @@ const AUDIO_SOURCE_CONFIG: MediaSourceConfig = {
 };
 
 // The audio block. Its body is one of: an upload row, the empty placeholder, a skeleton while the url
-// resolves, the player card, or the unavailable row. The player takes its own clicks and keys, so its
-// actions open on hover, from a click on the card outside the player, or from Enter on the selected block.
+// resolves, the player, or the unavailable row. The player is a control: its clicks and keys belong to
+// it, so its actions open on hover or from Enter on the selected block.
 export function AudioElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -88,11 +84,22 @@ export function AudioElement(props: PlateElementProps) {
   const editable = !readOnly;
   const showReady = phase === "ready";
   const name = displayFileName(fields);
-  const sizeDetail = fields.size === undefined ? undefined : formatFileSize(fields.size);
   const readAnchor = (): HTMLElement | null => anchorRef.current;
 
-  // Mouse-down on the card selects the block. The player is a control.
+  // The player picks its engine from the type it is given, and only the audio types it knows and the browser
+  // can play count. A blob url has no extension, and a stored type such as audio/wav is not one of them, so
+  // every source takes audio/mpeg. The browser reads the file itself, so the file still plays. The player
+  // sends no CORS request, so a link on another site plays without CORS headers.
+  const playerSource = useMemo(
+    () => (src === undefined ? undefined : { src, type: "audio/mpeg" as AudioMimeType }),
+    [src],
+  );
+
+  // Mouse-down on the player selects the block. The player is a control.
   useMediaCardSelect(cardRef, id, editable && showReady);
+  useMediaElementEvent(cardRef, "error", showReady, () => {
+    setFailedUrl(src);
+  });
   useMediaHover(
     anchorRef,
     id,
@@ -102,20 +109,6 @@ export function AudioElement(props: PlateElementProps) {
   function openSource(): void {
     selectMediaBlock(editor, id);
     openMediaSource(editor, id);
-  }
-
-  function openActions(): void {
-    selectMediaBlock(editor, id);
-    openMediaActions(editor, id);
-  }
-
-  // A click on the card outside the player opens its actions, as a click on the image does.
-  function onCardClick(event: ReactMouseEvent<HTMLDivElement>): void {
-    if (readOnly || isControlTarget(event.target) || blockSelectionActive(editor)) {
-      return;
-    }
-
-    openActions();
   }
 
   function embedLink(url: string): boolean {
@@ -203,26 +196,17 @@ export function AudioElement(props: PlateElementProps) {
 
     body = (
       <figure className="flex w-full flex-col">
-        <div ref={cardRef} data-audio-card="" className={MEDIA_CARD_CLASS} onClick={onCardClick}>
-          <div className="flex items-center gap-3">
-            {audioIcon}
-            <FileRowText name={name} detail={sizeDetail} />
-          </div>
-          <audio
-            src={src}
-            controls
-            preload="metadata"
-            data-audio-player=""
-            className="w-full"
-            onError={() => {
-              setFailedUrl(src);
-            }}
+        <div ref={cardRef} data-audio-card="" className="w-full">
+          <div
+            data-media-control=""
+            onClick={onPlayerClick}
             onKeyDown={(event) => {
               onPlayerKeyDown(editor, event);
             }}
             onKeyUp={onPlayerKeyUp}
-            onClick={onPlayerClick}
-          />
+          >
+            <AudioPlayer title={name} src={playerSource} crossOrigin={null} />
+          </div>
         </div>
         {captionNode}
       </figure>

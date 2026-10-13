@@ -10,11 +10,6 @@ export const MEDIA_ROW_CLASS =
 
 export const MEDIA_ICON_CLASS = "text-muted-foreground size-4 shrink-0";
 
-// The card of a ready audio block: a frame with the name and size on the first line and the player
-// under them, full width.
-export const MEDIA_CARD_CLASS =
-  "bg-muted text-foreground flex w-full flex-col gap-2 rounded-md px-3 py-2.5 text-sm";
-
 // The caret-selected fill of a media block. It gets the same 3px outset as the grab selection, so the
 // gap is equal on every side of the media.
 const MEDIA_SELECTED_CLASS = `${HR_SELECTED_CLASS_NAME} rounded-md shadow-[0_0_0_3px_var(--muted)]`;

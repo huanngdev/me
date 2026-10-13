@@ -1,5 +1,13 @@
-import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
 import { RefreshCw, Video as VideoIcon, VideoOff } from "lucide-react";
+import type { VideoMimeType } from "@vidstack/react";
 import {
   PlateElement,
   useEditorRef,
@@ -11,6 +19,7 @@ import {
 } from "platejs/react";
 
 import { Skeleton } from "@/components/skeleton";
+import { VideoPlayer } from "@/components/video-player/video-player";
 import { cn } from "@/lib/utils";
 
 import { runEditorCommand } from "../../lib/commands/editor-commands";
@@ -51,6 +60,7 @@ import {
   useMediaActionsOpen,
   useMediaCardSelect,
   useMediaHover,
+  useMediaElementEvent,
 } from "./media-card";
 import { MediaCaptionField } from "./media-caption";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
@@ -72,8 +82,8 @@ const VIDEO_SOURCE_CONFIG: MediaSourceConfig = {
 };
 
 // The video block. Its body is one of: an upload row, the empty placeholder, a skeleton while the url
-// resolves, the player, or the unavailable row. Its actions open on hover, from a click on the block
-// outside the player, or from Enter on the selected block.
+// resolves, the player, or the unavailable row. The player is a control, so its actions open on hover or
+// from Enter on the selected block.
 export function VideoElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
@@ -87,11 +97,13 @@ export function VideoElement(props: PlateElementProps) {
   const resolved = useResolvedFileUrl(fields.url);
   const [failedUrl, setFailedUrl] = useState<string | undefined>(undefined);
   const [loadedUrl, setLoadedUrl] = useState<string | undefined>(undefined);
+  const [ratio, setRatio] = useState<string | undefined>(undefined);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const figureRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
 
   const src = resolved.status === "ready" ? resolved.url : undefined;
   const state = mediaResolveState(fields.url, resolved.status, src, failedUrl);
@@ -111,6 +123,33 @@ export function VideoElement(props: PlateElementProps) {
     figureRef,
     fields.width === undefined && loaded,
   );
+
+  // The player takes its engine from this type. A blob url has no extension, so the type is what lets the
+  // player take it, and video/mp4 is a type the player knows. The browser reads the file itself. The player
+  // sends no CORS request.
+  const playerSource = useMemo(
+    () => (src === undefined ? undefined : { src, type: "video/mp4" as VideoMimeType }),
+    [src],
+  );
+  const failLoad = useCallback(() => {
+    setFailedUrl(src);
+  }, [src]);
+  useMediaElementEvent(playerRef, "error", showReady, failLoad);
+  // The file's own shape, from its metadata, sets the player's ratio. Until then the player is 16:9.
+  const markLoaded = useCallback(
+    (event: Event) => {
+      setLoadedUrl(src);
+      const media = event.target;
+      if (media instanceof Element && media.tagName === "VIDEO") {
+        const { videoWidth, videoHeight } = media as HTMLVideoElement;
+        if (videoWidth > 0 && videoHeight > 0) {
+          setRatio(`${videoWidth}/${videoHeight}`);
+        }
+      }
+    },
+    [src],
+  );
+  useMediaElementEvent(playerRef, "loadedmetadata", showReady, markLoaded);
 
   // Mouse-down on the padding around the player selects the block. The player itself is a control.
   useMediaCardSelect(cardRef, id, editable && showReady);
@@ -256,25 +295,25 @@ export function VideoElement(props: PlateElementProps) {
         style={imageFigureStyle(boxWidth)}
       >
         <div className="relative">
-          <video
-            src={src}
-            controls
-            preload="metadata"
-            playsInline
-            data-video-player=""
-            className={cn(imageMediaClassName(boxWidth), "bg-black", !loaded && "aspect-video")}
-            onLoadedMetadata={() => {
-              setLoadedUrl(src);
-            }}
-            onError={() => {
-              setFailedUrl(src);
-            }}
+          {/* The player is a control: its clicks and keys stay in it, and a menu it opens is portalled from here. */}
+          <div
+            ref={playerRef}
+            data-media-control=""
+            onClick={onPlayerClick}
             onKeyDown={(event) => {
               onPlayerKeyDown(editor, event);
             }}
             onKeyUp={onPlayerKeyUp}
-            onClick={onPlayerClick}
-          />
+          >
+            {/* The box is 16:9 until the metadata gives the file's own width and height. */}
+            <VideoPlayer
+              title={displayFileName(fields)}
+              src={playerSource}
+              crossOrigin={null}
+              aspectRatio={ratio}
+              className={imageMediaClassName(boxWidth)}
+            />
+          </div>
           {handles}
         </div>
         {captionNode}

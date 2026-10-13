@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { KEYS } from "platejs";
+import { KEYS, type SlateEditor } from "platejs";
 import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -19,11 +19,9 @@ import {
 import { IMAGE_KEY } from "../lib/features/editor-image";
 import { mediaKindForFile } from "../lib/features/editor-media";
 import {
-  mediaActionsBlockId,
   mediaSourceBlockId,
   onMediaUiKeyDown,
   openMediaSource,
-  selectedMediaId,
 } from "../lib/plugins/editor-media-ui";
 import { chooseSlashItem, slashMenuItems } from "../lib/plugins/editor-slash";
 import { NotionLikeEditorStatic } from "../notion-like-editor-static";
@@ -74,13 +72,21 @@ function audioState(host: HTMLElement, id: string): string | null {
   );
 }
 
+// The player's own media element, rendered by the audio player.
 function player(host: HTMLElement, id: string): HTMLAudioElement | null {
-  return blockHost(host, id)?.querySelector<HTMLAudioElement>("[data-audio-player]") ?? null;
+  return blockHost(host, id)?.querySelector<HTMLAudioElement>("audio") ?? null;
 }
 
-// A click on the card, outside the player, opens the actions.
-async function openActionsOn(host: HTMLElement, id: string): Promise<void> {
-  await click(blockHost(host, id)?.querySelector("[data-audio-card]") ?? null);
+// The player is a control, so a click does not open the actions. The keyboard does: Enter on the selected
+// block. The block is selected first, as the arrow keys would select it.
+async function openActionsOn(editor: SlateEditor, id: string): Promise<void> {
+  const index = editor.children.findIndex((node) => "id" in node && node.id === id);
+  await act(async () => {
+    editor.tf.select(editor.api.start([index])!);
+  });
+  await act(async () => {
+    onMediaUiKeyDown(editor, { key: "Enter", preventDefault() {} });
+  });
 }
 
 describe("audio schema", () => {
@@ -255,21 +261,20 @@ describe("audio rendering", () => {
     await mounted.cleanup();
   });
 
-  test("a ready audio is one card: the name and size on the first line, the player full width under them", async () => {
+  test("a ready audio is the player alone: no name, size or icon row, and no native controls", async () => {
     const mounted = await mount([
       paragraph("", "p1"),
       audio("a1", { url: TONE, name: "tone.mp3", size: 2048, mime: "audio/mpeg" }),
     ]);
     await settle();
     const card = blockHost(mounted.host, "a1")?.querySelector("[data-audio-card]");
-    expect(card?.textContent).toContain("tone.mp3");
-    expect(card?.textContent).toContain("2 KB");
+    expect(card?.textContent).not.toContain("tone.mp3");
+    expect(card?.textContent).not.toContain("2 KB");
+    expect(card?.className).not.toContain("max-w-");
+    expect(card?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("tone.mp3");
     const element = player(mounted.host, "a1");
-    expect(element?.hasAttribute("controls")).toBe(true);
-    expect(element?.getAttribute("preload")).toBe("metadata");
+    expect(element?.hasAttribute("controls")).toBe(false);
     expect(element?.hasAttribute("autoplay")).toBe(false);
-    expect(element?.getAttribute("src")).toBe(TONE);
-    expect(element?.className).toContain("w-full");
     await mounted.cleanup();
   });
 
@@ -297,7 +302,6 @@ describe("audio rendering", () => {
     expect(blockHost(mounted.host, "a1")?.querySelector("[data-audio-more]")).toBeNull();
     await mounted.cleanup();
   });
-
   test("a player that fails to load shows the unavailable row", async () => {
     const mounted = await mount([paragraph("", "p1"), audio("a1", { url: TONE })]);
     await settle();
@@ -403,21 +407,6 @@ describe("audio upload", () => {
 });
 
 describe("audio action popover", () => {
-  test("a click on the card, from an editor that never had focus, selects the block and opens the actions", async () => {
-    const mounted = await mount([
-      paragraph("Before", "p1"),
-      audio("a1", { url: TONE, name: "tone.mp3" }),
-    ]);
-    await settle();
-    expect(mounted.editor.selection).toBeNull();
-    await openActionsOn(mounted.host, "a1");
-    expect(find("[data-audio-actions]")?.getAttribute("aria-label")).toBe("Audio actions");
-    expect(mounted.editor.selection).not.toBeNull();
-    expect(selectedMediaId(mounted.editor)).toBe("a1");
-    expect(mediaActionsBlockId(mounted.editor)).toBe("a1");
-    await mounted.cleanup();
-  });
-
   test("Enter on the selected audio opens its actions", async () => {
     const mounted = await mount([paragraph("Before", "p1"), audio("a1", { url: TONE })]);
     await settle();
@@ -447,7 +436,7 @@ describe("audio action popover", () => {
       audio("a1", { url: TONE, name: "tone.mp3" }),
     ]);
     await settle();
-    await openActionsOn(mounted.host, "a1");
+    await openActionsOn(mounted.editor, "a1");
     expect(find('[data-audio-action="caption"]')).not.toBeNull();
     expect(find('[data-audio-action="replace"]')).not.toBeNull();
     expect(find('[data-audio-action="download"]')).not.toBeNull();
@@ -459,7 +448,7 @@ describe("audio action popover", () => {
   test("Caption opens a caption field, and Enter commits the caption", async () => {
     const mounted = await mount([paragraph("Before", "p1"), audio("a1", { url: TONE })]);
     await settle();
-    await openActionsOn(mounted.host, "a1");
+    await openActionsOn(mounted.editor, "a1");
     await click(find('[data-audio-action="caption"]'));
     const input = find('input[aria-label="Audio caption"]');
     if (!(input instanceof HTMLInputElement)) {
@@ -474,7 +463,7 @@ describe("audio action popover", () => {
   test("Replace opens the source popover for the same block", async () => {
     const mounted = await mount([paragraph("Before", "p1"), audio("a1", { url: TONE })]);
     await settle();
-    await openActionsOn(mounted.host, "a1");
+    await openActionsOn(mounted.editor, "a1");
     await click(find('[data-audio-action="replace"]'));
     expect(mediaSourceBlockId(mounted.editor)).toBe("a1");
     expect(find("[data-media-source-popover]")?.getAttribute("aria-label")).toBe(
@@ -489,7 +478,7 @@ describe("audio action popover", () => {
       audio("a1", { url: TONE, name: "tone.mp3" }),
     ]);
     await settle();
-    await openActionsOn(mounted.host, "a1");
+    await openActionsOn(mounted.editor, "a1");
     const download = find('[data-audio-action="download"]');
     expect(download?.getAttribute("href")).toBe(TONE);
     expect(download?.getAttribute("download")).toBe("tone.mp3");
@@ -500,7 +489,7 @@ describe("audio action popover", () => {
   test("Delete removes the block, and undo brings it back", async () => {
     const mounted = await mount([paragraph("Before", "p1"), audio("a1", { url: TONE })]);
     await settle();
-    await openActionsOn(mounted.host, "a1");
+    await openActionsOn(mounted.editor, "a1");
     const before = snapshot(mounted.editor);
     await click(find('[data-audio-action="delete"]'));
     expect(types(mounted.editor)).toEqual([KEYS.p]);
@@ -552,7 +541,7 @@ describe("audio read-only", () => {
 });
 
 describe("audio static output", () => {
-  test("a url the browser loads is a card with the name, size, player and caption", () => {
+  test("a url the browser loads is the audio control and the caption, with no card, name or icon", () => {
     const html = renderToStaticMarkup(
       <NotionLikeEditorStatic
         value={
@@ -570,7 +559,8 @@ describe("audio static output", () => {
     );
     expect(html).toContain("<audio");
     expect(html).toContain('src="/blocks/notion-like-editor/audio-demo.wav"');
-    expect(html).toContain("audio-demo.wav");
+    expect(html).not.toMatch(/>audio-demo\.wav</);
+    expect(html).not.toContain("<svg");
     expect(html).toContain("A tone");
   });
 

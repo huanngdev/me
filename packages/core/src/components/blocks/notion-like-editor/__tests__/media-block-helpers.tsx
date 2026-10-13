@@ -28,6 +28,15 @@ if (!("ResizeObserver" in globalThis)) {
   globalThis.ResizeObserver = ResizeObserverStub;
 }
 
+// happy-dom reports no media type as playable, and the player treats that as a source it cannot play. Every
+// type is reported as probably playable here, so the player keeps the source. Nothing is played.
+for (const element of ["audio", "video"] as const) {
+  const proto: { canPlayType?: () => string } = Object.getPrototypeOf(
+    document.createElement(element),
+  );
+  proto.canPlayType = () => "probably";
+}
+
 export function paragraph(text: string, id: string): TElement {
   return { type: KEYS.p, id, children: [{ text }] };
 }

@@ -219,7 +219,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       { via: "paste", note: "Video files pasted or dropped, with other files, up to 10 at a time" },
       {
         via: "pointer",
-        note: "Hover for actions, or click the video outside its controls; drag the edge handles to resize",
+        note: "Hover for actions, or Enter on the selected block; a click on the player plays or pauses it; drag the edge handles to resize",
       },
       { via: "toolbar", id: "block.video.align", note: "Align left, center and right" },
       { via: "toolbar", id: "block.video.fit-width", note: "Fit to width" },
@@ -248,7 +248,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
       { via: "paste", note: "Audio files pasted or dropped, with other files, up to 10 at a time" },
       {
         via: "pointer",
-        note: "Hover for actions, or click the card outside its player: Caption, Replace, Download and Delete",
+        note: "Hover for actions, or Enter on the selected block: Caption, Replace, Download and Delete. The player is a control, so a click on it opens nothing",
       },
       { via: "toolbar", id: "block.audio.caption", note: "Caption" },
       { via: "toolbar", id: "block.audio.set-source", note: "Replace" },
@@ -260,6 +260,7 @@ export const FEATURE_INVENTORY: readonly FeatureEntry[] = [
     limits: [
       "Embed links are http or https only, with no site parsing",
       "Mime type must start with audio/",
+      "The player sends no CORS request, so a link on another site plays without CORS headers",
       "Caption up to 500 characters",
       "Without a file adapter, only http, https and root-relative urls play",
     ],

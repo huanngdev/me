@@ -80,8 +80,9 @@ function videoState(host: HTMLElement, id: string): string | null {
   );
 }
 
+// The player's own media element, rendered by the video player.
 function player(host: HTMLElement, id: string): HTMLVideoElement | null {
-  return blockHost(host, id)?.querySelector<HTMLVideoElement>("[data-video-player]") ?? null;
+  return blockHost(host, id)?.querySelector<HTMLVideoElement>("video") ?? null;
 }
 
 // A click on the card, outside the player, opens the actions.
@@ -346,7 +347,7 @@ describe("video rendering", () => {
     await mounted.cleanup();
   });
 
-  test("a ready video is a player with controls, metadata preload and playsinline, and no autoplay", async () => {
+  test("a ready video is the video player, with no native controls and no autoplay", async () => {
     const mounted = await mount([
       paragraph("", "p1"),
       video("v1", { url: CLIP, caption: "A clip" }),
@@ -354,13 +355,12 @@ describe("video rendering", () => {
     await settle();
     const element = player(mounted.host, "v1");
     expect(element).not.toBeNull();
-    expect(element?.hasAttribute("controls")).toBe(true);
-    expect(element?.getAttribute("preload")).toBe("metadata");
-    expect(element?.hasAttribute("playsinline")).toBe(true);
+    expect(element?.hasAttribute("controls")).toBe(false);
     expect(element?.hasAttribute("autoplay")).toBe(false);
     expect(element?.hasAttribute("controlslist")).toBe(false);
-    expect(element?.getAttribute("src")).toBe(CLIP);
-    expect(element?.className).toContain("aspect-video");
+    expect(
+      blockHost(mounted.host, "v1")?.querySelector('[role="region"]')?.getAttribute("aria-label"),
+    ).toContain("clip.mp4");
     const caption = blockHost(mounted.host, "v1")?.querySelector(
       'input[aria-label="Video caption"]',
     );
@@ -368,11 +368,15 @@ describe("video rendering", () => {
     await mounted.cleanup();
   });
 
-  test("once the metadata loads the player drops the aspect placeholder", async () => {
+  test("once the metadata loads, the player takes the file's own width and height as its ratio", async () => {
     const mounted = await mount([paragraph("", "p1"), video("v1", { url: CLIP })]);
     await settle();
-    await fireMedia(player(mounted.host, "v1"), "loadedmetadata");
-    expect(player(mounted.host, "v1")?.className).not.toContain("aspect-video");
+    const element = player(mounted.host, "v1");
+    Object.defineProperty(element, "videoWidth", { value: 360 });
+    Object.defineProperty(element, "videoHeight", { value: 640 });
+    await fireMedia(element, "loadedmetadata");
+    const region = blockHost(mounted.host, "v1")?.querySelector<HTMLElement>('[role="region"]');
+    expect(region?.style.aspectRatio).toBe("360 / 640");
     await mounted.cleanup();
   });
 

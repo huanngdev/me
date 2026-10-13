@@ -12,6 +12,7 @@ import {
   MEDIA_HOVER_OPEN_MS,
   mediaHoverBlockId,
   mediaSourceBlockId,
+  onMediaUiKeyDown,
   openMediaHover,
   openMediaSource,
   scheduleMediaHoverClose,
@@ -290,7 +291,19 @@ describe("media hover toolbar", () => {
       for (const [id, label, card] of kinds) {
         const mounted = await mount(mediaDocument());
         await settle();
-        await click(blockHost(mounted.host, id)?.querySelector(card) ?? null);
+        if (id === "a1") {
+          // The audio player is a control, so a click on it does not open the actions. Enter on the selected
+          // block does.
+          const index = mounted.editor.children.findIndex((node) => "id" in node && node.id === id);
+          await act(async () => {
+            mounted.editor.tf.select(mounted.editor.api.start([index])!);
+          });
+          await act(async () => {
+            onMediaUiKeyDown(mounted.editor, { key: "Enter", preventDefault() {} });
+          });
+        } else {
+          await click(blockHost(mounted.host, id)?.querySelector(card) ?? null);
+        }
         expect(toolbarLabel()).toBe(label);
 
         // The pointer rests on the block, then leaves it: the hover open and close both run.
