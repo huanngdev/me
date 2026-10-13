@@ -5,6 +5,7 @@
 - [GitHub Contributions 3D](https://www.huanngdev.site/llms/components/github-contributions-3d.txt): An interactive Three.js contribution calendar with six themes.
 - [Tags Input](https://www.huanngdev.site/llms/components/shadcn-tags-input.txt): A composable tags input built on shadcn primitives.
 - [Scroll Minimap](https://www.huanngdev.site/llms/components/scroll-minimap.txt): A compact scrollspy navigator for long content.
+- [Audio Player](https://www.huanngdev.site/llms/components/audio-player.txt): A compact audio player with shadcn controls.
 - [Video Player](https://www.huanngdev.site/llms/components/video-player.txt): A headless media player with shadcn controls.
 - [Zod Data Table](https://www.huanngdev.site/llms/components/zod-data-table.txt): A typed TanStack table generated from a Zod object schema.
 - [Tile Treemap](https://www.huanngdev.site/llms/components/tile-treemap.txt): Divide a single box into proportionally sized, color-coded tiles.

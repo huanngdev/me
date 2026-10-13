@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  AudioLines,
   Box,
   Clapperboard,
   LayoutGrid,
@@ -40,6 +41,12 @@ const COMPONENT_LIST: {
     name: "Video Player",
     description: "A headless media player with shadcn controls.",
     icon: Clapperboard,
+  },
+  {
+    slug: "audio-player",
+    name: "Audio Player",
+    description: "A compact audio player with shadcn controls.",
+    icon: AudioLines,
   },
   {
     slug: "zod-data-table",

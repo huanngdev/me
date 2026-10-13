@@ -41,6 +41,17 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
   },
   {
     kind: "component",
+    slug: "audio-player",
+    name: "Audio Player",
+    description: "A compact audio player with shadcn controls.",
+    docsPath: "/components/audio-player",
+    files: [
+      "packages/core/src/components/video-player/use-video-player.ts",
+      "packages/core/src/components/audio-player/audio-player.tsx",
+    ],
+  },
+  {
+    kind: "component",
     slug: "video-player",
     name: "Video Player",
     description: "A headless media player with shadcn controls.",
