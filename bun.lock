@@ -17,6 +17,32 @@
         "typescript": "6.0.3",
       },
     },
+    "apps/notion-like": {
+      "name": "notion-like",
+      "version": "0.1.0",
+      "dependencies": {
+        "@repo/core": "workspace:*",
+        "lucide-react": "^1.56.0",
+        "next": "16.4.0",
+        "next-themes": "^0.4.6",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+      },
+      "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/prettier-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@tailwindcss/postcss": "^4.3.3",
+        "@types/node": "^26.6.5",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "babel-plugin-react-compiler": "1.0.0",
+        "eslint": "10.12.0",
+        "prettier": "^3.9.10",
+        "tailwindcss": "^4.3.3",
+        "typescript": "6.0.3",
+      },
+    },
     "apps/web": {
       "name": "web",
       "version": "0.1.0",
@@ -1546,6 +1572,8 @@
     "node-exports-info": ["node-exports-info@1.6.0", "", { "dependencies": { "array.prototype.flatmap": "^1.3.3", "es-errors": "^1.3.0", "object.entries": "^1.1.9", "semver": "^6.3.1" } }, "sha512-pyFS63ptit/P5WqUkt+UUfe+4oevH+bFeIiPPdfb0pFeYEu/1ELnJu5l+5EcTKYL5M7zaAa7S8ddywgXypqKCw=="],
 
     "node-releases": ["node-releases@2.0.44", "", {}, "sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ=="],
+
+    "notion-like": ["notion-like@workspace:apps/notion-like"],
 
     "npm-run-path": ["npm-run-path@6.0.0", "", { "dependencies": { "path-key": "^4.0.0", "unicorn-magic": "^0.3.0" } }, "sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA=="],
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="A violet card with a pale circle">
+  <rect width="320" height="180" fill="#f4f1ea"/>
+  <rect x="16" y="16" width="288" height="148" rx="12" fill="#4d3d66"/>
+  <circle cx="160" cy="90" r="32" fill="#e6d9a2"/>
+</svg>
