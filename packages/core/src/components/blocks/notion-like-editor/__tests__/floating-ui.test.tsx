@@ -36,6 +36,8 @@ const floatingSources = [
   "components/ui/block-menu.tsx",
   "components/ui/block-color-menu.tsx",
   "components/ui/selection-toolbar.tsx",
+  "components/ui/selection-toolbar-align.tsx",
+  "components/ui/selection-toolbar-choice.tsx",
   "components/ui/selection-color-menu.tsx",
   "components/ui/slash-menu.tsx",
   "components/ui/emoji-suggest.tsx",

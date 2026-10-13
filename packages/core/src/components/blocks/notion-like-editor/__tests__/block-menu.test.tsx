@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
@@ -15,6 +15,7 @@ import {
   turnBlockInto,
   turnIntoParagraph,
 } from "../lib/commands/editor-commands";
+import { EDITOR_SHORTCUTS } from "../lib/features/editor-shortcuts";
 import { createEditorDocument } from "../lib/document/editor-document";
 import { parseEditorDocument } from "../lib/document/editor-document-validate";
 import type { EditorValue } from "../lib/document/editor-value";
@@ -478,10 +479,38 @@ describe("block menu duplicate and delete", () => {
 
 describe("block menu shortcut and native context menu", () => {
   test("Mod+/ is free of the editor shortcut list", () => {
-    const source = readFileSync(join(editorRoot, "lib/plugins/editor-plugins.ts"), "utf8");
-    for (const match of source.matchAll(/keys:\s*\[([\s\S]*?)\]/g)) {
-      const body = match[1] ?? "";
-      expect(body.includes('"/"') || body.includes("Slash")).toBe(false);
+    // Plugin keys live in editor-plugins.ts and in the group files next to it.
+    const groupsDir = join(editorRoot, "lib/plugins/groups");
+    const pluginSources = [
+      join(editorRoot, "lib/plugins/editor-plugins.ts"),
+      ...readdirSync(groupsDir)
+        .filter((name) => name.endsWith(".ts"))
+        .map((name) => join(groupsDir, name)),
+    ];
+    let keyEntries = 0;
+    for (const path of pluginSources) {
+      const source = readFileSync(path, "utf8");
+      // Literal key arrays: no entry may bind "/" or Slash.
+      for (const match of source.matchAll(/keys:\s*\[([\s\S]*?)\]/g)) {
+        keyEntries += 1;
+        const body = match[1] ?? "";
+        expect(body.includes('"/"') || body.includes("Slash")).toBe(false);
+      }
+      // Shared shortcuts written as [...EDITOR_SHORTCUTS.x]: only blockMenu may hold Mod+/.
+      for (const match of source.matchAll(/EDITOR_SHORTCUTS\.(\w+)/g)) {
+        const id = match[1] ?? "";
+        keyEntries += 1;
+        if (id === "blockMenu") continue;
+        const keys: readonly string[] = EDITOR_SHORTCUTS[id as keyof typeof EDITOR_SHORTCUTS];
+        expect(keys.includes("Slash") || keys.includes("/")).toBe(false);
+      }
+    }
+    // The scan must have found real entries, or the checks above pass vacuously.
+    expect(keyEntries).toBeGreaterThan(0);
+    for (const [id, value] of Object.entries(EDITOR_SHORTCUTS)) {
+      if (id === "blockMenu") continue;
+      const keys: readonly string[] = value;
+      expect(keys.includes("Slash") || keys.includes("/")).toBe(false);
     }
     expect(
       isBlockMenuShortcut({
