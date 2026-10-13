@@ -4,6 +4,7 @@ import { editorIsComposing } from "../plugins/editor-mention";
 import { selectionInCodeBlock } from "./editor-code";
 import { blockTextOffset } from "./editor-slash";
 import type { EmojiEntry } from "./emoji-data";
+import { featureEnabled } from "../plugins/editor-config";
 
 export const EMOJI_SUGGEST_LIMIT = 8;
 
@@ -129,6 +130,9 @@ function readEmojiBlock(
 }
 
 export function readEmojiSession(editor: SlateEditor): EmojiSession | null {
+  if (!featureEnabled(editor, "emoji")) {
+    return null;
+  }
   const block = readEmojiBlock(editor);
   if (block === null) {
     return null;

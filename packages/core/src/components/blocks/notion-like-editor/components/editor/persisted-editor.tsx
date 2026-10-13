@@ -26,6 +26,7 @@ export function PersistedEditor({
   onOpenPage,
   fileUpload = null,
   options,
+  features,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({
     documentId,
@@ -63,6 +64,7 @@ export function PersistedEditor({
           onOpenPage={onOpenPage}
           fileUpload={fileUpload}
           options={options}
+          features={features}
           status={session.status}
           message={session.message}
           onRetry={() => {

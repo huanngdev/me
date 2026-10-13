@@ -14,6 +14,7 @@ import {
 import type { EmojiEntry } from "../features/emoji-data";
 import { pointAtBlockOffset } from "../features/editor-slash";
 import { slashMenuOpen } from "./editor-slash";
+import { featureEnabled } from "./editor-config";
 
 // Below the slash menu (2000), so an open slash menu handles its keys first.
 // Above the list, table and indent handlers (0), so Tab chooses an emoji instead of indenting.
@@ -185,7 +186,7 @@ export function chooseEmojiSuggestion(editor: SlateEditor, emoji: string): void 
 }
 
 function convertClosingEmoji(editor: SlateEditor): void {
-  if (slashMenuOpen(editor)) {
+  if (slashMenuOpen(editor) || !featureEnabled(editor, "emoji")) {
     return;
   }
   const entries = loadedEmojiEntries();

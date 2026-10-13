@@ -32,6 +32,7 @@ import {
 import { insertColumnsBelow } from "../commands/editor-columns";
 import { insertEquationBelow } from "./editor-equation";
 import { insertTocBelow } from "./editor-toc";
+import { itemFeatureEnabled } from "../plugins/editor-config";
 
 export type BlockPickerGroup = "Basic" | "Lists" | "Containers" | "Advanced";
 
@@ -317,7 +318,9 @@ function pickerItems(
   if (parentType === undefined) {
     return [];
   }
-  return ADD_DEFINITIONS.map((definition) => {
+  // An item whose feature is off is removed, not shown disabled.
+  const enabled = ADD_DEFINITIONS.filter((definition) => itemFeatureEnabled(editor, definition.id));
+  return enabled.map((definition) => {
     const reason = blockPlacementRefusal(
       parentType,
       toIndex,
@@ -379,7 +382,11 @@ export function blockPickerTurnItems(
   const decisions = blockMenuDecisions(view) ?? [];
   const current = currentBlockMenuKind(view);
   const byKind = new Map(decisions.map((decision) => [decision.kind, decision]));
-  return BLOCK_MENU_TURNS.map((turn) => {
+  // A turn into an off feature is removed. The current type stays, so it shows as checked.
+  const offered = BLOCK_MENU_TURNS.filter(
+    (turn) => turn.kind === current || itemFeatureEnabled(editor, turn.kind),
+  );
+  return offered.map((turn) => {
     const decision = byKind.get(turn.kind);
     const details = DETAILS[turn.kind];
     return {

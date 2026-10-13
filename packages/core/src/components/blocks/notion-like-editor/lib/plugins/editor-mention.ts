@@ -12,6 +12,7 @@ import {
   type MentionEntity,
   type MentionProvider,
 } from "../features/editor-mention-node";
+import { featureEnabled } from "./editor-config";
 
 export const MENTION_SEARCH_DEBOUNCE_MS = 150;
 export const MENTION_EMPTY_LABEL = "No people found";
@@ -202,7 +203,11 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
 }
 
 export function mentionTriggerAllowed(editor: SlateEditor): boolean {
-  if (editor.dom.readOnly === true || editorIsComposing(editor)) {
+  if (
+    editor.dom.readOnly === true ||
+    editorIsComposing(editor) ||
+    !featureEnabled(editor, "mentions")
+  ) {
     return false;
   }
 

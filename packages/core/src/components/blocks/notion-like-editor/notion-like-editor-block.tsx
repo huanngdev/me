@@ -2,6 +2,7 @@
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
 import type { EditorOptions } from "./lib/features/editor-options";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import type { FileUploadAdapter } from "./lib/features/editor-file-upload";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
@@ -25,6 +26,7 @@ export type NotionLikeEditorBlockProps = {
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
   options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {

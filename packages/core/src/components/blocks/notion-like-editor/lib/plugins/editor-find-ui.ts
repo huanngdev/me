@@ -4,6 +4,7 @@ import { FIND_QUERY_MAX } from "../features/editor-find";
 import { shortcutPlatformOf } from "../features/editor-shortcuts";
 import { blockSelectionActive } from "./editor-block-selection";
 import { findPlugin, openFind, revealFindMatch, setFindQuery } from "./editor-find";
+import { featureEnabled } from "./editor-config";
 
 type FindKeyEvent = {
   key: string;
@@ -51,7 +52,12 @@ export type FindOpenEvent = FindKeyEvent & {
 // Mod+F in the editor opens the bar with the selection as the query, and asks the bar for focus.
 // The bar attaches it to the editable element, so it also works in a read-only editor.
 export function onFindKeyDown(editor: SlateEditor, event: FindOpenEvent): void {
-  if (event.defaultPrevented || !isFindOpenKey(event, isMacPlatform())) {
+  // With find off the key is not handled, so the browser's own find still opens.
+  if (
+    event.defaultPrevented ||
+    !featureEnabled(editor, "find") ||
+    !isFindOpenKey(event, isMacPlatform())
+  ) {
     return;
   }
 

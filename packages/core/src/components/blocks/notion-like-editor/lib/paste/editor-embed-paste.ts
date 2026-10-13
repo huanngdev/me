@@ -12,6 +12,7 @@ import { pasteUrlActions, replacePastedUrlWith, type PasteUrlAction } from "./ed
 const EMBED_PASTE_URL_ACTION: PasteUrlAction = {
   id: "embed",
   label: "Embed",
+  feature: "embeds",
   match: (url) => parseEmbedUrl(url) !== undefined,
   run: (editor, offer) => {
     const parsed = parseEmbedUrl(offer.url);

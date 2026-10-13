@@ -2218,6 +2218,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  FOOTNOTE_DEF_KEY,
   FOOTNOTE_REF_KEY,
   SYNCED_REF_KEY,
   isStoredSyncedTargetId,
@@ -2300,6 +2301,8 @@ import {
 import type { EditorValue } from "../document/editor-value";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+import { featureEnabled } from "../plugins/editor-config";
+import { nodeFeature } from "../features/editor-features";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
@@ -2341,11 +2344,19 @@ export { pasteRepairsOf, setPasteRepairs };
 export type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
+  /** True for a node type whose feature is off. Such a node never becomes its own type. */
+  featureOff?: (type: string) => boolean;
   /** Truncation and other paste repairs. The same list is what the editor reports. */
   repairs?: Repair[];
 };
 
 let activePasteRepairs: Repair[] | undefined;
+let activeFeatureOff: ((type: string) => boolean) | undefined;
+
+// Only the sanitizer pass that is running reads this.
+function pasteTypeOff(type: string): boolean {
+  return activeFeatureOff?.(type) === true;
+}
 
 // The table override sanitizes the fragment again. A repair from the first pass
 // is gone on the second, so those repairs are kept until the outer insert finishes.
@@ -2542,6 +2553,11 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
 // dropped here. The video and audio sanitizers keep a node of those types as a block, as they do for
 // KEYS.file and the file block. HTML video and audio elements still become unsupported_media.
 function isDroppedMediaType(type: string): boolean {
+  // Media and embed types with their feature off are dropped the way an unsupported image is.
+  const feature = nodeFeature(type);
+  if (feature === "media" || feature === "embeds") {
+    return pasteTypeOff(type);
+  }
   return (
     type === KEYS.img || type === KEYS.mediaEmbed || type === "pdf" || type === "unsupported_media"
   );
@@ -2549,7 +2565,20 @@ function isDroppedMediaType(type: string): boolean {
 
 // A dropped image, file, or embed keeps its readable text (alt, caption, name)
 // so the paste is never silently emptied. The media itself is not stored.
+// The paragraphs that still hold text. A feature-off block with no readable text leaves nothing.
+function readableParagraphs(blocks: TElement[]): TElement[] {
+  return blocks.filter((block) => nodeText(block).length > 0);
+}
+
 function droppedMediaLabel(node: Record<string, unknown>): string | undefined {
+  // A bookmark or an embed with its feature off keeps its URL as text. The label is used only without one.
+  if (pasteTypeOff(String(node.type)) && nodeFeature(String(node.type)) === "embeds") {
+    const url = typeof node.url === "string" ? stripControlCharacters(node.url).trim() : "";
+    if (url.length > 0) {
+      return url;
+    }
+  }
+
   for (const key of ["alt", "caption", "name"]) {
     const value = node[key];
     if (typeof value !== "string") {
@@ -3253,6 +3282,31 @@ function expandBlock(
     return label === undefined ? [] : [paragraph([{ text: label }])];
   }
 
+  // An inline type with its feature off is read as plain text, the way an unknown inline is.
+  if (pasteTypeOff(node.type) && isInlinePasteType(node.type)) {
+    const nodes = inlineNodes(node, isInline, seen, false);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  // A block with its feature off is kept as paragraphs of its content, not as its own type.
+  // A block equation keeps its TeX source. A page link keeps its title. A toc or footnote
+  // definition with no readable text is dropped, so no empty paragraph is left behind.
+  if (pasteTypeOff(node.type)) {
+    if (node.type === KEYS.equation) {
+      return readableParagraphs([paragraph(pastedInlineEquationNodes(node, false))]);
+    }
+
+    if (node.type === PAGE_LINK_KEY) {
+      const title = typeof node.title === "string" ? stripControlCharacters(node.title).trim() : "";
+      return readableParagraphs([paragraph([{ text: title }])]);
+    }
+
+    const flattened = expandBlock({ ...node, type: KEYS.p }, isInline, seen, nesting);
+    return node.type === KEYS.toc || node.type === FOOTNOTE_DEF_KEY
+      ? readableParagraphs(flattened)
+      : flattened;
+  }
+
   if (node.type === KEYS.mentionInput) {
     noteMentionInputPaste();
     const text = isRecord(node) ? mentionInputPlainText(node) : "@";
@@ -3429,8 +3483,9 @@ function inlineNodes(
     return text.length > 0 ? [{ text }] : [];
   }
 
+  const gated = pasteTypeOff(node.type);
   if (node.type === KEYS.mention) {
-    if (!allowMarks) {
+    if (!allowMarks || gated) {
       const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
       return label === undefined ? [] : [{ text: label }];
     }
@@ -3439,15 +3494,15 @@ function inlineNodes(
   }
 
   if (node.type === KEYS.inlineEquation) {
-    return pastedInlineEquationNodes(node, allowMarks);
+    return pastedInlineEquationNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.date) {
-    return pastedInlineDateNodes(node, allowMarks);
+    return pastedInlineDateNodes(node, allowMarks && !gated);
   }
 
   if (node.type === FOOTNOTE_REF_KEY) {
-    return pastedFootnoteRefNodes(node, allowMarks);
+    return pastedFootnoteRefNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.link) {
@@ -3522,6 +3577,8 @@ export function sanitizePastedFragment(
   const isInline = options?.isInline ?? (() => false);
   const previousRepairs = activePasteRepairs;
   activePasteRepairs = options?.repairs;
+  const previousFeatureOff = activeFeatureOff;
+  activeFeatureOff = options?.featureOff;
   const paragraphs: EditorValue = [];
   let inlines: Descendant[] = [];
 
@@ -3558,6 +3615,7 @@ export function sanitizePastedFragment(
   flush();
 
   activePasteRepairs = previousRepairs;
+  activeFeatureOff = previousFeatureOff;
   htmlWidthPlans = [];
   return paragraphs;
 }
@@ -3580,6 +3638,10 @@ export function preparePastedFragment(
     isInline: (node) => isElementNode(node) && editor.api.isInline(node),
     seenIds: collectEditorIds(editor.children),
     repairs,
+    featureOff: (type) => {
+      const feature = nodeFeature(type);
+      return feature !== undefined && !featureEnabled(editor, feature);
+    },
   });
   // A pasted definition keeps its id only when the document has no definition with it.
   const footnotes = repairFootnoteContent(sanitized, footnoteIndex(editor).definitions);
@@ -13771,6 +13833,8 @@ import {
 import type { EditorCommand } from "../commands/editor-commands";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { clipboardWithinHtmlLimit } from "./editor-paste";
+import { featureEnabled } from "../plugins/editor-config";
+import type { EditorFeature } from "../features/editor-features";
 
 export type PasteUrlOffer = {
   url: string;
@@ -13783,6 +13847,8 @@ export type PasteUrlOffer = {
 export type PasteUrlAction = {
   id: string;
   label: string;
+  // The feature that makes this action available. Without one, the action is always offered.
+  feature?: EditorFeature;
   match: (url: string) => boolean;
   run: (editor: SlateEditor, offer: PasteUrlOffer) => void;
 };
@@ -13791,6 +13857,14 @@ export type PasteUrlAction = {
 // The menu lists every action whose match accepts the pasted URL.
 // Each run is a later undo step than the paste.
 export const pasteUrlActions: PasteUrlAction[] = [];
+
+// The actions the paste menu offers for a URL: those that accept it, and whose feature is on.
+export function pasteUrlActionsFor(editor: SlateEditor, url: string): PasteUrlAction[] {
+  return pasteUrlActions.filter(
+    (action) =>
+      (action.feature === undefined || featureEnabled(editor, action.feature)) && action.match(url),
+  );
+}
 
 function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
   return typeof value === "function";
@@ -13826,7 +13900,12 @@ export const pasteUrlPlugin = createSlatePlugin({
         const offerUrl = pasteOfferUrl(editor, plain, html);
         insertData(prepared);
         // A selection wrap links the selected words and does not open this menu.
-        if (offerUrl === undefined || !collapsed) {
+        // With no action left to offer, the URL is pasted as plain text, as it is with no menu.
+        if (
+          offerUrl === undefined ||
+          !collapsed ||
+          pasteUrlActionsFor(editor, offerUrl).length === 0
+        ) {
           return;
         }
 
@@ -14461,6 +14540,7 @@ const METADATA_KEYS = ["title", "description", "siteName", "imageUrl"] as const;
 pasteUrlActions.unshift({
   id: "bookmark",
   label: "Bookmark",
+  feature: "embeds",
   match: () => true,
   run: (editor, offer) => {
     const url = normalizeBookmarkUrl(offer.url);
@@ -17298,6 +17378,7 @@ import {
   insertInlineEquation,
 } from "../features/editor-inline-equation";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover edits a draft held in these options. The document is written once, on commit.
 // createdUndoDepth is the undo depth before the node was inserted, or -1 when it was not created here.
@@ -17529,7 +17610,9 @@ export const toggleInlineEquation: EditorCommand = {
   label: "Equation",
   group: "insert",
   isEnabled: (editor) =>
-    editor.dom.readOnly !== true && inlineEquationRefusal(editor) === undefined,
+    editor.dom.readOnly !== true &&
+    featureEnabled(editor, "equations") &&
+    inlineEquationRefusal(editor) === undefined,
   disabledReason: (editor) => {
     const refusal = inlineEquationRefusal(editor);
     if (refusal === "span") {
@@ -17571,6 +17654,10 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
   }
 
   if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "e") {
+    // With equations off the key is not handled, so the browser keeps its default.
+    if (!featureEnabled(editor, "equations")) {
+      return;
+    }
     event.preventDefault();
     runEditorCommand(editor, toggleInlineEquation, undefined);
     return;
@@ -18216,6 +18303,7 @@ import {
 } from "../features/editor-inline-date";
 import { todayStoredDate } from "../features/editor-date-value";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover holds only which chip is open. Every choice writes at once, so there is no draft.
 export const inlineDateUiPlugin = createSlatePlugin({
@@ -18385,7 +18473,7 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
   }
 
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === ";") {
-    if (runEditorCommand(editor, insertTodayDate, undefined)) {
+    if (featureEnabled(editor, "dates") && runEditorCommand(editor, insertTodayDate, undefined)) {
       event.preventDefault();
     }
     return;
@@ -18959,6 +19047,7 @@ import {
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
 import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
+import { featureEnabled } from "../plugins/editor-config";
 
 export {
   footnoteIndex,
@@ -19155,6 +19244,9 @@ export const footnoteRefPlugin = createSlatePlugin({
 }));
 
 export function footnoteInsertAllowed(editor: SlateEditor): boolean {
+  if (!featureEnabled(editor, "footnotes")) {
+    return false;
+  }
   const selection = editor.selection;
   return selection !== null && footnoteReferenceAllowedAt(editor, RangeApi.end(selection));
 }
@@ -21981,6 +22073,7 @@ import {
   type MentionEntity,
   type MentionProvider,
 } from "../features/editor-mention-node";
+import { featureEnabled } from "./editor-config";
 
 export const MENTION_SEARCH_DEBOUNCE_MS = 150;
 export const MENTION_EMPTY_LABEL = "No people found";
@@ -22171,7 +22264,11 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
 }
 
 export function mentionTriggerAllowed(editor: SlateEditor): boolean {
-  if (editor.dom.readOnly === true || editorIsComposing(editor)) {
+  if (
+    editor.dom.readOnly === true ||
+    editorIsComposing(editor) ||
+    !featureEnabled(editor, "mentions")
+  ) {
     return false;
   }
 
@@ -22889,7 +22986,7 @@ import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   applyPasteUrlAction,
   clearPasteUrlOffer,
-  pasteUrlActions,
+  pasteUrlActionsFor,
   pasteUrlPlugin,
 } from "../../lib/paste/editor-paste-url";
 
@@ -22897,8 +22994,7 @@ export function PasteUrlMenu() {
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
   const offer = usePluginOption(pasteUrlPlugin, "offer");
-  const actions =
-    offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+  const actions = offer === undefined ? [] : pasteUrlActionsFor(editor, offer.url);
   const virtualRef = virtualAnchor(
     () => rangeRect(pasteDomRange(editor)),
     () => anchorContext(rangeContextElement(pasteDomRange(editor))),
@@ -23138,6 +23234,7 @@ import { editorIsComposing } from "../plugins/editor-mention";
 import { selectionInCodeBlock } from "./editor-code";
 import { blockTextOffset } from "./editor-slash";
 import type { EmojiEntry } from "./emoji-data";
+import { featureEnabled } from "../plugins/editor-config";
 
 export const EMOJI_SUGGEST_LIMIT = 8;
 
@@ -23263,6 +23360,9 @@ function readEmojiBlock(
 }
 
 export function readEmojiSession(editor: SlateEditor): EmojiSession | null {
+  if (!featureEnabled(editor, "emoji")) {
+    return null;
+  }
   const block = readEmojiBlock(editor);
   if (block === null) {
     return null;
@@ -23665,6 +23765,7 @@ import {
 import type { EmojiEntry } from "../features/emoji-data";
 import { pointAtBlockOffset } from "../features/editor-slash";
 import { slashMenuOpen } from "./editor-slash";
+import { featureEnabled } from "./editor-config";
 
 // Below the slash menu (2000), so an open slash menu handles its keys first.
 // Above the list, table and indent handlers (0), so Tab chooses an emoji instead of indenting.
@@ -23836,7 +23937,7 @@ export function chooseEmojiSuggestion(editor: SlateEditor, emoji: string): void 
 }
 
 function convertClosingEmoji(editor: SlateEditor): void {
-  if (slashMenuOpen(editor)) {
+  if (slashMenuOpen(editor) || !featureEnabled(editor, "emoji")) {
     return;
   }
   const entries = loadedEmojiEntries();
@@ -28386,15 +28487,18 @@ import { useLayoutEffect } from "react";
 import { usePlateEditor } from "platejs/react";
 
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
-import { editorConfigPlugin, editorOptions } from "../lib/plugins/editor-config";
+import { editorConfigPlugin, editorFeatures, editorOptions } from "../lib/plugins/editor-config";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "../lib/document/editor-value";
+import { editorFeaturesKey, type EditorFeatures } from "../lib/features/editor-features";
 import { editorOptionsKey, type EditorOptions } from "../lib/features/editor-options";
+import { useStableEditorFeatures } from "./use-editor-features";
 import { useStableEditorOptions } from "./use-editor-options";
 
 type NotionLikeEditorOptions = {
   documentId: string;
   initialValue?: EditorValue;
   options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 type NotionLikeEditorResult = {
@@ -28405,6 +28509,7 @@ export function useNotionLikeEditor({
   documentId,
   initialValue = EMPTY_EDITOR_VALUE,
   options,
+  features,
 }: NotionLikeEditorOptions): NotionLikeEditorResult {
   const editor = usePlateEditor(
     {
@@ -28424,6 +28529,14 @@ export function useNotionLikeEditor({
       editor.setOption(editorConfigPlugin, "resolved", resolved);
     }
   }, [editor, resolved]);
+
+  // Features follow the same rule as options: written only when the value differs.
+  const resolvedFeatures = useStableEditorFeatures(features);
+  useLayoutEffect(() => {
+    if (editorFeaturesKey(editorFeatures(editor)) !== editorFeaturesKey(resolvedFeatures)) {
+      editor.setOption(editorConfigPlugin, "features", resolvedFeatures);
+    }
+  }, [editor, resolvedFeatures]);
 
   return { editor };
 }
@@ -29861,7 +29974,7 @@ export function useEditorDocument({
 ```tsx
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
 import { TooltipProvider } from "@/components/tooltip";
@@ -29894,6 +30007,14 @@ import { ShortcutHintsScope } from "../ui/editor-shortcut";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
 import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
+import type { EditorFeature } from "../../lib/features/editor-features";
+import { useEditorFeatures } from "../../hooks/use-editor-features";
+
+// Mounts its children only while the feature is on. It reads the features, so it is used inside Plate.
+function FeatureLayer({ feature, children }: { feature: EditorFeature; children: ReactNode }) {
+  const features = useEditorFeatures();
+  return features[feature] ? children : null;
+}
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -29950,14 +30071,24 @@ export function EditorSurface({
                 <LinkPreviewProvider adapter={linkPreview}>
                   <PasteRepairNotice />
                   <PasteUrlMenu />
-                  <SlashMenu />
-                  <EmojiSuggest />
+                  <FeatureLayer feature="slashMenu">
+                    <SlashMenu />
+                  </FeatureLayer>
+                  <FeatureLayer feature="emoji">
+                    <EmojiSuggest />
+                  </FeatureLayer>
                   <LinkToolbar />
                   <LinkPopover />
                   <BookmarkUrlPopover />
-                  <PageLinkPicker />
-                  <SelectionToolbar />
-                  <FindBar />
+                  <FeatureLayer feature="pageLinks">
+                    <PageLinkPicker />
+                  </FeatureLayer>
+                  <FeatureLayer feature="selectionToolbar">
+                    <SelectionToolbar />
+                  </FeatureLayer>
+                  <FeatureLayer feature="find">
+                    <FindBar />
+                  </FeatureLayer>
                   <PlateContent
                     aria-label={ariaLabel}
                     aria-readonly={readOnly ? true : undefined}
@@ -29981,7 +30112,9 @@ export function EditorSurface({
                   />
                   <BlockPlaceholders placeholder={placeholder} />
                   <BlockSelection />
-                  <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  <FeatureLayer feature="blockHandle">
+                    <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  </FeatureLayer>
                 </LinkPreviewProvider>
               </PageLinkScope>
             </FileUploadScope>
@@ -30228,8 +30361,9 @@ export function MemoryEditor({
   onOpenPage,
   fileUpload = null,
   options,
+  features,
 }: NotionLikeEditorBlockProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue, options });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>
@@ -30260,6 +30394,7 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
+import type { EditorFeatures } from "../../lib/features/editor-features";
 import type { EditorOptions } from "../../lib/features/editor-options";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
@@ -30283,6 +30418,7 @@ type ReadyEditorProps = {
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
   options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function ReadyEditor({
@@ -30302,8 +30438,9 @@ export function ReadyEditor({
   onOpenPage,
   fileUpload = null,
   options,
+  features,
 }: ReadyEditorProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue, options });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
   // The healthy states render nothing, so the row takes no space. Only the
   // failure notice appears, and it is the only thing above the editor.
   const showNotice = status === "error" || status === "conflict";
@@ -30366,6 +30503,7 @@ export function PersistedEditor({
   onOpenPage,
   fileUpload = null,
   options,
+  features,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
   const session = useEditorDocument({
     documentId,
@@ -30403,6 +30541,7 @@ export function PersistedEditor({
           onOpenPage={onOpenPage}
           fileUpload={fileUpload}
           options={options}
+          features={features}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -30421,6 +30560,7 @@ export function PersistedEditor({
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
 import type { EditorOptions } from "./lib/features/editor-options";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import type { FileUploadAdapter } from "./lib/features/editor-file-upload";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
@@ -30444,6 +30584,7 @@ export type NotionLikeEditorBlockProps = {
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
   options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -33798,6 +33939,8 @@ import { createLocalStorageAdapter, type EditorPersistenceAdapter } from "./inde
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
 import { removeStaleDemoDocuments } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
+import { parseOffFeatures } from "./demo/demo-feature-flags";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
 
 const StaticDocument = lazy(() =>
@@ -33856,10 +33999,28 @@ function readStaticServer(): boolean {
   return false;
 }
 
+// The server renders with every feature on. The client keeps the parsed value for one query string,
+// so the snapshot is the same object on each render and useSyncExternalStore does not loop.
+const NO_FEATURES_OFF: EditorFeatures = {};
+let offFlag: { search: string; features: EditorFeatures } | undefined;
+
+function readOffFlag(): EditorFeatures {
+  const search = window.location.search;
+  if (offFlag?.search !== search) {
+    offFlag = { search, features: parseOffFeatures(search) };
+  }
+  return offFlag.features;
+}
+
+function readOffServer(): EditorFeatures {
+  return NO_FEATURES_OFF;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
   const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
   const staticView = useSyncExternalStore(subscribe, readStaticFlag, readStaticServer);
+  const features = useSyncExternalStore(subscribe, readOffFlag, readOffServer);
 
   if (staticView) {
     return (
@@ -33889,6 +34050,7 @@ export function NotionLikeEditorDemo() {
       pageProvider={demoPageProvider}
       fileUpload={demoFileUploadAdapter}
       readOnly={readOnly}
+      features={features}
     />
   );
 }

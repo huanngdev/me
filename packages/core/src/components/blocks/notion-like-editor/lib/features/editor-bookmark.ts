@@ -21,6 +21,7 @@ const METADATA_KEYS = ["title", "description", "siteName", "imageUrl"] as const;
 pasteUrlActions.unshift({
   id: "bookmark",
   label: "Bookmark",
+  feature: "embeds",
   match: () => true,
   run: (editor, offer) => {
     const url = normalizeBookmarkUrl(offer.url);

@@ -12,6 +12,8 @@ import {
 import type { EditorCommand } from "../commands/editor-commands";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { clipboardWithinHtmlLimit } from "./editor-paste";
+import { featureEnabled } from "../plugins/editor-config";
+import type { EditorFeature } from "../features/editor-features";
 
 export type PasteUrlOffer = {
   url: string;
@@ -24,6 +26,8 @@ export type PasteUrlOffer = {
 export type PasteUrlAction = {
   id: string;
   label: string;
+  // The feature that makes this action available. Without one, the action is always offered.
+  feature?: EditorFeature;
   match: (url: string) => boolean;
   run: (editor: SlateEditor, offer: PasteUrlOffer) => void;
 };
@@ -32,6 +36,14 @@ export type PasteUrlAction = {
 // The menu lists every action whose match accepts the pasted URL.
 // Each run is a later undo step than the paste.
 export const pasteUrlActions: PasteUrlAction[] = [];
+
+// The actions the paste menu offers for a URL: those that accept it, and whose feature is on.
+export function pasteUrlActionsFor(editor: SlateEditor, url: string): PasteUrlAction[] {
+  return pasteUrlActions.filter(
+    (action) =>
+      (action.feature === undefined || featureEnabled(editor, action.feature)) && action.match(url),
+  );
+}
 
 function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
   return typeof value === "function";
@@ -67,7 +79,12 @@ export const pasteUrlPlugin = createSlatePlugin({
         const offerUrl = pasteOfferUrl(editor, plain, html);
         insertData(prepared);
         // A selection wrap links the selected words and does not open this menu.
-        if (offerUrl === undefined || !collapsed) {
+        // With no action left to offer, the URL is pasted as plain text, as it is with no menu.
+        if (
+          offerUrl === undefined ||
+          !collapsed ||
+          pasteUrlActionsFor(editor, offerUrl).length === 0
+        ) {
           return;
         }
 

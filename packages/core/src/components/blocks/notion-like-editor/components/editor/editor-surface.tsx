@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
 import { TooltipProvider } from "@/components/tooltip";
@@ -33,6 +33,14 @@ import { ShortcutHintsScope } from "../ui/editor-shortcut";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
 import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
+import type { EditorFeature } from "../../lib/features/editor-features";
+import { useEditorFeatures } from "../../hooks/use-editor-features";
+
+// Mounts its children only while the feature is on. It reads the features, so it is used inside Plate.
+function FeatureLayer({ feature, children }: { feature: EditorFeature; children: ReactNode }) {
+  const features = useEditorFeatures();
+  return features[feature] ? children : null;
+}
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -89,14 +97,24 @@ export function EditorSurface({
                 <LinkPreviewProvider adapter={linkPreview}>
                   <PasteRepairNotice />
                   <PasteUrlMenu />
-                  <SlashMenu />
-                  <EmojiSuggest />
+                  <FeatureLayer feature="slashMenu">
+                    <SlashMenu />
+                  </FeatureLayer>
+                  <FeatureLayer feature="emoji">
+                    <EmojiSuggest />
+                  </FeatureLayer>
                   <LinkToolbar />
                   <LinkPopover />
                   <BookmarkUrlPopover />
-                  <PageLinkPicker />
-                  <SelectionToolbar />
-                  <FindBar />
+                  <FeatureLayer feature="pageLinks">
+                    <PageLinkPicker />
+                  </FeatureLayer>
+                  <FeatureLayer feature="selectionToolbar">
+                    <SelectionToolbar />
+                  </FeatureLayer>
+                  <FeatureLayer feature="find">
+                    <FindBar />
+                  </FeatureLayer>
                   <PlateContent
                     aria-label={ariaLabel}
                     aria-readonly={readOnly ? true : undefined}
@@ -120,7 +138,9 @@ export function EditorSurface({
                   />
                   <BlockPlaceholders placeholder={placeholder} />
                   <BlockSelection />
-                  <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  <FeatureLayer feature="blockHandle">
+                    <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  </FeatureLayer>
                 </LinkPreviewProvider>
               </PageLinkScope>
             </FileUploadScope>

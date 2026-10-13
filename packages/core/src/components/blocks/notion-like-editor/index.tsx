@@ -12,6 +12,12 @@ export {
   type EditorOptions,
   type ResolvedEditorOptions,
 } from "./lib/features/editor-options";
+export {
+  DEFAULT_EDITOR_FEATURES,
+  EDITOR_FEATURES,
+  type EditorFeature,
+  type EditorFeatures,
+} from "./lib/features/editor-features";
 export { DEFAULT_PLACEHOLDER } from "./lib/features/editor-placeholder";
 export { createLocalStorageAdapter } from "./lib/document/local-storage-adapter";
 export type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";

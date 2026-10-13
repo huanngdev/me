@@ -11,6 +11,7 @@ import { closeMediaSource, mediaUiPlugin } from "../../lib/plugins/editor-media-
 import { onPopoverHistoryKey } from "../../lib/plugins/editor-popover-history";
 import { useFileUploadAdapter, useUploadController } from "../elements/file-upload-scope";
 import { anchorContext, elementRect, virtualAnchor } from "./anchor-rect";
+import { useEditorFeatures } from "../../hooks/use-editor-features";
 
 // The words and limits one media block shows in its source popover.
 export type MediaSourceConfig = {
@@ -75,7 +76,8 @@ function MediaSourceForm({
   const editor = useEditorRef();
   const controller = useUploadController();
   const adapter = useFileUploadAdapter();
-  const canUpload = adapter !== null && controller !== null;
+  const mediaOn = useEditorFeatures().media;
+  const canUpload = mediaOn && adapter !== null && controller !== null;
   const fileRef = useRef<HTMLInputElement>(null);
   const errorId = useId();
   const [link, setLink] = useState("");

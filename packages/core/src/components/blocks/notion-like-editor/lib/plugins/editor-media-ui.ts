@@ -5,6 +5,7 @@ import { isMediaBlockType } from "../features/editor-media-source";
 import { findBlockById } from "../features/editor-synced-block";
 import type { UploadController } from "../features/editor-upload-controller";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // Which media block has its source popover, action popover or hover toolbar open. Each holds one
 // block id, or the empty string when closed. Any block type can use them.
@@ -53,7 +54,11 @@ export function attachUploadController(editor: SlateEditor, controller: UploadCo
   controllers.set(editor, controller);
 }
 
+// With media off there is no upload controller, the same as with no adapter.
 export function uploadControllerOf(editor: SlateEditor): UploadController | null {
+  if (!featureEnabled(editor, "media")) {
+    return null;
+  }
   return controllers.get(editor) ?? null;
 }
 

@@ -20,6 +20,7 @@ import {
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
 import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
+import { featureEnabled } from "../plugins/editor-config";
 
 export {
   footnoteIndex,
@@ -216,6 +217,9 @@ export const footnoteRefPlugin = createSlatePlugin({
 }));
 
 export function footnoteInsertAllowed(editor: SlateEditor): boolean {
+  if (!featureEnabled(editor, "footnotes")) {
+    return false;
+  }
   const selection = editor.selection;
   return selection !== null && footnoteReferenceAllowedAt(editor, RangeApi.end(selection));
 }

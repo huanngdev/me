@@ -30,6 +30,7 @@ import {
   matchInlineInputTrigger,
   type InlineInputMark,
 } from "../features/editor-input-rules";
+import { itemFeatureEnabled } from "./editor-config";
 
 const justConverted = new WeakSet<SlateEditor>();
 const compositionPending = new WeakSet<SlateEditor>();
@@ -247,6 +248,11 @@ function applyBlockTrigger(editor: SlateEditor): boolean {
     });
     editor.tf.setSplittingOnce(true);
     return true;
+  }
+
+  // A trigger for a feature that is off does not fire, so the typed text stays.
+  if (!itemFeatureEnabled(editor, trigger.kind)) {
+    return false;
   }
 
   const kind: BlockMenuKind = trigger.kind;

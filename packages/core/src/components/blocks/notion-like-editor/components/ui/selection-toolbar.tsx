@@ -98,6 +98,7 @@ import { BlockPickerGroups } from "./block-picker";
 import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea, ScrollFadeArea } from "./editor-scroll";
 import { SelectionColorMenu } from "./selection-color-menu";
+import { featureEnabled } from "../../lib/plugins/editor-config";
 
 const MARK_ICONS = {
   bold: Bold,
@@ -626,30 +627,32 @@ function ToolbarControls({
           <Link aria-hidden="true" />
         </Button>
       </ControlTip>
-      <ControlTip
-        label="Equation"
-        shortcut={model.equation.shortcut}
-        reason={model.equation.reason}
-        disabled={model.equation.disabled}
-      >
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Equation"
+      {featureEnabled(editor, "equations") ? (
+        <ControlTip
+          label="Equation"
+          shortcut={model.equation.shortcut}
+          reason={model.equation.reason}
           disabled={model.equation.disabled}
-          data-toolbar-control="equation"
-          aria-keyshortcuts={
-            platform !== null ? ariaKeyShortcuts("inlineEquation", platform) : undefined
-          }
-          tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
-          className="disabled:pointer-events-auto"
-          onMouseDown={keepSelection}
-          onClick={onEquation}
         >
-          <Sigma aria-hidden="true" />
-        </Button>
-      </ControlTip>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Equation"
+            disabled={model.equation.disabled}
+            data-toolbar-control="equation"
+            aria-keyshortcuts={
+              platform !== null ? ariaKeyShortcuts("inlineEquation", platform) : undefined
+            }
+            tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
+            className="disabled:pointer-events-auto"
+            onMouseDown={keepSelection}
+            onClick={onEquation}
+          >
+            <Sigma aria-hidden="true" />
+          </Button>
+        </ControlTip>
+      ) : null}
       <ToolbarSeparator />
       <AlignMenu
         model={model}

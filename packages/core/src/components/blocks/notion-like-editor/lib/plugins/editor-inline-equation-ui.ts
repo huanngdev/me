@@ -16,6 +16,7 @@ import {
   insertInlineEquation,
 } from "../features/editor-inline-equation";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover edits a draft held in these options. The document is written once, on commit.
 // createdUndoDepth is the undo depth before the node was inserted, or -1 when it was not created here.
@@ -247,7 +248,9 @@ export const toggleInlineEquation: EditorCommand = {
   label: "Equation",
   group: "insert",
   isEnabled: (editor) =>
-    editor.dom.readOnly !== true && inlineEquationRefusal(editor) === undefined,
+    editor.dom.readOnly !== true &&
+    featureEnabled(editor, "equations") &&
+    inlineEquationRefusal(editor) === undefined,
   disabledReason: (editor) => {
     const refusal = inlineEquationRefusal(editor);
     if (refusal === "span") {
@@ -289,6 +292,10 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
   }
 
   if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "e") {
+    // With equations off the key is not handled, so the browser keeps its default.
+    if (!featureEnabled(editor, "equations")) {
+      return;
+    }
     event.preventDefault();
     runEditorCommand(editor, toggleInlineEquation, undefined);
     return;

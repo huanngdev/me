@@ -33,6 +33,7 @@ import { insertInlineLink } from "../plugins/editor-link";
 import { inlineTriggerBlocked, insertMention } from "../plugins/editor-mention";
 import { pageLinkProvider } from "../plugins/editor-page-link";
 import { footnoteInsertAllowed } from "./editor-footnote";
+import { featureEnabled, itemFeatureEnabled } from "../plugins/editor-config";
 
 export const SLASH_QUERY_LIMIT = 40;
 export const SLASH_EMPTY_LABEL = "No results";
@@ -104,7 +105,7 @@ const INLINE_ITEMS: readonly Omit<SlashItem, "block">[] = [
 ];
 
 export function slashTriggerAllowed(editor: SlateEditor, composing: boolean): boolean {
-  if (composing || editor.dom.readOnly === true) {
+  if (composing || editor.dom.readOnly === true || !featureEnabled(editor, "slashMenu")) {
     return false;
   }
   if (editor.selection === null || !editor.api.isCollapsed()) {
@@ -266,7 +267,10 @@ export function slashAvailableItems(editor: SlateEditor, session: SlashSession):
   const advanced = [bookmark, pageLink, image, file, video, audio, embed].filter(
     (item): item is SlashItem => item !== null,
   );
-  return insertAdvancedSlashItems(blocks, advanced, inline);
+  // An item whose feature is off is removed, not shown disabled.
+  return insertAdvancedSlashItems(blocks, advanced, inline).filter((item) =>
+    itemFeatureEnabled(editor, item.id),
+  );
 }
 
 export function slashItemsForSession(editor: SlateEditor, session: SlashSession): SlashItem[] {
