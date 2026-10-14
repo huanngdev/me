@@ -4,6 +4,7 @@ import { editorIsComposing } from "../plugins/editor-mention";
 import { selectionInCodeBlock } from "./editor-code";
 import { blockTextOffset } from "./editor-slash";
 import type { EmojiEntry } from "./emoji-data";
+import { featureEnabled } from "../plugins/editor-config";
 
 export const EMOJI_SUGGEST_LIMIT = 8;
 
@@ -11,7 +12,7 @@ export const EMOJI_SUGGEST_LIMIT = 8;
 const TRIGGER_PATTERN = /(^|\s):([a-z0-9_+-]{2,})$/i;
 const CLOSING_PATTERN = /(^|\s):([a-z0-9_+-]{2,}):$/i;
 
-export type EmojiSession = {
+type EmojiSession = {
   blockId: string;
   blockPath: number[];
   // Block text offsets of the colon and of the caret. The token is the text between them, without the colon.
@@ -109,7 +110,9 @@ function readEmojiBlock(
   ) {
     return null;
   }
-  const block = editor.api.block();
+  // The lowest block above the caret, read from its ancestors. `api.block()` would walk
+  // the document from its root to the caret.
+  const block = editor.api.above({ block: true });
   if (!block || !ElementApi.isElement(block[0]) || typeof block[0].id !== "string") {
     return null;
   }
@@ -129,6 +132,9 @@ function readEmojiBlock(
 }
 
 export function readEmojiSession(editor: SlateEditor): EmojiSession | null {
+  if (!featureEnabled(editor, "emoji")) {
+    return null;
+  }
   const block = readEmojiBlock(editor);
   if (block === null) {
     return null;

@@ -14,7 +14,7 @@ export const BLOCK_INDENT_TYPES: readonly string[] = [
 
 export const BLOCK_INDENT_MAX = 6;
 
-export const BLOCK_INDENT_STEP_PX = 24;
+const BLOCK_INDENT_STEP_PX = 24;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

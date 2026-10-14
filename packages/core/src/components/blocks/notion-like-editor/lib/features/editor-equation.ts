@@ -100,7 +100,7 @@ function equationNode(id: string): TElement {
   };
 }
 
-export function insertEquationBlock(editor: SlateEditor): void {
+function insertEquationBlock(editor: SlateEditor): void {
   const id = nanoid();
   const current = editor.api.block({ highest: true });
   if (!current) {
@@ -127,25 +127,6 @@ export function insertEquationBelow(editor: SlateEditor, path: readonly number[]
   editor.tf.insertNodes(equationNode(id), { at, select: true });
   openEquationEditor(editor, id);
   return id;
-}
-
-export function setEquationExpression(
-  editor: SlateEditor,
-  path: number[],
-  expression: string,
-): boolean {
-  const node = editor.api.node(path);
-  if (!node || !ElementApi.isElement(node[0]) || node[0].type !== KEYS.equation) {
-    return false;
-  }
-
-  const current = typeof node[0].texExpression === "string" ? node[0].texExpression : "";
-  if (current === expression) {
-    return false;
-  }
-
-  editor.tf.setNodes({ texExpression: expression }, { at: path });
-  return true;
 }
 
 export function removeEquation(editor: SlateEditor, path: number[]): void {

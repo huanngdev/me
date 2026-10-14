@@ -11,6 +11,8 @@
     "check-types": "turbo run check-types",
     "llms": "bun scripts/llms/build-llms.ts",
     "llms:check": "bun scripts/llms/check-llms.ts",
+    "registry": "bun scripts/registry/build-registry.ts",
+    "registry:check": "bun scripts/registry/check-registry.ts",
     "commitlint": "commitlint --edit",
     "prepare": "husky"
   },

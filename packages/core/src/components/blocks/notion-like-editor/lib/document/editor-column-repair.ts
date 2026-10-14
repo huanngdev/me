@@ -43,7 +43,7 @@ type ListResult = {
   changed: boolean;
 };
 
-export type ColumnRepairResult = {
+type ColumnRepairResult = {
   content: EditorValue;
   repairs: Repair[];
   changed: boolean;

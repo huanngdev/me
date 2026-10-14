@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
 import { TooltipProvider } from "@/components/tooltip";
@@ -29,9 +29,18 @@ import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
+import { ShortcutHintsScope } from "../ui/editor-shortcut";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
 import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
+import type { EditorFeature } from "../../lib/features/editor-features";
+import { useEditorFeatures } from "../../hooks/use-editor-features";
+
+// Mounts its children only while the feature is on. It reads the features, so it is used inside Plate.
+function FeatureLayer({ feature, children }: { feature: EditorFeature; children: ReactNode }) {
+  const features = useEditorFeatures();
+  return features[feature] ? children : null;
+}
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -72,57 +81,71 @@ export function EditorSurface({
           onValueChange?.(repairMentionInputs(value, query).content);
         }}
       >
-        <MentionScope provider={mentionProvider}>
-          <FileUploadScope
-            adapter={fileUpload}
-            onDone={(blockId, file) => {
-              // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
-              if (editor !== null) {
-                applyUploadResult(editor, blockId, file);
-              }
-            }}
-          >
-            <UploadEditorLink />
-            <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
-              <LinkPreviewProvider adapter={linkPreview}>
-                <PasteRepairNotice />
-                <PasteUrlMenu />
-                <SlashMenu />
-                <EmojiSuggest />
-                <LinkToolbar />
-                <LinkPopover />
-                <BookmarkUrlPopover />
-                <PageLinkPicker />
-                <SelectionToolbar />
-                <FindBar />
-                <PlateContent
-                  aria-label={ariaLabel}
-                  aria-readonly={readOnly ? true : undefined}
-                  placeholder={readOnly ? undefined : placeholder}
-                  onMouseDown={(event) =>
-                    editor ? handleTailMouseDown(editor, event, readOnly) : undefined
-                  }
-                  // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-                  // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-                  // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-                  className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-                  renderPlaceholder={(placeholderProps) => (
-                    <span
-                      {...placeholderProps.attributes}
-                      className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                      style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                    >
-                      {placeholderProps.children}
-                    </span>
-                  )}
-                />
-                <BlockPlaceholders placeholder={placeholder} />
-                <BlockSelection />
-                <BlockHandle onInsertedBelow={onInsertedBelow} />
-              </LinkPreviewProvider>
-            </PageLinkScope>
-          </FileUploadScope>
-        </MentionScope>
+        <ShortcutHintsScope>
+          <MentionScope provider={mentionProvider}>
+            <FileUploadScope
+              adapter={fileUpload}
+              onDone={(blockId, file) => {
+                // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
+                if (editor !== null) {
+                  applyUploadResult(editor, blockId, file);
+                }
+              }}
+            >
+              <UploadEditorLink />
+              <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+                <LinkPreviewProvider adapter={linkPreview}>
+                  <PasteRepairNotice />
+                  <PasteUrlMenu />
+                  <FeatureLayer feature="slashMenu">
+                    <SlashMenu />
+                  </FeatureLayer>
+                  <FeatureLayer feature="emoji">
+                    <EmojiSuggest />
+                  </FeatureLayer>
+                  <LinkToolbar />
+                  <LinkPopover />
+                  <BookmarkUrlPopover />
+                  <FeatureLayer feature="pageLinks">
+                    <PageLinkPicker />
+                  </FeatureLayer>
+                  <FeatureLayer feature="selectionToolbar">
+                    <SelectionToolbar />
+                  </FeatureLayer>
+                  <FeatureLayer feature="find">
+                    <FindBar />
+                  </FeatureLayer>
+                  <PlateContent
+                    aria-label={ariaLabel}
+                    aria-readonly={readOnly ? true : undefined}
+                    placeholder={readOnly ? undefined : placeholder}
+                    onMouseDown={(event) =>
+                      editor ? handleTailMouseDown(editor, event, readOnly) : undefined
+                    }
+                    // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                    // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                    // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                    className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                    renderPlaceholder={(placeholderProps) => (
+                      <span
+                        {...placeholderProps.attributes}
+                        className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                        style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                      >
+                        {placeholderProps.children}
+                      </span>
+                    )}
+                  />
+                  <BlockPlaceholders placeholder={placeholder} />
+                  <BlockSelection />
+                  <FeatureLayer feature="blockHandle">
+                    <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  </FeatureLayer>
+                </LinkPreviewProvider>
+              </PageLinkScope>
+            </FileUploadScope>
+          </MentionScope>
+        </ShortcutHintsScope>
       </Plate>
     </TooltipProvider>
   );

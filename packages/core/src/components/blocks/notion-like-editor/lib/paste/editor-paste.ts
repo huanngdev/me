@@ -27,6 +27,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  FOOTNOTE_DEF_KEY,
   FOOTNOTE_REF_KEY,
   SYNCED_REF_KEY,
   isStoredSyncedTargetId,
@@ -109,6 +110,8 @@ import {
 import type { EditorValue } from "../document/editor-value";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+import { featureEnabled } from "../plugins/editor-config";
+import { nodeFeature } from "../features/editor-features";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
@@ -147,14 +150,22 @@ export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
 
 export { pasteRepairsOf, setPasteRepairs };
 
-export type PasteSanitizeOptions = {
+type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
+  /** True for a node type whose feature is off. Such a node never becomes its own type. */
+  featureOff?: (type: string) => boolean;
   /** Truncation and other paste repairs. The same list is what the editor reports. */
   repairs?: Repair[];
 };
 
 let activePasteRepairs: Repair[] | undefined;
+let activeFeatureOff: ((type: string) => boolean) | undefined;
+
+// Only the sanitizer pass that is running reads this.
+function pasteTypeOff(type: string): boolean {
+  return activeFeatureOff?.(type) === true;
+}
 
 // The table override sanitizes the fragment again. A repair from the first pass
 // is gone on the second, so those repairs are kept until the outer insert finishes.
@@ -351,6 +362,11 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
 // dropped here. The video and audio sanitizers keep a node of those types as a block, as they do for
 // KEYS.file and the file block. HTML video and audio elements still become unsupported_media.
 function isDroppedMediaType(type: string): boolean {
+  // Media and embed types with their feature off are dropped the way an unsupported image is.
+  const feature = nodeFeature(type);
+  if (feature === "media" || feature === "embeds") {
+    return pasteTypeOff(type);
+  }
   return (
     type === KEYS.img || type === KEYS.mediaEmbed || type === "pdf" || type === "unsupported_media"
   );
@@ -358,7 +374,20 @@ function isDroppedMediaType(type: string): boolean {
 
 // A dropped image, file, or embed keeps its readable text (alt, caption, name)
 // so the paste is never silently emptied. The media itself is not stored.
+// The paragraphs that still hold text. A feature-off block with no readable text leaves nothing.
+function readableParagraphs(blocks: TElement[]): TElement[] {
+  return blocks.filter((block) => nodeText(block).length > 0);
+}
+
 function droppedMediaLabel(node: Record<string, unknown>): string | undefined {
+  // A bookmark or an embed with its feature off keeps its URL as text. The label is used only without one.
+  if (pasteTypeOff(String(node.type)) && nodeFeature(String(node.type)) === "embeds") {
+    const url = typeof node.url === "string" ? stripControlCharacters(node.url).trim() : "";
+    if (url.length > 0) {
+      return url;
+    }
+  }
+
   for (const key of ["alt", "caption", "name"]) {
     const value = node[key];
     if (typeof value !== "string") {
@@ -1062,6 +1091,31 @@ function expandBlock(
     return label === undefined ? [] : [paragraph([{ text: label }])];
   }
 
+  // An inline type with its feature off is read as plain text, the way an unknown inline is.
+  if (pasteTypeOff(node.type) && isInlinePasteType(node.type)) {
+    const nodes = inlineNodes(node, isInline, seen, false);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  // A block with its feature off is kept as paragraphs of its content, not as its own type.
+  // A block equation keeps its TeX source. A page link keeps its title. A toc or footnote
+  // definition with no readable text is dropped, so no empty paragraph is left behind.
+  if (pasteTypeOff(node.type)) {
+    if (node.type === KEYS.equation) {
+      return readableParagraphs([paragraph(pastedInlineEquationNodes(node, false))]);
+    }
+
+    if (node.type === PAGE_LINK_KEY) {
+      const title = typeof node.title === "string" ? stripControlCharacters(node.title).trim() : "";
+      return readableParagraphs([paragraph([{ text: title }])]);
+    }
+
+    const flattened = expandBlock({ ...node, type: KEYS.p }, isInline, seen, nesting);
+    return node.type === KEYS.toc || node.type === FOOTNOTE_DEF_KEY
+      ? readableParagraphs(flattened)
+      : flattened;
+  }
+
   if (node.type === KEYS.mentionInput) {
     noteMentionInputPaste();
     const text = isRecord(node) ? mentionInputPlainText(node) : "@";
@@ -1238,8 +1292,9 @@ function inlineNodes(
     return text.length > 0 ? [{ text }] : [];
   }
 
+  const gated = pasteTypeOff(node.type);
   if (node.type === KEYS.mention) {
-    if (!allowMarks) {
+    if (!allowMarks || gated) {
       const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
       return label === undefined ? [] : [{ text: label }];
     }
@@ -1248,15 +1303,15 @@ function inlineNodes(
   }
 
   if (node.type === KEYS.inlineEquation) {
-    return pastedInlineEquationNodes(node, allowMarks);
+    return pastedInlineEquationNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.date) {
-    return pastedInlineDateNodes(node, allowMarks);
+    return pastedInlineDateNodes(node, allowMarks && !gated);
   }
 
   if (node.type === FOOTNOTE_REF_KEY) {
-    return pastedFootnoteRefNodes(node, allowMarks);
+    return pastedFootnoteRefNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.link) {
@@ -1331,6 +1386,8 @@ export function sanitizePastedFragment(
   const isInline = options?.isInline ?? (() => false);
   const previousRepairs = activePasteRepairs;
   activePasteRepairs = options?.repairs;
+  const previousFeatureOff = activeFeatureOff;
+  activeFeatureOff = options?.featureOff;
   const paragraphs: EditorValue = [];
   let inlines: Descendant[] = [];
 
@@ -1367,6 +1424,7 @@ export function sanitizePastedFragment(
   flush();
 
   activePasteRepairs = previousRepairs;
+  activeFeatureOff = previousFeatureOff;
   htmlWidthPlans = [];
   return paragraphs;
 }
@@ -1389,6 +1447,10 @@ export function preparePastedFragment(
     isInline: (node) => isElementNode(node) && editor.api.isInline(node),
     seenIds: collectEditorIds(editor.children),
     repairs,
+    featureOff: (type) => {
+      const feature = nodeFeature(type);
+      return feature !== undefined && !featureEnabled(editor, feature);
+    },
   });
   // A pasted definition keeps its id only when the document has no definition with it.
   const footnotes = repairFootnoteContent(sanitized, footnoteIndex(editor).definitions);
@@ -1555,7 +1617,7 @@ function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
   return kept;
 }
 
-export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
   let next = value;
   if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
     next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });

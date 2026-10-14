@@ -46,7 +46,7 @@ const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 const savedSelections = new WeakMap<SlateEditor, TRange>();
 const hoverCloseTimers = new WeakMap<SlateEditor, ReturnType<typeof setTimeout>>();
 
-export const LINK_HOVER_CLOSE_MS = 200;
+const LINK_HOVER_CLOSE_MS = 200;
 
 export function linkAnchorRange(editor: SlateEditor): TRange | null {
   return savedSelections.get(editor) ?? editor.selection;
@@ -353,7 +353,7 @@ export function setLinkHover(editor: SlateEditor, id: string): void {
   editor.setOption(linkUiPlugin, "hoverId", id);
 }
 
-export function openLinkUrl(url: string): void {
+function openLinkUrl(url: string): void {
   const safe = sanitizeLinkUrl(url);
   if (safe === undefined || typeof window === "undefined") {
     return;

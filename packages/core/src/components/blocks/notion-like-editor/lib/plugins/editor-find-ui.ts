@@ -4,6 +4,7 @@ import { FIND_QUERY_MAX } from "../features/editor-find";
 import { shortcutPlatformOf } from "../features/editor-shortcuts";
 import { blockSelectionActive } from "./editor-block-selection";
 import { findPlugin, openFind, revealFindMatch, setFindQuery } from "./editor-find";
+import { featureEnabled } from "./editor-config";
 
 type FindKeyEvent = {
   key: string;
@@ -27,7 +28,7 @@ export function isFindOpenKey(event: FindKeyEvent, mac: boolean): boolean {
 }
 
 // The selected text, when it sits inside one block and fits in a query.
-export function selectionFindQuery(editor: SlateEditor): string | undefined {
+function selectionFindQuery(editor: SlateEditor): string | undefined {
   const selection = editor.selection;
   if (selection === null || RangeApi.isCollapsed(selection)) {
     return undefined;
@@ -43,7 +44,7 @@ export function selectionFindQuery(editor: SlateEditor): string | undefined {
   return text.length > 0 && text.length <= FIND_QUERY_MAX ? text : undefined;
 }
 
-export type FindOpenEvent = FindKeyEvent & {
+type FindOpenEvent = FindKeyEvent & {
   defaultPrevented: boolean;
   preventDefault: () => void;
 };
@@ -51,7 +52,12 @@ export type FindOpenEvent = FindKeyEvent & {
 // Mod+F in the editor opens the bar with the selection as the query, and asks the bar for focus.
 // The bar attaches it to the editable element, so it also works in a read-only editor.
 export function onFindKeyDown(editor: SlateEditor, event: FindOpenEvent): void {
-  if (event.defaultPrevented || !isFindOpenKey(event, isMacPlatform())) {
+  // With find off the key is not handled, so the browser's own find still opens.
+  if (
+    event.defaultPrevented ||
+    !featureEnabled(editor, "find") ||
+    !isFindOpenKey(event, isMacPlatform())
+  ) {
     return;
   }
 
@@ -68,7 +74,7 @@ export function onFindKeyDown(editor: SlateEditor, event: FindOpenEvent): void {
 type Box = { top: number; bottom: number; left: number; right: number };
 
 // The find bar covers the top of the scroll area, so a match there is not counted as visible.
-export const FIND_BAR_TOP_INSET = 96;
+const FIND_BAR_TOP_INSET = 96;
 
 // Whether a match box is fully inside the scroll area, below the bar's band.
 export function isHighlightVisible(rect: Box, container: Box): boolean {

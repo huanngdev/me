@@ -5,6 +5,7 @@ import type { PageEntity } from "../features/editor-page-link";
 import { insertPageLink } from "../features/editor-page-link-command";
 import { blockTextOffset, findSlashBlock, pointAtBlockOffset } from "../features/editor-slash";
 import { pageLinkProvider } from "./editor-page-link";
+import { featureEnabled } from "./editor-config";
 
 type PageLinkPickerOptions = {
   open: boolean;
@@ -48,7 +49,11 @@ export function pageLinkPickerOpen(editor: SlateEditor): boolean {
 
 // Opens where the slash menu was used. The offset is the caret, which sits where the "/" was.
 export function openPageLinkPicker(editor: SlateEditor, blockId: string): void {
-  if (editor.dom.readOnly === true || pageLinkProvider(editor) === null) {
+  if (
+    editor.dom.readOnly === true ||
+    pageLinkProvider(editor) === null ||
+    !featureEnabled(editor, "pageLinks")
+  ) {
     return;
   }
 
@@ -113,7 +118,7 @@ export function choosePageLink(editor: SlateEditor, page: PageEntity): boolean {
   return inserted;
 }
 
-export function clearPageLinkPicker(editor: SlateEditor): void {
+function clearPageLinkPicker(editor: SlateEditor): void {
   editor.setOption(pageLinkPickerPlugin, "open", false);
   editor.setOption(pageLinkPickerPlugin, "blockId", "");
   editor.setOption(pageLinkPickerPlugin, "offset", 0);

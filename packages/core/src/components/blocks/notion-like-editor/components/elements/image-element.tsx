@@ -64,7 +64,7 @@ import { MEDIA_ICON_CLASS, mediaBlockClassName } from "./media-classes";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import { useResolvedFileUrl, useUploadController, useUploadState } from "./file-upload-scope";
 
-export type ImageState = MediaState;
+type ImageState = MediaState;
 
 // What the block shows. An upload state takes priority over the stored file's state.
 type ImagePhase = ImageState | "uploading" | "failed";

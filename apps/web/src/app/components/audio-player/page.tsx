@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -16,10 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicAudioPlayerDemo } from "./demo";
 
@@ -67,13 +68,13 @@ export const metadata: Metadata = {
   },
 };
 
-const INSTALL_COMMAND = `bun add @vidstack/react@next lucide-react`;
-const SHADCN_COMMAND = `bunx --bun shadcn@latest add button dropdown-menu slider tooltip`;
+const INSTALL_PACKAGES = "@vidstack/react@next lucide-react";
+const SHADCN_TARGET = "shadcn@latest add button dropdown-menu slider tooltip";
 const STYLE_IMPORTS = `@import "@vidstack/react/player/styles/base.css";`;
 
 const USAGE_CODE = `"use client";
 
-import { AudioPlayer } from "@/components/ui/audio-player/audio-player";
+import { AudioPlayer } from "@/components/audio-player/audio-player";
 
 export function Example() {
   return (
@@ -235,45 +236,53 @@ export default function AudioPlayerPage() {
         <Section
           id="install"
           title="Install"
-          description="Add the media engine, shadcn primitives, styles, hook, and component."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <div className="space-y-8">
-            <Step
-              index={1}
-              title="Install the media engine"
-              description="Vidstack provides the headless player, the same engine as the Video Player."
-            >
-              <TerminalBlock command={INSTALL_COMMAND} />
-            </Step>
-            <Step
-              index={2}
-              title="Add shadcn primitives"
-              description="The visible controls use your existing theme tokens."
-            >
-              <TerminalBlock command={SHADCN_COMMAND} />
-            </Step>
-            <Step
-              index={3}
-              title="Import the media base styles"
-              description="Add this line to your global stylesheet."
-            >
-              <CodeBlock code={STYLE_IMPORTS} language="css" />
-            </Step>
-            <Step
-              index={4}
-              title="Copy the Video Player hook"
-              description="The audio player shares it for playback state and time formatting. Save as components/ui/video-player/use-video-player.ts."
-            >
-              <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
-            </Step>
-            <Step
-              index={5}
-              title="Copy the player"
-              description="Save as components/ui/audio-player/audio-player.tsx."
-            >
-              <CodeBlock code={AUDIO_PLAYER_SOURCE} language="tsx" />
-            </Step>
-          </div>
+          <RegistryInstall name="audio-player" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <div className="space-y-8">
+                <Step
+                  index={1}
+                  title="Install the media engine"
+                  description="Vidstack provides the headless player, the same engine as the Video Player."
+                >
+                  <CliCommand install={INSTALL_PACKAGES} />
+                </Step>
+                <Step
+                  index={2}
+                  title="Add shadcn primitives"
+                  description="The visible controls use your existing theme tokens."
+                >
+                  <CliCommand execute={SHADCN_TARGET} />
+                </Step>
+                <Step
+                  index={3}
+                  title="Import the media base styles"
+                  description="Add this line to your global stylesheet."
+                >
+                  <CodeBlock code={STYLE_IMPORTS} language="css" />
+                </Step>
+                <Step
+                  index={4}
+                  title="Copy the Video Player hook"
+                  description="The audio player shares it for playback state and time formatting. Save as components/video-player/use-video-player.ts."
+                >
+                  <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
+                </Step>
+                <Step
+                  index={5}
+                  title="Copy the player"
+                  description="Save as components/audio-player/audio-player.tsx."
+                >
+                  <CodeBlock code={AUDIO_PLAYER_SOURCE} language="tsx" />
+                </Step>
+              </div>
+            </div>
+          </details>
         </Section>
         <Separator />
 

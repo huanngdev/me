@@ -37,7 +37,7 @@ export function FileTypeIcon({ kind }: { kind: FileIconKind }) {
 }
 
 // The file name. Only the stem truncates, so the extension stays visible.
-export function FileName({ name }: { name: string }) {
+function FileName({ name }: { name: string }) {
   const extension = fileExtension(name);
   const stem = name.slice(0, name.length - extension.length);
   return (

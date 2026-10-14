@@ -14,12 +14,12 @@ export type TableGridIssue = {
   message: string;
 };
 
-export type TableGridLimits = {
+type TableGridLimits = {
   maxRows: number;
   maxColumns: number;
 };
 
-export type TableGridResult = {
+type TableGridResult = {
   issues: TableGridIssue[];
   repairs: TableGridIssue[];
   next?: Record<string, unknown>;
@@ -723,16 +723,6 @@ export function rowSliceIsClean(node: Record<string, unknown>, row: number): boo
       cell.row + cell.rowSpan - 1 < row ||
       cell.row > row ||
       (cell.row === row && cell.rowSpan === 1),
-  );
-}
-
-export function columnSliceIsClean(node: Record<string, unknown>, column: number): boolean {
-  const coverage = tableCoverage(node);
-  return coverage.cells.every(
-    (cell) =>
-      cell.column + cell.colSpan - 1 < column ||
-      cell.column > column ||
-      (cell.column === column && cell.colSpan === 1),
   );
 }
 

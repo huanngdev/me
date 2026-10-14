@@ -11,7 +11,7 @@ import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
 export const BLOCK_HANDLE_GAP = 12;
-export const BLOCK_HANDLE_PAD = 8;
+const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
 
@@ -132,7 +132,7 @@ export type HandleChainNode = {
   parentType: string | null;
 };
 
-export type BlockHandleTarget = {
+type BlockHandleTarget = {
   id: string;
   type: string;
 };
@@ -345,11 +345,29 @@ export const BLOCK_HANDLE_CENTER_MAX = 48;
 // the handle at its top.
 export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
 
+// The three placement values. The defaults are the constants above, so a caller
+// that passes nothing gets the same placement.
+export type BlockHandleOptions = {
+  gap: number;
+  centerMax: number;
+  anchorCenterMax: number;
+};
+
+const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+  gap: BLOCK_HANDLE_GAP,
+  centerMax: BLOCK_HANDLE_CENTER_MAX,
+  anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+};
+
 // Handle top for a block, given the handle's measured height. A "center" anchor
 // (the divider rule) centres the handle on the rule. A marked anchor is centred
-// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
-// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
-export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+// up to options.anchorCenterMax, else the handle goes to its top. With no
+// anchor, the block is centred up to options.centerMax, else on its first line.
+export function blockHandleContentTop(
+  block: HTMLElement,
+  handleHeight: number,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
+): number {
   let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
@@ -363,13 +381,13 @@ export function blockHandleContentTop(block: HTMLElement, handleHeight: number):
   }
 
   if (anchorRect) {
-    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+    if (anchorRect.height <= options.anchorCenterMax) {
       return anchorRect.top + (anchorRect.height - handleHeight) / 2;
     }
     return anchorRect.top;
   }
   const blockRect = block.getBoundingClientRect();
-  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+  if (blockRect.height <= options.centerMax) {
     return blockRect.top + (blockRect.height - handleHeight) / 2;
   }
   return firstLineTop(block, handleHeight);
@@ -392,7 +410,7 @@ function firstLineTop(block: HTMLElement, handleHeight: number): number {
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
 // top (the visible content); `blockLeft` is the horizontal anchor (the gutter
 // anchor for a nested block). `blockBottom` is only used for the visibility test.
-export type HandleBlockBox = {
+type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;
   blockLeft: number;
@@ -405,31 +423,32 @@ export type HandleFrame = {
   left: number;
 };
 
-export type HandleViewport = {
+type HandleViewport = {
   width: number;
   height: number;
 };
 
-export type HandleSize = {
+type HandleSize = {
   width: number;
   height: number;
 };
 
-export type PlacedHandle = {
+type PlacedHandle = {
   top: number;
   left: number;
 };
 
 // Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
-// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// is placed in the gutter: `options.gap` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
 ): PlacedHandle | null {
   const top = block.blockTop;
-  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const left = block.blockLeft - options.gap - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 
@@ -476,7 +495,7 @@ export type HandleUiState = {
   hoverNone: boolean;
 };
 
-export type HandleUiEvent =
+type HandleUiEvent =
   | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }

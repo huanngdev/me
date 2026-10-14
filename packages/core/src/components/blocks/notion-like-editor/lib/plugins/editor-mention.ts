@@ -12,6 +12,7 @@ import {
   type MentionEntity,
   type MentionProvider,
 } from "../features/editor-mention-node";
+import { featureEnabled } from "./editor-config";
 
 export const MENTION_SEARCH_DEBOUNCE_MS = 150;
 export const MENTION_EMPTY_LABEL = "No people found";
@@ -21,7 +22,7 @@ export const MENTION_UNKNOWN_LABEL = "Unknown person";
 
 export type { MentionEntity, MentionProvider };
 
-export type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
+type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
 
 type MentionSearchClock = {
   setTimeout: (callback: () => void, delayMs: number) => unknown;
@@ -201,8 +202,12 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
   return marks !== null && Reflect.get(marks, KEYS.code) === true;
 }
 
-export function mentionTriggerAllowed(editor: SlateEditor): boolean {
-  if (editor.dom.readOnly === true || editorIsComposing(editor)) {
+function mentionTriggerAllowed(editor: SlateEditor): boolean {
+  if (
+    editor.dom.readOnly === true ||
+    editorIsComposing(editor) ||
+    !featureEnabled(editor, "mentions")
+  ) {
     return false;
   }
 

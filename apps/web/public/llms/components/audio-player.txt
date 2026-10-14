@@ -4,6 +4,7 @@
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/audio-player
+- Registry: https://www.huanngdev.site/r/audio-player.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order

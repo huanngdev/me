@@ -1,6 +1,6 @@
 import { ElementApi, TextApi, type Point, type SlateEditor, type TElement } from "platejs";
 
-export type FindOptions = { matchCase: boolean };
+type FindOptions = { matchCase: boolean };
 export type FindMatch = { anchor: Point; focus: Point };
 export type FindResult = { matches: FindMatch[]; truncated: boolean };
 

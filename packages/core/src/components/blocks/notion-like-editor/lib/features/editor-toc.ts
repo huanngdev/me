@@ -185,7 +185,7 @@ function tocNode(): TElement {
   return { type: KEYS.toc, children: [{ text: "" }] };
 }
 
-export function insertTocBlock(editor: SlateEditor): void {
+function insertTocBlock(editor: SlateEditor): void {
   const current = editor.api.block({ highest: true });
   if (!current) {
     editor.tf.insertNodes(tocNode(), { at: [0], select: true });
@@ -208,7 +208,7 @@ export function insertTocBelow(editor: SlateEditor, path: readonly number[]): vo
   editor.tf.insertNodes(tocNode(), { at, select: true });
 }
 
-export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
+function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
     voids: true,

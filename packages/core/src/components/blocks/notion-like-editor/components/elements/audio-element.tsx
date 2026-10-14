@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from "react";
 import { Music, RefreshCw, VolumeX } from "lucide-react";
 import {
   PlateElement,
@@ -10,7 +10,6 @@ import {
   type PlateElementProps,
 } from "platejs/react";
 
-import { AudioPlayer } from "@/components/audio-player/audio-player";
 import type { AudioMimeType } from "@vidstack/react";
 
 import { Skeleton } from "@/components/skeleton";
@@ -44,6 +43,14 @@ import { MediaCaptionField } from "./media-caption";
 import { MediaFailedRow, MediaPlaceholderRow, MediaUploadingRow } from "./media-rows";
 import { mediaResolveState, type MediaState } from "./media-state";
 import { useResolvedFileUrl, useUploadController, useUploadState } from "./file-upload-scope";
+
+// The player (vidstack with its engines) loads the first time an audio file is
+// shown, so a text-only document never downloads it.
+const AudioPlayer = lazy(() =>
+  import("@/components/audio-player/audio-player").then((module) => ({
+    default: module.AudioPlayer,
+  })),
+);
 
 // What the block shows. An upload state takes priority over the stored file's state.
 type AudioPhase = MediaState | "uploading" | "failed";
@@ -205,7 +212,19 @@ export function AudioElement(props: PlateElementProps) {
             }}
             onKeyUp={onPlayerKeyUp}
           >
-            <AudioPlayer title={name} src={playerSource} crossOrigin={null} />
+            {/* While the player loads, a box of the player's own height stands in, so nothing shifts. */}
+            <Suspense
+              fallback={
+                <div
+                  aria-hidden="true"
+                  className="bg-muted block w-full min-w-0 rounded-full border"
+                >
+                  <div className="flex h-14 w-full" />
+                </div>
+              }
+            >
+              <AudioPlayer title={name} src={playerSource} crossOrigin={null} />
+            </Suspense>
           </div>
         </div>
         {captionNode}

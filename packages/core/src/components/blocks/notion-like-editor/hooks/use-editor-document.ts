@@ -38,6 +38,7 @@ type UseEditorDocumentOptions = {
   adapter: EditorPersistenceAdapter;
   readOnly?: boolean;
   initialValue?: EditorValue;
+  debounceMs?: number;
 };
 
 function revisionOf(raw: unknown): number {
@@ -58,16 +59,21 @@ export function useEditorDocument({
   adapter,
   readOnly = false,
   initialValue,
+  debounceMs,
 }: UseEditorDocumentOptions): EditorDocumentSession {
   const [session, setSession] = useState<EditorDocumentSession>({ phase: "loading" });
   const autosaveRef = useRef<ReturnType<typeof createAutosave> | undefined>(undefined);
   const readOnlyRef = useRef(readOnly);
   const initialValueRef = useRef(initialValue);
+  // The controller is created once per document, so a changed delay applies from
+  // the next controller, not the one already running.
+  const debounceMsRef = useRef(debounceMs);
 
   useEffect(() => {
     readOnlyRef.current = readOnly;
     initialValueRef.current = initialValue;
-  }, [readOnly, initialValue]);
+    debounceMsRef.current = debounceMs;
+  }, [readOnly, initialValue, debounceMs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +86,7 @@ export function useEditorDocument({
         documentId,
         revision: document.revision,
         initialContent: document.content,
+        debounceMs: debounceMsRef.current,
         readOnly: () => readOnlyRef.current,
         onStatus: (state) => {
           setSession((current) => {

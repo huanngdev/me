@@ -30,6 +30,7 @@ import {
   matchInlineInputTrigger,
   type InlineInputMark,
 } from "../features/editor-input-rules";
+import { itemFeatureEnabled } from "./editor-config";
 
 const justConverted = new WeakSet<SlateEditor>();
 const compositionPending = new WeakSet<SlateEditor>();
@@ -179,7 +180,9 @@ function charAfterInBlock(editor: SlateEditor, blockPath: number[]): string | un
 }
 
 function paragraphAllowsTrigger(editor: SlateEditor): number[] | null {
-  const block = editor.api.block();
+  // The lowest block above the caret, read from its ancestors. `api.block()` would walk
+  // the document from its root to the caret.
+  const block = editor.selection ? editor.api.above({ block: true }) : undefined;
   if (!block || !ElementApi.isElement(block[0])) {
     return null;
   }
@@ -247,6 +250,11 @@ function applyBlockTrigger(editor: SlateEditor): boolean {
     });
     editor.tf.setSplittingOnce(true);
     return true;
+  }
+
+  // A trigger for a feature that is off does not fire, so the typed text stays.
+  if (!itemFeatureEnabled(editor, trigger.kind)) {
+    return false;
   }
 
   const kind: BlockMenuKind = trigger.kind;

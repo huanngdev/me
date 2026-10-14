@@ -5,6 +5,8 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
+import type { EditorFeatures } from "../../lib/features/editor-features";
+import type { EditorOptions } from "../../lib/features/editor-options";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
@@ -26,6 +28,8 @@ type ReadyEditorProps = {
   pageProvider?: PageProvider | null;
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
+  options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function ReadyEditor({
@@ -44,8 +48,10 @@ export function ReadyEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
+  features,
 }: ReadyEditorProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
   // The healthy states render nothing, so the row takes no space. Only the
   // failure notice appears, and it is the only thing above the editor.
   const showNotice = status === "error" || status === "conflict";

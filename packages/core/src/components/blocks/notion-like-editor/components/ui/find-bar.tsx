@@ -107,7 +107,7 @@ function afterMove(editor: SlateEditor): void {
 }
 
 // Closes the bar and puts the caret on the active match, so the user lands on the result.
-export function closeFindBar(editor: SlateEditor): void {
+function closeFindBar(editor: SlateEditor): void {
   const match = findActiveMatch(editor);
   closeFind(editor);
   retainScroll(() => {

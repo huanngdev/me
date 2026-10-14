@@ -5,6 +5,7 @@ import {
   Clapperboard,
   LayoutGrid,
   Map,
+  SquareTerminal,
   TableProperties,
   Tags,
 } from "lucide-react";
@@ -59,6 +60,12 @@ const COMPONENT_LIST: {
     name: "Tile Treemap",
     description: "Divide a single box into proportionally sized, color-coded tiles.",
     icon: LayoutGrid,
+  },
+  {
+    slug: "cli-command",
+    name: "CLI Command",
+    description: "A command block with a tab per package manager.",
+    icon: SquareTerminal,
   },
 ];
 

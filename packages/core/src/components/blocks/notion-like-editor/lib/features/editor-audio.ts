@@ -19,9 +19,9 @@ export const AUDIO_URL_REMOVED =
 export const AUDIO_ATTRS_CLEANED =
   "An audio file lost an attribute that is not valid. The audio was kept.";
 
-export type AudioFields = Partial<MediaSource> & { caption?: string };
+type AudioFields = Partial<MediaSource> & { caption?: string };
 
-export type CleanedAudio = {
+type CleanedAudio = {
   fields: AudioFields;
   dropped: boolean; // true when a field was present and removed
 };

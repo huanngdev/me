@@ -148,6 +148,11 @@ export function BlockSelection() {
       if (readOnly && ids.length > 0) {
         clearBlockSelection(editor, false);
       }
+      // Marks are only ever written with the count attribute, so without it there
+      // is nothing to clear. A typing pass returns here without scanning the blocks.
+      if (!readOnly && !editable.hasAttribute("data-block-selection-count")) {
+        return;
+      }
       editable.removeAttribute("data-block-selection-count");
       for (const node of editable.querySelectorAll("[data-block-selected]")) {
         node.removeAttribute("data-block-selected");

@@ -18,7 +18,7 @@ export function pdfViewerAvailable(): boolean {
   return typeof navigator !== "undefined" && Reflect.get(navigator, "pdfViewerEnabled") === true;
 }
 
-export type PdfPreviewResult =
+type PdfPreviewResult =
   { ok: true; blob: Blob } | { ok: false; reason: "network" | "too-large" | "not-pdf" };
 
 // The signature must end inside the first 1024 bytes.

@@ -88,13 +88,13 @@ export type SelectionToolbarMarkState = {
   reason?: string;
 };
 
-export type SelectionToolbarTurnInto = {
+type SelectionToolbarTurnInto = {
   path: number[];
   label: string;
   currentId: string;
 };
 
-export type SelectionToolbarModel = {
+type SelectionToolbarModel = {
   turnInto: SelectionToolbarTurnInto | null;
   marks: SelectionToolbarMarkState[];
   link: {
@@ -265,7 +265,7 @@ export function selectionToolbarModel(editor: SlateEditor): SelectionToolbarMode
   };
 }
 
-export function selectionTurnTarget(editor: SlateEditor): SelectionToolbarTurnInto | null {
+function selectionTurnTarget(editor: SlateEditor): SelectionToolbarTurnInto | null {
   const selection = editor.selection;
   if (!selection) {
     return null;

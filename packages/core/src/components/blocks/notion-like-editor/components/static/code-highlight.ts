@@ -11,13 +11,6 @@ import sql from "highlight.js/lib/languages/sql";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
-type HastNode = {
-  type: string;
-  value?: string;
-  children?: HastNode[];
-  properties?: { className?: string | string[] };
-};
-
 import { codeLowlight } from "../../lib/features/editor-code";
 import { CODE_LANGS, type CodeLang } from "../../lib/document/editor-document-schema";
 
@@ -53,45 +46,4 @@ export function ensureStaticCodeLanguages(): void {
       codeLowlight.register(lang, GRAMMARS[lang]);
     }
   }
-}
-
-export type HighlightSpan = { text: string; className?: string };
-
-function classNameOf(node: HastNode): string | undefined {
-  if (node.type !== "element") {
-    return undefined;
-  }
-  const value = node.properties?.className;
-  if (Array.isArray(value)) {
-    return value.join(" ");
-  }
-  return typeof value === "string" ? value : undefined;
-}
-
-function walk(node: HastNode, className: string | undefined, spans: HighlightSpan[]): void {
-  if (node.type === "text") {
-    spans.push({ text: node.value ?? "", className });
-    return;
-  }
-  if (node.type !== "element") {
-    return;
-  }
-  const next = classNameOf(node) ?? className;
-  for (const child of node.children ?? []) {
-    walk(child, next, spans);
-  }
-}
-
-export function highlightCode(lang: string | null, text: string): HighlightSpan[] {
-  ensureStaticCodeLanguages();
-  const language = lang !== null && codeLowlight.registered(lang) ? lang : "plaintext";
-  const tree = codeLowlight.highlight(language, text) as { children: HastNode[] };
-  const spans: HighlightSpan[] = [];
-  for (const child of tree.children) {
-    walk(child, undefined, spans);
-  }
-  if (spans.length === 0) {
-    spans.push({ text });
-  }
-  return spans;
 }

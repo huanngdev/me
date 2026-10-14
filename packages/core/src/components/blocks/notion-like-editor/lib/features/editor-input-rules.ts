@@ -1,7 +1,7 @@
 import { LIST_NUMBER_RANGE } from "../document/editor-document-schema";
 import type { BlockMenuKind } from "./editor-block-menu";
 
-export type BlockInputTrigger =
+type BlockInputTrigger =
   { kind: BlockMenuKind; restart?: number; checked?: boolean } | { kind: "divider" };
 
 const BULLET_TRIGGERS = new Set(["- ", "* ", "+ "]);
@@ -61,7 +61,7 @@ export function matchBlockInputTrigger(before: string): BlockInputTrigger | null
 
 export type InlineInputMark = "bold" | "italic" | "strikethrough" | "code";
 
-export type InlineInputMatch = {
+type InlineInputMatch = {
   mark: InlineInputMark;
   openStart: number;
   openEnd: number;

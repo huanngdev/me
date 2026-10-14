@@ -4,6 +4,18 @@
 
 A block editor for React, built on Plate (`platejs` 53). A document is JSON, validated against an allow list of block types, attributes and marks before it is opened or saved. The editor has no AI, no live collaboration, no import or export, and no media upload.
 
+## Import
+
+The public entry point is `index.tsx`, reached through this package path:
+
+```ts
+import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-editor/index";
+```
+
+It re-exports `NotionLikeEditorBlock` and `NotionLikeEditorStatic` with their prop types, `EditorValue`, `EMPTY_EDITOR_VALUE`, `EditorOptions`, `ResolvedEditorOptions`, `DEFAULT_EDITOR_OPTIONS`, `EditorFeatures`, `EditorFeature`, `EDITOR_FEATURES`, `DEFAULT_EDITOR_FEATURES`, `DEFAULT_PLACEHOLDER`, `createLocalStorageAdapter`, `EditorPersistenceAdapter`, `LinkPreviewAdapter`, `FileUploadAdapter` (with `UploadedFile` and `FileUploadOptions`), `MentionProvider` (with `MentionEntity`) and `PageProvider` (with `PageEntity`, `PageResolution` and `PageOpenRequest`). It has no `"use client"` directive. The block is a client component in its own file, and the static renderer has no hooks, so a server component can import both from this path.
+
+To install it into a shadcn project, run `bunx --bun shadcn@latest add https://www.huanngdev.site/r/notion-like-editor.json`. It writes the editor under `components/blocks/notion-like-editor/`, the shared helpers under `components/huanngdev/notion-like-editor/`, and the Plate, KaTeX and highlight packages it needs. It also installs the audio and video players it uses for media blocks. Install it from a Next.js or Vite project with Radix shadcn primitives; Base UI projects do not compile without changes.
+
 ## Usage
 
 Memory mode keeps the document in component state. Pass `onChange` to read it.
@@ -18,15 +30,17 @@ export function NotesEditor() {
 }
 ```
 
-Passing `adapter` switches to persisted mode. The editor loads the document with `adapter.load`, saves it with `adapter.save`, and writes recovery snapshots with `adapter.saveRecovery`. The local storage adapter is `createLocalStorageAdapter` from `lib/document/local-storage-adapter.ts`. The package path map only exports `.tsx` files under `components/`, so this file is not reachable by a package path. The demo imports it by a relative path. Create the adapter in the browser only, because it reads `window` when it is created.
+Passing `adapter` switches to persisted mode. The editor loads the document with `adapter.load`, saves it with `adapter.save`, and writes recovery snapshots with `adapter.saveRecovery`. The local storage adapter is `createLocalStorageAdapter`, from `lib/document/local-storage-adapter.ts` and from the barrel. Create the adapter in the browser only, because it reads `window` when it is created.
 
 ```tsx
 "use client";
 
 import { useState } from "react";
 
-import { NotionLikeEditorBlock } from "@repo/core/components/blocks/notion-like-editor/notion-like-editor-block";
-import { createLocalStorageAdapter } from "../lib/document/local-storage-adapter";
+import {
+  NotionLikeEditorBlock,
+  createLocalStorageAdapter,
+} from "@repo/core/components/blocks/notion-like-editor/index";
 
 export function SavedNotes() {
   const [adapter] = useState(() => createLocalStorageAdapter());
@@ -52,24 +66,88 @@ export function NotesView({ value }: { value: Value }) {
 
 `NotionLikeEditorBlock` (`NotionLikeEditorBlockProps`, `notion-like-editor-block.tsx`):
 
-- `documentId: string` — the document identity. The persisted editor is keyed by it.
-- `initialValue?: EditorValue` — the content of a new document. Defaults to one empty paragraph.
-- `onChange?: (value: EditorValue) => void` — called with the value after each change.
-- `readOnly?: boolean` — turns editing off. Defaults to `false`.
-- `placeholder?: string` — shown in an empty block. Defaults to `"Type something, or type \"/\" for commands"`.
-- `ariaLabel?: string` — the accessible name of the editable. Defaults to `"Rich text editor"`.
-- `className?: string` — added to the wrapper element.
-- `adapter?: EditorPersistenceAdapter` — selects persisted mode when present.
-- `linkPreview?: LinkPreviewAdapter | null` — fills bookmark previews. Defaults to `null`.
-- `mentionProvider?: MentionProvider | null` — searches and resolves people for mentions. Defaults to `null`.
-- `pageProvider?: PageProvider | null` — searches and resolves pages for page links. Defaults to `null`.
-- `onOpenPage?: (request: PageOpenRequest) => void` — called when a user opens a page link.
-- `fileUpload?: FileUploadAdapter | null` — uploads files and resolves their stored URLs. Defaults to `null`. The image, video, audio and file blocks use it to show a stored URL that is not http, https or root-relative.
+| Prop              | Type                                 | Default                   | What it does                                                                                                                                                |
+| ----------------- | ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `documentId`      | `string`                             | required                  | The document identity. The persisted editor is keyed by it.                                                                                                 |
+| `initialValue`    | `EditorValue`                        | `EMPTY_EDITOR_VALUE`      | The content of a new document. The default is one empty paragraph.                                                                                          |
+| `onChange`        | `(value: EditorValue) => void`       | none                      | Called with the value after each change.                                                                                                                    |
+| `readOnly`        | `boolean`                            | `false`                   | Turns editing off.                                                                                                                                          |
+| `placeholder`     | `string`                             | `DEFAULT_PLACEHOLDER`     | Shown in an empty block. The default is `"Type something, or type \"/\" for commands"`.                                                                     |
+| `ariaLabel`       | `string`                             | `"Rich text editor"`      | The accessible name of the editable.                                                                                                                        |
+| `className`       | `string`                             | none                      | Added to the wrapper element.                                                                                                                               |
+| `adapter`         | `EditorPersistenceAdapter`           | none                      | Selects persisted mode when present. Without it, the editor runs in memory mode.                                                                            |
+| `linkPreview`     | `LinkPreviewAdapter \| null`         | `null`                    | Fills bookmark previews.                                                                                                                                    |
+| `mentionProvider` | `MentionProvider \| null`            | `null`                    | Searches and resolves people for mentions.                                                                                                                  |
+| `pageProvider`    | `PageProvider \| null`               | `null`                    | Searches and resolves pages for page links.                                                                                                                 |
+| `onOpenPage`      | `(request: PageOpenRequest) => void` | none                      | Called when a user opens a page link.                                                                                                                       |
+| `fileUpload`      | `FileUploadAdapter \| null`          | `null`                    | Uploads files and resolves their stored URLs. The image, video, audio and file blocks use it to show a stored URL that is not http, https or root-relative. |
+| `options`         | `EditorOptions`                      | `DEFAULT_EDITOR_OPTIONS`  | Tuning values for the handle, autosave, shortcut hints and tail click. See Options.                                                                         |
+| `features`        | `EditorFeatures`                     | `DEFAULT_EDITOR_FEATURES` | Turns feature groups off. Every group is on by default. See Feature switches.                                                                               |
 
 `NotionLikeEditorStatic` (`NotionLikeEditorStaticProps`, `notion-like-editor-static.tsx`):
 
 - `value: EditorValue` — the document content to render.
 - `className?: string` — added to the rendered element.
+
+## Options
+
+`options` is optional, and every field inside it is optional. A field that is missing, or holds a value of the wrong type, takes its default. A number is used only when it is finite and not negative. A flag is used only when it is a boolean. `resolveEditorOptions` (`lib/features/editor-options.ts`) applies these rules, and `DEFAULT_EDITOR_OPTIONS` holds the resolved defaults. The editor keeps the resolved value on its config plugin (`lib/plugins/editor-config.ts`).
+
+| Path                     | Type      | Default | Effect                                                                                                                                                                                                                             |
+| ------------------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle.gap`             | `number`  | `12`    | Pixels between the block handle and the left edge of its block.                                                                                                                                                                    |
+| `handle.centerMax`       | `number`  | `48`    | Tallest block, in pixels, that the handle is centred on when the block has no anchor. A taller block puts the handle on its first line.                                                                                            |
+| `handle.anchorCenterMax` | `number`  | `64`    | Tallest marked anchor, such as a media frame, that the handle is centred on. A taller anchor keeps the handle at its top.                                                                                                          |
+| `autosave.debounceMs`    | `number`  | `800`   | Milliseconds after the last change before a save starts. The save controller is created when a document opens or starts over, so a changed value applies from the next controller. The controller already running keeps its delay. |
+| `shortcutHints`          | `boolean` | `true`  | `false` hides every shortcut hint and every `aria-keyshortcuts` attribute in the editor.                                                                                                                                           |
+| `appendOnTailClick`      | `boolean` | `true`  | `false` stops a click in the empty space below the last block from adding or focusing a paragraph. The browser handles the click.                                                                                                  |
+
+A change to `handle` or `shortcutHints` or `appendOnTailClick` takes effect at once, with no remount. The editor instance is kept when `options` changes. The handle is measured again. Passing a new object with the same values does nothing, because the values are compared, not the object.
+
+```tsx
+<NotionLikeEditorBlock
+  documentId="notes"
+  options={{ handle: { gap: 20 }, autosave: { debounceMs: 1500 }, shortcutHints: false }}
+/>
+```
+
+## Feature switches
+
+`features` turns groups of editor features off. Every group is on by default, so an editor with no `features` prop behaves as it always has. Only a `false` turns a group off. Any other value, and any unknown key, is ignored. `resolveEditorFeatures` (`lib/features/editor-features.ts`) applies this rule.
+
+"Off" means the feature cannot be created. Each entry point for the group is removed, and its shortcut, trigger or paste does nothing. Existing content of that type still renders and can still be edited and deleted. The render plugins stay loaded, the document schema does not change, and no content is removed from a document.
+
+| Feature            | Default | Hidden when off                                                                                                                                       |
+| ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `media`            | `true`  | Image, video, audio and file blocks in the slash menu and the Add menu. Uploads: file paste and drop, and the upload tab of the media source popover. |
+| `embeds`           | `true`  | Embed and bookmark blocks in the slash menu and the Add menu. The URL paste menu offers neither option.                                               |
+| `tables`           | `true`  | The table block in the slash menu, the Add menu and Turn into. A pasted HTML table becomes paragraphs.                                                |
+| `columns`          | `true`  | The columns block in the slash menu and the Add menu. Pasted columns become paragraphs.                                                               |
+| `code`             | `true`  | The code block in the slash menu, the Add menu and Turn into, and the ` ``` ` input rule. Pasted code blocks become paragraphs.                       |
+| `equations`        | `true`  | The block and inline equation in the slash menu and the Add menu, the Equation button in the selection toolbar and Mod+Shift+E.                       |
+| `mentions`         | `true`  | The `@` trigger and the slash "Mention" item. Pasted mentions become their names as text.                                                             |
+| `pageLinks`        | `true`  | The page link block, its picker and the slash "Page link" item.                                                                                       |
+| `footnotes`        | `true`  | The slash "Footnote" item. Pasted footnotes become text.                                                                                              |
+| `dates`            | `true`  | The inline date insert, Mod+;. Pasted dates become their text.                                                                                        |
+| `emoji`            | `true`  | The `:` suggestions, and the closing `:name:` conversion.                                                                                             |
+| `toc`              | `true`  | The table of contents block in the slash menu and the Add menu.                                                                                       |
+| `find`             | `true`  | The find bar and Mod+F. The browser's own find opens instead.                                                                                         |
+| `slashMenu`        | `true`  | The slash menu. Typing `/` inserts the character only.                                                                                                |
+| `selectionToolbar` | `true`  | The floating toolbar over a text selection. The keyboard shortcuts for marks still work.                                                              |
+| `blockHandle`      | `true`  | The block handle, its Add button and grip, the block menu (Mod+/), and drag. Block selection and its keys still work.                                 |
+
+A pasted node of an off type is read as its text, and a pasted media block is dropped the same way an unsupported image is. The paste menu, a file drop and the upload tab follow the same rules.
+
+```tsx
+<NotionLikeEditorBlock
+  documentId="notes"
+  features={{ equations: false, embeds: false, blockHandle: false }}
+/>
+```
+
+## CSS variables
+
+`--editor-max-width` sets the width of the editing column. The default is `700px`, and the column reads it as `var(--editor-max-width,700px)`. It applies to the editable in memory mode (`components/editor/memory-editor.tsx`), to the column in persisted mode (`components/editor/ready-editor.tsx`), and to the loading skeleton and the recovery notice. Set it on an ancestor of the editor, for example `style={{ "--editor-max-width": "900px" }}`. The static renderer has no width of its own, so a host sets one on the element around it, as the demo does.
 
 ## Adapters
 
@@ -294,7 +372,7 @@ The embed block plays a YouTube or Vimeo video from a link. Only these hosts are
 
 Shortcuts are generated from the same inventory as the feature list. `Mod` is Cmd on macOS and Ctrl elsewhere.
 
-The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
+The slash menu, the Turn into menus, the block menu, the selection toolbar, the find bar and the block handle show the keys of their commands. macOS and iOS show glyphs (`⌘ ⌥ ⇧`), and other platforms show names (`Ctrl`, `Alt`, `Shift`). Touch-only devices show no hints. The `shortcutHints` option turns hints off for the whole editor. The keys are read from one registry, `lib/features/editor-shortcuts.ts`, and the tests feed them into the handlers.
 
 <!-- shortcut-list:start -->
 
@@ -345,7 +423,7 @@ The slash menu, the Turn into menus, the block menu, the selection toolbar, the 
 - Page links have no URL in static output (`components/static/page-link-static.tsx`).
 - Files need a `fileUpload` adapter. Without one, dropped or pasted files are rejected with a notice, and the readable text of media is kept. With one, each file becomes an image, video, audio or file block, up to 10 per paste or drop. HTML `img`, `video` and `audio` elements are not stored (`lib/paste/editor-paste.ts`).
 - A file block with the `application/pdf` mime type has a Preview action, and it shows only when the browser's PDF viewer is on (`navigator.pdfViewerEnabled`). Without that, the file has no Preview and Download is the fallback. Preview fetches the file, and the bytes must start with `%PDF-` within the first 1024 bytes before the browser's viewer loads them. A file the browser cannot fetch, such as a cross-origin link without CORS, shows "This PDF can't be previewed." (`components/ui/pdf-preview-dialog.tsx`, `lib/features/editor-pdf-preview.ts`).
-- Video and audio play only the direct file links the browser can load. A YouTube or Vimeo page link is not turned into a player, and a link the browser cannot play shows as unavailable (`components/elements/video-element.tsx`, `components/elements/audio-element.tsx`).
+- Video and audio play only the direct file links the browser can load. A YouTube or Vimeo page link is not turned into a player, and a link the browser cannot play shows as unavailable. The video and audio players load on demand, the first time a block of that type is shown (`components/elements/video-element.tsx`, `components/elements/audio-element.tsx`).
 - The audio block shows its player alone, with no card, file name or icon. In the editor the player is `AudioPlayer` (`@/components/audio-player/audio-player`), and the static output is the browser's own `<audio controls>` in the same bounded column, so the two match. The player sends no CORS request, so a link on another site plays without CORS headers (`components/elements/audio-element.tsx`, `components/static/audio-static.tsx`).
 - Paste is capped at 2000 blocks and 1,000,000 text characters, and HTML over 2,000,000 characters is dropped (`lib/paste/editor-paste.ts`).
 - Equations are capped at 4000 characters (`lib/document/editor-document-schema.ts`).
@@ -356,7 +434,7 @@ The slash menu, the Turn into menus, the block menu, the selection toolbar, the 
 - Browser support is measured, not certified. Core flows pass in automated runs on Chrome 154, Firefox and WebKit (Playwright builds) at 1280×900, and in Chrome and WebKit touch emulation at 390×844. Safari, iOS Safari, Android Chrome, VoiceOver and a real Vietnamese IME have not been tested by hand.
 - Touch devices have no block menu. The block handle is hidden when the device cannot hover, and nothing else opens Turn into, Duplicate, Delete, Color or move for a block (`lib/features/editor-block-handle.ts`). The selection toolbar and the slash menu work on touch.
 - The on-screen keyboard is not handled. Popovers do not follow `visualViewport`, so the keyboard can cover them.
-- Performance is measured up to 5,000 paragraphs on one machine (Apple M5, Chrome 154, production build): mount 0.6 s, typing p95 32 ms, select all 0.14 s. Larger documents are not measured. The document limits are 20,000 nodes and 2 MB (`lib/document/editor-document.ts`).
+- Performance is measured up to 5,000 paragraphs on one machine (Apple M5, Chrome headless, production build of the demo app, 1280×900). Typing latency is the time from keydown to the frame after it, so it includes up to one frame of waiting. With 1,000 paragraphs: mount 0.13 s, typing p50 8 ms and p95 10 ms. With 5,000 paragraphs: mount 0.36 s, typing p50 20 ms and p95 24 ms. A keystroke does no work that grows with the number of blocks in this editor's own code (`__tests__/typing-path.test.tsx`); the rest of the cost at 5,000 paragraphs is in Plate's store and React. A text-only document loads about 2.0 MB of JavaScript (0.62 MB over the network); the video and audio players add about 0.6 MB when a document has such a block. Larger documents are not measured. The document limits are 20,000 nodes and 2 MB (`lib/document/editor-document.ts`).
 - A document with a code line, table row or table cell at the top level opens as unsupported (`lib/document/editor-document-validate.ts`).
 - Mod+F opens the editor's find bar when focus is in the editor, in place of the browser's find.
 - A markdown shortcut typed through an input method composition (for example `-` then space) does not convert (`lib/plugins/editor-input-rules.ts`).
@@ -374,3 +452,4 @@ The demo is at `/blocks/notion-like-editor` in the web app. Two query parameters
 
 - `?readonly=1` — opens the demo read-only.
 - `?static=1` — renders the demo with `NotionLikeEditorStatic`.
+- `?off=tables,media` — passes `features` with the named features turned off. The value is a comma-separated list of the names in `EDITOR_FEATURES`. Unknown names are ignored.

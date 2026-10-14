@@ -29,7 +29,7 @@ function footnoteDefinitionBlock(editor: SlateEditor): [TElement, number[]] | un
 // splitNodes, not insertBreak: at offset 0 Plate's break inserts an empty block above and would
 // turn the definition itself into a paragraph. Both halves change in one batch, so normalize
 // never sees two definitions with one id.
-export function breakFootnoteDefinition(editor: SlateEditor): boolean {
+function breakFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed()) {
     return false;
@@ -49,7 +49,7 @@ export function breakFootnoteDefinition(editor: SlateEditor): boolean {
 }
 
 // Backspace at the start keeps the text. The definition becomes a paragraph and nothing merges.
-export function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
+function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
     return false;
@@ -77,11 +77,7 @@ function footnoteReferencePaths(editor: SlateEditor, path: number[]): number[][]
 
 // Live rules for a definition that the editor creates or moves. Each rule makes one change and
 // returns true, so Slate normalizes again. Every path ends as a valid block, so the loop stops.
-export function normalizeFootnoteDefinition(
-  editor: SlateEditor,
-  node: TElement,
-  path: number[],
-): boolean {
+function normalizeFootnoteDefinition(editor: SlateEditor, node: TElement, path: number[]): boolean {
   if (node.type !== FOOTNOTE_DEF_KEY) {
     return false;
   }

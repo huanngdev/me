@@ -7,7 +7,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { EditorSurface } from "../components/editor/editor-surface";
 import { insertParagraphBelow, runEditorCommand } from "../lib/commands/editor-commands";
 import type { EditorValue } from "../lib/document/editor-value";
+import { resolveEditorOptions } from "../lib/features/editor-options";
 import { tailClickAction } from "../lib/features/editor-tail-click";
+import { editorConfigPlugin } from "../lib/plugins/editor-config";
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
 import { caret, createEditor, paragraphValue } from "./test-utils";
 
@@ -181,6 +183,32 @@ describe("tail click on the editable", () => {
 
       expect(event.defaultPrevented).toBe(false);
       expect(mounted.editor.children).toHaveLength(1);
+    } finally {
+      await unmount(mounted);
+      restore();
+    }
+  });
+
+  test("with appendOnTailClick off, the browser handles a click below the last block", async () => {
+    const restore = installLayout();
+    const mounted = await mount(paragraphValue("Hello") as EditorValue);
+    try {
+      await act(async () => {
+        mounted.editor.setOption(
+          editorConfigPlugin,
+          "resolved",
+          resolveEditorOptions({ appendOnTailClick: false }),
+        );
+      });
+      const editable = mounted.host.querySelector("[data-slate-editor]");
+      const event = mouseDown(200);
+      await act(async () => {
+        editable?.dispatchEvent(event);
+      });
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(mounted.editor.children).toHaveLength(1);
+      expect(mounted.editor.api.string([0])).toBe("Hello");
     } finally {
       await unmount(mounted);
       restore();

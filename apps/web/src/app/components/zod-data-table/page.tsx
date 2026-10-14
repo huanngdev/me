@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -12,10 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicZodDataTableDemo, CustomZodDataTableDemo, EmptyZodDataTableDemo } from "./demo";
 
@@ -50,8 +51,7 @@ export const metadata: Metadata = {
   },
 };
 
-const INSTALL_COMMAND =
-  "bunx --bun shadcn@latest add https://www.huanngdev.site/r/zod-data-table.json";
+const INSTALL_TARGET = "shadcn@latest add https://www.huanngdev.site/r/zod-data-table.json";
 
 const BASIC_USAGE_CODE = `"use client";
 
@@ -239,9 +239,17 @@ export default function ZodDataTablePage() {
         <Section
           id="install"
           title="Install"
-          description="Install the component, its table primitive, and runtime dependencies."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <TerminalBlock command={INSTALL_COMMAND} />
+          <RegistryInstall name="zod-data-table" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <CliCommand execute={INSTALL_TARGET} />
+            </div>
+          </details>
         </Section>
         <Separator />
 

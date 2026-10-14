@@ -4,8 +4,9 @@ import { ElementApi, KEYS, NodeApi, TextApi, type SlateEditor, type TNode } from
 import { focusEditorWithoutScroll, retainScroll } from "../../components/ui/block-toolbar";
 import { insertParagraphBelow, runEditorCommand } from "../commands/editor-commands";
 import { clearBlockSelection } from "../plugins/editor-block-selection";
+import { editorOptions } from "../plugins/editor-config";
 
-export type TailClickAction = "append" | "focus-last" | "none";
+type TailClickAction = "append" | "focus-last" | "none";
 
 // An empty plain paragraph: no list marker and no text, so nothing to add to.
 function isEmptyPlainParagraph(node: TNode): boolean {
@@ -29,12 +30,16 @@ export function tailClickAction(last: TNode | undefined, readOnly: boolean): Tai
 
 // A primary click on the editable itself, below its last block, is the empty
 // space under the document. Returns true when the click is handled, which stops
-// Slate's own mousedown handling.
+// Slate's own mousedown handling. With the appendOnTailClick option off, the
+// browser handles every click.
 export function handleTailMouseDown(
   editor: SlateEditor,
   event: MouseEvent<HTMLElement>,
   readOnly: boolean,
 ): true | undefined {
+  if (!editorOptions(editor).appendOnTailClick) {
+    return undefined;
+  }
   if (event.button !== 0 || event.target !== event.currentTarget) {
     return undefined;
   }

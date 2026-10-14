@@ -47,7 +47,7 @@ import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
-export type Issue = {
+type Issue = {
   path: number[];
   message: string;
 };

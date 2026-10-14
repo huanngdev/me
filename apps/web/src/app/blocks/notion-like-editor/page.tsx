@@ -6,6 +6,7 @@ import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-f
 import type { Metadata } from "next";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -454,6 +455,7 @@ export default function NotionLikeEditorBlockPage() {
       url="huanngdev.site/blocks/notion-like-editor"
       files={BLOCK_FILES}
       llmText={readLlmsDocument("blocks", "notion-like-editor")}
+      install={<RegistryInstall name="notion-like-editor" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <NotionLikeEditorDemo />

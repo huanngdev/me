@@ -18,7 +18,7 @@ type KatexModule = {
 
 export const INLINE_EQUATION_EMPTY_PLACEHOLDER = "New equation";
 
-export const INLINE_EQUATION_KATEX_OPTIONS = {
+const INLINE_EQUATION_KATEX_OPTIONS = {
   ...EQUATION_KATEX_OPTIONS,
   displayMode: false,
 } as const satisfies KatexOptions;

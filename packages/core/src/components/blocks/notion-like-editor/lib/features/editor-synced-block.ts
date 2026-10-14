@@ -26,7 +26,7 @@ export const SYNCED_FROM_ABOVE = "Synced from above";
 export const SYNCED_FROM_BELOW = "Synced from below";
 export const SYNCED_INVALID_PLACEHOLDER = "Invalid reference";
 export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
-export const SYNCED_CREATE_LABEL = "Create synced copy";
+const SYNCED_CREATE_LABEL = "Create synced copy";
 export const SYNCED_GO_LABEL = "Go to original";
 export const SYNCED_CONVERT_LABEL = "Convert to copy";
 export const SYNCED_REMOVE_LABEL = "Delete";
@@ -221,7 +221,7 @@ function isSyncableBlock(node: TElement): boolean {
   return syncedTargetStatus(node, id) === "live";
 }
 
-export function createSyncedRefReason(editor: SlateEditor): string | undefined {
+function createSyncedRefReason(editor: SlateEditor): string | undefined {
   const current = editor.api.block({ highest: true });
   if (!current || !ElementApi.isElement(current[0]) || elementId(current[0]) === undefined) {
     return SYNCED_SELECT_REASON;
@@ -243,7 +243,7 @@ function syncedRefNode(id: string, targetBlockId: string): TElement {
   };
 }
 
-export function insertSyncedRef(editor: SlateEditor): boolean {
+function insertSyncedRef(editor: SlateEditor): boolean {
   if (!isEditable(editor) || createSyncedRefReason(editor) !== undefined) {
     return false;
   }

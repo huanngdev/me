@@ -7,13 +7,12 @@ import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
 import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
-import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { createLocalStorageAdapter, type EditorPersistenceAdapter } from "./index";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
-import {
-  createLocalStorageAdapter,
-  removeStaleDemoDocuments,
-} from "./lib/document/local-storage-adapter";
+import { removeStaleDemoDocuments } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
+import { parseOffFeatures } from "./demo/demo-feature-flags";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
 
 const StaticDocument = lazy(() =>
@@ -72,10 +71,28 @@ function readStaticServer(): boolean {
   return false;
 }
 
+// The server renders with every feature on. The client keeps the parsed value for one query string,
+// so the snapshot is the same object on each render and useSyncExternalStore does not loop.
+const NO_FEATURES_OFF: EditorFeatures = {};
+let offFlag: { search: string; features: EditorFeatures } | undefined;
+
+function readOffFlag(): EditorFeatures {
+  const search = window.location.search;
+  if (offFlag?.search !== search) {
+    offFlag = { search, features: parseOffFeatures(search) };
+  }
+  return offFlag.features;
+}
+
+function readOffServer(): EditorFeatures {
+  return NO_FEATURES_OFF;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
   const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
   const staticView = useSyncExternalStore(subscribe, readStaticFlag, readStaticServer);
+  const features = useSyncExternalStore(subscribe, readOffFlag, readOffServer);
 
   if (staticView) {
     return (
@@ -105,6 +122,7 @@ export function NotionLikeEditorDemo() {
       pageProvider={demoPageProvider}
       fileUpload={demoFileUploadAdapter}
       readOnly={readOnly}
+      features={features}
     />
   );
 }

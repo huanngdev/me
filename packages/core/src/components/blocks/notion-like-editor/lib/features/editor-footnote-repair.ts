@@ -6,16 +6,16 @@ import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-
 import type { EditorValue } from "../document/editor-value";
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 
-export const FOOTNOTE_NESTED_MESSAGE =
+const FOOTNOTE_NESTED_MESSAGE =
   "A footnote definition outside the top level was turned into a paragraph.";
-export const FOOTNOTE_INVALID_ID_MESSAGE =
+const FOOTNOTE_INVALID_ID_MESSAGE =
   "A footnote definition had an invalid footnote id. It was turned into a paragraph.";
-export const FOOTNOTE_DUPLICATE_MESSAGE =
+const FOOTNOTE_DUPLICATE_MESSAGE =
   "A footnote definition reused a footnote id. A new id was assigned so each definition stays unique.";
-export const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
+const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
   "A footnote reference inside a footnote definition was removed.";
 
-export type FootnoteRepairResult = {
+type FootnoteRepairResult = {
   content: EditorValue;
   repairs: Repair[];
 };

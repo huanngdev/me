@@ -3,7 +3,7 @@
 // contextElement is how Floating UI finds those scroll parents. The anchor
 // element itself renders nothing.
 
-export type VirtualAnchor = {
+type VirtualAnchor = {
   getBoundingClientRect: () => DOMRect;
   readonly contextElement?: Element;
 };

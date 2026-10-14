@@ -1,8 +1,8 @@
 // Shared by the editor elements and the static renderer, so both produce the same markup.
 // The reference is a superscript with line-height 0, so it does not grow the line box.
-export const FOOTNOTE_REF_CLASS =
+const FOOTNOTE_REF_CLASS =
   "text-[0.75em] font-medium text-muted-foreground px-0.5 rounded-sm cursor-pointer select-none";
-export const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
+const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
 
 export function footnoteRefClassName(selected: boolean): string {
   return selected ? `${FOOTNOTE_REF_CLASS} ${FOOTNOTE_REF_SELECTED_CLASS}` : FOOTNOTE_REF_CLASS;

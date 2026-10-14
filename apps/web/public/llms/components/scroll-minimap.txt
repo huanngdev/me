@@ -4,6 +4,7 @@
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/scroll-minimap
+- Registry: https://www.huanngdev.site/r/scroll-minimap.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order

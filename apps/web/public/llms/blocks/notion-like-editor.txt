@@ -4,6 +4,7 @@
 
 - Kind: block
 - Docs: https://www.huanngdev.site/blocks/notion-like-editor
+- Registry: https://www.huanngdev.site/r/notion-like-editor.json
 - Apply: copy each file to the same path from the repository root. Leave the bytes unchanged.
 
 ## Read order
@@ -186,18 +187,18 @@ import { checkMentionNode } from "../features/editor-mention-node";
 import { PAGE_LINK_KEY, PAGE_LINK_KINDS, checkPageLinkNode } from "../features/editor-page-link";
 import { checkTableGrid, type TableGridIssue } from "../features/editor-table-grid";
 
-export type IntegerAttrRange = {
+type IntegerAttrRange = {
   readonly min: number;
   readonly max: number;
 };
 
-export type AttrRequirement = {
+type AttrRequirement = {
   attr: string;
   /** When set, the required attribute must be one of these values. */
   values?: readonly (string | number)[];
 };
 
-export type EditorElementRule = {
+type EditorElementRule = {
   type: string;
   attrs: readonly string[];
   attrValues?: Readonly<Record<string, readonly (string | number | boolean)[]>>;
@@ -249,7 +250,7 @@ export type EditorElementRule = {
   validateChildren?: (node: Record<string, unknown>, path: number[]) => readonly TableGridIssue[];
 };
 
-export type EditorMarkRule = {
+type EditorMarkRule = {
   type: string;
   values?: readonly string[];
 };
@@ -379,7 +380,7 @@ export const CODE_LANG_LABELS = {
 } as const satisfies Record<CodeLang | "plaintext", string>;
 
 // Paste and insert class tokens. Stored names that are not listed here stay themselves.
-export const CODE_LANG_ALIASES = {
+const CODE_LANG_ALIASES = {
   ts: "typescript",
   js: "javascript",
   sh: "bash",
@@ -448,7 +449,7 @@ export function isStoredEquationExpression(value: unknown): value is string {
   return true;
 }
 
-export function checkEquationNode(
+function checkEquationNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -465,10 +466,7 @@ export function checkEquationNode(
 }
 
 // A stored inline date is a real calendar date, YYYY-MM-DD. See editor-date-value.ts.
-export function checkDateNode(
-  node: Record<string, unknown>,
-  path: number[],
-): readonly TableGridIssue[] {
+function checkDateNode(node: Record<string, unknown>, path: number[]): readonly TableGridIssue[] {
   if ("date" in node && isStoredDate(node.date)) {
     return [];
   }
@@ -485,7 +483,7 @@ export function checkDateNode(
 export const FOOTNOTE_REF_KEY = "footnote_ref";
 export const FOOTNOTE_DEF_KEY = "footnote_def";
 
-export function checkFootnoteRefNode(
+function checkFootnoteRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -521,7 +519,7 @@ export function isStoredSyncedTargetId(value: unknown): value is string {
   return true;
 }
 
-export function checkSyncedRefNode(
+function checkSyncedRefNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -537,7 +535,7 @@ export function checkSyncedRefNode(
   ];
 }
 
-export function checkBookmarkNode(
+function checkBookmarkNode(
   node: Record<string, unknown>,
   path: number[],
 ): readonly TableGridIssue[] {
@@ -1530,7 +1528,7 @@ import { repairFootnoteContent } from "../features/editor-footnote-repair";
 import { syncedRefRepairs } from "../features/editor-synced-repair";
 import type { EditorValue } from "./editor-value";
 
-export type Issue = {
+type Issue = {
   path: number[];
   message: string;
 };
@@ -2218,6 +2216,7 @@ import {
   isAllowedMark,
   isAllowedMarkValue,
   isStoredEquationExpression,
+  FOOTNOTE_DEF_KEY,
   FOOTNOTE_REF_KEY,
   SYNCED_REF_KEY,
   isStoredSyncedTargetId,
@@ -2300,6 +2299,8 @@ import {
 import type { EditorValue } from "../document/editor-value";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { pasteRepairsOf, setPasteRepairs } from "./editor-paste-repairs";
+import { featureEnabled } from "../plugins/editor-config";
+import { nodeFeature } from "../features/editor-features";
 
 export const MEDIA_NOT_SUPPORTED = "Files and media are not supported yet.";
 
@@ -2338,14 +2339,22 @@ export function clipboardWithinHtmlLimit(data: DataTransfer): DataTransfer {
 
 export { pasteRepairsOf, setPasteRepairs };
 
-export type PasteSanitizeOptions = {
+type PasteSanitizeOptions = {
   isInline?: (node: Record<string, unknown>) => boolean;
   seenIds?: Set<string>;
+  /** True for a node type whose feature is off. Such a node never becomes its own type. */
+  featureOff?: (type: string) => boolean;
   /** Truncation and other paste repairs. The same list is what the editor reports. */
   repairs?: Repair[];
 };
 
 let activePasteRepairs: Repair[] | undefined;
+let activeFeatureOff: ((type: string) => boolean) | undefined;
+
+// Only the sanitizer pass that is running reads this.
+function pasteTypeOff(type: string): boolean {
+  return activeFeatureOff?.(type) === true;
+}
 
 // The table override sanitizes the fragment again. A repair from the first pass
 // is gone on the second, so those repairs are kept until the outer insert finishes.
@@ -2542,6 +2551,11 @@ function elementNode(type: string, children: Descendant[], id: string | undefine
 // dropped here. The video and audio sanitizers keep a node of those types as a block, as they do for
 // KEYS.file and the file block. HTML video and audio elements still become unsupported_media.
 function isDroppedMediaType(type: string): boolean {
+  // Media and embed types with their feature off are dropped the way an unsupported image is.
+  const feature = nodeFeature(type);
+  if (feature === "media" || feature === "embeds") {
+    return pasteTypeOff(type);
+  }
   return (
     type === KEYS.img || type === KEYS.mediaEmbed || type === "pdf" || type === "unsupported_media"
   );
@@ -2549,7 +2563,20 @@ function isDroppedMediaType(type: string): boolean {
 
 // A dropped image, file, or embed keeps its readable text (alt, caption, name)
 // so the paste is never silently emptied. The media itself is not stored.
+// The paragraphs that still hold text. A feature-off block with no readable text leaves nothing.
+function readableParagraphs(blocks: TElement[]): TElement[] {
+  return blocks.filter((block) => nodeText(block).length > 0);
+}
+
 function droppedMediaLabel(node: Record<string, unknown>): string | undefined {
+  // A bookmark or an embed with its feature off keeps its URL as text. The label is used only without one.
+  if (pasteTypeOff(String(node.type)) && nodeFeature(String(node.type)) === "embeds") {
+    const url = typeof node.url === "string" ? stripControlCharacters(node.url).trim() : "";
+    if (url.length > 0) {
+      return url;
+    }
+  }
+
   for (const key of ["alt", "caption", "name"]) {
     const value = node[key];
     if (typeof value !== "string") {
@@ -3253,6 +3280,31 @@ function expandBlock(
     return label === undefined ? [] : [paragraph([{ text: label }])];
   }
 
+  // An inline type with its feature off is read as plain text, the way an unknown inline is.
+  if (pasteTypeOff(node.type) && isInlinePasteType(node.type)) {
+    const nodes = inlineNodes(node, isInline, seen, false);
+    return [paragraph(nodes.length > 0 ? nodes : [{ text: "" }])];
+  }
+
+  // A block with its feature off is kept as paragraphs of its content, not as its own type.
+  // A block equation keeps its TeX source. A page link keeps its title. A toc or footnote
+  // definition with no readable text is dropped, so no empty paragraph is left behind.
+  if (pasteTypeOff(node.type)) {
+    if (node.type === KEYS.equation) {
+      return readableParagraphs([paragraph(pastedInlineEquationNodes(node, false))]);
+    }
+
+    if (node.type === PAGE_LINK_KEY) {
+      const title = typeof node.title === "string" ? stripControlCharacters(node.title).trim() : "";
+      return readableParagraphs([paragraph([{ text: title }])]);
+    }
+
+    const flattened = expandBlock({ ...node, type: KEYS.p }, isInline, seen, nesting);
+    return node.type === KEYS.toc || node.type === FOOTNOTE_DEF_KEY
+      ? readableParagraphs(flattened)
+      : flattened;
+  }
+
   if (node.type === KEYS.mentionInput) {
     noteMentionInputPaste();
     const text = isRecord(node) ? mentionInputPlainText(node) : "@";
@@ -3429,8 +3481,9 @@ function inlineNodes(
     return text.length > 0 ? [{ text }] : [];
   }
 
+  const gated = pasteTypeOff(node.type);
   if (node.type === KEYS.mention) {
-    if (!allowMarks) {
+    if (!allowMarks || gated) {
       const label = typeof node.label === "string" ? sanitizeMentionLabel(node.label) : undefined;
       return label === undefined ? [] : [{ text: label }];
     }
@@ -3439,15 +3492,15 @@ function inlineNodes(
   }
 
   if (node.type === KEYS.inlineEquation) {
-    return pastedInlineEquationNodes(node, allowMarks);
+    return pastedInlineEquationNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.date) {
-    return pastedInlineDateNodes(node, allowMarks);
+    return pastedInlineDateNodes(node, allowMarks && !gated);
   }
 
   if (node.type === FOOTNOTE_REF_KEY) {
-    return pastedFootnoteRefNodes(node, allowMarks);
+    return pastedFootnoteRefNodes(node, allowMarks && !gated);
   }
 
   if (node.type === KEYS.link) {
@@ -3522,6 +3575,8 @@ export function sanitizePastedFragment(
   const isInline = options?.isInline ?? (() => false);
   const previousRepairs = activePasteRepairs;
   activePasteRepairs = options?.repairs;
+  const previousFeatureOff = activeFeatureOff;
+  activeFeatureOff = options?.featureOff;
   const paragraphs: EditorValue = [];
   let inlines: Descendant[] = [];
 
@@ -3558,6 +3613,7 @@ export function sanitizePastedFragment(
   flush();
 
   activePasteRepairs = previousRepairs;
+  activeFeatureOff = previousFeatureOff;
   htmlWidthPlans = [];
   return paragraphs;
 }
@@ -3580,6 +3636,10 @@ export function preparePastedFragment(
     isInline: (node) => isElementNode(node) && editor.api.isInline(node),
     seenIds: collectEditorIds(editor.children),
     repairs,
+    featureOff: (type) => {
+      const feature = nodeFeature(type);
+      return feature !== undefined && !featureEnabled(editor, feature);
+    },
   });
   // A pasted definition keeps its id only when the document has no definition with it.
   const footnotes = repairFootnoteContent(sanitized, footnoteIndex(editor).definitions);
@@ -3746,7 +3806,7 @@ function takeText(nodes: Descendant[], budget: { left: number }): Descendant[] {
   return kept;
 }
 
-export function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
+function limitPastedValue(value: EditorValue, _repairs: Repair[]): EditorValue {
   let next = value;
   if (countPasteBlocks(next) > PASTE_BLOCK_LIMIT) {
     next = takeBlocks(next, { left: PASTE_BLOCK_LIMIT });
@@ -5795,7 +5855,7 @@ import { findBlockById } from "../../lib/features/editor-synced-block";
 import { retainScroll } from "./block-toolbar";
 
 export const DRAG_ACTIVATION_DISTANCE_PX = 4;
-export const DRAG_HORIZONTAL_BAND_PX = 200;
+const DRAG_HORIZONTAL_BAND_PX = 200;
 
 const HORIZONTAL_BAND_PX = DRAG_HORIZONTAL_BAND_PX;
 const VERTICAL_BAND_PX = 32;
@@ -6186,7 +6246,7 @@ export type BlockDragHandlers = {
   onDragCancel: () => void;
 };
 
-export type BlockDragApi = BlockDragHandlers & {
+type BlockDragApi = BlockDragHandlers & {
   attributes: DraggableAttributes;
   listeners: DragListeners;
   setNodeRef: (node: HTMLElement | null) => void;
@@ -6551,7 +6611,7 @@ function sameIndicator(current: DropIndicator | null, next: DropIndicator | null
 // contextElement is how Floating UI finds those scroll parents. The anchor
 // element itself renders nothing.
 
-export type VirtualAnchor = {
+type VirtualAnchor = {
   getBoundingClientRect: () => DOMRect;
   readonly contextElement?: Element;
 };
@@ -6653,135 +6713,18 @@ export function virtualAnchor(
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/plugins/editor-plugins.ts
 ```ts
-import {
-  BlockquotePlugin,
-  BoldPlugin,
-  CodePlugin,
-  H1Plugin,
-  H2Plugin,
-  H3Plugin,
-  HorizontalRulePlugin,
-  ItalicPlugin,
-  KbdPlugin,
-  StrikethroughPlugin,
-  SubscriptPlugin,
-  SuperscriptPlugin,
-  UnderlinePlugin,
-} from "@platejs/basic-nodes/react";
-import {
-  FontBackgroundColorPlugin,
-  FontColorPlugin,
-  FontFamilyPlugin,
-  FontSizePlugin,
-  LineHeightPlugin,
-  TextAlignPlugin,
-} from "@platejs/basic-styles/react";
-import { CalloutPlugin } from "@platejs/callout/react";
-import { CodeBlockPlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
-import { indent, setIndent } from "@platejs/indent";
-import { IndentPlugin } from "@platejs/indent/react";
-import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
-import { BaseMentionInputPlugin } from "@platejs/mention";
-import { TocPlugin } from "@platejs/toc/react";
-import { ListStyleType, ULIST_STYLE_TYPES } from "@platejs/list";
-import { ListPlugin } from "@platejs/list/react";
-import { insertTableRow } from "@platejs/table";
-import {
-  TableCellHeaderPlugin,
-  TableCellPlugin,
-  TablePlugin,
-  TableRowPlugin,
-} from "@platejs/table/react";
-import {
-  ElementApi,
-  KEYS,
-  NodeIdPlugin,
-  PathApi,
-  TextApi,
-  combineTransformMatchOptions,
-  createSlatePlugin,
-  someHtmlElement,
-  type AnyPluginConfig,
-  type Descendant,
-  type SlateEditor,
-} from "platejs";
-import type { JSX } from "react";
-import { ParagraphPlugin, toPlatePlugin, type PlateElementProps } from "platejs/react";
-
-import { BlockList, ListParagraph } from "../../components/elements/block-list";
-import { BlockquoteElement } from "../../components/elements/blockquote-element";
-import { CalloutElement } from "../../components/elements/callout-element";
-import { CodeBlockElement, CodeSyntaxLeaf } from "../../components/elements/code-block-element";
-import { HrElement } from "../../components/elements/hr-element";
-import { BookmarkElement } from "../../components/elements/bookmark-element";
-import { AudioElement } from "../../components/elements/audio-element";
-import { EmbedElement } from "../../components/elements/embed-element";
-import { FileElement } from "../../components/elements/file-element";
-import { ImageElement } from "../../components/elements/image-element";
-import { VideoElement } from "../../components/elements/video-element";
-import { PageLinkElement } from "../../components/elements/page-link-element";
-import { ColumnElement, ColumnGroupElement } from "../../components/elements/column-element";
-import { EquationElement } from "../../components/elements/equation-element";
-import { FootnoteDefElement } from "../../components/elements/footnote-def-element";
-import { FootnoteRefElement } from "../../components/elements/footnote-ref-element";
-import { InlineDateElement } from "../../components/elements/inline-date-element";
-import { InlineEquationElement } from "../../components/elements/inline-equation-element";
-import { TocElement } from "../../components/elements/toc-element";
-import { equationPlugin, onEquationKeyDown, openEquationEditor } from "../features/editor-equation";
-import { inlineDatePlugin } from "../features/editor-inline-date";
-import { footnoteRefPlugin } from "../features/editor-footnote";
-import { footnoteDefPlugin, footnoteNormalizePlugin } from "./editor-footnote";
-import {
-  jumpFromCaretDefinition,
-  onFootnoteDefKeyDown,
-  onFootnoteRefKeyDown,
-} from "./editor-footnote-ui";
-import { inlineEquationPlugin } from "../features/editor-inline-equation";
-import { inlineDateUiPlugin, onInlineDateKeyDown } from "./editor-inline-date-ui";
-import { inlineEquationUiPlugin, onInlineEquationKeyDown } from "./editor-inline-equation-ui";
-import {
-  SYNCED_REF_KEY,
-  goToSyncedOriginal,
-  onSyncedRefKeyDown,
-} from "../features/editor-synced-block";
-import { SyncedRefElement } from "../../components/elements/synced-ref-element";
-import { applyColumnRepair, isColumnBoundary, onColumnKeyDown } from "../commands/editor-columns";
-import { BOOKMARK_KEY } from "../features/editor-bookmark-url";
-import { EDITOR_SHORTCUTS } from "../features/editor-shortcuts";
-import { AUDIO_KEY } from "../features/editor-audio";
-import { EMBED_KEY } from "../features/editor-embed";
-import { FILE_KEY } from "../features/editor-file";
-import { IMAGE_KEY } from "../features/editor-image";
-import { VIDEO_KEY } from "../features/editor-video";
-import { PAGE_LINK_KEY } from "../features/editor-page-link";
-import { onPageLinkKeyDown, pageLinkPlugin } from "./editor-page-link";
-import { BLOCK_TONE_TYPES, blockToneNodeProps } from "../features/editor-block-tone-style";
-import {
-  BLOCK_INDENT_TYPES,
-  blockIndentNodeProps,
-  blockIndentOf,
-  isListParagraph,
-  listIndentInjects,
-  listIndentOf,
-} from "../features/editor-block-indent-style";
-import { blockIndentTargets, indentBlocks, outdentBlocks } from "../features/editor-block-indent";
-import { linkPlugin, linkUiPlugin, onLinkKeyDown, setLinkComposing } from "./editor-link";
+import { NodeIdPlugin, type AnyPluginConfig } from "platejs";
+import { footnoteNormalizePlugin } from "./editor-footnote";
+import { linkUiPlugin } from "./editor-link";
 import { findPlugin } from "./editor-find";
-import { LinkElement } from "../../components/elements/link-element";
-import {
-  mentionPlugin,
-  mentionUiPlugin,
-  onMentionKeyDown,
-  setMentionComposing,
-} from "./editor-mention";
-import { MentionElement, MentionInputElement } from "../../components/elements/mention-element";
+import { mentionUiPlugin } from "./editor-mention";
 import { pasteUrlPlugin } from "../paste/editor-paste-url";
 import { registerEmbedPasteAction } from "../paste/editor-embed-paste";
 import { bookmarkUrlPlugin } from "./editor-bookmark-popover";
 import { pageLinkPickerPlugin } from "./editor-page-link-picker";
-import { bookmarkToolbarPlugin, onBookmarkToolbarKeyDown } from "./editor-bookmark-toolbar";
 import { mediaUiPlatePlugin } from "./editor-media-ui";
 import { editorInputRulesPlugin } from "./editor-input-rules";
+import { editorConfigPlugin } from "./editor-config";
 import { slashUiPlugin, slashWatchPlugin } from "./editor-slash";
 import { emojiUiPlugin, emojiWatchPlugin } from "./editor-emoji";
 import {
@@ -6789,1964 +6732,77 @@ import {
   blockSelectionPlugin,
   blockSelectionWatchPlugin,
 } from "./editor-block-selection";
-import { ToggleElement } from "../../components/elements/toggle-element";
+import { PasteFallbackPlugin, unsupportedMediaPlugin } from "../paste/editor-paste";
 import {
-  backspaceToggleLabel,
-  breakToggleLabel,
-  collectToggleIds,
-  installToggleOnChange,
-  openNewToggles,
-  togglePlugin as toggleBasePlugin,
-} from "./editor-toggle";
+  boldPlugin,
+  italicPlugin,
+  underlinePlugin,
+  strikethroughPlugin,
+  codePlugin,
+  superscriptPlugin,
+  subscriptPlugin,
+  kbdPlugin,
+  textColorPlugin,
+  fontSizePlugin,
+  highlightPlugin,
+  fontFamilyPlugin,
+} from "./groups/marks";
 import {
-  clearFormatting,
-  containerParentType,
-  exitCodeBlock,
-  formatBold,
-  formatCode,
-  formatItalic,
-  formatKeyboard,
-  formatStrikethrough,
-  formatSubscript,
-  formatSuperscript,
-  formatUnderline,
-  onBlockMoveKeyDown,
-  runEditorCommand,
-  toggleBulletedList,
-  toggleNumberedList,
-  toggleTodoChecked,
-  toggleTodoList,
-  TURN_INTO_HEADING,
-  type EditorCommand,
-  type HeadingLevel,
-} from "../commands/editor-commands";
+  paragraphPlugin,
+  heading1Plugin,
+  heading2Plugin,
+  heading3Plugin,
+  blockquotePlugin,
+  calloutPlugin,
+  togglePlugin,
+  textAlignPlugin,
+  blockTonePlugin,
+  blockIndentPlugin,
+  blockOutdentPlugin,
+  lineHeightPlugin,
+  clearFormattingPlugin,
+  horizontalRulePlugin,
+  blockMovePlugin,
+  toggleRevealPlugin,
+} from "./groups/blocks";
 import {
-  FONT_FAMILIES,
-  LIST_NUMBER_RANGE,
-  allowedChildTypes,
-  allowsFirstChild,
-  containerContentType,
-  elementAllowsMarks,
-  allowedElementAttrs,
-  isAllowedElementAttrValue,
-  repairAttrKeys,
-  reportsContainer,
-  firstChildForbiddenAttrs,
-  firstChildType,
-  firstChildTypes,
-  isVoidElementType,
-  maxNesting,
-  isAllowedValue,
-  isPaletteToken,
-  isWithinAttrRange,
-  unsatisfiedDependentAttrs,
-} from "../document/editor-document-schema";
+  childTypesPlugin,
+  dependentAttrsPlugin,
+  voidKeyboardPlugin,
+  voidPropsPlugin,
+  breakAbovePlugin,
+} from "./groups/structure";
+import { indentPlugin, listPlugin, listKeyboardPlugin } from "./groups/lists";
 import {
-  caretInCodeMark,
-  codeBlockHtmlDeserializer,
-  codeClipboardText,
-  codeLowlight,
-  htmlToPlainText,
-  insertCodeText,
-  selectionInCodeBlock,
-} from "../features/editor-code";
-import { HeadingElement } from "../../components/elements/heading-element";
-import { codeLeafClassName } from "../static/mark-classes";
-import { KBD_CLASS } from "../../components/elements/kbd-classes";
+  codeBlockPlugin,
+  bookmarkPlugin,
+  imagePlugin,
+  filePlugin,
+  videoPlugin,
+  audioPlugin,
+  embedPlugin,
+  bookmarkToolbarPlatePlugin,
+  tocPlugin,
+  equationPlatePlugin,
+  syncedRefPlugin,
+  columnPlugin,
+  columnNormalizePlugin,
+} from "./groups/media";
 import {
-  PasteFallbackPlugin,
-  clearHtmlTableWidths,
-  preparePastedFragment,
-  rememberHtmlTableWidths,
-  setPasteRepairs,
-  unsupportedMediaPlugin,
-} from "../paste/editor-paste";
-import {
-  TableCellElement,
-  TableElement,
-  TableRowElement,
-} from "../../components/elements/table-element";
-import {
-  caretAtCellStart,
-  fillTableWithTsv,
-  normalizeTableNode,
-  pastedTableTruncationMessage,
-  replaceTableWithParagraph,
-  selectedCellContext,
-  tableCellContext,
-  tableMaxRows,
-  wholeTableSelection,
-} from "../features/editor-table";
-
-const LIST_INDENT_MAX = 6;
-
-const paragraphPlugin = ParagraphPlugin.configure({
-  render: {
-    node: ListParagraph,
-  },
-});
-
-type TextDecorationRule = {
-  validNodeName?: string[];
-  validStyle?: {
-    textDecoration?: string[];
-    textDecorationLine?: string[];
-  };
-};
-
-type MarkPluginConfig = {
-  shortcuts: {
-    toggle: {
-      keys?: string[][];
-      handler: (context: { editor: SlateEditor }) => void;
-    };
-  };
-  parsers?: {
-    html: {
-      deserializer: {
-        rules: TextDecorationRule[];
-        query: (context: { element: HTMLElement }) => boolean;
-      };
-    };
-  };
-  node?: {
-    props: {
-      className: string;
-    };
-  };
-};
-
-type MarkPluginOptions = {
-  keys?: string[][];
-  rules?: TextDecorationRule[];
-  className?: string;
-};
-
-// The paragraph is text-base (16px). 0.9em would be 14.4px, under the body-text floor.
-
-const underlineDecorations = ["underline", "underline line-through", "line-through underline"];
-
-const strikethroughDecorations = [
-  "line-through",
-  "underline line-through",
-  "line-through underline",
-];
-
-// Plate matches each validStyle string exactly, and a rules array from configure replaces the old one.
-const underlineRules: TextDecorationRule[] = [
-  { validNodeName: ["U"] },
-  { validStyle: { textDecoration: underlineDecorations } },
-  { validStyle: { textDecorationLine: underlineDecorations } },
-];
-
-const strikethroughRules: TextDecorationRule[] = [
-  { validNodeName: ["S", "DEL", "STRIKE"] },
-  { validStyle: { textDecoration: strikethroughDecorations } },
-  { validStyle: { textDecorationLine: strikethroughDecorations } },
-];
-
-function allowsTextDecoration(element: HTMLElement): boolean {
-  return !someHtmlElement(
-    element,
-    (node) => node.style.textDecoration === "none" || node.style.textDecorationLine === "none",
-  );
-}
-
-// Sets the mixed-selection shortcut and, when rules are given, the HTML deserializer.
-// Both share one configure call, because a later configure replaces the first.
-export function configureMarkPlugin<
-  TPlugin extends { configure: (config: MarkPluginConfig) => TPlugin },
->(plugin: TPlugin, command: EditorCommand, options?: MarkPluginOptions): TPlugin {
-  const config: MarkPluginConfig = {
-    shortcuts: {
-      toggle: {
-        handler: ({ editor }) => {
-          runEditorCommand(editor, command, undefined, {
-            readOnly: editor.dom.readOnly,
-          });
-        },
-      },
-    },
-  };
-
-  if (options?.keys) {
-    config.shortcuts.toggle.keys = options.keys;
-  }
-
-  if (options?.rules) {
-    config.parsers = {
-      html: {
-        deserializer: {
-          rules: options.rules,
-          query: ({ element }) => allowsTextDecoration(element),
-        },
-      },
-    };
-  }
-
-  if (options?.className) {
-    config.node = { props: { className: options.className } };
-  }
-
-  return plugin.configure(config);
-}
-
-const boldPlugin = configureMarkPlugin(BoldPlugin, formatBold);
-const italicPlugin = configureMarkPlugin(ItalicPlugin, formatItalic);
-const underlinePlugin = configureMarkPlugin(UnderlinePlugin, formatUnderline, {
-  rules: underlineRules,
-});
-const strikethroughPlugin = configureMarkPlugin(StrikethroughPlugin, formatStrikethrough, {
-  keys: [[...EDITOR_SHORTCUTS.strikethrough]],
-  rules: strikethroughRules,
-});
-const codePlugin = configureMarkPlugin(CodePlugin, formatCode, {
-  keys: [[...EDITOR_SHORTCUTS.code]],
-  className: codeLeafClassName,
-});
-// SuperscriptPlugin ships no shortcut. "period" is KeyboardEvent.code Period, the Mod+. key.
-const superscriptPlugin = configureMarkPlugin(SuperscriptPlugin, formatSuperscript, {
-  keys: [[...EDITOR_SHORTCUTS.superscript]],
-});
-// SubscriptPlugin ships no shortcut. "comma" is KeyboardEvent.code Comma, the Mod+, key.
-const subscriptPlugin = configureMarkPlugin(SubscriptPlugin, formatSubscript, {
-  keys: [[...EDITOR_SHORTCUTS.subscript]],
-});
-// KbdPlugin ships no shortcut. Toggled from the More menu only.
-const kbdPlugin = configureMarkPlugin(KbdPlugin, formatKeyboard, { className: KBD_CLASS });
-
-type TokenNodePropsOptions = {
-  nodeValue?: unknown;
-  props: Record<string, unknown>;
-  text?: unknown;
-};
-
-// The stored value is a token. transformProps writes the theme variable so the
-// leaf never receives the token string as a CSS value.
-function tokenNodeProps(
-  nodeKey: string,
-  cssProperty: "color" | "backgroundColor" | "fontFamily",
-  variablePrefix: "--editor-text" | "--editor-bg" | "--editor-font",
-  isToken: (value: unknown) => boolean,
-) {
-  return {
-    nodeKey,
-    transformProps: ({ nodeValue, props }: TokenNodePropsOptions) => {
-      if (!isToken(nodeValue)) {
-        return {};
-      }
-
-      return {
-        ...props,
-        style: { [cssProperty]: `var(${variablePrefix}-${nodeValue})` },
-      };
-    },
-  };
-}
-
-function isFontFamilyToken(value: unknown): boolean {
-  return isAllowedValue(value, FONT_FAMILIES);
-}
-
-function hasCodeMark(text: unknown): boolean {
-  return (
-    typeof text === "object" &&
-    text !== null &&
-    KEYS.code in text &&
-    Reflect.get(text, KEYS.code) === true
-  );
-}
-
-function fontFamilyNodeProps() {
-  const tokenProps = tokenNodeProps(
-    KEYS.fontFamily,
-    "fontFamily",
-    "--editor-font",
-    isFontFamilyToken,
-  );
-
-  return {
-    nodeKey: tokenProps.nodeKey,
-    transformProps: (options: TokenNodePropsOptions) => {
-      // Inline style beats the code class, so a code leaf always gets the mono stack.
-      if (isFontFamilyToken(options.nodeValue) && hasCodeMark(options.text)) {
-        return {
-          ...options.props,
-          style: { fontFamily: "var(--editor-font-mono)" },
-        };
-      }
-
-      return tokenProps.transformProps(options);
-    },
-  };
-}
-
-const textColorPlugin = FontColorPlugin.configure({
-  inject: { nodeProps: tokenNodeProps(KEYS.color, "color", "--editor-text", isPaletteToken) },
-});
-
-// 1pt is 4/3 px. A length that is not an exact preset is left for the mark allowlist to drop.
-const FONT_SIZE_LENGTH = /^(-?(?:\d+|\d*\.\d+))(px|pt)$/i;
-
-function fontSizeFromCss(value: string): string {
-  const match = FONT_SIZE_LENGTH.exec(value.trim());
-  if (!match || match[2].toLowerCase() === "px") {
-    return value.trim();
-  }
-
-  const px = (Number(match[1]) * 4) / 3;
-  const whole = Math.round(px);
-  if (Math.abs(px - whole) < 1e-6) {
-    return `${whole}px`;
-  }
-
-  return `${px}px`;
-}
-
-// The stored value is already a CSS length, so Plate's default style injection renders it.
-const fontSizePlugin = FontSizePlugin.configure({
-  parsers: {
-    html: {
-      deserializer: {
-        parse: ({ element, type }) => {
-          const size = element.style.fontSize;
-          if (!size) {
-            return;
-          }
-
-          return { [type]: fontSizeFromCss(size) };
-        },
-      },
-    },
-  },
-});
-
-const highlightPlugin = FontBackgroundColorPlugin.configure({
-  inject: {
-    nodeProps: tokenNodeProps(
-      KEYS.backgroundColor,
-      "backgroundColor",
-      "--editor-bg",
-      isPaletteToken,
-    ),
-  },
-  parsers: {
-    html: {
-      deserializer: {
-        isLeaf: true,
-        rules: [{ validStyle: { backgroundColor: "*" } }, { validNodeName: ["MARK"] }],
-        parse: ({ element, type }) => {
-          if (element.nodeName === "MARK") {
-            return { [type]: "yellow" };
-          }
-
-          const background = element.style.backgroundColor;
-          if (background) {
-            return { [type]: background };
-          }
-        },
-      },
-    },
-  },
-});
-
-const fontFamilyPlugin = FontFamilyPlugin.configure({
-  inject: { nodeProps: fontFamilyNodeProps() },
-});
-
-// Unitless CSS becomes a number. px, %, and keywords stay strings for the allowlist to drop.
-const UNITLESS_LINE_HEIGHT = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
-
-function lineHeightFromCss(value: string): number | string {
-  const trimmed = value.trim();
-  if (!UNITLESS_LINE_HEIGHT.test(trimmed)) {
-    return trimmed;
-  }
-
-  return Number(trimmed);
-}
-
-type HeadingPluginConfig = {
-  render: { node: typeof HeadingElement };
-  rules: {
-    delete: {
-      empty: "reset";
-      start: "default";
-    };
-  };
-  shortcuts: {
-    toggle: {
-      keys: string[][];
-      handler: (context: { editor: SlateEditor }) => void;
-    };
-  };
-};
-
-// Plate resets a heading on any Backspace at the block start. "default" lets a non-empty
-// heading merge, and an empty heading still resets. Heading plugins ship no hotkey.
-function configureHeadingPlugin<
-  TPlugin extends { configure: (config: HeadingPluginConfig) => TPlugin },
->(plugin: TPlugin, level: HeadingLevel): TPlugin {
-  const command = TURN_INTO_HEADING[level];
-
-  return plugin.configure({
-    render: { node: HeadingElement },
-    rules: {
-      delete: {
-        empty: "reset",
-        start: "default",
-      },
-    },
-    shortcuts: {
-      toggle: {
-        keys: [[...EDITOR_SHORTCUTS[`h${level}` as const]]],
-        handler: ({ editor }) => {
-          runEditorCommand(editor, command, undefined, {
-            readOnly: editor.dom.readOnly,
-          });
-        },
-      },
-    },
-  });
-}
-
-const heading1Plugin = configureHeadingPlugin(H1Plugin, 1);
-const heading2Plugin = configureHeadingPlugin(H2Plugin, 2);
-const heading3Plugin = configureHeadingPlugin(H3Plugin, 3);
-
-function isElementRecord(node: unknown): node is Record<string, unknown> & { type: string } {
-  return (
-    typeof node === "object" &&
-    node !== null &&
-    "type" in node &&
-    typeof node.type === "string" &&
-    "children" in node
-  );
-}
-
-// Plate's quote delete.start lifts every non-empty paragraph. A later paragraph has to
-// merge, so delete.start lifts only the first child. break.empty stays on every plain
-// paragraph, and liftBlock splits the container around a middle empty line.
-// Callout's published rules are lineBreak, reset, and deleteExit. This match returns
-// false for those, so a callout paragraph uses the same container behavior. No shortcut.
-// One configure() call: a later configure() replaces __configuration and drops these rules.
-function containerRules(type: string) {
-  return {
-    break: { empty: "lift" as const },
-    delete: { start: "lift" as const },
-    match: ({
-      editor,
-      node,
-      path,
-      rule,
-    }: {
-      editor: SlateEditor;
-      node: unknown;
-      path?: number[];
-      rule: string;
-    }) => {
-      if ((rule !== "break.empty" && rule !== "delete.start") || !path || !isElementRecord(node)) {
-        return false;
-      }
-
-      if (containerParentType(editor, node, path) !== type) {
-        return false;
-      }
-
-      // The label's Backspace unwraps the whole container. delete.start would lift only the label.
-      if (
-        rule === "delete.start" &&
-        path[path.length - 1] === 0 &&
-        firstChildType(type) !== undefined
-      ) {
-        return false;
-      }
-
-      return rule === "break.empty" || !PathApi.hasPrevious(path);
-    },
-  };
-}
-
-function configureContainerPlugin<TNode extends (props: PlateElementProps) => JSX.Element, TResult>(
-  plugin: {
-    key: string;
-    configure: (config: {
-      render: { node: TNode };
-      rules: ReturnType<typeof containerRules>;
-    }) => TResult;
-  },
-  node: TNode,
-): TResult {
-  return plugin.configure({
-    render: { node },
-    rules: containerRules(plugin.key),
-  });
-}
-
-const blockquotePlugin = configureContainerPlugin(BlockquotePlugin, BlockquoteElement);
-const calloutPlugin = configureContainerPlugin(CalloutPlugin, CalloutElement);
-const togglePlugin = configureContainerPlugin(toggleBasePlugin, ToggleElement).overrideEditor(
-  ({ editor, tf: { insertBreak, deleteBackward, insertFragment } }) => {
-    installToggleOnChange(editor);
-
-    return {
-      transforms: {
-        insertBreak() {
-          if (breakToggleLabel(editor, insertBreak)) {
-            return;
-          }
-
-          insertBreak();
-        },
-        deleteBackward(unit) {
-          if (backspaceToggleLabel(editor)) {
-            return;
-          }
-
-          deleteBackward(unit);
-        },
-        insertFragment(fragment, options) {
-          const before = collectToggleIds(editor);
-          insertFragment(fragment, options);
-          openNewToggles(editor, before);
-        },
-      },
-    };
-  },
-);
-
-// Plate's normalizeBlockquoteChildren wraps inline children in paragraphs and leaves
-// block children unchanged, including a nested quote or a heading. This pass is the
-// outer normalizer: it rewrites a child whose type is outside childTypes, then Plate
-// only sees paragraphs or wraps leftover inlines. A disallowed void is lifted out so
-// it is not retyped into an empty paragraph.
-function sameTypeDepth(editor: SlateEditor, type: string, path: number[]): number {
-  let depth = 1;
-  let parentPath = path.slice(0, -1);
-  while (parentPath.length > 0) {
-    const parent = editor.api.node(parentPath);
-    if (parent && isElementRecord(parent[0]) && parent[0].type === type) {
-      depth += 1;
-    }
-
-    parentPath = parentPath.slice(0, -1);
-  }
-
-  return depth;
-}
-
-function normalizeContainerShape(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  const limit = maxNesting(node.type);
-  if (limit !== undefined && sameTypeDepth(editor, node.type, path) > limit) {
-    editor.tf.unwrapNodes({
-      at: path,
-      match: (_candidate, candidatePath) => PathApi.equals(candidatePath, path),
-    });
-    return true;
-  }
-
-  const labels = firstChildTypes(node.type);
-  const expected = firstChildType(node.type);
-  if (labels === undefined || expected === undefined || !Array.isArray(node.children)) {
-    return false;
-  }
-
-  const first = node.children[0];
-  const childPath = path.concat(0);
-  if (!isElementRecord(first) || !allowsFirstChild(node.type, first.type)) {
-    editor.tf.insertNodes({ type: expected, children: [{ text: "" }] }, { at: childPath });
-    return true;
-  }
-
-  const drop = firstChildForbiddenAttrs(node.type).filter((key) => key in first);
-  if (drop.length === 0) {
-    return false;
-  }
-
-  editor.tf.unsetNodes(drop, { at: childPath });
-  return true;
-}
-
-function normalizeDisallowedChild(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  const childTypes = allowedChildTypes(node.type);
-  if (childTypes === undefined || !Array.isArray(node.children)) {
-    return false;
-  }
-
-  for (let index = 0; index < node.children.length; index += 1) {
-    const child = node.children[index];
-    if (!isElementRecord(child) || childTypes.some((type) => type === child.type)) {
-      continue;
-    }
-
-    if (index === 0 && allowsFirstChild(node.type, child.type)) {
-      continue;
-    }
-
-    const childPath = path.concat(index);
-    // Columns are top-level only. A group inside a toggle, quote, callout, table
-    // cell, or column is moved out whole. Unwrapping it would dump its columns
-    // into the container.
-    if (child.type === KEYS.columnGroup) {
-      if (
-        (node.type === KEYS.td || node.type === KEYS.th) &&
-        moveMediaAfterTable(editor, path, childPath)
-      ) {
-        return true;
-      }
-
-      const containerPath = node.type === KEYS.column ? path.slice(0, -1) : path;
-      const destination = PathApi.next(containerPath);
-      if (!destination) {
-        return false;
-      }
-
-      editor.tf.withoutNormalizing(() => {
-        editor.tf.moveNodes({ at: childPath, to: destination });
-        const container = editor.api.node(path);
-        const remaining =
-          container && isElementRecord(container[0]) && Array.isArray(container[0].children)
-            ? container[0].children
-            : [];
-        if (remaining.length === 0) {
-          editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path.concat(0) });
-        }
-      });
-      return true;
-    }
-
-    // A table cell only stores paragraphs. Lifting a void one level would
-    // leave it inside the row, so move it to after the table and keep the cell.
-    if (
-      (child.type === BOOKMARK_KEY ||
-        child.type === IMAGE_KEY ||
-        child.type === FILE_KEY ||
-        child.type === VIDEO_KEY ||
-        child.type === AUDIO_KEY ||
-        child.type === EMBED_KEY ||
-        child.type === PAGE_LINK_KEY ||
-        child.type === KEYS.toc ||
-        child.type === KEYS.equation ||
-        child.type === SYNCED_REF_KEY) &&
-      (node.type === KEYS.td || node.type === KEYS.th)
-    ) {
-      if (moveMediaAfterTable(editor, path, childPath)) {
-        return true;
-      }
-    }
-
-    if (isVoidElementType(child.type)) {
-      editor.tf.liftNodes({ at: childPath, voids: true });
-      return true;
-    }
-
-    if (allowedChildTypes(child.type) !== undefined) {
-      // Match this path only. A type match would also unwrap the parent quote.
-      editor.tf.unwrapNodes({
-        at: childPath,
-        match: (_candidate, candidatePath) => PathApi.equals(candidatePath, childPath),
-      });
-      return true;
-    }
-
-    const target = containerContentType(node.type);
-    if (target === undefined) {
-      return false;
-    }
-
-    const allowed = allowedElementAttrs(target);
-    const drop = Object.keys(child).filter(
-      (key) => key !== "type" && key !== "children" && allowed?.has(key) !== true,
-    );
-    editor.tf.withoutNormalizing(() => {
-      // The parent runs before the child's own pass, so marks leave with the retype.
-      if (!elementAllowsMarks(child.type)) {
-        stripTextMarks(editor, child.children, childPath);
-      }
-      editor.tf.setNodes({ type: target }, { at: childPath });
-      if (drop.length > 0) {
-        editor.tf.unsetNodes(drop, { at: childPath });
-      }
-    });
-    return true;
-  }
-
-  return false;
-}
-
-function textMarkKeys(node: unknown): string[] {
-  if (typeof node !== "object" || node === null || !("text" in node)) {
-    return [];
-  }
-
-  if (typeof node.text !== "string" || "children" in node) {
-    return [];
-  }
-
-  return Object.keys(node).filter((key) => key !== "text");
-}
-
-function stripTextMarks(editor: SlateEditor, children: unknown, path: number[]): void {
-  if (!Array.isArray(children)) {
-    return;
-  }
-
-  for (let index = 0; index < children.length; index += 1) {
-    const keys = textMarkKeys(children[index]);
-    if (keys.length > 0) {
-      editor.tf.unsetNodes(keys, { at: path.concat(index) });
-    }
-  }
-}
-
-function normalizeDisallowedMarks(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  if (elementAllowsMarks(node.type) || !Array.isArray(node.children)) {
-    return false;
-  }
-
-  for (let index = 0; index < node.children.length; index += 1) {
-    const keys = textMarkKeys(node.children[index]);
-    if (keys.length === 0) {
-      continue;
-    }
-
-    editor.tf.unsetNodes(keys, { at: path.concat(index) });
-    return true;
-  }
-
-  return false;
-}
-
-function normalizeRepairAttrs(
-  editor: SlateEditor,
-  node: { type: string } & Record<string, unknown>,
-  path: number[],
-): boolean {
-  const drop = repairAttrKeys(node.type).filter(
-    (key) => key in node && !isAllowedElementAttrValue(node.type, key, node[key]),
-  );
-  if (drop.length === 0) {
-    return false;
-  }
-
-  editor.tf.unsetNodes(drop, { at: path });
-  return true;
-}
-
-const childTypesPlugin = createSlatePlugin({
-  key: "childTypes",
-}).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
-  transforms: {
-    normalizeNode(entry) {
-      const [node, path] = entry;
-      if (
-        isElementRecord(node) &&
-        (normalizeRepairAttrs(editor, node, path) ||
-          normalizeDisallowedMarks(editor, node, path) ||
-          normalizeContainerShape(editor, node, path) ||
-          normalizeDisallowedChild(editor, node, path) ||
-          normalizeTableNode(editor, node, path))
-      ) {
-        return;
-      }
-
-      normalizeNode(entry);
-    },
-  },
-}));
-
-// Targets are list paragraphs. Plain paragraphs, headings and quotes take the indent
-// through blockIndentPlugin. The indent normalizer unsets indent on any other type, so
-// the same types stay targets here. Only list paragraphs get Plate's margin, through query.
-// offset 0 keeps the paragraph from adding a second margin; the ul padding is the visible step.
-const indentPlugin = IndentPlugin.configure({
-  inject: {
-    targetPlugins: [...BLOCK_INDENT_TYPES],
-    nodeProps: {
-      query: listIndentInjects,
-    },
-  },
-  options: {
-    indentMax: LIST_INDENT_MAX,
-    offset: 0,
-    unit: "px",
-  },
-});
-
-function isUnorderedListStyle(style: string): boolean {
-  return ULIST_STYLE_TYPES.some((item) => item === style);
-}
-
-function isKnownListStyle(style: string): boolean {
-  return Object.values(ListStyleType).some((item) => item === style);
-}
-
-// Nested Google Docs items use lower-alpha or lower-roman. The stored value stays decimal.
-function storedListStyle(style: string | undefined): "disc" | "decimal" | undefined {
-  if (style === undefined || style.length === 0) {
-    return undefined;
-  }
-
-  if (isUnorderedListStyle(style)) {
-    return "disc";
-  }
-
-  if (isKnownListStyle(style)) {
-    return "decimal";
-  }
-
-  return undefined;
-}
-
-// The table paste path deserializes HTML itself, so Plate's list transformData
-// does not run. Mark each li the same way that transform does.
-function annotatePastedLists(body: HTMLElement): void {
-  for (const element of Array.from(body.querySelectorAll("li"))) {
-    let indent = 0;
-    let parent = element.parentElement;
-    while (parent && parent !== body) {
-      if (parent.tagName === "UL" || parent.tagName === "OL") {
-        indent += 1;
-      }
-      parent = parent.parentElement;
-    }
-
-    if (indent > 0 && element.dataset.indent === undefined) {
-      element.dataset.indent = String(indent);
-    }
-
-    if (element.dataset.listStyleType === undefined) {
-      const listParent = element.closest("ul, ol");
-      if (listParent?.tagName === "UL") {
-        element.dataset.listStyleType = "disc";
-      } else if (listParent?.tagName === "OL") {
-        element.dataset.listStyleType = "decimal";
-      }
-    }
-  }
-}
-
-// Plate's LI transform marks a ul as disc and leaves <input type="checkbox"> in the item.
-// The input has no text, and the HTML deserializer drops it, so this only reads.
-export function pastedTodoChecked(element: HTMLElement): boolean | undefined {
-  const input = element.querySelector('input[type="checkbox"]');
-  if (input) {
-    return input.hasAttribute("checked");
-  }
-
-  if (element.getAttribute("role") === "checkbox" || element.hasAttribute("aria-checked")) {
-    return element.getAttribute("aria-checked") === "true";
-  }
-
-  return undefined;
-}
-
-// Plate's LI parser ignores ol start. The first item stores listRestart so normalizeListStart
-// can derive listStart. start="1" is omitted; that is Plate's default.
-function listRestartFromStart(element: HTMLElement): number | undefined {
-  const list = element.closest("ol");
-  if (list === null || list.querySelector("li") !== element) {
-    return undefined;
-  }
-
-  const raw = list.getAttribute("start");
-  if (raw === null) {
-    return undefined;
-  }
-
-  const start = Number(raw);
-  if (!isWithinAttrRange(start, LIST_NUMBER_RANGE) || start === LIST_NUMBER_RANGE.min) {
-    return undefined;
-  }
-
-  return start;
-}
-
-const listPlugin = ListPlugin.configure({
-  inject: {
-    targetPlugins: [KEYS.p],
-  },
-  options: {
-    // Plate's normalizer passes breakOnEqIndentNeqListStyleType: false, then spreads these
-    // options, so a bullet at the same depth ends the numbered run.
-    // normalizeListStart treats every non-bullet style, including "todo", as ordered and
-    // would write listStart on the next to-do. A to-do is not a numbered run, so that search stops.
-    getSiblingListOptions: {
-      breakOnEqIndentNeqListStyleType: true,
-      breakQuery: (_sibling, current) =>
-        "listStyleType" in current && current.listStyleType === KEYS.listTodo,
-    },
-  },
-  parsers: {
-    html: {
-      deserializer: {
-        parse: ({ editor, element }) => {
-          const dataIndent = element.dataset.indent;
-          const ariaLevel = element.getAttribute("aria-level");
-          const indent = dataIndent ? Number(dataIndent) : Number(ariaLevel);
-          const checked = pastedTodoChecked(element);
-          if (checked !== undefined) {
-            return {
-              checked,
-              indent: indent || undefined,
-              listStyleType: KEYS.listTodo,
-              type: editor.getType(KEYS.p),
-            };
-          }
-
-          const listStyleType = storedListStyle(element.dataset.listStyleType);
-          const listRestart = listRestartFromStart(element);
-
-          return {
-            indent: indent || undefined,
-            listStyleType,
-            listRestart,
-            type: editor.getType(KEYS.p),
-          };
-        },
-      },
-    },
-  },
-  render: {
-    belowNodes: BlockList,
-  },
-  shortcuts: {
-    toggleBulleted: {
-      keys: [[...EDITOR_SHORTCUTS.bulleted]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, toggleBulletedList, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
-      },
-    },
-    toggleNumbered: {
-      keys: [[...EDITOR_SHORTCUTS.numbered]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, toggleNumberedList, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
-      },
-    },
-    toggleTodo: {
-      keys: [[...EDITOR_SHORTCUTS.todo]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, toggleTodoList, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
-      },
-    },
-    toggleChecked: {
-      keys: [[...EDITOR_SHORTCUTS.todoCheck]],
-      handler: ({ editor }) => {
-        // Plate stops the event when a shortcut handler returns, so a definition is handled here:
-        // Mod+Enter inside one jumps back to its first reference and never reaches the to-do.
-        if (jumpFromCaretDefinition(editor)) {
-          return;
-        }
-        // One shortcut. Inside a code block it exits. Everywhere else it checks a to-do.
-        const command = selectionInCodeBlock(editor) ? exitCodeBlock : toggleTodoChecked;
-        runEditorCommand(editor, command, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
-      },
-    },
-  },
-});
-
-// attrRequires is the only dependent-attr rule. Plate's normalizeListStart deletes
-// listStart on a disc item and leaves listRestart. This pass removes every unsatisfied
-// dependent, then returns so the next pass reads the updated node.
-const dependentAttrsPlugin = createSlatePlugin({
-  key: "dependentAttrs",
-}).overrideEditor(({ editor, tf: { normalizeNode } }) => ({
-  transforms: {
-    normalizeNode(entry) {
-      const [node, path] = entry;
-      if (isElementRecord(node)) {
-        const unsatisfied = unsatisfiedDependentAttrs(node.type, node);
-        if (unsatisfied.length > 0) {
-          editor.tf.unsetNodes(unsatisfied, { at: path });
-          return;
-        }
-      }
-
-      normalizeNode(entry);
-    },
-  },
-}));
-
-// IndentPlugin's Tab indents every paragraph. Outside a list, Tab must leave the editor.
-// At the depth cap, Tab is handled and changes nothing.
-const listKeyboardPlugin = createSlatePlugin({
-  key: "listKeyboard",
-}).overrideEditor(({ editor, tf: { deleteBackward } }) => ({
-  transforms: {
-    tab(options?: { reverse?: boolean }) {
-      const items = [
-        ...editor.api.nodes({
-          block: true,
-          match: (node) => isListParagraph(node),
-        }),
-      ];
-      if (items.length === 0) {
-        return false;
-      }
-
-      const match = (node: unknown) => isListParagraph(node);
-      if (options?.reverse) {
-        // Same unset as outdentList: indent 1 drops listStyleType and indent together.
-        setIndent(editor, {
-          offset: -1,
-          unsetNodesProps: [KEYS.listType, KEYS.listChecked],
-          getNodesOptions: { match },
-        });
-        return true;
-      }
-
-      if (!items.some(([node]) => listIndentOf(node) < LIST_INDENT_MAX)) {
-        return true;
-      }
-
-      indent(editor, {
-        getNodesOptions: {
-          match: (node) => isListParagraph(node) && listIndentOf(node) < LIST_INDENT_MAX,
-        },
-      });
-      return true;
-    },
-    deleteBackward(unit) {
-      const selection = editor.selection;
-      const block = selection ? editor.api.block() : undefined;
-      if (
-        block &&
-        isListParagraph(block[0]) &&
-        editor.api.isCollapsed() &&
-        editor.api.isAt({ start: true }) &&
-        !editor.api.isEmpty(selection, { block: true })
-      ) {
-        editor.tf.unsetNodes([KEYS.listType, KEYS.indent], { at: block[1] });
-        return;
-      }
-
-      // A plain indented block steps out one level instead of merging with the block above.
-      if (
-        block &&
-        !isListParagraph(block[0]) &&
-        blockIndentOf(block[0]) > 0 &&
-        editor.api.isCollapsed() &&
-        editor.api.isAt({ start: true })
-      ) {
-        runEditorCommand(editor, outdentBlocks, undefined, { readOnly: editor.dom.readOnly });
-        return;
-      }
-
-      deleteBackward(unit);
-    },
-  },
-}));
-
-const textAlignPlugin = TextAlignPlugin.configure({
-  inject: {
-    targetPlugins: [KEYS.p, KEYS.h1, KEYS.h2, KEYS.h3],
-  },
-});
-
-// Block tones are injected by the block itself, so the leaf token helpers do not apply.
-const blockTonePlugin = createSlatePlugin({
-  key: "blockTone",
-  inject: {
-    isElement: true,
-    targetPlugins: [...BLOCK_TONE_TYPES],
-    nodeProps: blockToneNodeProps(),
-  },
-});
-
-// Plain blocks get their margin from the injector. Cmd+] and Cmd+[ are browser history keys
-// on some platforms. A block at its limit still takes the key, so the browser never sees it.
-function runBlockIndentShortcut(editor: SlateEditor, command: EditorCommand): boolean {
-  if (editor.dom.readOnly) {
-    return false;
-  }
-
-  if (runEditorCommand(editor, command, undefined, { readOnly: false })) {
-    return true;
-  }
-
-  return blockIndentTargets(editor).length > 0;
-}
-
-const blockIndentPlugin = createSlatePlugin({
-  key: "blockIndent",
-  inject: {
-    isElement: true,
-    targetPlugins: [...BLOCK_INDENT_TYPES],
-    nodeProps: blockIndentNodeProps(),
-  },
-  shortcuts: {
-    indent: {
-      keys: [[...EDITOR_SHORTCUTS.indent]],
-      handler: ({ editor }) => runBlockIndentShortcut(editor, indentBlocks),
-    },
-  },
-});
-
-const blockOutdentPlugin = createSlatePlugin({
-  key: "blockOutdent",
-  shortcuts: {
-    outdent: {
-      keys: [[...EDITOR_SHORTCUTS.outdent]],
-      handler: ({ editor }) => runBlockIndentShortcut(editor, outdentBlocks),
-    },
-  },
-});
-
-const lineHeightPlugin = LineHeightPlugin.configure({
-  inject: {
-    // 0 is not a preset. Plate unsets the attribute when setLineHeight receives it,
-    // and the injector skips only that sentinel, so 1.5 still renders.
-    // Headings are not targets. Their leading stays on the heading component.
-    nodeProps: {
-      nodeKey: "lineHeight",
-      defaultNodeValue: 0,
-    },
-    targetPlugins: [KEYS.p],
-    targetPluginToInject: ({ editor }) => ({
-      parsers: {
-        html: {
-          deserializer: {
-            parse: ({ element }) => {
-              const raw = element.style.lineHeight;
-              if (!raw) {
-                return;
-              }
-
-              return { [editor.getType(KEYS.lineHeight)]: lineHeightFromCss(raw) };
-            },
-          },
-        },
-      },
-    }),
-  },
-});
-
-// "Backslash" is KeyboardEvent.code Backslash, the Mod+\ key. Plate has no clear-formatting plugin.
-const clearFormattingPlugin = createSlatePlugin({
-  key: "clearFormatting",
-  shortcuts: {
-    clear: {
-      keys: [[...EDITOR_SHORTCUTS.clearFormatting]],
-      handler: ({ editor }) => {
-        runEditorCommand(editor, clearFormatting, undefined, {
-          readOnly: editor.dom.readOnly,
-        });
-      },
-    },
-  },
-});
-
-// The empty block above becomes the first item, so a restart moves with it.
-function listBreakAbove(source: object): {
-  attrs: {
-    listStyleType?: string;
-    indent?: number;
-    listRestart?: number;
-    listRestartPolite?: number;
-    checked?: boolean;
-  };
-  unset: string[];
-} {
-  const attrs: {
-    listStyleType?: string;
-    indent?: number;
-    listRestart?: number;
-    listRestartPolite?: number;
-    checked?: boolean;
-  } = {};
-  const unset: string[] = [];
-  if (
-    !("listStyleType" in source) ||
-    typeof source.listStyleType !== "string" ||
-    !("indent" in source) ||
-    typeof source.indent !== "number"
-  ) {
-    return { attrs, unset };
-  }
-
-  attrs.listStyleType = source.listStyleType;
-  attrs.indent = source.indent;
-  // The new first item is a fresh todo. Plate writes checked: false for that, and the
-  // original item keeps the checked value it already has.
-  if (source.listStyleType === KEYS.listTodo) {
-    attrs.checked = false;
-  }
-  if ("listRestart" in source && typeof source.listRestart === "number") {
-    attrs.listRestart = source.listRestart;
-    unset.push(KEYS.listRestart);
-  }
-  if ("listRestartPolite" in source && typeof source.listRestartPolite === "number") {
-    attrs.listRestartPolite = source.listRestartPolite;
-    unset.push(KEYS.listRestartPolite);
-  }
-
-  return { attrs, unset };
-}
-
-function voidEntry(editor: SlateEditor): { path: number[] } | undefined {
-  const selection = editor.selection;
-  if (!selection || !editor.api.isCollapsed()) {
-    return undefined;
-  }
-
-  const entry = editor.api.above({
-    match: (node) => isElementRecord(node) && isVoidElementType(node.type),
-    voids: true,
-  });
-  if (!entry) {
-    return undefined;
-  }
-
-  return { path: entry[1] };
-}
-
-function blockString(node: unknown): string {
-  if (!isElementRecord(node) || !Array.isArray(node.children)) {
-    return "";
-  }
-
-  let text = "";
-  for (const child of node.children) {
-    if (
-      typeof child === "object" &&
-      child !== null &&
-      "text" in child &&
-      typeof child.text === "string" &&
-      !("children" in child)
-    ) {
-      text += child.text;
-    }
-  }
-
-  return text;
-}
-
-// Slate's deleteText removes a void when the caret is inside it (slate dist/index.js
-// 4540-4566). The caret after that removal is not the end of the previous block, so
-// this places it. Backspace at the start of the next block would otherwise skip the
-// void (Editor.before, voids false) and merge the neighbors.
-function removeVoid(editor: SlateEditor, path: number[]): void {
-  const previous = PathApi.hasPrevious(path) ? PathApi.previous(path) : undefined;
-  editor.tf.removeNodes({ at: path, voids: true });
-  if (previous) {
-    const end = editor.api.end(previous);
-    if (end) {
-      editor.tf.select(end);
-    }
-    return;
-  }
-
-  const start = editor.api.start(path);
-  if (start) {
-    editor.tf.select(start);
-  }
-}
-
-function selectVoidNeighbor(editor: SlateEditor, reverse: boolean): boolean {
-  const selection = editor.selection;
-  const block = selection ? editor.api.block() : undefined;
-  if (
-    !block ||
-    !isElementRecord(block[0]) ||
-    isVoidElementType(block[0].type) ||
-    !editor.api.isCollapsed() ||
-    !editor.api.isAt(reverse ? { start: true } : { end: true })
-  ) {
-    return false;
-  }
-
-  const neighborPath = reverse ? PathApi.previous(block[1]) : PathApi.next(block[1]);
-  if (!neighborPath) {
-    return false;
-  }
-
-  const neighbor = editor.api.node(neighborPath);
-  if (!neighbor || !isElementRecord(neighbor[0]) || !isVoidElementType(neighbor[0].type)) {
-    return false;
-  }
-
-  // An empty block after a void is removed and the void becomes selected.
-  // Delete in front of a void keeps the block, empty or not.
-  if (reverse && blockString(block[0]).length === 0) {
-    const voidPath = neighborPath;
-    editor.tf.removeNodes({ at: block[1] });
-    editor.tf.select(voidPath);
-    return true;
-  }
-
-  editor.tf.select(neighborPath);
-  return true;
-}
-
-// Chrome's keydown calls deleteBackward("block") on a selected void (slate-react
-// dist/index.js 4332-4343). beforeinput deleteContentBackward calls deleteBackward()
-// with the default character unit (3539-3541). Both remove only the void.
-const voidKeyboardPlugin = createSlatePlugin({
-  key: "voidKeyboard",
-}).overrideEditor(({ editor, tf: { deleteBackward, deleteForward } }) => ({
-  transforms: {
-    deleteBackward(unit) {
-      const selected = voidEntry(editor);
-      if (selected) {
-        removeVoid(editor, selected.path);
-        return;
-      }
-
-      if (selectVoidNeighbor(editor, true)) {
-        return;
-      }
-
-      deleteBackward(unit);
-    },
-    deleteForward(unit) {
-      const selected = voidEntry(editor);
-      if (selected) {
-        removeVoid(editor, selected.path);
-        return;
-      }
-
-      if (selectVoidNeighbor(editor, false)) {
-        return;
-      }
-
-      deleteForward(unit);
-    },
-  },
-}));
-
-function isPropsRecord(props: unknown): props is Record<string, unknown> {
-  return typeof props === "object" && props !== null && !Array.isArray(props);
-}
-
-// A void accepts the write only when every key is in its attrs. `type` never is.
-function voidAcceptsProps(type: string, props: Record<string, unknown>): boolean {
-  const allowed = allowedElementAttrs(type);
-  return Object.keys(props).every((key) => key !== "type" && allowed?.has(key) === true);
-}
-
-// combineTransformMatchOptions (@platejs/slate dist/index.js:472) keeps the caller's
-// match. An object is tested key-by-key (index.js:409 and getMatch at 435). A function
-// is called as given. A missing match stays the node at a path, or any block.
-const voidPropsPlugin = createSlatePlugin({
-  key: "voidProps",
-}).overrideEditor(({ editor, tf: { setNodes } }) => ({
-  transforms: {
-    setNodes(props, options) {
-      if (!isPropsRecord(props)) {
-        setNodes(props, options);
-        return;
-      }
-
-      setNodes(props, {
-        ...options,
-        match: combineTransformMatchOptions(
-          editor,
-          (node) => {
-            if (!isElementRecord(node) || !isVoidElementType(node.type)) {
-              return true;
-            }
-
-            return voidAcceptsProps(node.type, props);
-          },
-          options,
-        ),
-      });
-    },
-  },
-}));
-
-// Plate's split at offset 0 leaves the original id on the empty first half and gives the block a new id.
-// A non-empty block keeps its identity and an empty block is inserted above. Registered last so this
-// runs before heading splitReset. Slate's isEmpty is false for a void, so Enter on a divider would
-// insert above it. A void gets an empty paragraph after it instead.
-const breakAbovePlugin = createSlatePlugin({
-  key: "breakAbove",
-}).overrideEditor(({ editor, tf: { insertBreak } }) => ({
-  transforms: {
-    insertBreak() {
-      const selection = editor.selection;
-      const block = selection ? editor.api.block() : undefined;
-      if (
-        block &&
-        isElementRecord(block[0]) &&
-        block[0].type === KEYS.equation &&
-        editor.api.isCollapsed()
-      ) {
-        const id = block[0].id;
-        if (typeof id === "string" && id.length > 0) {
-          openEquationEditor(editor, id);
-        }
-        return;
-      }
-
-      if (
-        block &&
-        isElementRecord(block[0]) &&
-        block[0].type === SYNCED_REF_KEY &&
-        editor.api.isCollapsed()
-      ) {
-        if (editor.dom.readOnly !== true) {
-          goToSyncedOriginal(editor);
-        }
-        return;
-      }
-
-      if (
-        block &&
-        isElementRecord(block[0]) &&
-        isVoidElementType(block[0].type) &&
-        editor.api.isCollapsed()
-      ) {
-        const at = PathApi.next(block[1]);
-        if (!at) {
-          return;
-        }
-
-        editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
-        return;
-      }
-
-      // A code line reports its container. Enter stays a code break, including at offset 0.
-      if (block && isElementRecord(block[0]) && reportsContainer(block[0].type)) {
-        insertBreak();
-        return;
-      }
-
-      if (
-        block &&
-        editor.api.isCollapsed() &&
-        editor.api.isAt({ start: true }) &&
-        !editor.api.isEmpty(selection, { block: true })
-      ) {
-        const above = editor.api.create.block();
-        const copied = listBreakAbove(block[0]);
-        Object.assign(above, copied.attrs);
-        const sourcePath = block[1];
-        // A container label (firstChildTypes) breaks above the container, not inside it.
-        const parentPath = sourcePath.slice(0, -1);
-        const parent = parentPath.length > 0 ? editor.api.node(parentPath) : undefined;
-        const aboveContainer =
-          parent !== undefined &&
-          isElementRecord(parent[0]) &&
-          firstChildType(parent[0].type) !== undefined &&
-          sourcePath[sourcePath.length - 1] === 0;
-        editor.tf.insertNodes(above, {
-          at: aboveContainer ? parentPath : sourcePath,
-          select: false,
-        });
-        const moved = PathApi.next(sourcePath);
-        if (copied.unset.length > 0 && moved) {
-          editor.tf.unsetNodes(copied.unset, { at: moved });
-        }
-        return;
-      }
-
-      insertBreak();
-    },
-  },
-}));
-
-// Shift+Enter follows Enter: a soft break would hide a newline inside one code_line.
-// Tab is Plate's code tab (2 spaces). This plugin is registered after listKeyboard, so
-// Tab inside code returns before the list handler, and Tab outside still reaches it.
-const codeBlockPlugin = CodeBlockPlugin.configurePlugin(CodeSyntaxPlugin, {
-  render: { node: CodeSyntaxLeaf },
-})
-  .configure({
-    options: {
-      defaultLanguage: null,
-      lowlight: codeLowlight,
-    },
-    render: { node: CodeBlockElement },
-    parsers: {
-      html: {
-        deserializer: codeBlockHtmlDeserializer,
-      },
-    },
-  })
-  .overrideEditor(({ editor, tf: { insertBreak, insertData, insertSoftBreak } }) => ({
-    transforms: {
-      insertSoftBreak() {
-        if (selectionInCodeBlock(editor)) {
-          insertBreak();
-          return;
-        }
-
-        insertSoftBreak();
-      },
-      insertData(data: DataTransfer) {
-        if (selectionInCodeBlock(editor)) {
-          insertCodeText(editor, codeClipboardText(data));
-          return;
-        }
-
-        if (caretInCodeMark(editor)) {
-          const plain = data.getData("text/plain");
-          editor.tf.insertText(
-            plain.length > 0 ? plain : htmlToPlainText(data.getData("text/html")),
-          );
-          return;
-        }
-
-        insertData(data);
-      },
-    },
-  }));
-
-const horizontalRulePlugin = HorizontalRulePlugin.configure({
-  render: { node: HrElement },
-});
-
-const bookmarkPlugin = createSlatePlugin({
-  key: BOOKMARK_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: BookmarkElement },
-});
-
-const imagePlugin = createSlatePlugin({
-  key: IMAGE_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: ImageElement },
-});
-
-const filePlugin = createSlatePlugin({
-  key: FILE_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: FileElement },
-});
-
-const videoPlugin = createSlatePlugin({
-  key: VIDEO_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: VideoElement },
-});
-
-const audioPlugin = createSlatePlugin({
-  key: AUDIO_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: AudioElement },
-});
-
-const embedPlugin = createSlatePlugin({
-  key: EMBED_KEY,
-  node: { isElement: true, isVoid: true },
-  render: { node: EmbedElement },
-});
-
-// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
-// Enter on the selected bookmark opens its action popover.
-const bookmarkToolbarPlatePlugin = toPlatePlugin(bookmarkToolbarPlugin, {
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onBookmarkToolbarKeyDown(editor, event);
-    },
-  },
-});
-
-const tocPlugin = TocPlugin.configure({
-  render: { node: TocElement },
-});
-
-// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
-// Options stay on equationPlugin, and setOption looks the plugin up by key.
-const equationPlatePlugin = toPlatePlugin(equationPlugin, {
-  render: { node: EquationElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onEquationKeyDown(editor, event);
-    },
-  },
-});
-
-// toPlatePlugin, not configure: a Slate plugin's handlers have no onKeyDown.
-// Options stay on linkPlugin. Native LinkRules stay off so a link never stores target.
-const linkPlatePlugin = toPlatePlugin(linkPlugin, {
-  render: { node: LinkElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onLinkKeyDown(editor, event);
-    },
-    onCompositionStart: ({ editor }) => {
-      setLinkComposing(editor, true);
-    },
-    onCompositionEnd: ({ editor }) => {
-      setLinkComposing(editor, false);
-    },
-  },
-});
-
-const inlineEquationPlatePlugin = toPlatePlugin(inlineEquationPlugin, {
-  render: { node: InlineEquationElement },
-});
-
-// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
-// Holds the popover state. Mod+Shift+E and Enter on the selected equation are handled here.
-const inlineEquationUiPlatePlugin = toPlatePlugin(inlineEquationUiPlugin, {
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onInlineEquationKeyDown(editor, event);
-    },
-  },
-});
-
-// Registered after the inline equation, so its setFragmentData override wraps the equation's.
-const inlineDatePlatePlugin = toPlatePlugin(inlineDatePlugin, {
-  render: { node: InlineDateElement },
-});
-
-// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
-const footnoteRefPlatePlugin = toPlatePlugin(footnoteRefPlugin, {
-  render: { node: FootnoteRefElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onFootnoteRefKeyDown(editor, event);
-    },
-  },
-});
-
-const footnoteDefPlatePlugin = toPlatePlugin(footnoteDefPlugin, {
-  render: { node: FootnoteDefElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onFootnoteDefKeyDown(editor, event);
-    },
-  },
-});
-
-// Mod+; inserts today's date, and Enter on a selected inline date opens it.
-const inlineDateUiPlatePlugin = toPlatePlugin(inlineDateUiPlugin, {
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onInlineDateKeyDown(editor, event);
-    },
-  },
-});
-
-// Registered after the inline date, so its plain-text copy overrides the date's when a fragment has both.
-const pageLinkPlatePlugin = toPlatePlugin(pageLinkPlugin, {
-  render: { node: PageLinkElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onPageLinkKeyDown(editor, event);
-    },
-  },
-});
-
-const mentionPlatePlugin = toPlatePlugin(mentionPlugin, {
-  render: { node: MentionElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onMentionKeyDown(editor, event);
-    },
-    onCompositionStart: ({ editor }) => {
-      setMentionComposing(editor, true);
-    },
-    onCompositionEnd: ({ editor }) => {
-      setMentionComposing(editor, false);
-    },
-  },
-}).configurePlugin(BaseMentionInputPlugin, {
-  render: { node: MentionInputElement },
-});
-
-const syncedRefPlugin = toPlatePlugin(
-  createSlatePlugin({
-    key: SYNCED_REF_KEY,
-    node: { isElement: true, isVoid: true },
-  }),
-  {
-    render: { node: SyncedRefElement },
-    handlers: {
-      onKeyDown: ({ editor, event }) => {
-        onSyncedRefKeyDown(editor, event);
-      },
-    },
-  },
-);
-
-// toPlatePlugin, not createSlatePlugin: a Slate plugin's handlers have no onKeyDown.
-const blockMovePlugin = toPlatePlugin(createSlatePlugin({ key: "blockMove" }), {
-  handlers: {
-    onKeyDown: ({ editor, event }) => onBlockMoveKeyDown(editor, event),
-  },
-});
-
-const columnPlugin = ColumnPlugin.configure({
-  render: { node: ColumnGroupElement },
-  handlers: {
-    onKeyDown: ({ editor, event }) => {
-      onColumnKeyDown(editor, event);
-    },
-  },
-}).configurePlugin(ColumnItemPlugin, {
-  render: { node: ColumnElement },
-});
-
-// Runs after childTypes so a bad column tree is rewritten before Plate's
-// withColumn normalizer sees it. withColumn would equalize widths without the
-// 20% rule and delete an empty column instead of keeping a paragraph.
-const columnNormalizePlugin = createSlatePlugin({
-  key: "columnNormalize",
-}).overrideEditor(({ editor, tf: { normalizeNode, deleteBackward } }) => ({
-  transforms: {
-    normalizeNode(entry) {
-      if (applyColumnRepair(editor)) {
-        return;
-      }
-
-      normalizeNode(entry);
-    },
-    deleteBackward(unit) {
-      if (isColumnBoundary(editor)) {
-        return;
-      }
-
-      deleteBackward(unit);
-    },
-  },
-}));
-
-function moveMediaAfterTable(
-  editor: SlateEditor,
-  cellPath: number[],
-  childPath: number[],
-): boolean {
-  const tablePath = cellPath.slice(0, -2);
-  if (tablePath.length !== cellPath.length - 2) {
-    return false;
-  }
-
-  const table = editor.api.node(tablePath);
-  if (!table || !isElementRecord(table[0]) || table[0].type !== KEYS.table) {
-    return false;
-  }
-
-  const destination = PathApi.next(tablePath);
-  if (!destination) {
-    return false;
-  }
-
-  editor.tf.withoutNormalizing(() => {
-    editor.tf.moveNodes({ at: childPath, to: destination, voids: true });
-    const cell = editor.api.node(cellPath);
-    const children =
-      cell && isElementRecord(cell[0]) && Array.isArray(cell[0].children) ? cell[0].children : [];
-    if (children.length === 0) {
-      editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: cellPath.concat(0) });
-    }
-  });
-  return true;
-}
-
-function htmlHasTable(html: string): boolean {
-  return html.toLowerCase().includes("<table");
-}
-
-// The empty top-level paragraph that holds a collapsed caret, when a single table is pasted.
-// A paste into a non-empty block or a table cell returns undefined.
-function emptyParagraphForTablePaste(
-  editor: SlateEditor,
-  fragment: readonly Descendant[],
-): { path: number[]; id: unknown } | undefined {
-  const first = fragment[0];
-  if (fragment.length !== 1 || !ElementApi.isElement(first) || first.type !== KEYS.table) {
-    return undefined;
-  }
-
-  if (!editor.selection || !editor.api.isCollapsed()) {
-    return undefined;
-  }
-
-  const top = editor.selection.anchor.path[0];
-  const block = top === undefined ? undefined : editor.children[top];
-  if (top === undefined || !ElementApi.isElement(block) || block.type !== KEYS.p) {
-    return undefined;
-  }
-
-  if (!block.children.every((child) => TextApi.isText(child) && child.text === "")) {
-    return undefined;
-  }
-
-  return { path: [top], id: block.id };
-}
-
-// Removes the paragraph the table was pasted into, if it is still that empty paragraph and a table follows it.
-function removeEmptyParagraphBeforeTable(
-  editor: SlateEditor,
-  replaced: { path: number[]; id: unknown },
-): void {
-  const entry = editor.api.node(replaced.path);
-  const next = editor.api.node(PathApi.next(replaced.path));
-  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== replaced.id) {
-    return;
-  }
-
-  if (!entry[0].children.every((child) => TextApi.isText(child) && child.text === "")) {
-    return;
-  }
-
-  if (!next || !ElementApi.isElement(next[0]) || next[0].type !== KEYS.table) {
-    return;
-  }
-
-  editor.tf.removeNodes({ at: replaced.path });
-}
-
-// Tab inside a table, including a list item in a cell, belongs to the table.
-// Registered after codeBlock and listKeyboard, so this tab runs first and the
-// previous tab is code, then list. Outside a table, Tab is unchanged.
-// Plate's tab stops on the last cell. Appending a row there is editable only.
-// No insert shortcut. Slash menu and toolbar are DEV-122/125.
-// initialTableWidth stays unset. Column insert still writes a 0 into colSizes
-// when widths already exist; the command rewrites that 0 to null before normalize.
-const tablePlugin = TablePlugin.configure({
-  options: {
-    disableMerge: false,
-  },
-  render: { node: TableElement },
-})
-  .configurePlugin(TableRowPlugin, { render: { node: TableRowElement } })
-  .configurePlugin(TableCellPlugin, { render: { node: TableCellElement } })
-  .configurePlugin(TableCellHeaderPlugin, { render: { node: TableCellElement } })
-  .overrideEditor(
-    ({ editor, tf: { deleteBackward, deleteFragment, insertData, insertFragment, tab } }) => ({
-      transforms: {
-        // withInsertFragmentTable inserts a single table before PasteFallback.
-        // Sanitize here so that path keeps spans, caps the grid, and
-        // omits an id the document already uses.
-        insertFragment(fragment, options) {
-          const prepared = preparePastedFragment(editor, fragment);
-          const replaced = emptyParagraphForTablePaste(editor, prepared);
-          insertFragment(prepared, options);
-          if (replaced !== undefined) {
-            removeEmptyParagraphBeforeTable(editor, replaced);
-          }
-        },
-        tab(options?: { reverse?: boolean }) {
-          // Plate's tab reads options.reverse and throws when options is missing.
-          // The keydown handler always passes { reverse }.
-          // Selecting the next cell expands the range inside that cell, so the
-          // last-cell check uses the cell that contains both ends.
-          const reverse = options?.reverse === true;
-          const cell = selectedCellContext(editor);
-          if (!cell) {
-            return tab({ reverse });
-          }
-
-          const atLastCell =
-            !reverse &&
-            cell.rowIndex + cell.rowSpan - 1 === cell.rowCount - 1 &&
-            cell.columnIndex + cell.colSpan - 1 === cell.columnCount - 1;
-          if (atLastCell) {
-            if (!editor.dom.readOnly && cell.rowCount < tableMaxRows()) {
-              insertTableRow(editor, {
-                select: false,
-                fromRow: cell.tablePath.concat(cell.rowCount - 1),
-              });
-              const start = editor.api.start(cell.tablePath.concat(cell.rowCount, 0));
-              if (start) {
-                editor.tf.select(start);
-              }
-            }
-            return true;
-          }
-
-          return tab({ reverse });
-        },
-        deleteBackward(unit) {
-          const cell = tableCellContext(editor);
-          if (cell && caretAtCellStart(editor, cell.cellPath)) {
-            return;
-          }
-
-          deleteBackward(unit);
-        },
-        deleteFragment(direction) {
-          const tablePath = wholeTableSelection(editor);
-          if (tablePath) {
-            replaceTableWithParagraph(editor, tablePath);
-            return;
-          }
-
-          deleteFragment(direction);
-          if (editor.children.length === 0) {
-            editor.tf.insertNodes(
-              { type: KEYS.p, children: [{ text: "" }] },
-              { at: [0], select: true },
-            );
-          }
-        },
-        insertData(data: DataTransfer) {
-          const html = data.getData("text/html");
-          if (htmlHasTable(html)) {
-            // Plate's data pipe inserts the fragment inside withoutNormalizing.
-            // A table inserted that way is still inside the paragraph when
-            // normalize runs, and the paragraph unwraps the rows. Deserialize,
-            // then insertFragment so the sanitized table is normalized as a block.
-            // Plate's cell parser keeps colspan on attributes and ignores widths.
-            rememberHtmlTableWidths(html);
-            try {
-              const body = new DOMParser().parseFromString(html, "text/html").body;
-              annotatePastedLists(body);
-              // happy-dom hoists a bare <col> out of the table. Widths are already
-              // recorded; leaving the column in the body pastes an empty paragraph.
-              for (const column of Array.from(body.querySelectorAll("col, colgroup"))) {
-                column.remove();
-              }
-              editor.tf.insertFragment(editor.api.html.deserialize({ element: body }));
-            } finally {
-              clearHtmlTableWidths();
-            }
-            return;
-          }
-
-          const filled = fillTableWithTsv(editor, data.getData("text/plain"));
-          if (!filled.handled) {
-            insertData(data);
-            return;
-          }
-
-          setPasteRepairs(
-            editor,
-            filled.truncated ? [{ path: [], message: pastedTableTruncationMessage() }] : [],
-          );
-        },
-      },
-    }),
-  );
-
-// Core skips its node-id plugin when NODE_ENV is "test" and no nodeId option is set.
-// Plate splices NodeIdPlugin out of the plugins array it receives.
-// TablePlugin's api override copies editor.api.onChange back onto editor.onChange
-// after the toggle plugin has wrapped it. Priority 0 runs after those overrides,
-// so a selection in hidden toggle content still opens the toggle.
-const toggleRevealPlugin = createSlatePlugin({
-  key: "toggleReveal",
-  priority: 0,
-}).overrideEditor(({ editor }) => {
-  installToggleOnChange(editor);
-  return { transforms: {} };
-});
+  linkPlatePlugin,
+  inlineEquationPlatePlugin,
+  inlineEquationUiPlatePlugin,
+  inlineDatePlatePlugin,
+  footnoteRefPlatePlugin,
+  footnoteDefPlatePlugin,
+  inlineDateUiPlatePlugin,
+  pageLinkPlatePlugin,
+  mentionPlatePlugin,
+} from "./groups/inline";
+import { tablePlugin } from "./groups/table";
+
+export { configureMarkPlugin } from "./groups/marks";
+export { pastedTodoChecked } from "./groups/lists";
 
 export function createEditorPlugins(): AnyPluginConfig[] {
   registerEmbedPasteAction();
@@ -8833,6 +6889,8 @@ export function createEditorPlugins(): AnyPluginConfig[] {
     editorInputRulesPlugin,
     bookmarkToolbarPlatePlugin,
     mediaUiPlatePlugin,
+    // Last, and it has no handlers, so it cannot change the order of any handler above.
+    editorConfigPlugin,
   ];
 }
 ```
@@ -9193,7 +7251,7 @@ export function openAncestorToggle(editor: SlateEditor): void {
 
 // Selection that lands in hidden content opens that toggle. Slate flushes editor.onChange
 // in a microtask after select, undo, paste, and programmatic selection changes.
-export function revealClosedToggleContent(editor: SlateEditor): void {
+function revealClosedToggleContent(editor: SlateEditor): void {
   const selection = editor.selection;
   if (!selection) {
     return;
@@ -10387,7 +8445,7 @@ function emptyParagraph(text = ""): TElement {
   return { type: KEYS.p, children: [{ text }] };
 }
 
-export function emptyTableCell(header: boolean, text = ""): TElement {
+function emptyTableCell(header: boolean, text = ""): TElement {
   return {
     type: header ? KEYS.th : KEYS.td,
     children: [emptyParagraph(text)],
@@ -10692,7 +8750,7 @@ export function repairTableGrid(node: TElement, repairs: Repair[] | undefined): 
   return elementFromRecord(checked.next) ?? node;
 }
 
-export function tsvGrid(text: string): string[][] | undefined {
+function tsvGrid(text: string): string[][] | undefined {
   if (!text.includes("\t")) {
     return undefined;
   }
@@ -10957,12 +9015,12 @@ export type TableGridIssue = {
   message: string;
 };
 
-export type TableGridLimits = {
+type TableGridLimits = {
   maxRows: number;
   maxColumns: number;
 };
 
-export type TableGridResult = {
+type TableGridResult = {
   issues: TableGridIssue[];
   repairs: TableGridIssue[];
   next?: Record<string, unknown>;
@@ -11669,16 +9727,6 @@ export function rowSliceIsClean(node: Record<string, unknown>, row: number): boo
   );
 }
 
-export function columnSliceIsClean(node: Record<string, unknown>, column: number): boolean {
-  const coverage = tableCoverage(node);
-  return coverage.cells.every(
-    (cell) =>
-      cell.column + cell.colSpan - 1 < column ||
-      cell.column > column ||
-      (cell.column === column && cell.colSpan === 1),
-  );
-}
-
 // One-shot "fit to width". Proportions come from the current widths.
 // A non-positive or non-finite width stands in for a column that has no stored size.
 // When the minimums cannot fit, every column becomes the minimum and the caller scrolls.
@@ -11961,7 +10009,7 @@ function columnCanDuplicate(node: TElement, column: number): boolean {
   });
 }
 
-export function duplicateRowReason(editor: SlateEditor): string | undefined {
+function duplicateRowReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }
@@ -11982,7 +10030,7 @@ export function duplicateRowReason(editor: SlateEditor): string | undefined {
   return undefined;
 }
 
-export function duplicateColumnReason(editor: SlateEditor): string | undefined {
+function duplicateColumnReason(editor: SlateEditor): string | undefined {
   if (editorIsReadOnly(editor)) {
     return undefined;
   }
@@ -13768,8 +11816,10 @@ import {
 import type { EditorCommand } from "../commands/editor-commands";
 import { selectionInCodeBlock } from "../features/editor-code";
 import { clipboardWithinHtmlLimit } from "./editor-paste";
+import { featureEnabled } from "../plugins/editor-config";
+import type { EditorFeature } from "../features/editor-features";
 
-export type PasteUrlOffer = {
+type PasteUrlOffer = {
   url: string;
   raw: string;
   path: number[];
@@ -13780,6 +11830,8 @@ export type PasteUrlOffer = {
 export type PasteUrlAction = {
   id: string;
   label: string;
+  // The feature that makes this action available. Without one, the action is always offered.
+  feature?: EditorFeature;
   match: (url: string) => boolean;
   run: (editor: SlateEditor, offer: PasteUrlOffer) => void;
 };
@@ -13788,6 +11840,14 @@ export type PasteUrlAction = {
 // The menu lists every action whose match accepts the pasted URL.
 // Each run is a later undo step than the paste.
 export const pasteUrlActions: PasteUrlAction[] = [];
+
+// The actions the paste menu offers for a URL: those that accept it, and whose feature is on.
+export function pasteUrlActionsFor(editor: SlateEditor, url: string): PasteUrlAction[] {
+  return pasteUrlActions.filter(
+    (action) =>
+      (action.feature === undefined || featureEnabled(editor, action.feature)) && action.match(url),
+  );
+}
 
 function isEditorOnChange(value: unknown): value is (options?: { operation?: unknown }) => void {
   return typeof value === "function";
@@ -13823,7 +11883,12 @@ export const pasteUrlPlugin = createSlatePlugin({
         const offerUrl = pasteOfferUrl(editor, plain, html);
         insertData(prepared);
         // A selection wrap links the selected words and does not open this menu.
-        if (offerUrl === undefined || !collapsed) {
+        // With no action left to offer, the URL is pasted as plain text, as it is with no menu.
+        if (
+          offerUrl === undefined ||
+          !collapsed ||
+          pasteUrlActionsFor(editor, offerUrl).length === 0
+        ) {
           return;
         }
 
@@ -14458,6 +12523,7 @@ const METADATA_KEYS = ["title", "description", "siteName", "imageUrl"] as const;
 pasteUrlActions.unshift({
   id: "bookmark",
   label: "Bookmark",
+  feature: "embeds",
   match: () => true,
   run: (editor, offer) => {
     const url = normalizeBookmarkUrl(offer.url);
@@ -15102,7 +13168,7 @@ export function insertColumnsBelow(
   });
 }
 
-export function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
+function setColumnCount(editor: SlateEditor, count: 2 | 3): void {
   const group = columnGroupAbove(editor);
   if (!group || group.node.children.length === count) {
     return;
@@ -15213,7 +13279,7 @@ function replaceGroupWithChildren(editor: SlateEditor, groupPath: number[]): voi
   selectPath(editor, groupPath);
 }
 
-export function removeColumnAt(editor: SlateEditor, index: number): void {
+function removeColumnAt(editor: SlateEditor, index: number): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -15244,7 +13310,7 @@ export function removeColumnAt(editor: SlateEditor, index: number): void {
   });
 }
 
-export function unwrapColumns(editor: SlateEditor): void {
+function unwrapColumns(editor: SlateEditor): void {
   const group = columnGroupAbove(editor);
   if (!group) {
     return;
@@ -15274,18 +13340,6 @@ export function setColumnWidths(editor: SlateEditor, widths: readonly number[]):
       editor.tf.setNodes({ width }, { at: group.path.concat(index) });
     });
   });
-}
-
-export function removeColumnGroup(editor: SlateEditor): void {
-  const group = columnGroupAbove(editor);
-  if (!group) {
-    return;
-  }
-
-  editor.tf.removeNodes({ at: group.path });
-  if (editor.children.length === 0) {
-    editor.tf.insertNodes(emptyParagraph(), { at: [0], select: true });
-  }
 }
 
 function columnBlockEntry(
@@ -15320,7 +13374,7 @@ function columnBlockEntry(
   };
 }
 
-export function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
+function moveColumnBlock(editor: SlateEditor, direction: ColumnMove): boolean {
   const located = columnBlockEntry(editor);
   if (!located) {
     return false;
@@ -15939,7 +13993,7 @@ function tocNode(): TElement {
   return { type: KEYS.toc, children: [{ text: "" }] };
 }
 
-export function insertTocBlock(editor: SlateEditor): void {
+function insertTocBlock(editor: SlateEditor): void {
   const current = editor.api.block({ highest: true });
   if (!current) {
     editor.tf.insertNodes(tocNode(), { at: [0], select: true });
@@ -15962,7 +14016,7 @@ export function insertTocBelow(editor: SlateEditor, path: readonly number[]): vo
   editor.tf.insertNodes(tocNode(), { at, select: true });
 }
 
-export function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
+function tocAbove(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === KEYS.toc,
     voids: true,
@@ -16356,7 +14410,7 @@ function equationNode(id: string): TElement {
   };
 }
 
-export function insertEquationBlock(editor: SlateEditor): void {
+function insertEquationBlock(editor: SlateEditor): void {
   const id = nanoid();
   const current = editor.api.block({ highest: true });
   if (!current) {
@@ -16383,25 +14437,6 @@ export function insertEquationBelow(editor: SlateEditor, path: readonly number[]
   editor.tf.insertNodes(equationNode(id), { at, select: true });
   openEquationEditor(editor, id);
   return id;
-}
-
-export function setEquationExpression(
-  editor: SlateEditor,
-  path: number[],
-  expression: string,
-): boolean {
-  const node = editor.api.node(path);
-  if (!node || !ElementApi.isElement(node[0]) || node[0].type !== KEYS.equation) {
-    return false;
-  }
-
-  const current = typeof node[0].texExpression === "string" ? node[0].texExpression : "";
-  if (current === expression) {
-    return false;
-  }
-
-  editor.tf.setNodes({ texExpression: expression }, { at: path });
-  return true;
 }
 
 export function removeEquation(editor: SlateEditor, path: number[]): void {
@@ -16905,7 +14940,7 @@ export function insertInlineEquation(editor: SlateEditor, expression: string): s
   return id;
 }
 
-export type InlineEquationRefusal = "span" | "unavailable";
+type InlineEquationRefusal = "span" | "unavailable";
 
 // Why an inline equation cannot be inserted over the current selection, or undefined when it can.
 export function inlineEquationRefusal(editor: SlateEditor): InlineEquationRefusal | undefined {
@@ -17295,6 +15330,7 @@ import {
   insertInlineEquation,
 } from "../features/editor-inline-equation";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover edits a draft held in these options. The document is written once, on commit.
 // createdUndoDepth is the undo depth before the node was inserted, or -1 when it was not created here.
@@ -17337,15 +15373,6 @@ function resetInlineEquationState(editor: SlateEditor): void {
   editor.setOption(inlineEquationUiPlugin, "original", "");
   editor.setOption(inlineEquationUiPlugin, "created", false);
   editor.setOption(inlineEquationUiPlugin, "createdUndoDepth", -1);
-}
-
-// Drops the popover state without writing the document.
-export function closeInlineEquationEditor(editor: SlateEditor): void {
-  if (inlineEquationEditingId(editor).length === 0) {
-    return;
-  }
-
-  resetInlineEquationState(editor);
 }
 
 export function setInlineEquationDraft(editor: SlateEditor, draft: string): void {
@@ -17526,7 +15553,9 @@ export const toggleInlineEquation: EditorCommand = {
   label: "Equation",
   group: "insert",
   isEnabled: (editor) =>
-    editor.dom.readOnly !== true && inlineEquationRefusal(editor) === undefined,
+    editor.dom.readOnly !== true &&
+    featureEnabled(editor, "equations") &&
+    inlineEquationRefusal(editor) === undefined,
   disabledReason: (editor) => {
     const refusal = inlineEquationRefusal(editor);
     if (refusal === "span") {
@@ -17568,6 +15597,10 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
   }
 
   if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "e") {
+    // With equations off the key is not handled, so the browser keeps its default.
+    if (!featureEnabled(editor, "equations")) {
+      return;
+    }
     event.preventDefault();
     runEditorCommand(editor, toggleInlineEquation, undefined);
     return;
@@ -17604,7 +15637,7 @@ export function onInlineEquationKeyDown(editor: SlateEditor, event: InlineEquati
 // A stored date is a calendar date only: "YYYY-MM-DD", with no time and no zone. Every conversion
 // below reads and writes plain Y-M-D numbers, so no Date is ever parsed from a string.
 
-export type StoredDateParts = { year: number; month: number; day: number };
+type StoredDateParts = { year: number; month: number; day: number };
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -17838,7 +15871,7 @@ export function insertInlineDate(editor: SlateEditor, date: string): string | nu
   return id;
 }
 
-export type InlineDateRefusal = "span" | "unavailable";
+type InlineDateRefusal = "span" | "unavailable";
 
 // Why an inline date cannot be inserted over the current selection, or undefined when it can.
 export function inlineDateRefusal(editor: SlateEditor): InlineDateRefusal | undefined {
@@ -18213,6 +16246,7 @@ import {
 } from "../features/editor-inline-date";
 import { todayStoredDate } from "../features/editor-date-value";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover holds only which chip is open. Every choice writes at once, so there is no draft.
 export const inlineDateUiPlugin = createSlatePlugin({
@@ -18382,7 +16416,7 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
   }
 
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === ";") {
-    if (runEditorCommand(editor, insertTodayDate, undefined)) {
+    if (featureEnabled(editor, "dates") && runEditorCommand(editor, insertTodayDate, undefined)) {
       event.preventDefault();
     }
     return;
@@ -18417,9 +16451,9 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
 ```ts
 // Shared by the editor elements and the static renderer, so both produce the same markup.
 // The reference is a superscript with line-height 0, so it does not grow the line box.
-export const FOOTNOTE_REF_CLASS =
+const FOOTNOTE_REF_CLASS =
   "text-[0.75em] font-medium text-muted-foreground px-0.5 rounded-sm cursor-pointer select-none";
-export const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
+const FOOTNOTE_REF_SELECTED_CLASS = "bg-muted text-foreground";
 
 export function footnoteRefClassName(selected: boolean): string {
   return selected ? `${FOOTNOTE_REF_CLASS} ${FOOTNOTE_REF_SELECTED_CLASS}` : FOOTNOTE_REF_CLASS;
@@ -18530,10 +16564,6 @@ export function selectMissingFootnoteReference(editor: SlateEditor, path: readon
   }
   selectAfterFootnoteReference(editor, [...path]);
   editor.tf.focus();
-}
-
-export function scrollReferenceIntoView(editor: SlateEditor, path: readonly number[]): void {
-  scrollPathIntoView(editor, path);
 }
 
 type FootnoteKeyEvent = {
@@ -18674,16 +16704,16 @@ import { FOOTNOTE_DEF_KEY, FOOTNOTE_REF_KEY } from "../document/editor-document-
 import type { EditorValue } from "../document/editor-value";
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 
-export const FOOTNOTE_NESTED_MESSAGE =
+const FOOTNOTE_NESTED_MESSAGE =
   "A footnote definition outside the top level was turned into a paragraph.";
-export const FOOTNOTE_INVALID_ID_MESSAGE =
+const FOOTNOTE_INVALID_ID_MESSAGE =
   "A footnote definition had an invalid footnote id. It was turned into a paragraph.";
-export const FOOTNOTE_DUPLICATE_MESSAGE =
+const FOOTNOTE_DUPLICATE_MESSAGE =
   "A footnote definition reused a footnote id. A new id was assigned so each definition stays unique.";
-export const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
+const FOOTNOTE_REFERENCE_REMOVED_MESSAGE =
   "A footnote reference inside a footnote definition was removed.";
 
-export type FootnoteRepairResult = {
+type FootnoteRepairResult = {
   content: EditorValue;
   repairs: Repair[];
 };
@@ -18956,6 +16986,7 @@ import {
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
 import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
+import { featureEnabled } from "../plugins/editor-config";
 
 export {
   footnoteIndex,
@@ -19024,7 +17055,7 @@ export function footnoteDefinitionNode(footnoteId: string, id?: string): TElemen
 }
 
 // A reference sits where an inline date sits: not in a link, a void, a code line, or a definition.
-export function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
+function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
   const block = editor.api.block({ at: point });
   if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
     return false;
@@ -19152,6 +17183,9 @@ export const footnoteRefPlugin = createSlatePlugin({
 }));
 
 export function footnoteInsertAllowed(editor: SlateEditor): boolean {
+  if (!featureEnabled(editor, "footnotes")) {
+    return false;
+  }
   const selection = editor.selection;
   return selection !== null && footnoteReferenceAllowedAt(editor, RangeApi.end(selection));
 }
@@ -19161,7 +17195,7 @@ export function footnoteInsertAllowed(editor: SlateEditor): boolean {
 // Top-level index for a new definition with this number. It goes into the trailing run of
 // definitions, before the first one with a larger number or with no reference. With no such
 // run, or no such position, it goes last. Existing definitions are never moved.
-export function definitionInsertIndex(editor: SlateEditor, number: number): number {
+function definitionInsertIndex(editor: SlateEditor, number: number): number {
   const children = editor.children;
   const isDefinition = (node: Descendant | undefined): boolean =>
     node !== undefined && ElementApi.isElement(node) && node.type === FOOTNOTE_DEF_KEY;
@@ -19274,7 +17308,7 @@ function footnoteDefinitionBlock(editor: SlateEditor): [TElement, number[]] | un
 // splitNodes, not insertBreak: at offset 0 Plate's break inserts an empty block above and would
 // turn the definition itself into a paragraph. Both halves change in one batch, so normalize
 // never sees two definitions with one id.
-export function breakFootnoteDefinition(editor: SlateEditor): boolean {
+function breakFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed()) {
     return false;
@@ -19294,7 +17328,7 @@ export function breakFootnoteDefinition(editor: SlateEditor): boolean {
 }
 
 // Backspace at the start keeps the text. The definition becomes a paragraph and nothing merges.
-export function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
+function backspaceFootnoteDefinition(editor: SlateEditor): boolean {
   const entry = footnoteDefinitionBlock(editor);
   if (entry === undefined || !editor.api.isCollapsed() || !editor.api.isAt({ start: true })) {
     return false;
@@ -19322,11 +17356,7 @@ function footnoteReferencePaths(editor: SlateEditor, path: number[]): number[][]
 
 // Live rules for a definition that the editor creates or moves. Each rule makes one change and
 // returns true, so Slate normalizes again. Every path ends as a valid block, so the loop stops.
-export function normalizeFootnoteDefinition(
-  editor: SlateEditor,
-  node: TElement,
-  path: number[],
-): boolean {
+function normalizeFootnoteDefinition(editor: SlateEditor, node: TElement, path: number[]): boolean {
   if (node.type !== FOOTNOTE_DEF_KEY) {
     return false;
   }
@@ -19664,7 +17694,7 @@ export const SYNCED_FROM_ABOVE = "Synced from above";
 export const SYNCED_FROM_BELOW = "Synced from below";
 export const SYNCED_INVALID_PLACEHOLDER = "Invalid reference";
 export const SYNCED_MISSING_PLACEHOLDER = "The original block was deleted.";
-export const SYNCED_CREATE_LABEL = "Create synced copy";
+const SYNCED_CREATE_LABEL = "Create synced copy";
 export const SYNCED_GO_LABEL = "Go to original";
 export const SYNCED_CONVERT_LABEL = "Convert to copy";
 export const SYNCED_REMOVE_LABEL = "Delete";
@@ -19859,7 +17889,7 @@ function isSyncableBlock(node: TElement): boolean {
   return syncedTargetStatus(node, id) === "live";
 }
 
-export function createSyncedRefReason(editor: SlateEditor): string | undefined {
+function createSyncedRefReason(editor: SlateEditor): string | undefined {
   const current = editor.api.block({ highest: true });
   if (!current || !ElementApi.isElement(current[0]) || elementId(current[0]) === undefined) {
     return SYNCED_SELECT_REASON;
@@ -19881,7 +17911,7 @@ function syncedRefNode(id: string, targetBlockId: string): TElement {
   };
 }
 
-export function insertSyncedRef(editor: SlateEditor): boolean {
+function insertSyncedRef(editor: SlateEditor): boolean {
   if (!isEditable(editor) || createSyncedRefReason(editor) !== undefined) {
     return false;
   }
@@ -20603,7 +18633,7 @@ const LEADING_PUNCTUATION = new Set(["(", '"', "'", "\u201c", "\u2018"]);
 const savedSelections = new WeakMap<SlateEditor, TRange>();
 const hoverCloseTimers = new WeakMap<SlateEditor, ReturnType<typeof setTimeout>>();
 
-export const LINK_HOVER_CLOSE_MS = 200;
+const LINK_HOVER_CLOSE_MS = 200;
 
 export function linkAnchorRange(editor: SlateEditor): TRange | null {
   return savedSelections.get(editor) ?? editor.selection;
@@ -20910,7 +18940,7 @@ export function setLinkHover(editor: SlateEditor, id: string): void {
   editor.setOption(linkUiPlugin, "hoverId", id);
 }
 
-export function openLinkUrl(url: string): void {
+function openLinkUrl(url: string): void {
   const safe = sanitizeLinkUrl(url);
   if (safe === undefined || typeof window === "undefined") {
     return;
@@ -21978,6 +20008,7 @@ import {
   type MentionEntity,
   type MentionProvider,
 } from "../features/editor-mention-node";
+import { featureEnabled } from "./editor-config";
 
 export const MENTION_SEARCH_DEBOUNCE_MS = 150;
 export const MENTION_EMPTY_LABEL = "No people found";
@@ -21987,7 +20018,7 @@ export const MENTION_UNKNOWN_LABEL = "Unknown person";
 
 export type { MentionEntity, MentionProvider };
 
-export type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
+type MentionSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
 
 type MentionSearchClock = {
   setTimeout: (callback: () => void, delayMs: number) => unknown;
@@ -22167,8 +20198,12 @@ function caretHasCodeMark(editor: SlateEditor): boolean {
   return marks !== null && Reflect.get(marks, KEYS.code) === true;
 }
 
-export function mentionTriggerAllowed(editor: SlateEditor): boolean {
-  if (editor.dom.readOnly === true || editorIsComposing(editor)) {
+function mentionTriggerAllowed(editor: SlateEditor): boolean {
+  if (
+    editor.dom.readOnly === true ||
+    editorIsComposing(editor) ||
+    !featureEnabled(editor, "mentions")
+  ) {
     return false;
   }
 
@@ -22886,7 +20921,7 @@ import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   applyPasteUrlAction,
   clearPasteUrlOffer,
-  pasteUrlActions,
+  pasteUrlActionsFor,
   pasteUrlPlugin,
 } from "../../lib/paste/editor-paste-url";
 
@@ -22894,8 +20929,7 @@ export function PasteUrlMenu() {
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
   const offer = usePluginOption(pasteUrlPlugin, "offer");
-  const actions =
-    offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+  const actions = offer === undefined ? [] : pasteUrlActionsFor(editor, offer.url);
   const virtualRef = virtualAnchor(
     () => rangeRect(pasteDomRange(editor)),
     () => anchorContext(rangeContextElement(pasteDomRange(editor))),
@@ -23135,6 +21169,7 @@ import { editorIsComposing } from "../plugins/editor-mention";
 import { selectionInCodeBlock } from "./editor-code";
 import { blockTextOffset } from "./editor-slash";
 import type { EmojiEntry } from "./emoji-data";
+import { featureEnabled } from "../plugins/editor-config";
 
 export const EMOJI_SUGGEST_LIMIT = 8;
 
@@ -23142,7 +21177,7 @@ export const EMOJI_SUGGEST_LIMIT = 8;
 const TRIGGER_PATTERN = /(^|\s):([a-z0-9_+-]{2,})$/i;
 const CLOSING_PATTERN = /(^|\s):([a-z0-9_+-]{2,}):$/i;
 
-export type EmojiSession = {
+type EmojiSession = {
   blockId: string;
   blockPath: number[];
   // Block text offsets of the colon and of the caret. The token is the text between them, without the colon.
@@ -23240,7 +21275,9 @@ function readEmojiBlock(
   ) {
     return null;
   }
-  const block = editor.api.block();
+  // The lowest block above the caret, read from its ancestors. `api.block()` would walk
+  // the document from its root to the caret.
+  const block = editor.api.above({ block: true });
   if (!block || !ElementApi.isElement(block[0]) || typeof block[0].id !== "string") {
     return null;
   }
@@ -23260,6 +21297,9 @@ function readEmojiBlock(
 }
 
 export function readEmojiSession(editor: SlateEditor): EmojiSession | null {
+  if (!featureEnabled(editor, "emoji")) {
+    return null;
+  }
   const block = readEmojiBlock(editor);
   if (block === null) {
     return null;
@@ -23662,6 +21702,7 @@ import {
 import type { EmojiEntry } from "../features/emoji-data";
 import { pointAtBlockOffset } from "../features/editor-slash";
 import { slashMenuOpen } from "./editor-slash";
+import { featureEnabled } from "./editor-config";
 
 // Below the slash menu (2000), so an open slash menu handles its keys first.
 // Above the list, table and indent handlers (0), so Tab chooses an emoji instead of indenting.
@@ -23732,7 +21773,7 @@ export function emojiMenuItems(editor: SlateEditor): EmojiEntry[] {
   return searchEmoji(entries, session.token, EMOJI_SUGGEST_LIMIT);
 }
 
-export function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
+function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
   const count = emojiMenuItems(editor).length;
   if (count === 0) {
     return;
@@ -23764,7 +21805,7 @@ function setEmojiQuery(editor: SlateEditor, query: string): void {
   }
 }
 
-export function syncEmojiMenu(editor: SlateEditor): void {
+function syncEmojiMenu(editor: SlateEditor): void {
   const session = slashMenuOpen(editor) ? null : readEmojiSession(editor);
   setEmojiQuery(editor, session?.token ?? "");
   if (session === null) {
@@ -23833,7 +21874,7 @@ export function chooseEmojiSuggestion(editor: SlateEditor, emoji: string): void 
 }
 
 function convertClosingEmoji(editor: SlateEditor): void {
-  if (slashMenuOpen(editor)) {
+  if (slashMenuOpen(editor) || !featureEnabled(editor, "emoji")) {
     return;
   }
   const entries = loadedEmojiEntries();
@@ -23966,8 +22007,8 @@ import { VIDEO_KEY } from "./editor-video";
 import { PAGE_LINK_KEY } from "./editor-page-link";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_HANDLE_GAP = 8;
-export const BLOCK_HANDLE_PAD = 8;
+export const BLOCK_HANDLE_GAP = 12;
+const BLOCK_HANDLE_PAD = 8;
 export const BLOCK_HANDLE_WIDTH = 42;
 export const BLOCK_HANDLE_HEIGHT = 24;
 
@@ -24088,7 +22129,7 @@ export type HandleChainNode = {
   parentType: string | null;
 };
 
-export type BlockHandleTarget = {
+type BlockHandleTarget = {
   id: string;
   type: string;
 };
@@ -24301,11 +22342,29 @@ export const BLOCK_HANDLE_CENTER_MAX = 48;
 // the handle at its top.
 export const BLOCK_HANDLE_ANCHOR_CENTER_MAX = 64;
 
+// The three placement values. The defaults are the constants above, so a caller
+// that passes nothing gets the same placement.
+export type BlockHandleOptions = {
+  gap: number;
+  centerMax: number;
+  anchorCenterMax: number;
+};
+
+const BLOCK_HANDLE_DEFAULT_OPTIONS: BlockHandleOptions = {
+  gap: BLOCK_HANDLE_GAP,
+  centerMax: BLOCK_HANDLE_CENTER_MAX,
+  anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+};
+
 // Handle top for a block, given the handle's measured height. A "center" anchor
 // (the divider rule) centres the handle on the rule. A marked anchor is centred
-// up to BLOCK_HANDLE_ANCHOR_CENTER_MAX, else the handle goes to its top. With no
-// anchor, the block is centred up to BLOCK_HANDLE_CENTER_MAX, else on its first line.
-export function blockHandleContentTop(block: HTMLElement, handleHeight: number): number {
+// up to options.anchorCenterMax, else the handle goes to its top. With no
+// anchor, the block is centred up to options.centerMax, else on its first line.
+export function blockHandleContentTop(
+  block: HTMLElement,
+  handleHeight: number,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
+): number {
   let anchorRect: DOMRect | null = null;
   const anchor = block.querySelector(`[${BLOCK_HANDLE_ANCHOR}]`);
   if (anchor instanceof HTMLElement) {
@@ -24319,13 +22378,13 @@ export function blockHandleContentTop(block: HTMLElement, handleHeight: number):
   }
 
   if (anchorRect) {
-    if (anchorRect.height <= BLOCK_HANDLE_ANCHOR_CENTER_MAX) {
+    if (anchorRect.height <= options.anchorCenterMax) {
       return anchorRect.top + (anchorRect.height - handleHeight) / 2;
     }
     return anchorRect.top;
   }
   const blockRect = block.getBoundingClientRect();
-  if (blockRect.height <= BLOCK_HANDLE_CENTER_MAX) {
+  if (blockRect.height <= options.centerMax) {
     return blockRect.top + (blockRect.height - handleHeight) / 2;
   }
   return firstLineTop(block, handleHeight);
@@ -24348,7 +22407,7 @@ function firstLineTop(block: HTMLElement, handleHeight: number): number {
 // The target block's box, in viewport coordinates. `blockTop` is the handle's
 // top (the visible content); `blockLeft` is the horizontal anchor (the gutter
 // anchor for a nested block). `blockBottom` is only used for the visibility test.
-export type HandleBlockBox = {
+type HandleBlockBox = {
   blockTop: number;
   blockBottom: number;
   blockLeft: number;
@@ -24361,31 +22420,32 @@ export type HandleFrame = {
   left: number;
 };
 
-export type HandleViewport = {
+type HandleViewport = {
   width: number;
   height: number;
 };
 
-export type HandleSize = {
+type HandleSize = {
   width: number;
   height: number;
 };
 
-export type PlacedHandle = {
+type PlacedHandle = {
   top: number;
   left: number;
 };
 
 // Handle top = `blockTop`, the content top from blockHandleContentTop. The handle
-// is placed in the gutter: `BLOCK_HANDLE_GAP` before the block's left edge.
+// is placed in the gutter: `options.gap` before the block's left edge.
 export function placeBlockHandle(
   block: HandleBlockBox,
   handle: HandleSize,
   viewport: HandleViewport,
   frame: HandleFrame | null,
+  options: BlockHandleOptions = BLOCK_HANDLE_DEFAULT_OPTIONS,
 ): PlacedHandle | null {
   const top = block.blockTop;
-  const left = block.blockLeft - BLOCK_HANDLE_GAP - handle.width;
+  const left = block.blockLeft - options.gap - handle.width;
   const right = left + handle.width;
   const bottom = top + handle.height;
 
@@ -24432,7 +22492,7 @@ export type HandleUiState = {
   hoverNone: boolean;
 };
 
-export type HandleUiEvent =
+type HandleUiEvent =
   | { type: "pointer-move"; id: string | null; engagedId: string | null; outside?: boolean }
   | { type: "caret"; id: string | null }
   | { type: "typing"; typing: boolean }
@@ -24610,10 +22670,10 @@ export const BLOCK_MENU_TURNS: readonly {
   { kind: "code", label: "Code", commandId: "block.turn-into.code-block" },
 ];
 
-export type TurnEffect =
+type TurnEffect =
   "same" | "retype-leaf" | "wrap" | "retype-container" | "lift" | "to-code" | "from-code";
 
-export type TurnDecision = {
+type TurnDecision = {
   kind: BlockMenuKind;
   label: string;
   commandId: string;
@@ -24622,7 +22682,7 @@ export type TurnDecision = {
   effect: TurnEffect;
 };
 
-export type MenuChildView = {
+type MenuChildView = {
   type: string;
   listStyleType?: string;
   rich: boolean;
@@ -24731,7 +22791,7 @@ export function currentBlockMenuKind(view: MenuBlockView): BlockMenuKind | null 
   return currentKind(view);
 }
 
-export type ColumnGroupMenu = {
+type ColumnGroupMenu = {
   count: 2 | 3;
 };
 
@@ -25772,7 +23832,7 @@ import { targetBlockAtPath } from "./editor-block-handle";
 import { blockPlacementRefusal } from "./editor-block-menu";
 import { SYNCED_REF_KEY, findBlockById } from "./editor-synced-block";
 
-export const BLOCK_DRAG_THRESHOLD_PX = 4;
+const BLOCK_DRAG_THRESHOLD_PX = 4;
 
 export const MOVE_ALREADY_FIRST = "This block is already first.";
 export const MOVE_ALREADY_LAST = "This block is already last.";
@@ -25782,14 +23842,14 @@ const TOGGLE_NESTING = "Toggles can only nest three levels deep.";
 
 const UNMOVABLE = new Set<string>([KEYS.td, KEYS.th, KEYS.tr, KEYS.column, KEYS.codeLine]);
 
-export type BlockDropDecision = {
+type BlockDropDecision = {
   allowed: boolean;
   noop: boolean;
   reason?: string;
   unit: readonly [number, number];
 };
 
-export type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
+type SiblingMove = { ok: true; to: number[] } | { ok: false; reason: string };
 
 // A rendered block box, cached at drag start. Falling back to these means the
 // slot comes from the pointer's vertical position, not from a hit-test, so a
@@ -25804,7 +23864,7 @@ export type DropRect = {
 
 // The normal vertical gap between blocks (Tailwind space-y-4). A line before the
 // first or after the last block sits half a gap outside.
-export const BLOCK_GAP_PX = 16;
+const BLOCK_GAP_PX = 16;
 
 export type DropIndicator = {
   top: number;
@@ -26509,7 +24569,7 @@ import {
 export { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockSelectionActive, blockSelectionIds } from "../plugins/editor-block-selection";
 
-export type BlockTonePayload = {
+type BlockTonePayload = {
   ids: readonly string[];
   kind: BlockToneKind;
   token: PaletteToken | null;
@@ -26802,7 +24862,7 @@ export const BLOCK_INDENT_TYPES: readonly string[] = [
 
 export const BLOCK_INDENT_MAX = 6;
 
-export const BLOCK_INDENT_STEP_PX = 24;
+const BLOCK_INDENT_STEP_PX = 24;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -26862,1512 +24922,104 @@ export function listIndentInjects({ nodeProps }: { nodeProps: { element?: unknow
 
 ## packages/core/src/components/blocks/notion-like-editor/lib/commands/editor-commands.ts
 ```ts
-import { setAlign, setLineHeight as setPlateLineHeight } from "@platejs/basic-styles";
-import { unwrapCodeBlock } from "@platejs/code-block";
-import { ListStyleType, toggleList } from "@platejs/list";
-import {
-  ElementApi,
-  KEYS,
-  NodeApi,
-  PathApi,
-  RangeApi,
-  TextApi,
-  nanoid,
-  type SlateEditor,
-  type TElement,
-  type TRange,
-  type TText,
-} from "platejs";
-
-import { blockIndentOf } from "../features/editor-block-indent-style";
-import {
-  applyBlockTurn,
-  deleteBlockAt,
-  duplicateBlockAt,
-  type BlockMenuKind,
-} from "../features/editor-block-menu";
-import {
-  blockMoveDirection,
-  blockMoveTarget,
-  captureEditorScroll,
-  moveBlockAt,
-  settleMovedBlock,
-  siblingMove,
-} from "../features/editor-block-drop";
-import { openAncestorToggle } from "../plugins/editor-toggle";
-import { footnoteDefinitionIdAt, removeFootnote } from "../features/editor-footnote";
-import {
-  CALLOUT_ICONS,
-  CALLOUT_TONES,
-  CLEARABLE_MARK_KEYS,
-  FONT_FAMILIES,
-  FONT_SIZES,
-  HIGHLIGHT_TOKENS,
-  LINE_HEIGHTS,
-  LIST_NUMBER_RANGE,
-  CODE_LANGS,
-  TEXT_ALIGNS,
-  TEXT_COLOR_TOKENS,
-  allowedChildTypes,
-  allowedElementAttrs,
-  allowsFirstChild,
-  isAllowedValue,
-  isWithinAttrRange,
-  reportedFirstChild,
-  reportedFirstChildNames,
-  reportsContainer,
-  reportsParentFromFirstChild,
-  type CodeLang,
-  type FontFamily,
-  type FontSize,
-  type HighlightToken,
-  type LineHeight,
-  type ListStyle,
-  type TextAlign,
-  type TextColorToken,
-} from "../document/editor-document-schema";
-
-export type EditorCommandGroup = "insert" | "turn-into" | "format" | "action";
-
-export type EditorCommand<Payload = void> = {
-  id: string;
-  label: string;
-  group: EditorCommandGroup;
-  isEnabled?: (editor: SlateEditor) => boolean;
-  /** Shown when the command cannot run. Absent means the control stays quiet. */
-  disabledReason?: (editor: SlateEditor) => string | undefined;
-  getState?: (editor: SlateEditor) => "on" | "off" | "mixed";
-  /** Returning false refuses the command: no change, and runEditorCommand returns false. */
-  run: (editor: SlateEditor, payload: Payload) => void | boolean;
-};
-
-export type RunEditorCommandOptions = {
-  selection?: TRange;
-  readOnly?: boolean;
-};
-
-type MarkState = "on" | "off" | "mixed";
-
-function hasHistory(editor: SlateEditor, stack: "undos" | "redos"): boolean {
-  return editor.history[stack].length > 0;
-}
-
-function textHasMark(node: TText, key: string): boolean {
-  return node[key] === true;
-}
-
-function markState(editor: SlateEditor, key: string): MarkState {
-  const selection = editor.selection;
-  if (!selection) {
-    return "off";
-  }
-
-  if (RangeApi.isCollapsed(selection)) {
-    const marks = editor.api.marks();
-    return marks?.[key] === true ? "on" : "off";
-  }
-
-  let sawMarked = false;
-  let sawPlain = false;
-  for (const [node] of editor.api.nodes({
-    at: selection,
-    match: (candidate) => TextApi.isText(candidate),
-  })) {
-    if (!TextApi.isText(node)) {
-      continue;
-    }
-
-    if (textHasMark(node, key)) {
-      sawMarked = true;
-    } else {
-      sawPlain = true;
-    }
-  }
-
-  if (sawMarked && sawPlain) {
-    return "mixed";
-  }
-
-  return sawMarked ? "on" : "off";
-}
-
-export function createMarkCommand(options: {
-  key: string;
-  label: string;
-  excludes?: readonly string[];
-}): EditorCommand {
-  const { key, label, excludes } = options;
-  const state = (editor: SlateEditor): MarkState => markState(editor, key);
-
-  return {
-    id: `format.${key}`,
-    label,
-    group: "format",
-    getState: state,
-    run: (editor) => {
-      if (state(editor) === "on") {
-        editor.tf.removeMark(key);
-        return;
-      }
-
-      // Plate's toggleMark applies `remove` only while adding the mark.
-      if (excludes !== undefined && excludes.length > 0) {
-        editor.tf.withoutNormalizing(() => {
-          editor.tf.removeMarks([...excludes]);
-          editor.tf.addMark(key, true);
-        });
-        return;
-      }
-
-      editor.tf.addMark(key, true);
-    },
-  };
-}
-
-export const formatBold: EditorCommand = createMarkCommand({
-  key: KEYS.bold,
-  label: "Bold",
-});
-
-export const formatItalic: EditorCommand = createMarkCommand({
-  key: KEYS.italic,
-  label: "Italic",
-});
-
-export const formatUnderline: EditorCommand = createMarkCommand({
-  key: KEYS.underline,
-  label: "Underline",
-});
-
-export const formatStrikethrough: EditorCommand = createMarkCommand({
-  key: KEYS.strikethrough,
-  label: "Strikethrough",
-});
-
-export const formatCode: EditorCommand = createMarkCommand({
-  key: KEYS.code,
-  label: "Inline code",
-  excludes: [KEYS.kbd],
-});
-
-export const formatSuperscript: EditorCommand = createMarkCommand({
-  key: KEYS.sup,
-  label: "Superscript",
-  excludes: [KEYS.sub],
-});
-
-export const formatSubscript: EditorCommand = createMarkCommand({
-  key: KEYS.sub,
-  label: "Subscript",
-  excludes: [KEYS.sup],
-});
-
-// Formatting only. Inline code and kbd exclude each other, so turning either on clears the other.
-export const formatKeyboard: EditorCommand = createMarkCommand({
-  key: KEYS.kbd,
-  label: "Keyboard",
-  excludes: [KEYS.code],
-});
-
-export type TextColorState = TextColorToken | null | "mixed";
-export type HighlightState = HighlightToken | null | "mixed";
-
-export function getValueMark<T extends string>(
-  editor: SlateEditor,
-  key: string,
-  values: readonly T[],
-): T | null | "mixed" {
-  const selection = editor.selection;
-  if (!selection) {
-    return null;
-  }
-
-  if (RangeApi.isCollapsed(selection)) {
-    const value = editor.api.marks()?.[key];
-    return isAllowedValue(value, values) ? value : null;
-  }
-
-  let token: T | null = null;
-  let sawPlain = false;
-
-  for (const [node] of editor.api.nodes({
-    at: selection,
-    match: (candidate) => TextApi.isText(candidate),
-  })) {
-    if (!TextApi.isText(node) || node.text.length === 0) {
-      continue;
-    }
-
-    const value = node[key];
-    if (!isAllowedValue(value, values)) {
-      sawPlain = true;
-      continue;
-    }
-
-    if (token === null) {
-      token = value;
-      continue;
-    }
-
-    if (token !== value) {
-      return "mixed";
-    }
-  }
-
-  if (token !== null && sawPlain) {
-    return "mixed";
-  }
-
-  return token;
-}
-
-export function createValueMarkCommand<T extends string>(options: {
-  key: string;
-  label: string;
-  id: string;
-  values: readonly T[];
-}): EditorCommand<T | null> {
-  const { key, label, id, values } = options;
-
-  return {
-    id,
-    label,
-    group: "format",
-    run: (editor, value) => {
-      if (value === null) {
-        editor.tf.removeMark(key);
-        return;
-      }
-
-      if (!isAllowedValue(value, values)) {
-        return;
-      }
-
-      editor.tf.addMark(key, value);
-    },
-  };
-}
-
-export function getTextColor(editor: SlateEditor): TextColorState {
-  return getValueMark(editor, KEYS.color, TEXT_COLOR_TOKENS);
-}
-
-export const setTextColor: EditorCommand<TextColorToken | null> = createValueMarkCommand({
-  key: KEYS.color,
-  label: "Text color",
-  id: "format.text-color",
-  values: TEXT_COLOR_TOKENS,
-});
-
-export function getHighlight(editor: SlateEditor): HighlightState {
-  return getValueMark(editor, KEYS.backgroundColor, HIGHLIGHT_TOKENS);
-}
-
-export const setHighlight: EditorCommand<HighlightToken | null> = createValueMarkCommand({
-  key: KEYS.backgroundColor,
-  label: "Highlight",
-  id: "format.highlight",
-  values: HIGHLIGHT_TOKENS,
-});
-
-export type FontSizeState = FontSize | null | "mixed";
-
-export function getFontSize(editor: SlateEditor): FontSizeState {
-  return getValueMark(editor, KEYS.fontSize, FONT_SIZES);
-}
-
-export const setFontSize: EditorCommand<FontSize | null> = createValueMarkCommand({
-  key: KEYS.fontSize,
-  label: "Font size",
-  id: "format.font-size",
-  values: FONT_SIZES,
-});
-
-export type FontFamilyState = FontFamily | null | "mixed";
-
-export function getFontFamily(editor: SlateEditor): FontFamilyState {
-  return getValueMark(editor, KEYS.fontFamily, FONT_FAMILIES);
-}
-
-export const setFontFamily: EditorCommand<FontFamily | null> = createValueMarkCommand({
-  key: KEYS.fontFamily,
-  label: "Font family",
-  id: "format.font-family",
-  values: FONT_FAMILIES,
-});
-
-export type TextAlignState = TextAlign | null | "mixed";
-export type LineHeightState = LineHeight | null | "mixed";
-
-// setAlign unsets `align` when the value matches Plate's defaultNodeValue.
-const PLATE_DEFAULT_ALIGN = "start";
-// Plate ships defaultNodeValue 1.5, which is one of the presets. 0 is outside
-// that list, so setLineHeight(editor, 0) removes the attribute and 1.5 is stored.
-const PLATE_DEFAULT_LINE_HEIGHT = 0;
-
-function isSupportedBlock(
-  node: unknown,
-  key: string,
-): node is { type: string; children: unknown[] } & Record<string, unknown> {
-  return (
-    typeof node === "object" &&
-    node !== null &&
-    "type" in node &&
-    typeof node.type === "string" &&
-    allowedElementAttrs(node.type)?.has(key) === true &&
-    "children" in node &&
-    Array.isArray(node.children)
-  );
-}
-
-export function getBlockAttr<T extends string | number>(
-  editor: SlateEditor,
-  key: string,
-  values: readonly T[],
-): T | null | "mixed" {
-  const selection = editor.selection;
-  if (!selection) {
-    return null;
-  }
-
-  let token: T | null = null;
-  let sawDefault = false;
-  let sawBlock = false;
-
-  for (const [node] of editor.api.nodes({
-    at: selection,
-    match: (candidate) => isSupportedBlock(candidate, key),
-  })) {
-    if (!isSupportedBlock(node, key)) {
-      continue;
-    }
-
-    sawBlock = true;
-    const value = isAllowedValue(node[key], values) ? node[key] : null;
-    if (value === null) {
-      sawDefault = true;
-      continue;
-    }
-
-    if (token === null) {
-      token = value;
-      continue;
-    }
-
-    if (token !== value) {
-      return "mixed";
-    }
-  }
-
-  if (!sawBlock) {
-    return null;
-  }
-
-  if (token !== null && sawDefault) {
-    return "mixed";
-  }
-
-  return token;
-}
-
-export function createBlockAttrCommand<T extends string | number>(options: {
-  key: string;
-  label: string;
-  id: string;
-  values: readonly T[];
-  apply: (editor: SlateEditor, value: T | null) => void;
-}): EditorCommand<T | null> {
-  const { label, id, values, apply } = options;
-
-  return {
-    id,
-    label,
-    group: "format",
-    run: (editor, value) => {
-      if (value === null) {
-        apply(editor, null);
-        return;
-      }
-
-      if (!isAllowedValue(value, values)) {
-        return;
-      }
-
-      apply(editor, value);
-    },
-  };
-}
-
-export function getTextAlign(editor: SlateEditor): TextAlignState {
-  return getBlockAttr(editor, "align", TEXT_ALIGNS);
-}
-
-export const setTextAlign: EditorCommand<TextAlign | null> = createBlockAttrCommand({
-  key: "align",
-  label: "Text align",
-  id: "format.align",
-  values: TEXT_ALIGNS,
-  apply: (editor, value) => {
-    setAlign(editor, value === null ? PLATE_DEFAULT_ALIGN : value);
-  },
-});
-
-export function getLineHeight(editor: SlateEditor): LineHeightState {
-  return getBlockAttr(editor, "lineHeight", LINE_HEIGHTS);
-}
-
-export const setLineHeight: EditorCommand<LineHeight | null> = createBlockAttrCommand({
-  key: "lineHeight",
-  label: "Line height",
-  id: "format.line-height",
-  values: LINE_HEIGHTS,
-  apply: (editor, value) => {
-    setPlateLineHeight(editor, value === null ? PLATE_DEFAULT_LINE_HEIGHT : value);
-  },
-});
-
-function isSetMark(value: unknown): boolean {
-  return value !== undefined && value !== null && value !== false && value !== "";
-}
-
-function hasClearableMark(marks: object): boolean {
-  return CLEARABLE_MARK_KEYS.some((key) => key in marks && isSetMark(Reflect.get(marks, key)));
-}
-
-// An expanded selection's marks() result is only the first leaf.
-function selectionHasClearableMark(editor: SlateEditor): boolean {
-  const selection = editor.selection;
-  if (!selection) {
-    return false;
-  }
-
-  if (RangeApi.isCollapsed(selection)) {
-    const marks = editor.api.marks();
-    return marks !== null && hasClearableMark(marks);
-  }
-
-  for (const [node] of editor.api.nodes({
-    at: selection,
-    match: (candidate) => TextApi.isText(candidate),
-  })) {
-    if (TextApi.isText(node) && hasClearableMark(node)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-export const BULLETED_LIST_TYPE = "bulleted-list";
-export const NUMBERED_LIST_TYPE = "numbered-list";
-export const TODO_LIST_TYPE = "todo-list";
-
-const LIST_BLOCK_TYPE = {
-  disc: BULLETED_LIST_TYPE,
-  decimal: NUMBERED_LIST_TYPE,
-  todo: TODO_LIST_TYPE,
-} as const;
-
-function isReportedListStyle(style: string): style is keyof typeof LIST_BLOCK_TYPE {
-  return Object.hasOwn(LIST_BLOCK_TYPE, style);
-}
-
-function reportedBlockType(node: TElement): string {
-  const style = node.listStyleType;
-  if (node.type === KEYS.p && typeof style === "string" && isReportedListStyle(style)) {
-    return LIST_BLOCK_TYPE[style];
-  }
-
-  return node.type;
-}
-
-// A plain paragraph whose parent lists that paragraph in childTypes reports the parent.
-// A list item keeps its list type. Lowest blocks only, so the container is not visited too.
-export function containerParentType(
-  editor: SlateEditor,
-  node: { type: string; listStyleType?: unknown },
-  path: number[],
-): string | undefined {
-  if (node.type !== KEYS.p || typeof node.listStyleType === "string") {
-    return undefined;
-  }
-
-  const parent = editor.api.parent(path);
-  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
-    return undefined;
-  }
-
-  const childTypes = allowedChildTypes(parent[0].type);
-  if (childTypes === undefined || !childTypes.some((type) => type === node.type)) {
-    return undefined;
-  }
-
-  return parent[0].type;
-}
-
-function reportedLabelBlockType(
-  editor: SlateEditor,
-  node: TElement,
-  path: number[],
-): string | undefined {
-  if (path[path.length - 1] !== 0 || typeof node.type !== "string") {
-    return undefined;
-  }
-
-  const parent = editor.api.parent(path);
-  if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
-    return undefined;
-  }
-
-  return reportedFirstChild(parent[0].type, node.type);
-}
-
-function blockTypeOf(editor: SlateEditor, node: TElement, path: number[]): string {
-  const labelReport = reportedLabelBlockType(editor, node, path);
-  if (labelReport !== undefined) {
-    return labelReport;
-  }
-
-  if (reportsContainer(node.type)) {
-    const parent = editor.api.parent(path);
-    if (parent && ElementApi.isElement(parent[0]) && typeof parent[0].type === "string") {
-      const childTypes = allowedChildTypes(parent[0].type);
-      if (childTypes !== undefined && childTypes.some((type) => type === node.type)) {
-        return parent[0].type;
-      }
-    }
-  }
-
-  const reported = reportedBlockType(node);
-  if (reported !== node.type || node.type !== KEYS.p) {
-    return reported;
-  }
-
-  const parentType = containerParentType(editor, node, path);
-  if (parentType === undefined) {
-    return reported;
-  }
-
-  // Quote and callout report the container for every plain paragraph.
-  // reportParent "first" reports it only for the label, so content keeps its own type.
-  if (reportsParentFromFirstChild(parentType) && path[path.length - 1] !== 0) {
-    return reported;
-  }
-
-  // A plain paragraph in a cell reports the table. A list item already returned its list type.
-  if (parentType === KEYS.td || parentType === KEYS.th) {
-    return KEYS.table;
-  }
-
-  return parentType;
-}
-
-export function getBlockType(editor: SlateEditor): string | "mixed" | null {
-  const selection = editor.selection;
-  if (!selection) {
-    return null;
-  }
-
-  let type: string | undefined;
-  for (const [node, path] of editor.api.nodes({
-    at: selection,
-    mode: "lowest",
-    match: (candidate) => editor.api.isBlock(candidate),
-  })) {
-    if (!ElementApi.isElement(node) || typeof node.type !== "string") {
-      continue;
-    }
-
-    const next = blockTypeOf(editor, node, path);
-    if (type === undefined) {
-      type = next;
-      continue;
-    }
-
-    if (type !== next) {
-      return "mixed";
-    }
-  }
-
-  return type ?? null;
-}
-
-export const HEADING_TYPE = {
-  1: KEYS.h1,
-  2: KEYS.h2,
-  3: KEYS.h3,
-} as const;
-
-export type HeadingLevel = keyof typeof HEADING_TYPE;
-
-function lowestBlocks(editor: SlateEditor) {
-  const selection = editor.selection;
-  if (!selection) {
-    return [];
-  }
-
-  return [
-    ...editor.api.nodes({
-      at: selection,
-      mode: "lowest",
-      match: (node) => editor.api.isBlock(node),
-    }),
-  ];
-}
-
-// A heading is not an allowed child of a quote. Lift it before toggleBlock, or the
-// childTypes normalizer turns the new heading back into a paragraph.
-function liftWhereChildTypeDisallowed(editor: SlateEditor, targetType: string): void {
-  const blocks = lowestBlocks(editor);
-  editor.tf.withoutNormalizing(() => {
-    for (const [, blockPath] of blocks.reverse()) {
-      const parent = editor.api.parent(blockPath);
-      if (!parent || !ElementApi.isElement(parent[0]) || typeof parent[0].type !== "string") {
-        continue;
-      }
-
-      const childIndex = blockPath[blockPath.length - 1];
-      const childTypes = allowedChildTypes(parent[0].type);
-      if (
-        (childIndex === 0 && allowsFirstChild(parent[0].type, targetType)) ||
-        childTypes === undefined ||
-        childTypes.some((type) => type === targetType)
-      ) {
-        continue;
-      }
-
-      editor.tf.liftBlock({ at: blockPath, match: { type: parent[0].type } });
-    }
-  });
-}
-
-// toggleBlock writes only the type. It resets to a paragraph only when a selected
-// block is already that type, so one heading becomes another in place. Becoming a heading unsets lineHeight.
-export function createTurnIntoHeading(level: HeadingLevel): EditorCommand {
-  const type = HEADING_TYPE[level];
-
-  return {
-    id: `block.turn-into.h${level}`,
-    label: `Heading ${level}`,
-    group: "turn-into",
-    run: (editor) => {
-      const becomesHeading = !editor.api.some({ match: { type } });
-      if (becomesHeading) {
-        liftWhereChildTypeDisallowed(editor, type);
-      }
-      editor.tf.toggleBlock(type);
-      if (!becomesHeading || !editor.selection) {
-        return;
-      }
-
-      editor.tf.unsetNodes(KEYS.lineHeight, {
-        at: editor.selection,
-        match: (node) => ElementApi.isElement(node) && node.type === type,
-      });
-    },
-  };
-}
-
-export const turnIntoHeading1 = createTurnIntoHeading(1);
-export const turnIntoHeading2 = createTurnIntoHeading(2);
-export const turnIntoHeading3 = createTurnIntoHeading(3);
-
-// Outside, toggleBlock wraps the selection in one container and leaves its attrs unset.
-// Inside a quote or callout, liftBlock unwraps the selected paragraphs and splits a partial selection.
-// A toggle label is structural. Selecting it unwraps the whole toggle. Selecting content moves
-// those blocks out after the toggle, so the following block does not become a new label.
-function selectionIncludesContainerLabel(editor: SlateEditor, type: string): boolean {
-  return lowestBlocks(editor).some(([, blockPath]) => {
-    if (blockPath[blockPath.length - 1] !== 0) {
-      return false;
-    }
-
-    const parent = editor.api.parent(blockPath);
-    return parent !== undefined && ElementApi.isElement(parent[0]) && parent[0].type === type;
-  });
-}
-
-function pathStartsWith(path: readonly number[], prefix: readonly number[]): boolean {
-  return prefix.length <= path.length && prefix.every((step, index) => path[index] === step);
-}
-
-function liftSelectedContent(editor: SlateEditor, type: string): void {
-  const above = editor.api.above({ match: { type } });
-  if (!above) {
-    return;
-  }
-
-  const containerPath = above[1];
-  const destination = PathApi.next(containerPath);
-  if (!destination) {
-    return;
-  }
-
-  const seen = new Set<string>();
-  const childPaths: number[][] = [];
-  for (const [, blockPath] of lowestBlocks(editor)) {
-    if (!pathStartsWith(blockPath, containerPath) || blockPath.length <= containerPath.length) {
-      continue;
-    }
-
-    const index = blockPath[containerPath.length];
-    if (index === undefined || index === 0) {
-      continue;
-    }
-
-    const childPath = containerPath.concat(index);
-    const key = childPath.join(".");
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    childPaths.push(childPath);
-  }
-
-  editor.tf.withoutNormalizing(() => {
-    for (const childPath of childPaths.reverse()) {
-      editor.tf.moveNodes({ at: childPath, to: destination });
-    }
-  });
-}
-
-export function createTurnIntoContainer(
-  type: string,
-  meta: { id: string; label: string },
-  options?: {
-    afterWrap?: (editor: SlateEditor) => void;
-    unwrapFromFirstChild?: boolean;
-    liftContentOut?: boolean;
-  },
-): EditorCommand {
-  return {
-    id: meta.id,
-    label: meta.label,
-    group: "turn-into",
-    run: (editor) => {
-      if (editor.api.above({ match: { type } })) {
-        if (options?.unwrapFromFirstChild && selectionIncludesContainerLabel(editor, type)) {
-          const above = editor.api.above({ match: { type } });
-          if (!above) {
-            return;
-          }
-
-          editor.tf.unwrapNodes({
-            at: above[1],
-            match: (_node, path) => PathApi.equals(path, above[1]),
-          });
-          return;
-        }
-
-        if (options?.liftContentOut) {
-          liftSelectedContent(editor, type);
-          return;
-        }
-
-        const blocks = lowestBlocks(editor);
-        editor.tf.withoutNormalizing(() => {
-          for (const [, blockPath] of blocks.reverse()) {
-            editor.tf.liftBlock({ at: blockPath, match: { type } });
-          }
-        });
-        return;
-      }
-
-      editor.tf.toggleBlock(type, { wrap: true });
-      options?.afterWrap?.(editor);
-    },
-  };
-}
-
-export const turnIntoBlockquote = createTurnIntoContainer(KEYS.blockquote, {
-  id: "block.turn-into.blockquote",
-  label: "Quote",
-});
-
-export const turnIntoCallout = createTurnIntoContainer(KEYS.callout, {
-  id: "block.turn-into.callout",
-  label: "Callout",
-});
-
-function blockId(node: TElement): string | undefined {
-  if (!("id" in node) || typeof node.id !== "string" || node.id.length === 0) {
-    return undefined;
-  }
-
-  return node.id;
-}
-
-function codeLineFromBlock(node: TElement): TElement {
-  const line: TElement = {
-    type: KEYS.codeLine,
-    children: [{ text: NodeApi.string(node) }],
-  };
-  const id = blockId(node);
-  if (id !== undefined) {
-    line.id = id;
-  }
-
-  return line;
-}
-
-// Selected paragraphs become one code block, one line each, marks dropped.
-// The same command on a code block unwraps it back into paragraphs.
-export const turnIntoCodeBlock: EditorCommand = {
-  id: "block.turn-into.code-block",
-  label: "Code",
-  group: "turn-into",
-  run: (editor) => {
-    if (!editor.selection) {
-      return;
-    }
-
-    if (editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } })) {
-      unwrapCodeBlock(editor);
-      return;
-    }
-
-    const blocks: { node: TElement; path: number[] }[] = [];
-    for (const [node, path] of lowestBlocks(editor)) {
-      if (ElementApi.isElement(node)) {
-        blocks.push({ node, path });
-      }
-    }
-
-    const first = blocks[0];
-    if (first === undefined) {
-      return;
-    }
-
-    const lines = blocks.map((block) => codeLineFromBlock(block.node));
-    const codeBlock: TElement = {
-      type: editor.getType(KEYS.codeBlock),
-      id: nanoid(10),
-      children: lines.length > 0 ? lines : [{ type: KEYS.codeLine, children: [{ text: "" }] }],
-    };
-
-    editor.tf.withoutNormalizing(() => {
-      for (const block of blocks.reverse()) {
-        editor.tf.removeNodes({ at: block.path });
-      }
-
-      editor.tf.insertNodes(codeBlock, { at: first.path, select: true });
-    });
-  },
-};
-
-export type CodeLanguagePayload = {
-  lang: CodeLang | null;
-  at?: number[];
-};
-
-function codeBlockPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
-  if (at !== undefined) {
-    const entry = editor.api.node(at);
-    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.codeBlock) {
-      return undefined;
-    }
-
-    return entry[1];
-  }
-
-  const above = editor.api.above({ match: { type: KEYS.codeBlock } });
-  return above?.[1];
-}
-
-export const setCodeLanguage: EditorCommand<CodeLanguagePayload> = {
-  id: "format.code-language",
-  label: "Code language",
-  group: "format",
-  run: (editor, payload) => {
-    const path = codeBlockPath(editor, payload.at);
-    if (path === undefined) {
-      return;
-    }
-
-    if (payload.lang === null) {
-      editor.tf.unsetNodes("lang", { at: path });
-      return;
-    }
-
-    if (!isAllowedValue(payload.lang, CODE_LANGS)) {
-      return;
-    }
-
-    editor.tf.setNodes({ lang: payload.lang }, { at: path });
-  },
-};
-
-// Mod+Enter inside a code block. The list shortcut picks this or the to-do check.
-export const exitCodeBlock: EditorCommand = {
-  id: "block.exit.code-block",
-  label: "Exit code block",
-  group: "action",
-  run: (editor) => {
-    const codeBlock = editor.api.above({ match: { type: editor.getType(KEYS.codeBlock) } });
-    if (!codeBlock) {
-      return;
-    }
-
-    const at = PathApi.next(codeBlock[1]);
-    if (!at) {
-      return;
-    }
-
-    editor.tf.insertNodes(editor.api.create.block(), { at, select: true });
-  },
-};
-
-export const turnIntoToggle = createTurnIntoContainer(
-  KEYS.toggle,
-  {
-    id: "block.turn-into.toggle",
-    label: "Toggle list",
-  },
-  { afterWrap: openAncestorToggle, unwrapFromFirstChild: true, liftContentOut: true },
-);
-
-export type CalloutAttrPayload = {
-  value: string | null;
-  at?: number[];
-};
-
-function calloutPath(editor: SlateEditor, at: number[] | undefined): number[] | undefined {
-  if (at !== undefined) {
-    const entry = editor.api.node(at);
-    if (!entry || !ElementApi.isElement(entry[0]) || entry[0].type !== KEYS.callout) {
-      return undefined;
-    }
-
-    return entry[1];
-  }
-
-  const above = editor.api.above({ match: { type: KEYS.callout } });
-  return above?.[1];
-}
-
-function setCalloutAttr(
-  editor: SlateEditor,
-  key: "icon" | "variant",
-  allowed: readonly string[],
-  payload: CalloutAttrPayload,
-): void {
-  const path = calloutPath(editor, payload.at);
-  if (!path) {
-    return;
-  }
-
-  if (payload.value === null) {
-    editor.tf.unsetNodes(key, { at: path });
-    return;
-  }
-
-  if (!isAllowedValue(payload.value, allowed)) {
-    return;
-  }
-
-  editor.tf.setNodes({ [key]: payload.value }, { at: path });
-}
-
-export const setCalloutIcon: EditorCommand<CalloutAttrPayload> = {
-  id: "format.callout-icon",
-  label: "Callout icon",
-  group: "format",
-  run: (editor, payload) => {
-    setCalloutAttr(editor, "icon", CALLOUT_ICONS, payload);
-  },
-};
-
-export const setCalloutTone: EditorCommand<CalloutAttrPayload> = {
-  id: "format.callout-tone",
-  label: "Callout tone",
-  group: "format",
-  run: (editor, payload) => {
-    setCalloutAttr(editor, "variant", CALLOUT_TONES, payload);
-  },
-};
-
-// One history batch so Reset removes the icon and the tone together.
-export function resetCallout(editor: SlateEditor, at?: number[]): void {
-  editor.tf.withNewBatch(() => {
-    setCalloutIcon.run(editor, { value: null, at });
-    setCalloutTone.run(editor, { value: null, at });
-  });
-  editor.tf.setSplittingOnce(true);
-}
-
-export const TURN_INTO_HEADING = {
-  1: turnIntoHeading1,
-  2: turnIntoHeading2,
-  3: turnIntoHeading3,
-} as const satisfies Record<HeadingLevel, EditorCommand>;
-
-function isToggleLabelReport(blockType: string): boolean {
-  if (blockType === KEYS.toggle) {
-    return true;
-  }
-
-  return reportedFirstChildNames(KEYS.toggle).some((name) => name === blockType);
-}
-
-// One undo: runEditorCommand batches this. A same-level heading label reverts to a
-// paragraph before turnIntoToggle can unwrap the container.
-export function createTurnIntoToggleHeading(level: HeadingLevel): EditorCommand {
-  const heading = TURN_INTO_HEADING[level];
-  const target = reportedFirstChild(KEYS.toggle, HEADING_TYPE[level]);
-
-  return {
-    id: `block.turn-into.toggle-h${level}`,
-    label: `Toggle heading ${level}`,
-    group: "turn-into",
-    run: (editor) => {
-      const current = getBlockType(editor);
-      if (target !== undefined && current === target) {
-        heading.run(editor);
-        return;
-      }
-
-      if (current === null || !isToggleLabelReport(current)) {
-        turnIntoToggle.run(editor);
-      }
-
-      if (target === undefined || getBlockType(editor) === target) {
-        return;
-      }
-
-      heading.run(editor);
-    },
-  };
-}
-
-const TOGGLE_LIST_COMMAND = {
-  disc: { id: "block.turn-into.bulleted-list", label: "Bulleted list" },
-  decimal: { id: "block.turn-into.numbered-list", label: "Numbered list" },
-  todo: { id: "block.turn-into.todo-list", label: "To-do list" },
-} as const satisfies Record<ListStyle, { id: string; label: string }>;
-
-function paragraphEntries(editor: SlateEditor) {
-  const selection = editor.selection;
-  if (!selection) {
-    return [];
-  }
-
-  return [
-    ...editor.api.nodes({
-      at: selection,
-      block: true,
-      match: (node) => ElementApi.isElement(node) && node.type === KEYS.p,
-    }),
-  ];
-}
-
-// A list item that leaves its list drops its level with it. A plain paragraph keeps its own
-// indent, so the unset is explicit here and not a normalizer. A plain indent that becomes a
-// list keeps its level as depth, where Plate's toggle would add one.
-export function createToggleList(style: ListStyle): EditorCommand {
-  const command = TOGGLE_LIST_COMMAND[style];
-
-  return {
-    id: command.id,
-    label: command.label,
-    group: "turn-into",
-    run: (editor) => {
-      const entries = paragraphEntries(editor);
-      if (entries.length === 0) {
-        return;
-      }
-
-      const paths = entries.map(([, path]) => [...path]);
-      const plainLevels = entries.map(([node]) =>
-        ElementApi.isElement(node) && isPlainParagraph(node) ? blockIndentOf(node) : 0,
-      );
-      toggleList(editor, { listStyleType: style });
-      paths.forEach((path, index) => {
-        const node = editor.api.node(path)?.[0];
-        if (!ElementApi.isElement(node)) {
-          return;
-        }
-        if (isPlainParagraph(node)) {
-          if ("indent" in node) {
-            editor.tf.unsetNodes(KEYS.indent, { at: path });
-          }
-          return;
-        }
-        const level = plainLevels[index] ?? 0;
-        if (level > 0 && node.indent !== level) {
-          editor.tf.setNodes({ indent: level }, { at: path });
-        }
-      });
-    },
-  };
-}
-
-export const toggleBulletedList = createToggleList("disc");
-export const toggleNumberedList = createToggleList("decimal");
-export const toggleTodoList = createToggleList("todo");
-
-function isTodoItem(node: TElement): boolean {
-  return node.type === KEYS.p && node.listStyleType === KEYS.listTodo;
-}
-
-function todoEntries(editor: SlateEditor) {
-  const selection = editor.selection;
-  if (!selection) {
-    return [];
-  }
-
-  return [
-    ...editor.api.nodes({
-      at: selection,
-      block: true,
-      match: (node) => ElementApi.isElement(node) && isTodoItem(node),
-    }),
-  ];
-}
-
-function isCheckedTodo(node: TElement): boolean {
-  return "checked" in node && node.checked === true;
-}
-
-// Plate's setIndentTodoNode writes checked: false (src-D073vI9-.js). There is no
-// toggle-checked transform; useTodoListElement sets { checked } on one path.
-export function writeChecked(
-  editor: SlateEditor,
-  paths: readonly (readonly number[])[],
-  checked: boolean,
-): void {
-  editor.tf.withoutNormalizing(() => {
-    for (const path of paths) {
-      editor.tf.setNodes({ [KEYS.listChecked]: checked }, { at: [...path] });
-    }
-  });
-}
-
-export const toggleTodoChecked: EditorCommand = {
-  id: "format.todo-checked",
-  label: "Check to-do",
-  group: "format",
-  isEnabled: (editor) => todoEntries(editor).length > 0,
-  run: (editor) => {
-    const entries = todoEntries(editor);
-    if (entries.length === 0) {
-      return;
-    }
-
-    const checkAll = entries.some(([node]) => ElementApi.isElement(node) && !isCheckedTodo(node));
-    writeChecked(
-      editor,
-      entries.map((entry) => entry[1]),
-      checkAll,
-    );
-  },
-};
-
-function decimalItemAtCaret(editor: SlateEditor): boolean {
-  const block = editor.api.block()?.[0];
-  return ElementApi.isElement(block) && block.listStyleType === ListStyleType.Decimal;
-}
-
-// Plate has no setListRestart transform. toggleList writes listRestart only while turning a
-// block into a list (src-D073vI9-.js). On an item that is already decimal, listRestart is the
-// property normalizeListStart reads to choose the number.
-export const setListRestart: EditorCommand<number | null> = {
-  id: "format.list-restart",
-  label: "Restart numbering",
-  group: "format",
-  isEnabled: decimalItemAtCaret,
-  run: (editor, value) => {
-    const entry = editor.api.block();
-    if (
-      !entry ||
-      !ElementApi.isElement(entry[0]) ||
-      entry[0].listStyleType !== ListStyleType.Decimal
-    ) {
-      return;
-    }
-
-    if (value === null) {
-      editor.tf.unsetNodes([KEYS.listRestart, KEYS.listRestartPolite], { at: entry[1] });
-      return;
-    }
-
-    if (!isWithinAttrRange(value, LIST_NUMBER_RANGE)) {
-      return;
-    }
-
-    editor.tf.unsetNodes(KEYS.listRestartPolite, { at: entry[1] });
-    editor.tf.setNodes({ [KEYS.listRestart]: value }, { at: entry[1] });
-  },
-};
-
-export function directText(node: TElement): string {
-  let text = "";
-  for (const child of node.children) {
-    if (TextApi.isText(child)) {
-      text += child.text;
-    }
-  }
-
-  return text;
-}
-
-export function isPlainParagraph(node: TElement): boolean {
-  return node.type === KEYS.p && node.listStyleType === undefined;
-}
-
-function selectPlainParagraph(editor: SlateEditor, path: number[]): void {
-  const entry = editor.api.node(path);
-  const node = entry?.[0];
-  if (entry && entry[1].length === 1 && ElementApi.isElement(node) && isPlainParagraph(node)) {
-    const start = editor.api.start(path);
-    if (start) {
-      editor.tf.select(start);
-    }
-    return;
-  }
-
-  editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at: path, select: true });
-}
-
-export const insertDivider: EditorCommand = {
-  id: "block.insert.divider",
-  label: "Divider",
-  group: "insert",
-  run: (editor) => {
-    const entry = editor.api.block({ highest: true });
-    if (!entry || !ElementApi.isElement(entry[0]) || typeof entry[0].type !== "string") {
-      return;
-    }
-
-    const [node, path] = entry;
-    let hrPath = path;
-    if (path.length === 1 && isPlainParagraph(node) && directText(node).length === 0) {
-      const drop = Object.keys(node).filter(
-        (key) => key !== "type" && key !== "children" && key !== "id",
-      );
-      if (drop.length > 0) {
-        editor.tf.unsetNodes(drop, { at: path });
-      }
-      editor.tf.setNodes({ type: KEYS.hr }, { at: path });
-    } else {
-      const at = PathApi.next(path);
-      if (!at) {
-        return;
-      }
-
-      editor.tf.insertNodes({ type: KEYS.hr, children: [{ text: "" }] }, { at, select: false });
-      hrPath = at;
-    }
-
-    const after = PathApi.next(hrPath);
-    if (!after) {
-      return;
-    }
-
-    selectPlainParagraph(editor, after);
-  },
-};
-
-export const insertParagraphBelow: EditorCommand<{ path: number[] }> = {
-  id: "block.insert.paragraph-below",
-  label: "Add below",
-  group: "insert",
-  run: (editor, payload) => {
-    const entry = editor.api.node(payload.path);
-    if (!entry || !ElementApi.isElement(entry[0])) {
-      return;
-    }
-
-    const at = PathApi.next(payload.path);
-    if (!at) {
-      return;
-    }
-
-    editor.tf.insertNodes({ type: KEYS.p, children: [{ text: "" }] }, { at, select: true });
-    const start = editor.api.start(at);
-    if (start) {
-      editor.tf.select(start);
-    }
-  },
-};
-
-export type BlockMenuTurnPayload = {
-  path: number[];
-  kind: BlockMenuKind;
-};
-
-// Selection-scoped, same registry shape as the heading commands. The block menu
-// uses turnBlockInto so the handle target changes and the caret does not.
-export const turnIntoParagraph: EditorCommand = {
-  id: "block.turn-into.paragraph",
-  label: "Text",
-  group: "turn-into",
-  run: (editor) => {
-    const entry = editor.api.block();
-    if (!entry) {
-      return;
-    }
-
-    applyBlockTurn(editor, entry[1], "paragraph");
-  },
-};
-
-export const turnBlockInto: EditorCommand<BlockMenuTurnPayload> = {
-  id: "block.menu.turn-into",
-  label: "Turn into",
-  group: "turn-into",
-  run: (editor, payload) => applyBlockTurn(editor, payload.path, payload.kind),
-};
-
-export const duplicateBlock: EditorCommand<{ path: number[] }> = {
-  id: "block.menu.duplicate",
-  label: "Duplicate",
-  group: "action",
-  run: (editor, payload) => {
-    duplicateBlockAt(editor, payload.path);
-  },
-};
-
-// A definition goes with its references, in the same undo step. Other blocks delete as before.
-export const deleteBlock: EditorCommand<{ path: number[] }> = {
-  id: "block.menu.delete",
-  label: "Delete",
-  group: "action",
-  run: (editor, payload) => {
-    const footnoteId = footnoteDefinitionIdAt(editor, payload.path);
-    if (footnoteId !== undefined) {
-      removeFootnote.run(editor, { footnoteId });
-      return;
-    }
-    deleteBlockAt(editor, payload.path);
-  },
-};
-
-export const moveBlock: EditorCommand<{ from: number[]; to: number[] }> = {
-  id: "block.move",
-  label: "Move block",
-  group: "action",
-  run: (editor, payload) => {
-    moveBlockAt(editor, payload.from, payload.to);
-  },
-};
-
-function mentionComboboxOpen(editor: SlateEditor): boolean {
-  const type = editor.getType(KEYS.mentionInput);
-  for (const [node] of editor.api.nodes({
-    at: [],
-    match: (candidate) => ElementApi.isElement(candidate) && candidate.type === type,
-  })) {
-    if (ElementApi.isElement(node)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export function onBlockMoveKeyDown(
-  editor: SlateEditor,
-  event: {
-    key: string;
-    metaKey: boolean;
-    ctrlKey: boolean;
-    altKey: boolean;
-    shiftKey: boolean;
-    preventDefault: () => void;
-  },
-): boolean {
-  const direction = blockMoveDirection(event);
-  if (direction === null || editor.dom.readOnly === true || mentionComboboxOpen(editor)) {
-    return false;
-  }
-  const from = blockMoveTarget(editor);
-  if (!from) {
-    return false;
-  }
-  const step = siblingMove(editor.children, from, direction);
-  event.preventDefault();
-  if (!step.ok) {
-    return true;
-  }
-  const scroll = captureEditorScroll();
-  runEditorCommand(editor, moveBlock, { from: [...from], to: step.to });
-  settleMovedBlock(editor, scroll);
-  return true;
-}
-
-export const clearFormatting: EditorCommand = {
-  id: "format.clear",
-  label: "Clear formatting",
-  group: "format",
-  isEnabled: selectionHasClearableMark,
-  run: (editor) => {
-    editor.tf.removeMarks([...CLEARABLE_MARK_KEYS]);
-  },
-};
-
-export const HISTORY_COMMANDS: readonly EditorCommand[] = [
-  {
-    id: "history.undo",
-    label: "Undo",
-    group: "action",
-    isEnabled: (editor) => hasHistory(editor, "undos"),
-    run: (editor) => {
-      editor.tf.undo();
-    },
-  },
-  {
-    id: "history.redo",
-    label: "Redo",
-    group: "action",
-    isEnabled: (editor) => hasHistory(editor, "redos"),
-    run: (editor) => {
-      editor.tf.redo();
-    },
-  },
-];
-
-export function runEditorCommand<Payload>(
-  editor: SlateEditor,
-  command: EditorCommand<Payload>,
-  payload: Payload,
-  options?: RunEditorCommandOptions,
-): boolean {
-  if (
-    options?.readOnly === true ||
-    editor.dom.readOnly === true ||
-    command.isEnabled?.(editor) === false
-  ) {
-    return false;
-  }
-
-  let accepted = true;
-  editor.tf.withNewBatch(() => {
-    if (options?.selection) {
-      editor.tf.select(options.selection);
-    }
-
-    if (command.run(editor, payload) === false) {
-      accepted = false;
-    }
-  });
-  // The batch splits from earlier typing, then later keystrokes would merge
-  // into it. Leave the split flag so the next saved operation starts its own entry.
-  editor.tf.setSplittingOnce(true);
-
-  return accepted;
-}
+export { HISTORY_COMMANDS, runEditorCommand } from "./editor-command-runner";
+export type { EditorCommand } from "./editor-command-runner";
+export {
+  formatBold,
+  formatItalic,
+  formatUnderline,
+  formatStrikethrough,
+  formatCode,
+  formatSuperscript,
+  formatSubscript,
+  formatKeyboard,
+  getTextColor,
+  setTextColor,
+  getHighlight,
+  setHighlight,
+  getFontSize,
+  setFontSize,
+  getFontFamily,
+  setFontFamily,
+  getBlockAttr,
+  getTextAlign,
+  setTextAlign,
+  getLineHeight,
+  setLineHeight,
+  clearFormatting,
+} from "./editor-format-commands";
+export type {
+  TextColorState,
+  HighlightState,
+  FontSizeState,
+  FontFamilyState,
+  TextAlignState,
+  LineHeightState,
+} from "./editor-format-commands";
+export {
+  BULLETED_LIST_TYPE,
+  NUMBERED_LIST_TYPE,
+  TODO_LIST_TYPE,
+  containerParentType,
+  getBlockType,
+  HEADING_TYPE,
+  turnIntoHeading1,
+  turnIntoHeading2,
+  turnIntoHeading3,
+  createTurnIntoContainer,
+  turnIntoBlockquote,
+  turnIntoCallout,
+  turnIntoCodeBlock,
+  setCodeLanguage,
+  exitCodeBlock,
+  turnIntoToggle,
+  setCalloutIcon,
+  setCalloutTone,
+  resetCallout,
+  TURN_INTO_HEADING,
+  createTurnIntoToggleHeading,
+  turnIntoParagraph,
+  turnBlockInto,
+} from "./editor-turn-into-commands";
+export type { HeadingLevel } from "./editor-turn-into-commands";
+export {
+  toggleBulletedList,
+  toggleNumberedList,
+  toggleTodoList,
+  writeChecked,
+  toggleTodoChecked,
+  setListRestart,
+} from "./editor-list-commands";
+export {
+  directText,
+  isPlainParagraph,
+  insertDivider,
+  insertParagraphBelow,
+  duplicateBlock,
+  deleteBlock,
+  moveBlock,
+  onBlockMoveKeyDown,
+} from "./editor-block-commands";
 ```
 
 ## packages/core/src/components/blocks/notion-like-editor/hooks/use-notion-like-editor.ts
 ```ts
+import { useLayoutEffect } from "react";
 import { usePlateEditor } from "platejs/react";
 
 import { createEditorPlugins } from "../lib/plugins/editor-plugins";
+import { editorConfigPlugin, editorFeatures, editorOptions } from "../lib/plugins/editor-config";
 import { EMPTY_EDITOR_VALUE, type EditorValue } from "../lib/document/editor-value";
+import { editorFeaturesKey, type EditorFeatures } from "../lib/features/editor-features";
+import { editorOptionsKey, type EditorOptions } from "../lib/features/editor-options";
+import { useStableEditorFeatures } from "./use-editor-features";
+import { useStableEditorOptions } from "./use-editor-options";
 
 type NotionLikeEditorOptions = {
   documentId: string;
   initialValue?: EditorValue;
+  options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 type NotionLikeEditorResult = {
@@ -28377,6 +25029,8 @@ type NotionLikeEditorResult = {
 export function useNotionLikeEditor({
   documentId,
   initialValue = EMPTY_EDITOR_VALUE,
+  options,
+  features,
 }: NotionLikeEditorOptions): NotionLikeEditorResult {
   const editor = usePlateEditor(
     {
@@ -28387,6 +25041,24 @@ export function useNotionLikeEditor({
     [documentId],
   );
 
+  // The editor is not recreated for a change of options. The value is written to
+  // the config plugin, and components that read it re-render.
+  const resolved = useStableEditorOptions(options);
+  useLayoutEffect(() => {
+    // Written only when the value differs, so a mount with default options writes nothing.
+    if (editorOptionsKey(editorOptions(editor)) !== editorOptionsKey(resolved)) {
+      editor.setOption(editorConfigPlugin, "resolved", resolved);
+    }
+  }, [editor, resolved]);
+
+  // Features follow the same rule as options: written only when the value differs.
+  const resolvedFeatures = useStableEditorFeatures(features);
+  useLayoutEffect(() => {
+    if (editorFeaturesKey(editorFeatures(editor)) !== editorFeaturesKey(resolvedFeatures)) {
+      editor.setOption(editorConfigPlugin, "features", resolvedFeatures);
+    }
+  }, [editor, resolvedFeatures]);
+
   return { editor };
 }
 ```
@@ -28394,7 +25066,7 @@ export function useNotionLikeEditor({
 ## packages/core/src/components/blocks/notion-like-editor/hooks/use-block-handle.ts
 ```ts
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ElementApi, PathApi, type SlateEditor } from "platejs";
+import { ElementApi, PathApi, type SlateEditor, type TElement } from "platejs";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 import { focusEditorWithoutScroll, retainScroll } from "../components/ui/block-toolbar";
@@ -28414,14 +25086,17 @@ import {
   placeBlockHandle,
   reduceHandleUi,
   sortHandleBands,
-  targetBlockAtPath,
   visibleHandleId,
+  type BlockHandleOptions,
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
+import { isTextOnlyBatch } from "../lib/features/editor-operation-batch";
 import { findBlockById } from "../lib/features/editor-synced-block";
+import { useEditorFlushes } from "./use-editor-flushes";
+import { useEditorOptions } from "./use-editor-options";
 
 export type { BlockHandlePaint };
 
@@ -28429,7 +25104,7 @@ type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
 };
 
-export type BlockHandleController = {
+type BlockHandleController = {
   paint: BlockHandlePaint | null;
   shown: boolean;
   setMeasuredSize: (width: number, height: number) => void;
@@ -28529,11 +25204,21 @@ export function handleBands(editor: SlateEditor): HandleBand[] {
   return sortHandleBands([...byId.values()]);
 }
 
+type CachedBands = { bands: HandleBand[]; stale: boolean };
+
+// The bands are rebuilt only when a reader needs them and the cache is stale.
+// Operations, scroll and resize mark the cache stale; nothing else rebuilds it.
+function currentBands(editor: SlateEditor, cache: { current: CachedBands }): HandleBand[] {
+  if (cache.current.stale) {
+    cache.current = { bands: handleBands(editor), stale: false };
+  }
+  return cache.current.bands;
+}
+
 // The target is a function of the pointer's Y alone: the innermost band
 // containing Y. A container's padding, border and the gutter to its left then
 // resolve to the same row as the text at that Y, so the handle cannot flicker
-// between a quote and its child. `bands` are cached; callers refresh them after
-// a render, scroll or resize.
+// between a quote and its child. The bands are read through `currentBands`.
 function pointerBlockId(
   bands: readonly HandleBand[],
   y: number,
@@ -28605,12 +25290,31 @@ function isHandleLayer(target: EventTarget | null): boolean {
   );
 }
 
+// The block at the path the handle last painted, if it still has this id. A block
+// that has not moved is then found without walking the document.
+function blockAtHint(
+  editor: SlateEditor,
+  hint: number[] | null,
+  id: string,
+): [TElement, number[]] | undefined {
+  if (!hint) {
+    return undefined;
+  }
+  const entry = editor.api.node(hint);
+  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== id) {
+    return undefined;
+  }
+  return [entry[0], entry[1]];
+}
+
 function measurePaint(
   editor: SlateEditor,
   id: string,
   size: { width: number; height: number },
+  handleOptions: BlockHandleOptions,
+  hint: number[] | null,
 ): BlockHandlePaint | null {
-  const entry = findBlockById(editor, id);
+  const entry = blockAtHint(editor, hint, id) ?? findBlockById(editor, id);
   if (!entry || typeof entry[0].type !== "string") {
     return null;
   }
@@ -28637,13 +25341,14 @@ function measurePaint(
   }
   const placed = placeBlockHandle(
     {
-      blockTop: blockHandleContentTop(dom, size.height),
+      blockTop: blockHandleContentTop(dom, size.height, handleOptions),
       blockBottom: box.bottom,
       blockLeft: gutterLeft,
     },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
+    handleOptions,
   );
   if (!placed) {
     return null;
@@ -28689,13 +25394,16 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   // BlockHandle sits beside PlateContent, outside Slate's Editable, so the
   // slate-react read-only context is always false here. The plate store is the one Plate sets.
   const readOnly = useEditorReadOnly();
-  const opCount = useEditorSelector((instance) => instance.operations.length, []);
+  const flushes = useEditorFlushes();
+  const { version, take } = flushes;
+  // The target id is read from the caret path's ancestors, so no document walk
+  // (findBlockById) runs on every selection change.
   const caretId = useEditorSelector((instance) => {
     const selection = instance.selection;
     if (!selection) {
       return null;
     }
-    return targetBlockAtPath(instance, selection.anchor.path)?.id ?? null;
+    return blockHandleTarget(chainAtPath(instance, selection.anchor.path))?.id ?? null;
   }, []);
   const [hoverNone, setHoverNone] = useState(hoverNoneNow);
   const [ui, setUi] = useState<HandleUiState>(() => initialHandleUi());
@@ -28707,10 +25415,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const hideTimer = useRef(0);
   const menuLockRef = useRef<string | null>(null);
   const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
-  const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
   const visibleIdRef = useRef<string | null>(null);
-  const bandsRef = useRef<HandleBand[]>([]);
+  const bandsRef = useRef<CachedBands>({ bands: [], stale: true });
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  const handleOptions = useEditorOptions().handle;
   useEffect(() => {
     visibleIdRef.current = visibleId;
   }, [visibleId]);
@@ -28750,7 +25458,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       // and its child. Only the handle's own controls keep the current target.
       const inside = insideEditorArea(editor, event.clientX, event.clientY);
       const known = inside
-        ? pointerBlockId(bandsRef.current, event.clientY, visibleIdRef.current)
+        ? pointerBlockId(currentBands(editor, bandsRef), event.clientY, visibleIdRef.current)
         : null;
       const control = isControlLayer(event.target);
       setUi((state) =>
@@ -28786,6 +25494,44 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     };
   }, [caretId, editor]);
 
+  // Re-resolves the target from the last pointer position. The bands are read
+  // through `currentBands`, so this rebuilds them only when they are stale.
+  const refreshPointerTarget = useCallback(
+    (x?: number, y?: number): void => {
+      if (x !== undefined && y !== undefined) {
+        pointerRef.current = { x, y, present: true };
+      }
+      const pointer = pointerRef.current;
+      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
+        return;
+      }
+      const inside = insideEditorArea(editor, pointer.x, pointer.y);
+      const known = inside
+        ? pointerBlockId(currentBands(editor, bandsRef), pointer.y, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: state.engagedId,
+          outside: !inside,
+        }),
+      );
+    },
+    [editor],
+  );
+
+  // Every flush marks the bands stale. A structural batch also re-resolves the
+  // target now, because a block may have appeared under the pointer. A text-only
+  // batch (typing, caret moves) leaves the target to the next pointer move.
+  useLayoutEffect(() => {
+    const operations = take();
+    bandsRef.current.stale = true;
+    if (!isTextOnlyBatch(operations)) {
+      refreshPointerTarget();
+    }
+  }, [refreshPointerTarget, take, version]);
+
   useLayoutEffect(() => {
     let frame = 0;
     const publish = (next: BlockHandlePaint | null): void => {
@@ -28814,57 +25560,40 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         reducedMotion() ? 0 : HANDLE_FADE_MS,
       );
     };
-    const rebuildBands = (): void => {
-      bandsRef.current = handleBands(editor);
-    };
+    // Paints only the visible target. While the handle is hidden (typing, no
+    // target), this neither reads the DOM nor walks the document.
     const measure = (): void => {
-      // The bands mirror the current layout; rebuild them whenever the layout
-      // can have changed (a render, scroll, resize or size change).
-      rebuildBands();
       const next =
-        visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
+        visibleId === null || readOnly || hoverNone
+          ? null
+          : measurePaint(editor, visibleId, size, handleOptions, pathRef.current);
       publish(next);
     };
-    // On scroll (or after a drop) the last pointer position can now sit over a
-    // different block. Re-resolve from that position instead of a stale id.
-    const refreshPointerTarget = (x?: number, y?: number): void => {
-      if (x !== undefined && y !== undefined) {
-        pointerRef.current = { x, y, present: true };
-      }
-      const pointer = pointerRef.current;
-      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
-        return;
-      }
-      rebuildBands();
-      const inside = insideEditorArea(editor, pointer.x, pointer.y);
-      const known = inside
-        ? pointerBlockId(bandsRef.current, pointer.y, visibleIdRef.current)
-        : null;
-      setUi((state) =>
-        reduceHandleUi(state, {
-          type: "pointer-move",
-          id: known,
-          engagedId: state.engagedId,
-          outside: !inside,
-        }),
-      );
-    };
-    rehoverRef.current = refreshPointerTarget;
     measure();
     const editable = editableOf(editor);
     const viewport = editable?.closest("[data-block-viewport]");
+    // Scroll can move the block under a still pointer. Re-resolve the target from
+    // the last pointer position instead of a stale id.
     const onScroll = (): void => {
+      bandsRef.current.stale = true;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         refreshPointerTarget();
         measure();
       });
     };
+    // The editable's own size changes when an edit adds or removes a line. The
+    // bands go stale and the paint is measured; the pointer target waits for the
+    // next move, so a typed line never rebuilds the bands.
+    const onLayoutChange = (): void => {
+      bandsRef.current.stale = true;
+      measure();
+    };
     viewport?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onScroll);
     const Observer = window.ResizeObserver;
-    const observer = typeof Observer === "function" ? new Observer(onScroll) : null;
+    const observer = typeof Observer === "function" ? new Observer(onLayoutChange) : null;
     if (editable) {
       observer?.observe(editable);
     }
@@ -28878,7 +25607,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       window.removeEventListener("resize", onScroll);
       observer?.disconnect();
     };
-  }, [editor, hoverNone, opCount, readOnly, size, visibleId]);
+  }, [editor, handleOptions, hoverNone, readOnly, refreshPointerTarget, size, version, visibleId]);
 
   useEffect(() => {
     return () => {
@@ -28943,9 +25672,12 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     );
   }, []);
 
-  const rehover = useCallback((x?: number, y?: number) => {
-    rehoverRef.current(x, y);
-  }, []);
+  const rehover = useCallback(
+    (x?: number, y?: number) => {
+      refreshPointerTarget(x, y);
+    },
+    [refreshPointerTarget],
+  );
 
   return {
     paint,
@@ -29231,7 +25963,10 @@ type AutosaveOptions = {
   onStatus: (state: AutosaveState) => void;
 };
 
-export type AutosaveController = {
+// A change is saved this long after the last edit, unless a caller passes debounceMs.
+export const DEFAULT_AUTOSAVE_DEBOUNCE_MS = 800;
+
+type AutosaveController = {
   schedule: (content: EditorValue) => void;
   flush: () => Promise<void>;
   retry: () => Promise<void>;
@@ -29269,7 +26004,7 @@ function browserTimers(): AutosaveTimers {
 }
 
 export function createAutosave(options: AutosaveOptions): AutosaveController {
-  const debounceMs = options.debounceMs ?? 800;
+  const debounceMs = options.debounceMs ?? DEFAULT_AUTOSAVE_DEBOUNCE_MS;
   const maxWaitMs = options.maxWaitMs ?? 4000;
   const timers = options.timers ?? browserTimers();
   const readOnly = options.readOnly ?? (() => false);
@@ -29584,6 +26319,7 @@ type UseEditorDocumentOptions = {
   adapter: EditorPersistenceAdapter;
   readOnly?: boolean;
   initialValue?: EditorValue;
+  debounceMs?: number;
 };
 
 function revisionOf(raw: unknown): number {
@@ -29604,16 +26340,21 @@ export function useEditorDocument({
   adapter,
   readOnly = false,
   initialValue,
+  debounceMs,
 }: UseEditorDocumentOptions): EditorDocumentSession {
   const [session, setSession] = useState<EditorDocumentSession>({ phase: "loading" });
   const autosaveRef = useRef<ReturnType<typeof createAutosave> | undefined>(undefined);
   const readOnlyRef = useRef(readOnly);
   const initialValueRef = useRef(initialValue);
+  // The controller is created once per document, so a changed delay applies from
+  // the next controller, not the one already running.
+  const debounceMsRef = useRef(debounceMs);
 
   useEffect(() => {
     readOnlyRef.current = readOnly;
     initialValueRef.current = initialValue;
-  }, [readOnly, initialValue]);
+    debounceMsRef.current = debounceMs;
+  }, [readOnly, initialValue, debounceMs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29626,6 +26367,7 @@ export function useEditorDocument({
         documentId,
         revision: document.revision,
         initialContent: document.content,
+        debounceMs: debounceMsRef.current,
         readOnly: () => readOnlyRef.current,
         onStatus: (state) => {
           setSession((current) => {
@@ -29806,7 +26548,7 @@ export function useEditorDocument({
 ```tsx
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Plate, PlateContent } from "platejs/react";
 
 import { TooltipProvider } from "@/components/tooltip";
@@ -29835,9 +26577,18 @@ import { SelectionToolbar } from "../ui/selection-toolbar";
 import { SlashMenu } from "../ui/slash-menu";
 import { EmojiSuggest } from "../ui/emoji-suggest";
 import { FindBar } from "../ui/find-bar";
+import { ShortcutHintsScope } from "../ui/editor-shortcut";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
 import { applyUploadResult } from "../../lib/features/editor-media";
 import { handleTailMouseDown } from "../../lib/features/editor-tail-click";
+import type { EditorFeature } from "../../lib/features/editor-features";
+import { useEditorFeatures } from "../../hooks/use-editor-features";
+
+// Mounts its children only while the feature is on. It reads the features, so it is used inside Plate.
+function FeatureLayer({ feature, children }: { feature: EditorFeature; children: ReactNode }) {
+  const features = useEditorFeatures();
+  return features[feature] ? children : null;
+}
 
 type EditorSurfaceProps = {
   editor: ComponentProps<typeof Plate>["editor"];
@@ -29878,57 +26629,71 @@ export function EditorSurface({
           onValueChange?.(repairMentionInputs(value, query).content);
         }}
       >
-        <MentionScope provider={mentionProvider}>
-          <FileUploadScope
-            adapter={fileUpload}
-            onDone={(blockId, file) => {
-              // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
-              if (editor !== null) {
-                applyUploadResult(editor, blockId, file);
-              }
-            }}
-          >
-            <UploadEditorLink />
-            <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
-              <LinkPreviewProvider adapter={linkPreview}>
-                <PasteRepairNotice />
-                <PasteUrlMenu />
-                <SlashMenu />
-                <EmojiSuggest />
-                <LinkToolbar />
-                <LinkPopover />
-                <BookmarkUrlPopover />
-                <PageLinkPicker />
-                <SelectionToolbar />
-                <FindBar />
-                <PlateContent
-                  aria-label={ariaLabel}
-                  aria-readonly={readOnly ? true : undefined}
-                  placeholder={readOnly ? undefined : placeholder}
-                  onMouseDown={(event) =>
-                    editor ? handleTailMouseDown(editor, event, readOnly) : undefined
-                  }
-                  // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
-                  // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
-                  // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
-                  className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
-                  renderPlaceholder={(placeholderProps) => (
-                    <span
-                      {...placeholderProps.attributes}
-                      className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
-                      style={{ ...placeholderProps.attributes.style, opacity: 1 }}
-                    >
-                      {placeholderProps.children}
-                    </span>
-                  )}
-                />
-                <BlockPlaceholders placeholder={placeholder} />
-                <BlockSelection />
-                <BlockHandle onInsertedBelow={onInsertedBelow} />
-              </LinkPreviewProvider>
-            </PageLinkScope>
-          </FileUploadScope>
-        </MentionScope>
+        <ShortcutHintsScope>
+          <MentionScope provider={mentionProvider}>
+            <FileUploadScope
+              adapter={fileUpload}
+              onDone={(blockId, file) => {
+                // Refused in read-only mode, and when the block is gone. A block with a file gets the new one (Replace).
+                if (editor !== null) {
+                  applyUploadResult(editor, blockId, file);
+                }
+              }}
+            >
+              <UploadEditorLink />
+              <PageLinkScope provider={pageProvider} onOpenPage={onOpenPage}>
+                <LinkPreviewProvider adapter={linkPreview}>
+                  <PasteRepairNotice />
+                  <PasteUrlMenu />
+                  <FeatureLayer feature="slashMenu">
+                    <SlashMenu />
+                  </FeatureLayer>
+                  <FeatureLayer feature="emoji">
+                    <EmojiSuggest />
+                  </FeatureLayer>
+                  <LinkToolbar />
+                  <LinkPopover />
+                  <BookmarkUrlPopover />
+                  <FeatureLayer feature="pageLinks">
+                    <PageLinkPicker />
+                  </FeatureLayer>
+                  <FeatureLayer feature="selectionToolbar">
+                    <SelectionToolbar />
+                  </FeatureLayer>
+                  <FeatureLayer feature="find">
+                    <FindBar />
+                  </FeatureLayer>
+                  <PlateContent
+                    aria-label={ariaLabel}
+                    aria-readonly={readOnly ? true : undefined}
+                    placeholder={readOnly ? undefined : placeholder}
+                    onMouseDown={(event) =>
+                      editor ? handleTailMouseDown(editor, event, readOnly) : undefined
+                    }
+                    // Margin is between blocks. The first block's top stays put, so the empty-document placeholder stays aligned.
+                    // space-y-4 sets margin-block-end inside :where(), so its specificity is 0.
+                    // The list rule is one class plus two attribute selectors, and its margin-bottom wins for a list item followed by a list item.
+                    className={cn(className, "space-y-4", LIST_SIBLING_GAP_CLASS)}
+                    renderPlaceholder={(placeholderProps) => (
+                      <span
+                        {...placeholderProps.attributes}
+                        className="text-muted-foreground pointer-events-none absolute top-0 block w-full select-none"
+                        style={{ ...placeholderProps.attributes.style, opacity: 1 }}
+                      >
+                        {placeholderProps.children}
+                      </span>
+                    )}
+                  />
+                  <BlockPlaceholders placeholder={placeholder} />
+                  <BlockSelection />
+                  <FeatureLayer feature="blockHandle">
+                    <BlockHandle onInsertedBelow={onInsertedBelow} />
+                  </FeatureLayer>
+                </LinkPreviewProvider>
+              </PageLinkScope>
+            </FileUploadScope>
+          </MentionScope>
+        </ShortcutHintsScope>
       </Plate>
     </TooltipProvider>
   );
@@ -30169,8 +26934,10 @@ export function MemoryEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
+  features,
 }: NotionLikeEditorBlockProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>
@@ -30201,6 +26968,8 @@ import { EditorSurface } from "./editor-surface";
 import type { AutosaveStatus } from "../../lib/document/editor-autosave";
 import type { LinkPreviewAdapter } from "../../lib/features/editor-bookmark-url";
 import type { FileUploadAdapter } from "../../lib/features/editor-file-upload";
+import type { EditorFeatures } from "../../lib/features/editor-features";
+import type { EditorOptions } from "../../lib/features/editor-options";
 import type { MentionProvider } from "../../lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "../../lib/features/editor-page-link";
 import type { EditorValue } from "../../lib/document/editor-value";
@@ -30222,6 +26991,8 @@ type ReadyEditorProps = {
   pageProvider?: PageProvider | null;
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
+  options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function ReadyEditor({
@@ -30240,8 +27011,10 @@ export function ReadyEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
+  features,
 }: ReadyEditorProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
   // The healthy states render nothing, so the row takes no space. Only the
   // failure notice appears, and it is the only thing above the editor.
   const showNotice = status === "error" || status === "conflict";
@@ -30284,6 +27057,7 @@ import { EditorDocumentSkeleton } from "./editor-document-skeleton";
 import { EditorRecoveryNotice } from "./editor-recovery-notice";
 import type { EditorPersistenceAdapter } from "../../lib/document/editor-persistence";
 import { DEFAULT_PLACEHOLDER } from "../../lib/features/editor-placeholder";
+import { resolveEditorOptions } from "../../lib/features/editor-options";
 import type { NotionLikeEditorBlockProps } from "../../notion-like-editor-block";
 import { ReadyEditor } from "./ready-editor";
 import { useEditorDocument } from "../../hooks/use-editor-document";
@@ -30302,8 +27076,16 @@ export function PersistedEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
+  features,
 }: NotionLikeEditorBlockProps & { adapter: EditorPersistenceAdapter }) {
-  const session = useEditorDocument({ documentId, adapter, readOnly, initialValue });
+  const session = useEditorDocument({
+    documentId,
+    adapter,
+    readOnly,
+    initialValue,
+    debounceMs: resolveEditorOptions(options).autosave.debounceMs,
+  });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>
@@ -30332,6 +27114,8 @@ export function PersistedEditor({
           pageProvider={pageProvider}
           onOpenPage={onOpenPage}
           fileUpload={fileUpload}
+          options={options}
+          features={features}
           status={session.status}
           message={session.message}
           onRetry={() => {
@@ -30349,6 +27133,8 @@ export function PersistedEditor({
 "use client";
 
 import type { LinkPreviewAdapter } from "./lib/features/editor-bookmark-url";
+import type { EditorOptions } from "./lib/features/editor-options";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import type { FileUploadAdapter } from "./lib/features/editor-file-upload";
 import type { MentionProvider } from "./lib/features/editor-mention-node";
 import type { PageOpenRequest, PageProvider } from "./lib/features/editor-page-link";
@@ -30371,6 +27157,8 @@ export type NotionLikeEditorBlockProps = {
   pageProvider?: PageProvider | null;
   onOpenPage?: (request: PageOpenRequest) => void;
   fileUpload?: FileUploadAdapter | null;
+  options?: EditorOptions;
+  features?: EditorFeatures;
 };
 
 export function NotionLikeEditorBlock(props: NotionLikeEditorBlockProps) {
@@ -32553,13 +29341,6 @@ import sql from "highlight.js/lib/languages/sql";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
-type HastNode = {
-  type: string;
-  value?: string;
-  children?: HastNode[];
-  properties?: { className?: string | string[] };
-};
-
 import { codeLowlight } from "../../lib/features/editor-code";
 import { CODE_LANGS, type CodeLang } from "../../lib/document/editor-document-schema";
 
@@ -32595,47 +29376,6 @@ export function ensureStaticCodeLanguages(): void {
       codeLowlight.register(lang, GRAMMARS[lang]);
     }
   }
-}
-
-export type HighlightSpan = { text: string; className?: string };
-
-function classNameOf(node: HastNode): string | undefined {
-  if (node.type !== "element") {
-    return undefined;
-  }
-  const value = node.properties?.className;
-  if (Array.isArray(value)) {
-    return value.join(" ");
-  }
-  return typeof value === "string" ? value : undefined;
-}
-
-function walk(node: HastNode, className: string | undefined, spans: HighlightSpan[]): void {
-  if (node.type === "text") {
-    spans.push({ text: node.value ?? "", className });
-    return;
-  }
-  if (node.type !== "element") {
-    return;
-  }
-  const next = classNameOf(node) ?? className;
-  for (const child of node.children ?? []) {
-    walk(child, next, spans);
-  }
-}
-
-export function highlightCode(lang: string | null, text: string): HighlightSpan[] {
-  ensureStaticCodeLanguages();
-  const language = lang !== null && codeLowlight.registered(lang) ? lang : "plaintext";
-  const tree = codeLowlight.highlight(language, text) as { children: HastNode[] };
-  const spans: HighlightSpan[] = [];
-  for (const child of tree.children) {
-    walk(child, undefined, spans);
-  }
-  if (spans.length === 0) {
-    spans.push({ text });
-  }
-  return spans;
 }
 ```
 
@@ -33721,13 +30461,12 @@ import { demoLinkPreviewAdapter } from "./demo/demo-link-preview";
 import { demoMentionProvider } from "./demo/demo-mention";
 import { demoPageProvider } from "./demo/demo-pages";
 import { DEMO_DOCUMENT_ID, DEMO_DOCUMENT_VALUE } from "./demo/demo-document";
-import type { EditorPersistenceAdapter } from "./lib/document/editor-persistence";
+import { createLocalStorageAdapter, type EditorPersistenceAdapter } from "./index";
 import { EditorDocumentSkeleton } from "./components/editor/editor-document-skeleton";
-import {
-  createLocalStorageAdapter,
-  removeStaleDemoDocuments,
-} from "./lib/document/local-storage-adapter";
+import { removeStaleDemoDocuments } from "./lib/document/local-storage-adapter";
 import { NotionLikeEditorBlock } from "./notion-like-editor-block";
+import { parseOffFeatures } from "./demo/demo-feature-flags";
+import type { EditorFeatures } from "./lib/features/editor-features";
 import { LIST_SIBLING_GAP_CLASS } from "./components/elements/block-list-metrics";
 
 const StaticDocument = lazy(() =>
@@ -33786,10 +30525,28 @@ function readStaticServer(): boolean {
   return false;
 }
 
+// The server renders with every feature on. The client keeps the parsed value for one query string,
+// so the snapshot is the same object on each render and useSyncExternalStore does not loop.
+const NO_FEATURES_OFF: EditorFeatures = {};
+let offFlag: { search: string; features: EditorFeatures } | undefined;
+
+function readOffFlag(): EditorFeatures {
+  const search = window.location.search;
+  if (offFlag?.search !== search) {
+    offFlag = { search, features: parseOffFeatures(search) };
+  }
+  return offFlag.features;
+}
+
+function readOffServer(): EditorFeatures {
+  return NO_FEATURES_OFF;
+}
+
 export function NotionLikeEditorDemo() {
   const adapter = useSyncExternalStore(subscribe, getDemoAdapter, getServerDemoAdapter);
   const readOnly = useSyncExternalStore(subscribe, readReadonlyFlag, readReadonlyServer);
   const staticView = useSyncExternalStore(subscribe, readStaticFlag, readStaticServer);
+  const features = useSyncExternalStore(subscribe, readOffFlag, readOffServer);
 
   if (staticView) {
     return (
@@ -33819,6 +30576,7 @@ export function NotionLikeEditorDemo() {
       pageProvider={demoPageProvider}
       fileUpload={demoFileUploadAdapter}
       readOnly={readOnly}
+      features={features}
     />
   );
 }
@@ -33834,6 +30592,7 @@ import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-f
 import type { Metadata } from "next";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -34282,6 +31041,7 @@ export default function NotionLikeEditorBlockPage() {
       url="huanngdev.site/blocks/notion-like-editor"
       files={BLOCK_FILES}
       llmText={readLlmsDocument("blocks", "notion-like-editor")}
+      install={<RegistryInstall name="notion-like-editor" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <NotionLikeEditorDemo />

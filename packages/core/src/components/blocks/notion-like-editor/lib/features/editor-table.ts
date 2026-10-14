@@ -58,7 +58,7 @@ function emptyParagraph(text = ""): TElement {
   return { type: KEYS.p, children: [{ text }] };
 }
 
-export function emptyTableCell(header: boolean, text = ""): TElement {
+function emptyTableCell(header: boolean, text = ""): TElement {
   return {
     type: header ? KEYS.th : KEYS.td,
     children: [emptyParagraph(text)],
@@ -363,7 +363,7 @@ export function repairTableGrid(node: TElement, repairs: Repair[] | undefined): 
   return elementFromRecord(checked.next) ?? node;
 }
 
-export function tsvGrid(text: string): string[][] | undefined {
+function tsvGrid(text: string): string[][] | undefined {
   if (!text.includes("\t")) {
     return undefined;
   }

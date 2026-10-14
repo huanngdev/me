@@ -20,6 +20,7 @@ import {
 import { createFootnoteId, isFootnoteId } from "./editor-footnote-id";
 import { plainText, type PlainTextHook } from "./editor-inline-date";
 import { footnoteIndex, startsFootnoteRun, type FootnoteIndex } from "./editor-footnote-index";
+import { featureEnabled } from "../plugins/editor-config";
 
 export {
   footnoteIndex,
@@ -88,7 +89,7 @@ export function footnoteDefinitionNode(footnoteId: string, id?: string): TElemen
 }
 
 // A reference sits where an inline date sits: not in a link, a void, a code line, or a definition.
-export function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
+function footnoteReferenceAllowedAt(editor: SlateEditor, point: Point): boolean {
   const block = editor.api.block({ at: point });
   if (!block || !ElementApi.isElement(block[0]) || !elementAllowsMarks(block[0].type)) {
     return false;
@@ -216,6 +217,9 @@ export const footnoteRefPlugin = createSlatePlugin({
 }));
 
 export function footnoteInsertAllowed(editor: SlateEditor): boolean {
+  if (!featureEnabled(editor, "footnotes")) {
+    return false;
+  }
   const selection = editor.selection;
   return selection !== null && footnoteReferenceAllowedAt(editor, RangeApi.end(selection));
 }
@@ -225,7 +229,7 @@ export function footnoteInsertAllowed(editor: SlateEditor): boolean {
 // Top-level index for a new definition with this number. It goes into the trailing run of
 // definitions, before the first one with a larger number or with no reference. With no such
 // run, or no such position, it goes last. Existing definitions are never moved.
-export function definitionInsertIndex(editor: SlateEditor, number: number): number {
+function definitionInsertIndex(editor: SlateEditor, number: number): number {
   const children = editor.children;
   const isDefinition = (node: Descendant | undefined): boolean =>
     node !== undefined && ElementApi.isElement(node) && node.type === FOOTNOTE_DEF_KEY;

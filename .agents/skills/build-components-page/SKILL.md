@@ -39,9 +39,9 @@ Do this whenever a showcase component or block is added or its source files chan
 - Use `ComponentDemo` for interactive examples. Supply the rendered demo as `children` and the matching TSX usage as `code`.
 - Keep Preview, Code, and llm.txt as the line-style tabs, in that order, and retain their icons.
 - Center demos inside the bordered preview and constrain the interactive example with `previewClassName` when needed.
-- Reuse `Section`, `Separator`, `CodeBlock`, `TerminalBlock`, and the existing table primitives instead of creating parallel styling.
+- Reuse `Section`, `Separator`, `CodeBlock`, `CliCommand`, and the existing table primitives instead of creating parallel styling.
 - Pass an explicit language to `CodeBlock` when detection is ambiguous, especially `ts` for type-only snippets and `tsx` for component examples.
-- Keep installation instructions bun-first. If the page is manual-only, omit registry and CLI installation alternatives.
+- CLI commands go through `CliCommand`, which defaults to the bun tab and shows all four package managers. If the page is manual-only, omit registry and CLI installation alternatives.
 
 ## Content rules
 

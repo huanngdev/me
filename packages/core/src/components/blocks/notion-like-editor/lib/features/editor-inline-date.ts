@@ -134,7 +134,7 @@ export function insertInlineDate(editor: SlateEditor, date: string): string | nu
   return id;
 }
 
-export type InlineDateRefusal = "span" | "unavailable";
+type InlineDateRefusal = "span" | "unavailable";
 
 // Why an inline date cannot be inserted over the current selection, or undefined when it can.
 export function inlineDateRefusal(editor: SlateEditor): InlineDateRefusal | undefined {

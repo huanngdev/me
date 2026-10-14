@@ -33,6 +33,7 @@ export type BlockPreviewFrameProps = {
   backButton?: FixedBackButtonProps | false;
   files?: readonly BlockFile[];
   llmText?: string;
+  install?: ReactNode;
 };
 
 export async function BlockPreviewFrame({
@@ -42,6 +43,7 @@ export async function BlockPreviewFrame({
   backButton,
   files,
   llmText,
+  install,
 }: BlockPreviewFrameProps) {
   const explorerFiles: BlockExplorerFile[] = await Promise.all(
     (files ?? []).map(async (file) => {
@@ -96,6 +98,7 @@ export async function BlockPreviewFrame({
           url={url}
           backButton={backButton}
           llm={llm}
+          install={install}
         />
       </BlockUrlProvider>
     </div>

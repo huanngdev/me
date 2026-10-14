@@ -10,6 +10,7 @@ import {
 } from "../features/editor-inline-date";
 import { todayStoredDate } from "../features/editor-date-value";
 import { blockSelectionActive } from "./editor-block-selection";
+import { featureEnabled } from "./editor-config";
 
 // The popover holds only which chip is open. Every choice writes at once, so there is no draft.
 export const inlineDateUiPlugin = createSlatePlugin({
@@ -179,7 +180,7 @@ export function onInlineDateKeyDown(editor: SlateEditor, event: InlineDateKeyEve
   }
 
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key === ";") {
-    if (runEditorCommand(editor, insertTodayDate, undefined)) {
+    if (featureEnabled(editor, "dates") && runEditorCommand(editor, insertTodayDate, undefined)) {
       event.preventDefault();
     }
     return;

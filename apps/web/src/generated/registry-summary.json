@@ -1,0 +1,283 @@
+{
+  "testedWith": "shadcn 4.21.4",
+  "items": [
+    {
+      "name": "github-contributions-3d",
+      "title": "GitHub Contributions 3D",
+      "type": "registry:component",
+      "ownFileCount": 2,
+      "helperFileCount": 0,
+      "directory": "components/github-contributions-3d",
+      "helperDirectory": null,
+      "npmPackages": [
+        "@react-three/drei",
+        "@react-three/fiber"
+      ],
+      "shadcnComponents": [],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "shadcn-tags-input",
+      "title": "Tags Input",
+      "type": "registry:component",
+      "ownFileCount": 1,
+      "helperFileCount": 0,
+      "directory": "components/shadcn-tags-input",
+      "helperDirectory": null,
+      "npmPackages": [
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "badge"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "scroll-minimap",
+      "title": "Scroll Minimap",
+      "type": "registry:component",
+      "ownFileCount": 1,
+      "helperFileCount": 0,
+      "directory": "components/scroll-minimap",
+      "helperDirectory": null,
+      "npmPackages": [],
+      "shadcnComponents": [
+        "hover-card"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "audio-player",
+      "title": "Audio Player",
+      "type": "registry:component",
+      "ownFileCount": 1,
+      "helperFileCount": 0,
+      "directory": "components/audio-player",
+      "helperDirectory": null,
+      "npmPackages": [
+        "@vidstack/react",
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "button",
+        "dropdown-menu",
+        "slider",
+        "tooltip"
+      ],
+      "registryItems": [
+        "video-player"
+      ],
+      "cssRules": 1,
+      "framework": null,
+      "primitives": "radix",
+      "docs": "Requires Radix-based shadcn components. Base UI styles are not supported."
+    },
+    {
+      "name": "video-player",
+      "title": "Video Player",
+      "type": "registry:component",
+      "ownFileCount": 2,
+      "helperFileCount": 0,
+      "directory": "components/video-player",
+      "helperDirectory": null,
+      "npmPackages": [
+        "@vidstack/react",
+        "dashjs",
+        "hls.js",
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "button",
+        "dropdown-menu",
+        "slider",
+        "tooltip"
+      ],
+      "registryItems": [],
+      "cssRules": 2,
+      "framework": null,
+      "primitives": "radix",
+      "docs": "Requires Radix-based shadcn components. Base UI styles are not supported."
+    },
+    {
+      "name": "zod-data-table",
+      "title": "Zod Data Table",
+      "type": "registry:component",
+      "ownFileCount": 1,
+      "helperFileCount": 0,
+      "directory": "components/zod-data-table",
+      "helperDirectory": null,
+      "npmPackages": [
+        "@tanstack/react-table",
+        "zod"
+      ],
+      "shadcnComponents": [
+        "table"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "tile-treemap",
+      "title": "Tile Treemap",
+      "type": "registry:component",
+      "ownFileCount": 2,
+      "helperFileCount": 0,
+      "directory": "components/tile-treemap",
+      "helperDirectory": null,
+      "npmPackages": [
+        "framer-motion"
+      ],
+      "shadcnComponents": [],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "cli-command",
+      "title": "CLI Command",
+      "type": "registry:component",
+      "ownFileCount": 5,
+      "helperFileCount": 4,
+      "directory": "components/cli-command",
+      "helperDirectory": "components/huanngdev/cli-command",
+      "npmPackages": [
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "button",
+        "tabs"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
+      "name": "crm-data-table",
+      "title": "CRM Data Table",
+      "type": "registry:block",
+      "ownFileCount": 11,
+      "helperFileCount": 2,
+      "directory": "components/blocks/crm-data-table",
+      "helperDirectory": "components/huanngdev/crm-data-table",
+      "npmPackages": [
+        "@tanstack/react-table",
+        "date-fns",
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "badge",
+        "button",
+        "checkbox",
+        "dropdown-menu",
+        "input",
+        "input-group",
+        "select",
+        "table"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": "radix",
+      "docs": "Requires Radix-based shadcn components. Base UI styles are not supported."
+    },
+    {
+      "name": "error-page",
+      "title": "Error Page",
+      "type": "registry:block",
+      "ownFileCount": 1,
+      "helperFileCount": 1,
+      "directory": "components/blocks/error-page",
+      "helperDirectory": "components/huanngdev/error-page",
+      "npmPackages": [
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "button"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": "next",
+      "primitives": null,
+      "docs": "Requires Next.js (uses next/link)."
+    },
+    {
+      "name": "notion-like-editor",
+      "title": "Notion-like Editor",
+      "type": "registry:block",
+      "ownFileCount": 256,
+      "helperFileCount": 4,
+      "directory": "components/blocks/notion-like-editor",
+      "helperDirectory": "components/huanngdev/notion-like-editor",
+      "npmPackages": [
+        "@dnd-kit/core",
+        "@platejs/basic-nodes",
+        "@platejs/basic-styles",
+        "@platejs/callout",
+        "@platejs/code-block",
+        "@platejs/indent",
+        "@platejs/layout",
+        "@platejs/link",
+        "@platejs/list",
+        "@platejs/mention",
+        "@platejs/table",
+        "@platejs/toc",
+        "@vidstack/react",
+        "highlight.js",
+        "katex",
+        "lowlight",
+        "lucide-react",
+        "platejs",
+        "zod"
+      ],
+      "shadcnComponents": [
+        "alert",
+        "button",
+        "calendar",
+        "checkbox",
+        "command",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "kbd",
+        "popover",
+        "progress",
+        "scroll-area",
+        "separator",
+        "skeleton",
+        "spinner",
+        "table",
+        "tabs",
+        "textarea",
+        "toggle",
+        "tooltip"
+      ],
+      "registryItems": [
+        "audio-player",
+        "video-player"
+      ],
+      "cssRules": 15,
+      "framework": null,
+      "primitives": "radix",
+      "docs": "Requires Radix-based shadcn components. Base UI styles are not supported."
+    }
+  ]
+}

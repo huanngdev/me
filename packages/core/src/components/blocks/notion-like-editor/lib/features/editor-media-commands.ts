@@ -33,7 +33,7 @@ import { embedElement, EMBED_KEY } from "./editor-embed";
 // the type: block.<type>.set-source, "Set image", and so on.
 
 // Blocks with a width and alignment. Their layout is written by the same commands.
-export type MediaLayoutType = Extract<MediaBlockType, "image" | "video" | "embed">;
+type MediaLayoutType = Extract<MediaBlockType, "image" | "video" | "embed">;
 
 const MEDIA_LABELS: Record<MediaBlockType, string> = {
   image: "Image",

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ElementApi, PathApi, type SlateEditor } from "platejs";
+import { ElementApi, PathApi, type SlateEditor, type TElement } from "platejs";
 import { useEditorReadOnly, useEditorRef, useEditorSelector } from "platejs/react";
 
 import { focusEditorWithoutScroll, retainScroll } from "../components/ui/block-toolbar";
@@ -19,14 +19,17 @@ import {
   placeBlockHandle,
   reduceHandleUi,
   sortHandleBands,
-  targetBlockAtPath,
   visibleHandleId,
+  type BlockHandleOptions,
   type BlockHandlePaint,
   type HandleBand,
   type HandleFrame,
   type HandleUiState,
 } from "../lib/features/editor-block-handle";
+import { isTextOnlyBatch } from "../lib/features/editor-operation-batch";
 import { findBlockById } from "../lib/features/editor-synced-block";
+import { useEditorFlushes } from "./use-editor-flushes";
+import { useEditorOptions } from "./use-editor-options";
 
 export type { BlockHandlePaint };
 
@@ -34,7 +37,7 @@ type HandleOptions = {
   onInsertedBelow?: (blockId: string) => void;
 };
 
-export type BlockHandleController = {
+type BlockHandleController = {
   paint: BlockHandlePaint | null;
   shown: boolean;
   setMeasuredSize: (width: number, height: number) => void;
@@ -134,11 +137,21 @@ export function handleBands(editor: SlateEditor): HandleBand[] {
   return sortHandleBands([...byId.values()]);
 }
 
+type CachedBands = { bands: HandleBand[]; stale: boolean };
+
+// The bands are rebuilt only when a reader needs them and the cache is stale.
+// Operations, scroll and resize mark the cache stale; nothing else rebuilds it.
+function currentBands(editor: SlateEditor, cache: { current: CachedBands }): HandleBand[] {
+  if (cache.current.stale) {
+    cache.current = { bands: handleBands(editor), stale: false };
+  }
+  return cache.current.bands;
+}
+
 // The target is a function of the pointer's Y alone: the innermost band
 // containing Y. A container's padding, border and the gutter to its left then
 // resolve to the same row as the text at that Y, so the handle cannot flicker
-// between a quote and its child. `bands` are cached; callers refresh them after
-// a render, scroll or resize.
+// between a quote and its child. The bands are read through `currentBands`.
 function pointerBlockId(
   bands: readonly HandleBand[],
   y: number,
@@ -210,12 +223,31 @@ function isHandleLayer(target: EventTarget | null): boolean {
   );
 }
 
+// The block at the path the handle last painted, if it still has this id. A block
+// that has not moved is then found without walking the document.
+function blockAtHint(
+  editor: SlateEditor,
+  hint: number[] | null,
+  id: string,
+): [TElement, number[]] | undefined {
+  if (!hint) {
+    return undefined;
+  }
+  const entry = editor.api.node(hint);
+  if (!entry || !ElementApi.isElement(entry[0]) || entry[0].id !== id) {
+    return undefined;
+  }
+  return [entry[0], entry[1]];
+}
+
 function measurePaint(
   editor: SlateEditor,
   id: string,
   size: { width: number; height: number },
+  handleOptions: BlockHandleOptions,
+  hint: number[] | null,
 ): BlockHandlePaint | null {
-  const entry = findBlockById(editor, id);
+  const entry = blockAtHint(editor, hint, id) ?? findBlockById(editor, id);
   if (!entry || typeof entry[0].type !== "string") {
     return null;
   }
@@ -242,13 +274,14 @@ function measurePaint(
   }
   const placed = placeBlockHandle(
     {
-      blockTop: blockHandleContentTop(dom, size.height),
+      blockTop: blockHandleContentTop(dom, size.height, handleOptions),
       blockBottom: box.bottom,
       blockLeft: gutterLeft,
     },
     size,
     { width: window.innerWidth, height: window.innerHeight },
     frameOf(dom),
+    handleOptions,
   );
   if (!placed) {
     return null;
@@ -294,13 +327,16 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   // BlockHandle sits beside PlateContent, outside Slate's Editable, so the
   // slate-react read-only context is always false here. The plate store is the one Plate sets.
   const readOnly = useEditorReadOnly();
-  const opCount = useEditorSelector((instance) => instance.operations.length, []);
+  const flushes = useEditorFlushes();
+  const { version, take } = flushes;
+  // The target id is read from the caret path's ancestors, so no document walk
+  // (findBlockById) runs on every selection change.
   const caretId = useEditorSelector((instance) => {
     const selection = instance.selection;
     if (!selection) {
       return null;
     }
-    return targetBlockAtPath(instance, selection.anchor.path)?.id ?? null;
+    return blockHandleTarget(chainAtPath(instance, selection.anchor.path))?.id ?? null;
   }, []);
   const [hoverNone, setHoverNone] = useState(hoverNoneNow);
   const [ui, setUi] = useState<HandleUiState>(() => initialHandleUi());
@@ -312,10 +348,10 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
   const hideTimer = useRef(0);
   const menuLockRef = useRef<string | null>(null);
   const pointerRef = useRef<{ x: number; y: number; present: boolean } | null>(null);
-  const rehoverRef = useRef<(x?: number, y?: number) => void>(() => undefined);
   const visibleIdRef = useRef<string | null>(null);
-  const bandsRef = useRef<HandleBand[]>([]);
+  const bandsRef = useRef<CachedBands>({ bands: [], stale: true });
   const visibleId = visibleHandleId({ ...ui, caretId, readOnly, hoverNone });
+  const handleOptions = useEditorOptions().handle;
   useEffect(() => {
     visibleIdRef.current = visibleId;
   }, [visibleId]);
@@ -355,7 +391,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       // and its child. Only the handle's own controls keep the current target.
       const inside = insideEditorArea(editor, event.clientX, event.clientY);
       const known = inside
-        ? pointerBlockId(bandsRef.current, event.clientY, visibleIdRef.current)
+        ? pointerBlockId(currentBands(editor, bandsRef), event.clientY, visibleIdRef.current)
         : null;
       const control = isControlLayer(event.target);
       setUi((state) =>
@@ -391,6 +427,44 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     };
   }, [caretId, editor]);
 
+  // Re-resolves the target from the last pointer position. The bands are read
+  // through `currentBands`, so this rebuilds them only when they are stale.
+  const refreshPointerTarget = useCallback(
+    (x?: number, y?: number): void => {
+      if (x !== undefined && y !== undefined) {
+        pointerRef.current = { x, y, present: true };
+      }
+      const pointer = pointerRef.current;
+      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
+        return;
+      }
+      const inside = insideEditorArea(editor, pointer.x, pointer.y);
+      const known = inside
+        ? pointerBlockId(currentBands(editor, bandsRef), pointer.y, visibleIdRef.current)
+        : null;
+      setUi((state) =>
+        reduceHandleUi(state, {
+          type: "pointer-move",
+          id: known,
+          engagedId: state.engagedId,
+          outside: !inside,
+        }),
+      );
+    },
+    [editor],
+  );
+
+  // Every flush marks the bands stale. A structural batch also re-resolves the
+  // target now, because a block may have appeared under the pointer. A text-only
+  // batch (typing, caret moves) leaves the target to the next pointer move.
+  useLayoutEffect(() => {
+    const operations = take();
+    bandsRef.current.stale = true;
+    if (!isTextOnlyBatch(operations)) {
+      refreshPointerTarget();
+    }
+  }, [refreshPointerTarget, take, version]);
+
   useLayoutEffect(() => {
     let frame = 0;
     const publish = (next: BlockHandlePaint | null): void => {
@@ -419,57 +493,40 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
         reducedMotion() ? 0 : HANDLE_FADE_MS,
       );
     };
-    const rebuildBands = (): void => {
-      bandsRef.current = handleBands(editor);
-    };
+    // Paints only the visible target. While the handle is hidden (typing, no
+    // target), this neither reads the DOM nor walks the document.
     const measure = (): void => {
-      // The bands mirror the current layout; rebuild them whenever the layout
-      // can have changed (a render, scroll, resize or size change).
-      rebuildBands();
       const next =
-        visibleId === null || readOnly || hoverNone ? null : measurePaint(editor, visibleId, size);
+        visibleId === null || readOnly || hoverNone
+          ? null
+          : measurePaint(editor, visibleId, size, handleOptions, pathRef.current);
       publish(next);
     };
-    // On scroll (or after a drop) the last pointer position can now sit over a
-    // different block. Re-resolve from that position instead of a stale id.
-    const refreshPointerTarget = (x?: number, y?: number): void => {
-      if (x !== undefined && y !== undefined) {
-        pointerRef.current = { x, y, present: true };
-      }
-      const pointer = pointerRef.current;
-      if (!pointer?.present || isBlockDragArmed() || menuLockRef.current) {
-        return;
-      }
-      rebuildBands();
-      const inside = insideEditorArea(editor, pointer.x, pointer.y);
-      const known = inside
-        ? pointerBlockId(bandsRef.current, pointer.y, visibleIdRef.current)
-        : null;
-      setUi((state) =>
-        reduceHandleUi(state, {
-          type: "pointer-move",
-          id: known,
-          engagedId: state.engagedId,
-          outside: !inside,
-        }),
-      );
-    };
-    rehoverRef.current = refreshPointerTarget;
     measure();
     const editable = editableOf(editor);
     const viewport = editable?.closest("[data-block-viewport]");
+    // Scroll can move the block under a still pointer. Re-resolve the target from
+    // the last pointer position instead of a stale id.
     const onScroll = (): void => {
+      bandsRef.current.stale = true;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         refreshPointerTarget();
         measure();
       });
     };
+    // The editable's own size changes when an edit adds or removes a line. The
+    // bands go stale and the paint is measured; the pointer target waits for the
+    // next move, so a typed line never rebuilds the bands.
+    const onLayoutChange = (): void => {
+      bandsRef.current.stale = true;
+      measure();
+    };
     viewport?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onScroll);
     const Observer = window.ResizeObserver;
-    const observer = typeof Observer === "function" ? new Observer(onScroll) : null;
+    const observer = typeof Observer === "function" ? new Observer(onLayoutChange) : null;
     if (editable) {
       observer?.observe(editable);
     }
@@ -483,7 +540,7 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
       window.removeEventListener("resize", onScroll);
       observer?.disconnect();
     };
-  }, [editor, hoverNone, opCount, readOnly, size, visibleId]);
+  }, [editor, handleOptions, hoverNone, readOnly, refreshPointerTarget, size, version, visibleId]);
 
   useEffect(() => {
     return () => {
@@ -548,9 +605,12 @@ export function useBlockHandle({ onInsertedBelow }: HandleOptions = {}): BlockHa
     );
   }, []);
 
-  const rehover = useCallback((x?: number, y?: number) => {
-    rehoverRef.current(x, y);
-  }, []);
+  const rehover = useCallback(
+    (x?: number, y?: number) => {
+      refreshPointerTarget(x, y);
+    },
+    [refreshPointerTarget],
+  );
 
   return {
     paint,

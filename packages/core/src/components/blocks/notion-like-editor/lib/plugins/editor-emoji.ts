@@ -14,6 +14,7 @@ import {
 import type { EmojiEntry } from "../features/emoji-data";
 import { pointAtBlockOffset } from "../features/editor-slash";
 import { slashMenuOpen } from "./editor-slash";
+import { featureEnabled } from "./editor-config";
 
 // Below the slash menu (2000), so an open slash menu handles its keys first.
 // Above the list, table and indent handlers (0), so Tab chooses an emoji instead of indenting.
@@ -84,7 +85,7 @@ export function emojiMenuItems(editor: SlateEditor): EmojiEntry[] {
   return searchEmoji(entries, session.token, EMOJI_SUGGEST_LIMIT);
 }
 
-export function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
+function moveEmojiHighlight(editor: SlateEditor, delta: number): void {
   const count = emojiMenuItems(editor).length;
   if (count === 0) {
     return;
@@ -116,7 +117,7 @@ function setEmojiQuery(editor: SlateEditor, query: string): void {
   }
 }
 
-export function syncEmojiMenu(editor: SlateEditor): void {
+function syncEmojiMenu(editor: SlateEditor): void {
   const session = slashMenuOpen(editor) ? null : readEmojiSession(editor);
   setEmojiQuery(editor, session?.token ?? "");
   if (session === null) {
@@ -185,7 +186,7 @@ export function chooseEmojiSuggestion(editor: SlateEditor, emoji: string): void 
 }
 
 function convertClosingEmoji(editor: SlateEditor): void {
-  if (slashMenuOpen(editor)) {
+  if (slashMenuOpen(editor) || !featureEnabled(editor, "emoji")) {
     return;
   }
   const entries = loadedEmojiEntries();

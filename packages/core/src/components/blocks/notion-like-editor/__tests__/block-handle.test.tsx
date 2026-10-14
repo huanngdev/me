@@ -1115,3 +1115,254 @@ describe("block handle bands", () => {
     }
   });
 });
+
+// Each block is a 30px box, 40px apart, in DOM order, so a block inserted later
+// takes its place in the layout. The viewport covers the whole frame. Every box
+// read is counted.
+function installOrderedLayout(host: HTMLElement): { restore: () => void; reads: () => number } {
+  const original = HTMLElement.prototype.getBoundingClientRect;
+  let count = 0;
+  const box = (top: number, height: number, left: number, width: number): DOMRect =>
+    ({
+      top,
+      bottom: top + height,
+      left,
+      right: left + width,
+      x: left,
+      y: top,
+      width,
+      height,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  HTMLElement.prototype.getBoundingClientRect = function () {
+    count += 1;
+    if (this.hasAttribute("data-block-viewport")) {
+      return box(0, 800, 0, 1280);
+    }
+    if (this.hasAttribute("data-block-id") && host.contains(this)) {
+      const index = Array.from(host.querySelectorAll("[data-block-id]")).indexOf(this);
+      return box(100 + Math.max(0, index) * 40, 30, 300, 400);
+    }
+    return box(0, 0, 0, 0);
+  };
+  return {
+    restore: () => {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    },
+    reads: () => count,
+  };
+}
+
+async function mountInViewport(value: EditorValue): Promise<{
+  editor: ReturnType<typeof createPlateEditor>;
+  host: HTMLDivElement;
+  unmount: () => Promise<void>;
+}> {
+  const host = document.createElement("div");
+  host.setAttribute("data-block-viewport", "");
+  document.body.appendChild(host);
+  const editor = createPlateEditor({ plugins: createEditorPlugins(), value });
+  if (!isReactContainer(host)) {
+    throw new Error("Missing mount node.");
+  }
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(
+      <EditorSurface editor={editor} readOnly={false} placeholder="" className="editor" />,
+    );
+  });
+  return {
+    editor,
+    host,
+    unmount: async () => {
+      await act(async () => {
+        root.unmount();
+      });
+      host.remove();
+    },
+  };
+}
+
+function movePointer(block: Element | null, clientY: number): void {
+  block?.dispatchEvent(
+    new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 320,
+      clientY,
+      pointerType: "mouse",
+      isPrimary: true,
+    }),
+  );
+}
+
+describe("block handle typing cost", () => {
+  test("typing with a still pointer reads no block box, so the bands are never rebuilt", async () => {
+    const value = Array.from({ length: 300 }, (_, index) =>
+      paragraph(`p${index}`, `Line ${index}`),
+    );
+    const mounted = await mountInViewport(value);
+    const layout = installOrderedLayout(mounted.host);
+    try {
+      await act(async () => {
+        mounted.editor.tf.select({ path: [3, 0], offset: 0 });
+      });
+      const editable = mounted.host.querySelector("[data-slate-editor]");
+      // The caret block is painted before typing, so the layout is measured once.
+      expect(document.querySelector("[data-block-handle]")?.getAttribute("data-visible")).toBe(
+        "true",
+      );
+      const readsBefore = layout.reads();
+      for (let index = 0; index < 20; index += 1) {
+        await act(async () => {
+          editable?.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+          mounted.editor.tf.insertText("x");
+        });
+      }
+
+      // Each key is one flush. A rebuild reads every block box, which would be 300 per key.
+      expect(layout.reads() - readsBefore).toBe(0);
+      expect(document.querySelector("[data-block-handle]")?.getAttribute("data-visible")).toBe(
+        "false",
+      );
+    } finally {
+      layout.restore();
+      await mounted.unmount();
+    }
+  });
+
+  test("after a block is inserted, a pointer over the new block targets it", async () => {
+    const value = Array.from({ length: 5 }, (_, index) => paragraph(`p${index}`, `Line ${index}`));
+    const mounted = await mountInViewport(value);
+    const layout = installOrderedLayout(mounted.host);
+    try {
+      // Index 2 sits at 180 to 210 in the layout. The pointer rests at 185.
+      const before = mounted.host.querySelector("[data-block-id='p2']");
+      await act(async () => {
+        movePointer(before, 185);
+      });
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("p2");
+
+      await act(async () => {
+        mounted.editor.tf.insertNodes(paragraph("inserted", "New"), { at: [2] });
+      });
+      // The insert moved p2 down, and the new block now covers 180 to 210.
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("inserted");
+
+      await act(async () => {
+        movePointer(mounted.host.querySelector("[data-block-id='inserted']"), 185);
+      });
+      expect(
+        document.querySelector("[data-block-handle]")?.getAttribute("data-block-handle-for"),
+      ).toBe("inserted");
+    } finally {
+      layout.restore();
+      await mounted.unmount();
+    }
+  });
+});
+
+describe("block handle options", () => {
+  const handle = { width: BLOCK_HANDLE_WIDTH, height: BLOCK_HANDLE_HEIGHT };
+  const viewport = { width: 1280, height: 800 };
+  const block = { blockTop: 100, blockBottom: 124, blockLeft: 300 };
+
+  function boxAt(top: number, height: number): DOMRect {
+    return {
+      top,
+      bottom: top + height,
+      left: 0,
+      right: 100,
+      width: 100,
+      height,
+      x: 0,
+      y: top,
+      toJSON() {
+        return {};
+      },
+    } as DOMRect;
+  }
+
+  function blockAt(top: number, height: number): HTMLElement {
+    const element = document.createElement("div");
+    element.getBoundingClientRect = () => boxAt(top, height);
+    return element;
+  }
+
+  test("the gap moves the handle left of the block by that many pixels", () => {
+    const explicit = {
+      gap: 20,
+      centerMax: BLOCK_HANDLE_CENTER_MAX,
+      anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+    };
+    expect(placeBlockHandle(block, handle, viewport, null, explicit)).toEqual({
+      top: 100,
+      left: 300 - 20 - BLOCK_HANDLE_WIDTH,
+    });
+    // Passing the defaults gives the same placement as passing nothing.
+    expect(
+      placeBlockHandle(block, handle, viewport, null, {
+        gap: BLOCK_HANDLE_GAP,
+        centerMax: BLOCK_HANDLE_CENTER_MAX,
+        anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+      }),
+    ).toEqual(placeBlockHandle(block, handle, viewport, null));
+  });
+
+  test("a gap too large for the viewport hides the handle", () => {
+    const tooWide = {
+      gap: 260,
+      centerMax: BLOCK_HANDLE_CENTER_MAX,
+      anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+    };
+    expect(placeBlockHandle(block, handle, viewport, null, tooWide)).toBeNull();
+  });
+
+  test("centerMax decides when an unmarked block is centred", () => {
+    const tall = blockAt(100, 60);
+    withLineHeight("normal", () => {
+      // 60 px is over the default limit, so the handle sits on the first line's top.
+      expect(blockHandleContentTop(tall, BLOCK_HANDLE_HEIGHT)).toBe(100);
+      // With the limit raised to 60, the block is centred: 100 + (60 - 24) / 2.
+      expect(
+        blockHandleContentTop(tall, BLOCK_HANDLE_HEIGHT, {
+          gap: BLOCK_HANDLE_GAP,
+          centerMax: 60,
+          anchorCenterMax: BLOCK_HANDLE_ANCHOR_CENTER_MAX,
+        }),
+      ).toBe(118);
+    });
+  });
+
+  test("anchorCenterMax decides when a marked anchor is centred", () => {
+    const blockEl = blockAt(100, 240);
+    const media = blockAt(120, 50);
+    media.setAttribute(BLOCK_HANDLE_ANCHOR, "");
+    blockEl.append(media);
+    // 50 px is within the default limit: 120 + (50 - 24) / 2.
+    expect(blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT)).toBe(133);
+    // With the limit lowered to 40, the handle goes to the anchor's top.
+    expect(
+      blockHandleContentTop(blockEl, BLOCK_HANDLE_HEIGHT, {
+        gap: BLOCK_HANDLE_GAP,
+        centerMax: BLOCK_HANDLE_CENTER_MAX,
+        anchorCenterMax: 40,
+      }),
+    ).toBe(120);
+  });
+
+  // Runs `run` with the first-line computed style set to a line height of normal.
+  function withLineHeight(lineHeight: string, run: () => void): void {
+    const original = globalThis.getComputedStyle;
+    globalThis.getComputedStyle = (() => ({ lineHeight })) as unknown as typeof getComputedStyle;
+    try {
+      run();
+    } finally {
+      globalThis.getComputedStyle = original;
+    }
+  }
+});

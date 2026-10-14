@@ -64,7 +64,7 @@ export function closeBookmarkToolbar(editor: SlateEditor): void {
   editor.setOption(bookmarkToolbarPlugin, "blockId", "");
 }
 
-export function selectedBookmarkEntry(editor: SlateEditor): [TElement, number[]] | undefined {
+function selectedBookmarkEntry(editor: SlateEditor): [TElement, number[]] | undefined {
   const entry = editor.api.above({
     match: (node) => ElementApi.isElement(node) && node.type === editor.getType(BOOKMARK_KEY),
   });

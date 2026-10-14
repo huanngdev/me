@@ -1,9 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  AlignCenter,
-  AlignJustify,
-  AlignLeft,
-  AlignRight,
   Bold,
   CaseSensitive,
   ChevronDown,
@@ -23,30 +19,20 @@ import {
   Underline,
   UnfoldVertical,
 } from "lucide-react";
-import { RangeApi, type SlateEditor, type TRange } from "platejs";
-
+import { type SlateEditor, type TRange } from "platejs";
 import { Button } from "@/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/popover";
-import { Separator } from "@/components/separator";
 import { Toggle } from "@/components/toggle";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
-
 import {
   clearFormatting,
   type EditorCommand,
@@ -57,16 +43,11 @@ import {
   setTextAlign,
   setTextColor,
 } from "../../lib/commands/editor-commands";
-import {
-  shortcutText,
-  ariaKeyShortcuts,
-  type EditorShortcutId,
-} from "../../lib/features/editor-shortcuts";
+import { shortcutText, ariaKeyShortcuts } from "../../lib/features/editor-shortcuts";
 import {
   FONT_FAMILIES,
   FONT_SIZES,
   LINE_HEIGHTS,
-  TEXT_ALIGNS,
   type FontFamily,
   type FontSize,
   type LineHeight,
@@ -83,7 +64,6 @@ import {
   selectionToolbarFrame,
   selectionToolbarModel,
   type SelectionToolbarMarkId,
-  type SelectionToolbarMarkState,
 } from "../../lib/features/editor-selection-toolbar";
 import {
   editInlineLink,
@@ -93,11 +73,25 @@ import {
 import { toggleInlineEquation } from "../../lib/plugins/editor-inline-equation-ui";
 import { useSelectionToolbar } from "../../hooks/use-selection-toolbar";
 import { anchorContext, rangeContextElement, rangeRect, virtualAnchor } from "./anchor-rect";
-import { editorControlLabel, focusEditorWithoutScroll, retainScroll } from "./block-toolbar";
+import { editorControlLabel, retainScroll } from "./block-toolbar";
 import { BlockPickerGroups } from "./block-picker";
-import { ShortcutLabel, useShortcutPlatform } from "./editor-shortcut";
+import { useShortcutPlatform } from "./editor-shortcut";
 import { MenuScrollArea, ScrollFadeArea } from "./editor-scroll";
 import { SelectionColorMenu } from "./selection-color-menu";
+import { featureEnabled } from "../../lib/plugins/editor-config";
+import {
+  keepSelection,
+  selectionDomRange,
+  returnToEditor,
+  ControlTip,
+  ToolbarRoot,
+  ToolbarSeparator,
+  keepNested,
+  firstControlId,
+  tabOf,
+} from "./selection-toolbar-parts";
+import { ALIGN_ICON, AlignMenu } from "./selection-toolbar-align";
+import { CheckItem, ChoiceMenu, DefaultRadio, choiceValue } from "./selection-toolbar-choice";
 
 const MARK_ICONS = {
   bold: Bold,
@@ -106,91 +100,11 @@ const MARK_ICONS = {
   strikethrough: Strikethrough,
   code: Code,
 } as const;
-
-const ALIGN_LABEL: Record<TextAlign, string> = {
-  left: "Left",
-  center: "Center",
-  right: "Right",
-  justify: "Justify",
-};
-
-const ALIGN_ICON = {
-  left: AlignLeft,
-  center: AlignCenter,
-  right: AlignRight,
-  justify: AlignJustify,
-} as const;
-
 const FONT_LABEL: Record<(typeof FONT_FAMILIES)[number], string> = {
   sans: "Sans",
   serif: "Serif",
   mono: "Mono",
 };
-
-function keepSelection(event: { preventDefault: () => void }): void {
-  event.preventDefault();
-}
-
-function selectionDomRange(editor: SlateEditor): Range | null {
-  if (!editor.selection || editor.api.isCollapsed()) {
-    return null;
-  }
-
-  return editor.api.toDOMRange(editor.selection) ?? null;
-}
-
-function returnToEditor(editor: SlateEditor, range: TRange | null): void {
-  const root = editor.api.toDOMNode(editor);
-  const next =
-    editor.selection && !RangeApi.isCollapsed(editor.selection) ? editor.selection : range;
-  retainScroll(() => {
-    focusEditorWithoutScroll(
-      root instanceof HTMLElement ? root : document.querySelector("[data-slate-editor]"),
-    );
-    if (next) {
-      editor.tf.withoutSaving(() => {
-        editor.tf.select(next);
-      });
-    }
-  });
-}
-
-function tip(label: string, reason?: string, disabled?: boolean): string {
-  if (disabled && reason) {
-    return reason;
-  }
-
-  return label;
-}
-
-function ControlTip({
-  label,
-  shortcut,
-  reason,
-  disabled,
-  children,
-}: {
-  label: string;
-  shortcut?: EditorShortcutId;
-  reason?: string;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  const showsShortcut = shortcut !== undefined && !(disabled && reason);
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent>
-        {showsShortcut ? (
-          <ShortcutLabel label={label} shortcut={shortcut} />
-        ) : (
-          tip(label, reason, disabled)
-        )}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
 export function SelectionToolbar() {
   "use no memo";
 
@@ -427,47 +341,6 @@ export function SelectionToolbar() {
     </Popover>
   );
 }
-
-function ToolbarRoot({
-  collisionBoundary,
-  children,
-}: {
-  collisionBoundary?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      role="toolbar"
-      aria-label="Text formatting"
-      data-selection-toolbar=""
-      data-collision-boundary={collisionBoundary}
-      className="flex items-center gap-1"
-    >
-      {children}
-    </div>
-  );
-}
-
-function ToolbarSeparator() {
-  return (
-    <Separator
-      orientation="vertical"
-      data-toolbar-separator=""
-      className="h-5 data-vertical:self-center"
-    />
-  );
-}
-
-function keepNested(event: { target: EventTarget | null; preventDefault: () => void }): void {
-  const target = event.target;
-  if (
-    target instanceof Element &&
-    target.closest("[data-selection-toolbar], [data-selection-toolbar-portal]") !== null
-  ) {
-    event.preventDefault();
-  }
-}
-
 function ToolbarControls({
   editor,
   onMenu,
@@ -626,30 +499,32 @@ function ToolbarControls({
           <Link aria-hidden="true" />
         </Button>
       </ControlTip>
-      <ControlTip
-        label="Equation"
-        shortcut={model.equation.shortcut}
-        reason={model.equation.reason}
-        disabled={model.equation.disabled}
-      >
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Equation"
+      {featureEnabled(editor, "equations") ? (
+        <ControlTip
+          label="Equation"
+          shortcut={model.equation.shortcut}
+          reason={model.equation.reason}
           disabled={model.equation.disabled}
-          data-toolbar-control="equation"
-          aria-keyshortcuts={
-            platform !== null ? ariaKeyShortcuts("inlineEquation", platform) : undefined
-          }
-          tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
-          className="disabled:pointer-events-auto"
-          onMouseDown={keepSelection}
-          onClick={onEquation}
         >
-          <Sigma aria-hidden="true" />
-        </Button>
-      </ControlTip>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Equation"
+            disabled={model.equation.disabled}
+            data-toolbar-control="equation"
+            aria-keyshortcuts={
+              platform !== null ? ariaKeyShortcuts("inlineEquation", platform) : undefined
+            }
+            tabIndex={tabOf("equation", model.equation.disabled, firstEnabled)}
+            className="disabled:pointer-events-auto"
+            onMouseDown={keepSelection}
+            onClick={onEquation}
+          >
+            <Sigma aria-hidden="true" />
+          </Button>
+        </ControlTip>
+      ) : null}
       <ToolbarSeparator />
       <AlignMenu
         model={model}
@@ -688,75 +563,6 @@ function ToolbarControls({
     </>
   );
 }
-
-function AlignMenu({
-  model,
-  icon,
-  firstEnabled,
-  onOpenChange,
-  onAlign,
-  onRestore,
-}: {
-  model: ReturnType<typeof selectionToolbarModel>;
-  icon: ReactNode;
-  firstEnabled: string;
-  onOpenChange: (open: boolean) => void;
-  onAlign: (value: TextAlign | null) => void;
-  onRestore: () => void;
-}) {
-  const alignValue = model.align === "mixed" ? "" : (model.align ?? "left");
-
-  return (
-    <DropdownMenu modal={false} onOpenChange={onOpenChange}>
-      <ControlTip label="Align" reason={model.alignReason} disabled={model.alignDisabled}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label="Align"
-            disabled={model.alignDisabled}
-            data-toolbar-control="align"
-            data-align-current={alignIconName(model.align)}
-            tabIndex={tabOf("align", model.alignDisabled, firstEnabled)}
-            className="disabled:pointer-events-auto"
-            onMouseDown={keepSelection}
-          >
-            {icon}
-          </Button>
-        </DropdownMenuTrigger>
-      </ControlTip>
-      <DropdownMenuContent
-        data-selection-toolbar-portal=""
-        data-selection-align=""
-        collisionPadding={8}
-        hideWhenDetached
-        onCloseAutoFocus={(event) => {
-          keepSelection(event);
-          onRestore();
-        }}
-      >
-        <DropdownMenuRadioGroup value={alignValue}>
-          {TEXT_ALIGNS.map((align) => (
-            <DropdownMenuRadioItem
-              key={align}
-              value={align}
-              className={MENU_ITEM_ACTIVE_CHECKED}
-              data-align-choice={align}
-              onSelect={() => {
-                onAlign(align);
-              }}
-            >
-              {alignIcon(align)}
-              {ALIGN_LABEL[align]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function MoreMenu({
   model,
   firstEnabled,
@@ -951,119 +757,4 @@ function MoreMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-function CheckItem({
-  mark,
-  icon,
-  onToggle,
-}: {
-  mark: SelectionToolbarMarkState;
-  icon: ReactNode;
-  onToggle: () => void;
-}) {
-  const platform = useShortcutPlatform();
-  return (
-    <DropdownMenuCheckboxItem
-      checked={mark.mixed ? "indeterminate" : mark.pressed}
-      disabled={mark.disabled}
-      data-state-mixed={mark.mixed ? "" : undefined}
-      data-more-choice={mark.id}
-      onSelect={() => {
-        onToggle();
-      }}
-    >
-      {icon}
-      <span>{mark.label}</span>
-      {platform !== null && mark.shortcut ? (
-        <DropdownMenuShortcut>{shortcutText(mark.shortcut, platform)}</DropdownMenuShortcut>
-      ) : null}
-    </DropdownMenuCheckboxItem>
-  );
-}
-
-function ChoiceMenu({
-  label,
-  icon,
-  value,
-  children,
-}: {
-  label: string;
-  icon: ReactNode;
-  value: string;
-  children: ReactNode;
-}) {
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
-        {icon}
-        {label}
-      </DropdownMenuSubTrigger>
-      <DropdownMenuPortal>
-        <DropdownMenuSubContent
-          data-selection-toolbar-portal=""
-          collisionPadding={8}
-          hideWhenDetached
-          className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-hidden"
-        >
-          <MenuScrollArea>
-            <DropdownMenuRadioGroup value={value}>{children}</DropdownMenuRadioGroup>
-          </MenuScrollArea>
-        </DropdownMenuSubContent>
-      </DropdownMenuPortal>
-    </DropdownMenuSub>
-  );
-}
-
-function DefaultRadio({ onSelect }: { onSelect: () => void }) {
-  return (
-    <DropdownMenuRadioItem
-      value="default"
-      className={MENU_ITEM_ACTIVE_CHECKED}
-      data-more-choice="default"
-      onSelect={onSelect}
-    >
-      Default
-    </DropdownMenuRadioItem>
-  );
-}
-
-function alignIcon(align: TextAlign): ReactNode {
-  const Icon = ALIGN_ICON[align];
-  return <Icon aria-hidden="true" />;
-}
-
-function alignIconName(align: TextAlign | "mixed" | null): TextAlign {
-  if (align === "mixed" || align === null) {
-    return "left";
-  }
-
-  return align;
-}
-
-function choiceValue(value: string | number | null | "mixed"): string {
-  if (value === "mixed") {
-    return "";
-  }
-  if (value === null) {
-    return "default";
-  }
-
-  return String(value);
-}
-
-function firstControlId(hasTurn: boolean, model: ReturnType<typeof selectionToolbarModel>): string {
-  if (hasTurn) {
-    return "turn-into";
-  }
-  const mark = model.marks.find((item) => !item.disabled);
-  return mark?.id ?? "link";
-}
-
-function tabOf(id: string, disabled: boolean, firstEnabled: string): number {
-  if (disabled) {
-    return -1;
-  }
-
-  return id === firstEnabled ? 0 : -1;
 }

@@ -13,7 +13,7 @@ import {
 export { BLOCK_TONE_TYPES } from "./editor-block-tone-style";
 import { blockSelectionActive, blockSelectionIds } from "../plugins/editor-block-selection";
 
-export type BlockTonePayload = {
+type BlockTonePayload = {
   ids: readonly string[];
   kind: BlockToneKind;
   token: PaletteToken | null;

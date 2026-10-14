@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import type { ContributionDay } from "@repo/core/components/github-contributions-3d";
@@ -17,11 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 import { getCachedContributions } from "@repo/core/functions";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { GitHubContributions3DDemo } from "./demo";
 
@@ -186,23 +187,34 @@ export default async function GitHubContributions3DPage() {
         <Section
           id="install"
           title="Install"
-          description="Install the renderer, then copy the component."
+          description="Install with one shadcn command, or add the files by hand."
         >
-          <div className="space-y-6">
-            <TerminalBlock command="bun add three @react-three/fiber @react-three/drei" />
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-sm">
-                Save as <code>components/github-contributions-3d.utils.ts</code>.
-              </p>
-              <CodeBlock code={UTILS_SOURCE} language="ts" />
+          <RegistryInstall name="github-contributions-3d" />
+          <details className="group">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+              Manual installation
+            </summary>
+            <div className="mt-6">
+              <div className="space-y-6">
+                <CliCommand install="three @react-three/fiber @react-three/drei" />
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-sm">
+                    Save as{" "}
+                    <code>components/github-contributions-3d/github-contributions-3d.utils.ts</code>
+                    .
+                  </p>
+                  <CodeBlock code={UTILS_SOURCE} language="ts" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-sm">
+                    Save as{" "}
+                    <code>components/github-contributions-3d/github-contributions-3d.tsx</code>.
+                  </p>
+                  <CodeBlock code={SOURCE} language="tsx" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-sm">
-                Save as <code>components/github-contributions-3d.tsx</code>.
-              </p>
-              <CodeBlock code={SOURCE} language="tsx" />
-            </div>
-          </div>
+          </details>
         </Section>
         <Separator />
 

@@ -18,9 +18,9 @@ export const FILE_URL_REMOVED =
   "A file has an unsupported url. The file was cleared to an empty placeholder.";
 export const FILE_ATTRS_CLEANED = "A file lost an attribute that is not valid. The file was kept.";
 
-export type FileFields = Partial<MediaSource>;
+type FileFields = Partial<MediaSource>;
 
-export type CleanedFile = {
+type CleanedFile = {
   fields: FileFields;
   dropped: boolean; // true when a field was present and removed
 };

@@ -52,7 +52,7 @@ import {
   type ResolvedFileUrl,
 } from "./file-upload-scope";
 
-export type FileState = "empty" | "loading" | "ready" | "unavailable";
+type FileState = "empty" | "loading" | "ready" | "unavailable";
 
 // What the block shows. An upload state takes priority over the stored file's state.
 type FilePhase = FileState | "uploading" | "failed";

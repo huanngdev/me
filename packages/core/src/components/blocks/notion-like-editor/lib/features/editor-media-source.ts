@@ -27,7 +27,7 @@ export type MediaBlockType = MediaFileType | typeof EMBED_KEY;
 const MEDIA_PREFIX_BY_TYPE = new Map<string, string>(Object.entries(MEDIA_MIME_PREFIXES));
 
 // The longest id a media block can have. Every media block shares it.
-export const MEDIA_ID_MAX = 128;
+const MEDIA_ID_MAX = 128;
 
 // The attributes a media block stores for its file. Nothing else about the file is stored.
 export const MEDIA_SOURCE_ATTRS = ["url", "name", "size", "mime"] as const;
@@ -51,15 +51,15 @@ export function isStoredMediaUrl(value: unknown): value is string {
 }
 
 // A stored name is already cleaned, so cleaning it again changes nothing.
-export function isStoredMediaName(value: unknown): value is string {
+function isStoredMediaName(value: unknown): value is string {
   return typeof value === "string" && cleanFileName(value) === value;
 }
 
-export function isStoredMediaSize(value: unknown): value is number {
+function isStoredMediaSize(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
-export function isStoredMediaMime(value: unknown, prefix: string): value is string {
+function isStoredMediaMime(value: unknown, prefix: string): value is string {
   return typeof value === "string" && sanitizeMimeType(value) === value && value.startsWith(prefix);
 }
 
@@ -213,7 +213,7 @@ export function applyMediaSource(editor: SlateEditor, path: number[], source: Me
 }
 
 // A new id is not empty, is short enough, and is not used by any block, void or not.
-export function isNewMediaBlockId(editor: SlateEditor, id: unknown): id is string {
+function isNewMediaBlockId(editor: SlateEditor, id: unknown): id is string {
   if (typeof id !== "string" || id.length === 0 || id.length > MEDIA_ID_MAX) {
     return false;
   }

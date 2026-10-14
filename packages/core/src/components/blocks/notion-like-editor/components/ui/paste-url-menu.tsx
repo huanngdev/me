@@ -11,7 +11,7 @@ import { runEditorCommand } from "../../lib/commands/editor-commands";
 import {
   applyPasteUrlAction,
   clearPasteUrlOffer,
-  pasteUrlActions,
+  pasteUrlActionsFor,
   pasteUrlPlugin,
 } from "../../lib/paste/editor-paste-url";
 
@@ -19,8 +19,7 @@ export function PasteUrlMenu() {
   const editor = useEditorRef();
   const readOnly = useEditorReadOnly();
   const offer = usePluginOption(pasteUrlPlugin, "offer");
-  const actions =
-    offer === undefined ? [] : pasteUrlActions.filter((action) => action.match(offer.url));
+  const actions = offer === undefined ? [] : pasteUrlActionsFor(editor, offer.url);
   const virtualRef = virtualAnchor(
     () => rangeRect(pasteDomRange(editor)),
     () => anchorContext(rangeContextElement(pasteDomRange(editor))),

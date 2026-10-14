@@ -20,8 +20,10 @@ export function MemoryEditor({
   pageProvider = null,
   onOpenPage,
   fileUpload = null,
+  options,
+  features,
 }: NotionLikeEditorBlockProps) {
-  const { editor } = useNotionLikeEditor({ documentId, initialValue });
+  const { editor } = useNotionLikeEditor({ documentId, initialValue, options, features });
 
   return (
     <div className={cn("bg-background h-full min-h-full w-full min-w-0 px-4", className)}>

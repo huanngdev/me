@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Code2, Eye, FileText } from "lucide-react";
+import { Code2, Eye, FileText, Terminal } from "lucide-react";
 
 import { CopyButton } from "../copy-button";
 import { FixedBackButton, type FixedBackButtonProps } from "../fixed-back-button";
@@ -22,6 +22,7 @@ type BlockPreviewTabsProps = {
   url: string;
   backButton?: FixedBackButtonProps | false;
   llm?: BlockLlmDocument;
+  install?: ReactNode;
 };
 
 export function BlockPreviewTabs({
@@ -31,13 +32,14 @@ export function BlockPreviewTabs({
   url,
   backButton,
   llm,
+  install,
 }: BlockPreviewTabsProps) {
   return (
     <Tabs defaultValue="preview" className="h-full min-h-0 gap-0">
       <div className="fixed top-4 left-4 z-30 flex items-center gap-2">
         {backButton !== false && <FixedBackButton {...backButton} className="static" />}
         <ThemeToggle />
-        <TabsList className="bg-background/80 border backdrop-blur">
+        <TabsList className="bg-background/80 border backdrop-blur [&_[data-slot=tabs-trigger]>svg]:hidden sm:[&_[data-slot=tabs-trigger]>svg]:block">
           <TabsTrigger value="preview">
             <Eye />
             Preview
@@ -50,6 +52,12 @@ export function BlockPreviewTabs({
             <TabsTrigger value="llm">
               <FileText />
               llm.txt
+            </TabsTrigger>
+          ) : null}
+          {install ? (
+            <TabsTrigger value="install">
+              <Terminal />
+              Install
             </TabsTrigger>
           ) : null}
         </TabsList>
@@ -92,6 +100,24 @@ export function BlockPreviewTabs({
                 className="code-block-shiki min-h-0 flex-1 overflow-auto text-xs leading-[20px] [&_pre]:!bg-transparent [&_pre]:p-4"
                 dangerouslySetInnerHTML={{ __html: llm.html }}
               />
+            </div>
+          </Safari>
+        </TabsContent>
+      ) : null}
+
+      {install ? (
+        <TabsContent
+          value="install"
+          className="flex min-h-0 flex-1 items-center justify-center px-4 pt-16 pb-6"
+        >
+          <Safari url={url} className="w-[min(92vw,130vh)] drop-shadow-xl">
+            <div className="bg-background flex size-full min-h-0 flex-col">
+              <header className="flex h-9 shrink-0 items-center border-b px-3">
+                <span className="text-muted-foreground truncate font-mono text-xs">Install</span>
+              </header>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <div className="mx-auto w-full max-w-2xl p-6">{install}</div>
+              </div>
             </div>
           </Safari>
         </TabsContent>
