@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -12,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
@@ -51,8 +51,7 @@ export const metadata: Metadata = {
   },
 };
 
-const INSTALL_COMMAND =
-  "bunx --bun shadcn@latest add https://www.huanngdev.site/r/zod-data-table.json";
+const INSTALL_TARGET = "shadcn@latest add https://www.huanngdev.site/r/zod-data-table.json";
 
 const BASIC_USAGE_CODE = `"use client";
 
@@ -248,7 +247,7 @@ export default function ZodDataTablePage() {
               Manual installation
             </summary>
             <div className="mt-6">
-              <TerminalBlock command={INSTALL_COMMAND} />
+              <CliCommand execute={INSTALL_TARGET} />
             </div>
           </details>
         </Section>

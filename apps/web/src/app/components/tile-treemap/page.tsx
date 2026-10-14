@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -16,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
@@ -238,7 +238,7 @@ export default function TileTreemapPage() {
                   title="Install framer-motion"
                   description="Powers the tile entrance and hover motion."
                 >
-                  <TerminalBlock command="bun add framer-motion" />
+                  <CliCommand install="framer-motion" />
                 </Step>
                 <Step
                   index={3}

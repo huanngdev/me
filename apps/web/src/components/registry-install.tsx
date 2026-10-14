@@ -1,5 +1,5 @@
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 
 import {
   installCommands,
@@ -56,8 +56,8 @@ function InstallNotes({ info }: { info: RegistryInstallInfo }) {
   );
 }
 
-/** Namespace setup, once per project. Rendered by `RegistryInstall` unless `compact`, or by the caller. */
-export function RegistryNamespace({ name }: { name?: string }) {
+/** Namespace setup, once per project. Rendered by `RegistryInstall`. */
+function RegistryNamespace({ name }: { name?: string }) {
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">Optional: install by name</p>
@@ -66,28 +66,19 @@ export function RegistryNamespace({ name }: { name?: string }) {
         install with the name.
       </p>
       <CodeBlock code={namespaceSnippet()} language="json" />
-      {name === undefined ? null : <TerminalBlock command={installCommands(name).namespace} />}
+      {name === undefined ? null : <CliCommand execute={installCommands(name).namespace} />}
     </div>
   );
 }
 
-export async function RegistryInstall({
-  name,
-  compact = false,
-}: {
-  name: string;
-  compact?: boolean;
-}) {
+export async function RegistryInstall({ name }: { name: string }) {
   const info = registryInstall(name);
   const commands = installCommands(name);
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-medium">Install with shadcn</p>
-        <TerminalBlock command={commands.bun} />
-        <p className="text-muted-foreground text-sm">
-          npm: <code>{commands.npm}</code>. pnpm: <code>{commands.pnpm}</code>.
-        </p>
+        <CliCommand execute={commands.url} />
       </div>
       <div className="space-y-2">
         <p className="text-sm font-medium">What it installs</p>
@@ -97,7 +88,7 @@ export async function RegistryInstall({
         <p className="text-sm font-medium">Notes</p>
         <InstallNotes info={info} />
       </div>
-      {compact ? null : <RegistryNamespace name={name} />}
+      <RegistryNamespace name={name} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Blocks, House } from "lucide-react";
 import type { Metadata } from "next";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -50,6 +51,7 @@ export default function ErrorPageBlockPage() {
       name="error-page"
       files={BLOCK_FILES}
       llmText={readLlmsDocument("blocks", "error-page")}
+      install={<RegistryInstall name="error-page" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <ErrorPageBlock

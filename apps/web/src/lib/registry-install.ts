@@ -24,18 +24,12 @@ export function registryInstall(name: string): RegistryInstallInfo {
   return item;
 }
 
-/** Items published as blocks, in summary order. */
-export function registryBlocks(): RegistryInstallInfo[] {
-  return summary.items.filter((item) => item.type === "registry:block");
-}
-
+/** The `shadcn add` argument for the URL form and the namespace form, for `CliCommand`'s `execute`. */
 export function installCommands(name: string) {
   const url = registryItemUrl(name);
   return {
-    bun: `bunx --bun shadcn@latest add ${url}`,
-    npm: `npx shadcn@latest add ${url}`,
-    pnpm: `pnpm dlx shadcn@latest add ${url}`,
-    namespace: `bunx --bun shadcn@latest add ${REGISTRY_NAMESPACE}/${name}`,
+    url: `shadcn@latest add ${url}`,
+    namespace: `shadcn@latest add ${REGISTRY_NAMESPACE}/${name}`,
   };
 }
 

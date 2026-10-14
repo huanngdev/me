@@ -95,6 +95,19 @@
       "registryDependencies": []
     },
     {
+      "name": "cli-command",
+      "type": "registry:component",
+      "title": "CLI Command",
+      "description": "A command block with a tab per package manager.",
+      "dependencies": [
+        "lucide-react@^1.56.0"
+      ],
+      "registryDependencies": [
+        "button",
+        "tabs"
+      ]
+    },
+    {
       "name": "crm-data-table",
       "type": "registry:block",
       "title": "CRM Data Table",

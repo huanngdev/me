@@ -66,6 +66,13 @@ export const SMOKE: Readonly<Record<string, readonly SmokePart[]>> = {
       jsx: `<TileTreemap data={[{ label: "alpha", value: 1 }]} />`,
     },
   ],
+  "cli-command": [
+    {
+      file: "cli-command/cli-command",
+      names: ["CliCommand"],
+      jsx: `<CliCommand install="lucide-react" />`,
+    },
+  ],
   "crm-data-table": [
     {
       file: "blocks/crm-data-table/crm-data-table-block",

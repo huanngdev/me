@@ -6,6 +6,7 @@ import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-f
 import type { Metadata } from "next";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { RegistryInstall } from "@/components/registry-install";
 
 import { generateCrmCustomers } from "./data";
 
@@ -103,6 +104,7 @@ export default function CrmDataTableBlockPage() {
       url="huanngdev.site/blocks/crm-data-table"
       files={BLOCK_FILES}
       llmText={readLlmsDocument("blocks", "crm-data-table")}
+      install={<RegistryInstall name="crm-data-table" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
       <CrmDataTableBlock data={data} />

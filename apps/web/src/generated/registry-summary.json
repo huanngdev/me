@@ -150,6 +150,27 @@
       "docs": null
     },
     {
+      "name": "cli-command",
+      "title": "CLI Command",
+      "type": "registry:component",
+      "ownFileCount": 5,
+      "helperFileCount": 4,
+      "directory": "components/cli-command",
+      "helperDirectory": "components/huanngdev/cli-command",
+      "npmPackages": [
+        "lucide-react"
+      ],
+      "shadcnComponents": [
+        "button",
+        "tabs"
+      ],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
       "name": "crm-data-table",
       "title": "CRM Data Table",
       "type": "registry:block",

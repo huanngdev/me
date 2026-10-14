@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -16,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
@@ -68,8 +68,8 @@ export const metadata: Metadata = {
   },
 };
 
-const INSTALL_COMMAND = `bun add @vidstack/react@next lucide-react`;
-const SHADCN_COMMAND = `bunx --bun shadcn@latest add button dropdown-menu slider tooltip`;
+const INSTALL_PACKAGES = "@vidstack/react@next lucide-react";
+const SHADCN_TARGET = "shadcn@latest add button dropdown-menu slider tooltip";
 const STYLE_IMPORTS = `@import "@vidstack/react/player/styles/base.css";`;
 
 const USAGE_CODE = `"use client";
@@ -250,14 +250,14 @@ export default function AudioPlayerPage() {
                   title="Install the media engine"
                   description="Vidstack provides the headless player, the same engine as the Video Player."
                 >
-                  <TerminalBlock command={INSTALL_COMMAND} />
+                  <CliCommand install={INSTALL_PACKAGES} />
                 </Step>
                 <Step
                   index={2}
                   title="Add shadcn primitives"
                   description="The visible controls use your existing theme tokens."
                 >
-                  <TerminalBlock command={SHADCN_COMMAND} />
+                  <CliCommand execute={SHADCN_TARGET} />
                 </Step>
                 <Step
                   index={3}

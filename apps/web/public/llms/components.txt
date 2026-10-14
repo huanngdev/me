@@ -9,6 +9,7 @@
 - [Video Player](https://www.huanngdev.site/llms/components/video-player.txt): A headless media player with shadcn controls.
 - [Zod Data Table](https://www.huanngdev.site/llms/components/zod-data-table.txt): A typed TanStack table generated from a Zod object schema.
 - [Tile Treemap](https://www.huanngdev.site/llms/components/tile-treemap.txt): Divide a single box into proportionally sized, color-coded tiles.
+- [CLI Command](https://www.huanngdev.site/llms/components/cli-command.txt): A command block with a tab per package manager.
 
 ## Optional
 

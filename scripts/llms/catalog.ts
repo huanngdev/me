@@ -87,6 +87,21 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     ],
   },
   {
+    kind: "component",
+    slug: "cli-command",
+    name: "CLI Command",
+    description: "A command block with a tab per package manager.",
+    registryPath: "/r/cli-command.json",
+    docsPath: "/components/cli-command",
+    files: [
+      "packages/core/src/components/cli-command/package-managers.ts",
+      "packages/core/src/components/cli-command/shell-tokens.ts",
+      "packages/core/src/components/cli-command/package-manager-icons.tsx",
+      "packages/core/src/components/cli-command/use-package-manager.ts",
+      "packages/core/src/components/cli-command/cli-command.tsx",
+    ],
+  },
+  {
     kind: "block",
     slug: "crm-data-table",
     name: "CRM Data Table",

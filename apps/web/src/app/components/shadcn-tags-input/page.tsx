@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -13,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
@@ -44,8 +44,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/components/shadcn-tags-input" },
 };
 
-const DEPS_COMMAND = `bun add lucide-react`;
-const SHADCN_DEPS_COMMAND = `bunx --bun shadcn@latest add badge`;
+const DEPS_PACKAGES = "lucide-react";
+const SHADCN_TARGET = "shadcn@latest add badge";
 
 const TAGS_INPUT_SOURCE = registry.files[0]!.content;
 
@@ -354,14 +354,14 @@ export default function TagsInputComponentPage() {
                   title="Install dependencies"
                   description="Runtime libraries the component needs."
                 >
-                  <TerminalBlock command={DEPS_COMMAND} />
+                  <CliCommand install={DEPS_PACKAGES} />
                 </Step>
                 <Step
                   index={2}
                   title="Add shadcn primitives"
                   description="Pulls in the badge component used by tags."
                 >
-                  <TerminalBlock command={SHADCN_DEPS_COMMAND} />
+                  <CliCommand execute={SHADCN_TARGET} />
                 </Step>
                 <Step
                   index={3}

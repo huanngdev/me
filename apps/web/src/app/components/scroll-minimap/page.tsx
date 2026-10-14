@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type { Metadata } from "next";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
@@ -15,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
@@ -225,7 +225,7 @@ export default function ScrollMinimapPage() {
                   title="Add the shadcn primitive"
                   description="Installs the hover card used for marker previews."
                 >
-                  <TerminalBlock command="bunx --bun shadcn@latest add hover-card" />
+                  <CliCommand execute="shadcn@latest add hover-card" />
                 </Step>
                 <Step
                   index={2}

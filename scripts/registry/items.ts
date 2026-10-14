@@ -101,6 +101,14 @@ export const ITEMS: readonly ItemDefinition[] = [
     entries: [`${SRC}/components/tile-treemap.tsx`, `${SRC}/components/tile-treemap.utils.ts`],
   },
   {
+    name: "cli-command",
+    type: "registry:component",
+    ...catalogEntry("cli-command"),
+    sourcePrefix: "components/cli-command",
+    targetRoot: "components/cli-command",
+    entries: [`${SRC}/components/cli-command/cli-command.tsx`],
+  },
+  {
     name: "crm-data-table",
     type: "registry:block",
     ...catalogEntry("crm-data-table"),

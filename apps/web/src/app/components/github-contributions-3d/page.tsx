@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
 import type { ContributionDay } from "@repo/core/components/github-contributions-3d";
@@ -17,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TerminalBlock } from "@repo/core/components/terminal-block";
 import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 import { getCachedContributions } from "@repo/core/functions";
 
@@ -196,7 +196,7 @@ export default async function GitHubContributions3DPage() {
             </summary>
             <div className="mt-6">
               <div className="space-y-6">
-                <TerminalBlock command="bun add three @react-three/fiber @react-three/drei" />
+                <CliCommand install="three @react-three/fiber @react-three/drei" />
                 <div className="space-y-2">
                   <p className="text-muted-foreground text-sm">
                     Save as{" "}
