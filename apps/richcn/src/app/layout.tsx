@@ -3,6 +3,7 @@ import "@repo/core/styles/globals.css";
 import { ThemeProvider } from "@repo/core/components/providers/theme-provider";
 import { TooltipProvider } from "@repo/core/components/tooltip";
 import { cn } from "@repo/core/lib/utils";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
@@ -87,6 +88,7 @@ export default function RootLayout({
             <main className="flex flex-1 flex-col">{children}</main>
           </TooltipProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
