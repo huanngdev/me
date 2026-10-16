@@ -24,7 +24,7 @@ body {
 body {
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 9.4pt;
   line-height: 1.28;
 }
 
@@ -32,10 +32,9 @@ body {
   position: relative;
   width: 210mm;
   min-height: 297mm;
-  padding: 9mm 12mm;
+  padding: 9mm 13mm;
 }
 
-.header,
 .entry-heading,
 .education {
   display: flex;
@@ -52,18 +51,16 @@ h1 {
 .role {
   margin: 2.5mm 0 0;
   color: var(--accent);
-  font-size: 8.7pt;
+  font-size: 10.5pt;
   font-weight: 700;
-  text-transform: uppercase;
+}
+.role {
+  margin-bottom: 2mm;
 }
 .contact {
+  margin: 0 0 0.8mm;
   color: var(--muted);
-  font-size: 8.1pt;
-  text-align: right;
-}
-.contact p {
-  margin: 0 0 1mm;
-  white-space: nowrap;
+  font-size: 9pt;
 }
 .contact a {
   color: var(--accent);
@@ -106,7 +103,7 @@ h2 {
   gap: 5mm;
   margin: 0 0 2.3mm;
   color: var(--accent);
-  font-size: 8.6pt;
+  font-size: 9.6pt;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -132,17 +129,17 @@ h2 span {
 }
 h3 {
   margin: 0;
-  font-size: 9.4pt;
+  font-size: 10.2pt;
   line-height: 1.2;
 }
 h3 small {
   color: var(--muted);
-  font-size: 8.8pt;
+  font-size: 9.6pt;
   font-weight: 400;
 }
 time {
   color: var(--muted);
-  font-size: 8.2pt;
+  font-size: 9pt;
   white-space: nowrap;
 }
 ul {
@@ -169,6 +166,15 @@ code {
   padding-bottom: 2mm;
   border-bottom: 0.25mm solid var(--rule);
 }
+.project-heading time {
+  margin-left: auto;
+}
+.project .stack {
+  font-size: 9pt;
+}
+.project ul {
+  margin-top: 0.8mm;
+}
 .project-heading {
   display: flex;
   gap: 4mm;
@@ -194,7 +200,7 @@ code {
 }
 .badge {
   color: var(--accent);
-  font-size: 7.6pt;
+  font-size: 8.4pt;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -219,8 +225,8 @@ code {
 
 .skills {
   display: grid;
-  grid-template-columns: 35mm 1fr;
-  row-gap: 1.7mm;
+  grid-template-columns: 40mm 1fr;
+  row-gap: 1.2mm;
   margin: 0;
 }
 .skills dt {
@@ -232,7 +238,7 @@ code {
 }
 .education {
   display: grid;
-  grid-template-columns: 27mm 1fr auto;
+  grid-template-columns: 40mm 1fr auto;
   align-items: baseline;
 }
 .education p,
@@ -246,12 +252,28 @@ code {
   margin-top: 3mm;
 }
 .award-list {
-  margin: 0;
+  margin: 2mm 0 0;
   padding: 0;
   list-style: none;
 }
+.award-list a {
+  margin-left: 2mm;
+  color: var(--accent);
+  text-decoration: underline;
+}
+.award-list time {
+  margin-left: auto;
+}
+.languages {
+  margin: 1mm 0 0;
+  color: var(--muted);
+}
+.languages strong {
+  color: var(--ink);
+}
 .award-list li {
   display: flex;
+  gap: 1mm;
   margin: 0 0 1.5mm;
   padding: 0;
   color: var(--muted);

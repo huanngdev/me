@@ -10,219 +10,197 @@
   <body>
     <main class="page">
       <header class="header">
-        <div>
-          <h1>Ngo Gia Huan</h1>
-          <p class="role">Full-Stack Developer · React · Next.js · Node.js · TypeScript</p>
-        </div>
-        <div class="contact">
-          <p>
-            Ho Chi Minh City, Vietnam <span>|</span>
-            <a href="tel:+84911685725">+84 911 685 725</a>
-          </p>
-          <p>
-            <a href="mailto:huanngdev@gmail.com">huanngdev@gmail.com</a>
-            <span>|</span>
-            <a href="https://www.huanngdev.site">huanngdev.site</a>
-          </p>
-          <p>
-            <a href="https://github.com/huanngdev">github.com/huanngdev</a>
-            <span>|</span>
-            <a href="https://www.linkedin.com/in/huanngdev/">linkedin.com/in/huanngdev</a>
-          </p>
-          <p>Vietnamese (Native) <span>|</span> English (Intermediate)</p>
-        </div>
+        <h1>Ngo Gia Huan</h1>
+        <p class="role">Full-Stack Developer (TypeScript)</p>
+        <p class="contact">
+          Ho Chi Minh City, Vietnam <span>|</span>
+          <a href="tel:+84911685725">+84 911 685 725</a> <span>|</span>
+          <a href="mailto:huanngdev@gmail.com">huanngdev@gmail.com</a>
+        </p>
+        <p class="contact">
+          <a href="https://www.huanngdev.site">huanngdev.site</a> <span>|</span>
+          <a href="https://github.com/huanngdev">github.com/huanngdev</a> <span>|</span>
+          <a href="https://www.linkedin.com/in/huanngdev/">linkedin.com/in/huanngdev</a>
+        </p>
       </header>
 
       <div class="summary">
         <p>
-          Full-stack developer with 1.5+ years of experience (incl. a 9-month internship) shipping
-          TypeScript products at FPT Software and Formo. Built product APIs, an authenticated CLI,
-          and MCP integrations across Next.js, Express, ClickHouse, and Redis. Author of richcn, an
-          open-source Notion-style editor installable with shadcn, and Top 1 winner at Walrus
-          Session 2.
+          Full-stack TypeScript developer: 9 months at Formo, a Web3 analytics startup, shipping API keys, a CLI,
+          and an MCP server to production customers, after a 9-month FPT Software internship leading a
+          frontend team. Hackathon winner (Walrus Session 2) and author of richcn, an open-source
+          Notion-style editor.
         </p>
       </div>
 
       <section>
+        <h2><span>Work Experience</span></h2>
+        <article class="entry">
+          <div class="entry-heading">
+            <h3>Full-Stack Developer <small>- Formo</small></h3>
+            <time>09/2025 - 05/2026 | Ho Chi Minh City, Vietnam</time>
+          </div>
+          <p class="entry-summary">
+            Web3 analytics and attribution platform. 4-developer team; English as the working
+            language.
+          </p>
+          <ul>
+            <li>
+              Designed and shipped Workspace API Keys end to end: database schema, scoped
+              permissions, backend APIs, and the management UI, giving customers programmatic access
+              to their workspace data.
+            </li>
+            <li>
+              Built the Formo CLI, giving authenticated access to analytics, profiles, dashboards, alerts,
+              contracts, and segments.
+            </li>
+            <li>
+              Built an MCP server, an MVP client, and docs that let AI assistants query project-scoped
+              analytics.
+            </li>
+            <li>
+              Integrated Trigger.dev (jobs), Tinybird (ClickHouse APIs), Checkly (monitoring),
+              and Supabase (auth, storage).
+            </li>
+            <li>
+              Shipped UI and backend improvements across Next.js and Express, covered by automated
+              tests.
+            </li>
+          </ul>
+        </article>
+        <article class="entry">
+          <div class="entry-heading">
+            <h3>Frontend Developer Intern, Team Lead <small>- FPT Software</small></h3>
+            <time>09/2024 - 05/2025 | Ho Chi Minh City, Vietnam</time>
+          </div>
+          <p class="entry-summary">
+            FAMS: internal web app used by FPT Software staff and interns to manage internships,
+            tasks, and intern evaluations.
+          </p>
+          <ul>
+            <li>
+              Led a frontend team of about 10 interns: split features into tasks, assigned work, and
+              coordinated with the backend team.
+            </li>
+            <li>
+              Personally built the core modules (authentication, authorization, shared dashboard) with
+              Next.js and Redux Toolkit.
+            </li>
+            <li>
+              Designed the UI in Figma and set up the shared component foundation and page templates
+              the team built on.
+            </li>
+          </ul>
+        </article>
+      </section>
+
+      <section>
+        <h2><span>Projects</span></h2>
+        <article class="project">
+          <div class="project-heading">
+            <strong>richcn</strong><span class="badge">Open source</span>
+            <a href="https://richcn.huanngdev.site">richcn.huanngdev.site</a>
+            <a
+              href="https://github.com/huanngdev/me/tree/main/packages/core/src/components/blocks/notion-like-editor"
+              >Source</a
+            >
+            <time>06/2026 - Present</time>
+          </div>
+          <p>
+            Notion-style block editor for React and shadcn/ui, built on Plate and installable with
+            one <code>npx shadcn add</code> command.
+          </p>
+          <ul>
+            <li>
+              Built the slash menu, drag handles, tables, columns, toggles, media blocks, mentions,
+              and an autosave persistence adapter that lets the host app choose its storage.
+            </li>
+            <li>
+              Published 8 components and 3 blocks as a shadcn registry, with docs and llms.txt for AI
+              coding tools.
+            </li>
+          </ul>
+          <p class="stack">React · TypeScript · Next.js · Plate · shadcn/ui · Tailwind CSS</p>
+        </article>
+        <article class="project">
+          <div class="project-heading">
+            <strong>MarkQ</strong><span class="badge">Open source · MIT</span>
+            <a href="https://github.com/huanngdev/markq">github.com/huanngdev/markq</a>
+          </div>
+          <p>Self-hosted quiz app that turns Markdown files into interactive tests.</p>
+          <ul>
+            <li>
+              Kept grading server-authoritative so correct answers never reach the browser, and
+              stored immutable attempt snapshots so past reviews stay accurate after a quiz changes.
+            </li>
+            <li>
+              Validated input with Zod; unit-tested grading, persistence, migrations, and analytics in GitHub
+              Actions CI.
+            </li>
+          </ul>
+          <p class="stack">Next.js · TypeScript · SQLite · Drizzle · Zod · Bun</p>
+        </article>
+        <article class="project">
+          <div class="project-heading">
+            <strong>WalForm</strong><span class="badge">1st place · Live</span>
+            <a href="https://walform.wal.app">walform.wal.app</a>
+            <a href="https://github.com/UyLeQuoc/sui-walform">Source</a>
+          </div>
+          <p>
+            Decentralized form builder on Sui with client-side encryption and AI-assisted form
+            generation, built in four weeks.
+          </p>
+          <ul>
+            <li>
+              Led a two-person team and owned the frontend: drag-and-drop builder and Seal and Walrus
+              integrations.
+            </li>
+          </ul>
+          <p class="stack">React · TypeScript · Sui · Move · Walrus · Seal</p>
+        </article>
+      </section>
+
+      <section>
         <h2><span>Skills</span></h2>
         <dl class="skills">
+          <dt>Languages</dt>
+          <dd>TypeScript, JavaScript, HTML, CSS, Move</dd>
           <dt>Frontend</dt>
-          <dd>
-            TypeScript, JavaScript, React (ReactJS), Next.js (NextJS), Tailwind CSS, shadcn/ui,
-            Plate, Zustand, Redux Toolkit, Framer Motion, HTML, CSS
-          </dd>
+          <dd>React, Next.js, Tailwind CSS, shadcn/ui, Redux Toolkit, Zustand</dd>
           <dt>Backend and data</dt>
           <dd>
-            Node.js (NodeJS), Express, Hono, REST APIs, PostgreSQL, Drizzle, MongoDB, Redis,
-            ClickHouse
+            Node.js, Express, Hono, REST APIs, PostgreSQL, Prisma, Drizzle, Redis, ClickHouse,
+            Supabase
           </dd>
-          <dt>AI and LLM</dt>
-          <dd>MCP (Model Context Protocol), Vercel AI SDK, OpenRouter</dd>
-          <dt>Infrastructure</dt>
-          <dd>Docker, AWS, GitHub Actions, Vercel, Railway</dd>
-          <dt>Web3</dt>
-          <dd>Sui, Move, Walrus, Seal</dd>
-          <dt>Tools</dt>
-          <dd>Git, Figma, Turborepo, Bun</dd>
+          <dt>Testing, DevOps, tools</dt>
+          <dd>Bun test, GitHub Actions, Docker, Vercel, Railway, AWS, Git, Turborepo, Figma</dd>
+          <dt>AI and Web3</dt>
+          <dd>MCP, Vercel AI SDK, Sui, Walrus, Seal</dd>
         </dl>
       </section>
 
       <section>
-        <h2><span>Work Experience</span></h2>
-        <article class="entry compact-entry">
-          <div class="entry-heading">
-            <h3>Freelance Fullstack Developer</h3>
-            <time>06/2026 - Present | Remote</time>
-          </div>
-          <ul>
-            <li>
-              Built and maintain richcn, a Notion-style block editor for React and shadcn/ui on
-              Plate, with a slash menu, tables, media blocks, mentions, and an autosave persistence
-              adapter.
-            </li>
-            <li>
-              Published 8 components and 3 blocks as a shadcn registry, each installable with one
-              <code>npx shadcn add</code> command.
-            </li>
-          </ul>
-        </article>
-        <article class="entry">
-          <div class="entry-heading">
-            <h3>Fullstack Developer <small>- Formo</small></h3>
-            <time>09/2025 - 05/2026 | Ho Chi Minh City, Vietnam</time>
-          </div>
-          <ul>
-            <li>
-              Owned the design and delivery of Workspace API Keys, covering database schema, scoped
-              permissions, backend APIs, and the management UI.
-            </li>
-            <li>
-              Built an authenticated CLI spanning six product domains: analytics, profiles,
-              dashboards, alerts, contracts, and segments.
-            </li>
-            <li>
-              Shipped an MCP server, MVP client, and documentation for exposing project-scoped
-              analytics to external AI clients.
-            </li>
-            <li>
-              Integrated automation, monitoring, authentication, and analytics infrastructure with
-              Trigger.dev, Checkly, Supabase, and Tinybird.
-            </li>
-          </ul>
-        </article>
-        <article class="entry">
-          <div class="entry-heading">
-            <h3>Frontend Developer Intern <small>- FPT Software</small></h3>
-            <time>09/2024 - 05/2025 | Ho Chi Minh City, Vietnam</time>
-          </div>
-          <ul>
-            <li>
-              Implemented the frontend for FAMS, a student management application delivered by a
-              10-person project team.
-            </li>
-            <li>Created the shared UI foundation and reusable templates with Next.js and React.</li>
-            <li>
-              Implemented client state with Redux Toolkit and integrated APIs with the backend team.
-            </li>
-          </ul>
-        </article>
-      </section>
-
-      <section>
-        <h2><span>Selected Projects</span></h2>
-        <article class="project">
-          <div class="project-heading">
-            <strong>richcn</strong><span class="badge">Open source · Live</span>
-            <a href="https://richcn.huanngdev.site">richcn.huanngdev.site</a>
-            <a href="https://github.com/huanngdev/me">github.com/huanngdev/me</a>
-          </div>
-          <p>
-            Notion-style block editor for React and shadcn/ui, installed into any app with the
-            shadcn CLI and documented with live demos.
-          </p>
-          <p class="contribution">
-            <strong>Contribution:</strong> Designed and built the editor, docs site, registry, and
-            an AI agent skill; the editor ships as a block on huanngdev.site.
-          </p>
-          <dl class="project-stack">
-            <dt>Tech stack</dt>
-            <dd>
-              React <span>·</span> TypeScript <span>·</span> Next.js <span>·</span> Plate
-              <span>·</span> shadcn/ui <span>·</span> Tailwind CSS
-            </dd>
-          </dl>
-        </article>
-        <article class="project">
-          <div class="project-heading">
-            <strong>WalForm</strong><span class="badge">Top 1 · Live</span>
-            <a href="https://walform.wal.app">walform.wal.app</a>
-            <a href="https://github.com/UyLeQuoc/sui-walform">github.com/UyLeQuoc/sui-walform</a>
-          </div>
-          <p>
-            Shipped a decentralized form builder with customizable forms, client-side encryption,
-            and AI-assisted generation in four weeks.
-          </p>
-          <p class="contribution">
-            <strong>Contribution:</strong> Owned all frontend engineering in a two-person team. Won
-            Top 1 and continued to support later Walrus sessions.
-          </p>
-          <dl class="project-stack">
-            <dt>Tech stack</dt>
-            <dd>
-              React <span>·</span> TypeScript <span>·</span> Sui <span>·</span> Move
-              <span>·</span> Walrus <span>·</span> Seal
-            </dd>
-          </dl>
-        </article>
-        <article class="project">
-          <div class="project-heading">
-            <strong>MarkQ</strong><span class="badge">Open source</span>
-            <a href="https://github.com/huanngdev/markq">github.com/huanngdev/markq</a>
-          </div>
-          <p>
-            Built a Markdown-first quiz engine with server-authoritative grading, answer review,
-            analytics, and persistent attempt history.
-          </p>
-          <p class="contribution">
-            <strong>Contribution:</strong> Designed the quiz format and full-stack application,
-            including validation, autosave, immutable review snapshots, tests, and CI.
-          </p>
-          <dl class="project-stack">
-            <dt>Tech stack</dt>
-            <dd>
-              Next.js <span>·</span> TypeScript <span>·</span> SQLite <span>·</span> Drizzle
-              <span>·</span> shadcn/ui
-            </dd>
-          </dl>
-        </article>
-      </section>
-
-      <section>
-        <h2><span>Education &amp; Recognition</span></h2>
+        <h2><span>Education and Awards</span></h2>
         <div class="education">
           <strong>FPT University</strong>
           <p>Bachelor of Software Engineering</p>
           <time>10/2021 - 05/2025</time>
         </div>
-        <div class="awards">
-          <strong>Awards</strong>
-          <ul class="award-list">
-            <li><b>Top 1</b> - Walrus Session 2, Form Tooling track <span>WalForm · 2026</span></li>
-            <li><b>Top 2</b> - First Mover Hackathon <span>Relic of Lie · Feb 2026</span></li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <h2><span>Selected Coursework</span></h2>
-        <ul class="certifications">
+        <ul class="award-list">
           <li>
-            <a href="https://coursera.org/share/2ad1c7065db757e6f538eff8bbb6de2e"
-              >User Experience Research and Design</a
-            >
-            <span>Coursera · May 2024</span>
+            <b>1st place</b> - Walrus Session 2, Form Tooling track (WalForm)
+            <a href="https://x.com/WalrusProtocol/status/2060146561674609002">Announcement</a>
+            <time>05/2026</time>
+          </li>
+          <li>
+            <b>2nd place</b> - First Mover Hackathon (Relic of Lie, an on-chain card game)
+            <time>02/2026</time>
           </li>
         </ul>
+        <p class="languages">
+          <strong>Languages:</strong> Vietnamese (native), English (professional working
+          proficiency; daily working language at Formo)
+        </p>
       </section>
     </main>
   </body>
