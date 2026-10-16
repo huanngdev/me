@@ -1,17 +1,38 @@
 ---
 title: Projects
-updated: 2026-09-03
+updated: 2026-10-16
 ---
 
 # Projects
 
-Ordered for the public page: **hackathon work first, then everything else.** Hackathon projects are the strongest proof-of-shipping signal for an early-career portfolio — they prove Ngô Gia Huấn can ship under pressure, on unfamiliar stacks, against deadlines.
+Ordered for the public page: **richcn first, then hackathon work, then everything else.** Hackathon projects are the strongest proof-of-shipping signal for an early-career portfolio — they prove Ngô Gia Huấn can ship under pressure, on unfamiliar stacks, against deadlines.
 
 > **CLAUDE.md correction:** the SealPass and AfterVault projects referenced in CLAUDE.md were placeholder names. The real hackathon projects are below.
 
 ---
 
-## 1. WalForm — _featured / hero project_
+## 1. richcn — _featured project_
+
+- **One-liner:** Notion-style block editor for React and shadcn/ui, installed with the shadcn CLI.
+- **Role:** Solo author
+- **Stack:** React, TypeScript, Plate, shadcn/ui, Next.js
+- **Status:** Live
+- **Links:**
+  - Live: https://richcn.huanngdev.site
+  - GitHub: https://github.com/huanngdev/me/tree/main/packages/core/src/components/blocks/notion-like-editor
+
+### Highlights
+
+- Slash menu, block menu, and drag handles for building documents block by block.
+- Tables, toggles, columns, callouts, code blocks, and media blocks with video and audio players.
+- Mentions, text and block colors, and a selection toolbar for inline formatting.
+- A persistence adapter with autosave, so the host app decides where documents are stored.
+- One-command install: `npx shadcn@latest add https://www.huanngdev.site/r/notion-like-editor.json`.
+- A documentation site at richcn.huanngdev.site with API references, guides, and llms.txt for AI tools.
+
+---
+
+## 2. WalForm — _hackathon highlight_
 
 - **One-liner:** On-chain form builder on Sui — forms with decentralized storage on Walrus.
 - **Role:** Frontend Developer in a two-person team
@@ -33,7 +54,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 2. IELTS Practices Online
+## 3. IELTS Practices Online
 
 - **One-liner:** IELTS practice platform with AI-assisted authoring and performance analytics.
 - **Role:** Solo Fullstack Developer / System Design
@@ -51,7 +72,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 3. Sui Stream
+## 4. Sui Stream
 
 - **One-liner:** On-chain short-video platform powered by Walrus storage and Sui contracts.
 - **Role:** Solo Frontend and Smart Contract Developer
@@ -70,7 +91,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 4. HuanPhim
+## 5. HuanPhim
 
 - **One-liner:** No-code film streaming stack deployed and secured on a self-managed VPS.
 - **Role:** Solo DevOps / System Administrator
@@ -88,7 +109,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 5. MarkQ
+## 6. MarkQ
 
 - **One-liner:** Open-source quiz engine that turns Markdown files into interactive tests.
 - **Role:** Solo Fullstack Developer / Maintainer
@@ -106,7 +127,7 @@ Ordered for the public page: **hackathon work first, then everything else.** Hac
 
 ---
 
-## 6. Relic of Lie — 🥈 Top 2
+## 7. Relic of Lie — 🥈 Top 2
 
 - **One-liner:** A decentralized take on the _Love Letter_ card game — bluffing and deduction, on-chain.
 - **Hackathon:** First Mover, 3 February 2026 — **Top 2**
@@ -120,7 +141,7 @@ The "first hackathon, first podium" line is the card subtitle — it's the fresh
 
 ---
 
-## 7. This portfolio site
+## 8. This portfolio site
 
 - **One-liner:** Personal portfolio built with Next.js 16, Tailwind v4, shadcn/ui, in a Turborepo monorepo with a shared `@repo/core` design-system package.
 - **Stack:** Next.js (App Router, RSC, server actions), Tailwind v4, shadcn/ui, Radix, Framer Motion, Velite/Contentlayer for MDX content, Vercel hosting.
@@ -131,7 +152,7 @@ Including the portfolio as a project is legitimate when it's craft-forward — r
 
 ---
 
-## 8. MapCN components
+## 9. MapCN components
 
 - **One-liner:** MapLibre-powered React map components integrated into the portfolio, centered on Ho Chi Minh City.
 - **Stack:** MapCN, MapLibre, React, TypeScript, Tailwind CSS.

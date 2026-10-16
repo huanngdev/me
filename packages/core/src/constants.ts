@@ -444,6 +444,31 @@ export interface ProjectEntry {
 
 export const PROJECTS = [
   {
+    slug: "richcn",
+    name: "richcn",
+    description:
+      "Notion-style block editor for React and shadcn/ui, installed with the shadcn CLI.",
+    details: {
+      overview:
+        "richcn is an open-source, Plate-based block editor that drops into any React app through the shadcn registry. I designed and built the editor, its documentation site with live demos, the registry entries, and an AI agent skill that teaches coding agents how to integrate it. The same editor runs as the Notion-like Editor block on this portfolio.",
+      features: [
+        "Slash menu, block menu, and drag handles for building documents block by block.",
+        "Tables, toggles, columns, callouts, code blocks, and media blocks with video and audio players.",
+        "Mentions, text and block colors, and a selection toolbar for inline formatting.",
+        "A persistence adapter with autosave, so the host app decides where documents are stored.",
+        "One-command install: npx shadcn@latest add https://www.huanngdev.site/r/notion-like-editor.json.",
+        "A documentation site at richcn.huanngdev.site with API references, guides, and llms.txt for AI tools.",
+      ],
+    },
+    stack: ["React", "TypeScript", "Plate", "shadcn/ui", "Next.js"],
+    status: "live",
+    links: {
+      live: "https://richcn.huanngdev.site",
+      source:
+        "https://github.com/huanngdev/me/tree/main/packages/core/src/components/blocks/notion-like-editor",
+    },
+  },
+  {
     slug: "walform",
     name: "WalForm",
     description: "On-chain form builder on Sui — forms with decentralized storage on Walrus.",
