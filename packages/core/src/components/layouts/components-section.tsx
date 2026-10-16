@@ -10,6 +10,7 @@ import {
   Tags,
 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { DotPattern } from "@/components/dot-pattern";
 
@@ -71,7 +72,13 @@ export const COMPONENT_LIST: {
 
 export const COMPONENT_COUNT = COMPONENT_LIST.length;
 
-export function ComponentsSection() {
+export type ComponentPreview = { node: ReactNode; scale?: number };
+
+export function ComponentsSection({
+  previews,
+}: {
+  previews?: Partial<Record<string, ComponentPreview>>;
+}) {
   if (COMPONENT_LIST.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -84,13 +91,36 @@ export function ComponentsSection() {
     <ul className="grid grid-cols-1 sm:grid-cols-3">
       {COMPONENT_LIST.map((comp) => {
         const Icon = comp.icon;
+        const preview = previews?.[comp.slug];
+        const scale = preview?.scale ?? 0.5;
         return (
           <li key={comp.slug} className="border-b p-3 sm:border-r">
             <article className="group relative overflow-hidden rounded-xl border">
-              <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden">
-                <DotPattern className="z-0" />
-                <Icon className="text-muted-foreground pointer-events-none relative z-10 size-8 transition-transform duration-300 ease-out group-hover:scale-110" />
-              </div>
+              {preview ? (
+                <div className="relative aspect-video w-full overflow-hidden">
+                  <DotPattern className="z-0" />
+                  <div
+                    inert
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-1/2 z-10 flex items-center justify-center p-6 select-none"
+                    style={{
+                      width: `${100 / scale}%`,
+                      height: `${100 / scale}%`,
+                      transform:
+                        scale === 1
+                          ? "translate(-50%, -50%)"
+                          : `translate(-50%, -50%) scale(${scale})`,
+                    }}
+                  >
+                    {preview.node}
+                  </div>
+                </div>
+              ) : (
+                <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden">
+                  <DotPattern className="z-0" />
+                  <Icon className="text-muted-foreground pointer-events-none relative z-10 size-8 transition-transform duration-300 ease-out group-hover:scale-110" />
+                </div>
+              )}
               <div className="border-t px-3 py-2.5">
                 <div className="flex items-center gap-3">
                   <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{comp.name}</h2>
