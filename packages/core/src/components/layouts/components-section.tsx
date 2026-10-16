@@ -13,7 +13,7 @@ import Link from "next/link";
 
 import { DotPattern } from "@/components/dot-pattern";
 
-const COMPONENT_LIST: {
+export const COMPONENT_LIST: {
   slug: string;
   name: string;
   description: string;

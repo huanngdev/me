@@ -2,7 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-type BlockItem = {
+export type BlockItem = {
   slug: string;
   name: string;
   snapshot: {
@@ -12,7 +12,7 @@ type BlockItem = {
   };
 };
 
-const BLOCK_LIST: readonly BlockItem[] = [
+export const BLOCK_LIST: readonly BlockItem[] = [
   {
     slug: "crm-data-table",
     name: "CRM Data Table",

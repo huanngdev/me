@@ -9,6 +9,7 @@ import { Footer } from "@repo/core/components/layouts/footer";
 import { OverviewSection } from "@repo/core/components/layouts/overview/overview-section";
 import { ProfileSection } from "@repo/core/components/layouts/profile-section";
 import { ProjectsSection } from "@repo/core/components/layouts/projects-section";
+import { ShowcaseSection } from "@repo/core/components/layouts/showcase-section";
 import { SocialLinksSection } from "@repo/core/components/layouts/social-links-section";
 import { SiteInfoSection } from "@repo/core/components/layouts/site-info-section";
 import { StripedSeparator } from "@repo/core/components/layouts/striped-separator";
@@ -106,6 +107,10 @@ export default function Home() {
       <Separator />
       <Reveal>
         <SocialLinksSection />
+      </Reveal>
+      <StripedSeparator height="h-12" />
+      <Reveal>
+        <ShowcaseSection />
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>
