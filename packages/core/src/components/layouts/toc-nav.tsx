@@ -6,6 +6,7 @@ const SECTIONS: TOCItemType[] = [
   { title: "Profile", url: "#profile", depth: 2 },
   { title: "Overview", url: "#overview", depth: 2 },
   { title: "Links", url: "#links", depth: 2 },
+  { title: "Showcase", url: "#showcase", depth: 2 },
   { title: "Coding", url: "#coding", depth: 2 },
   { title: "Experience", url: "#experience", depth: 2 },
   { title: "Education", url: "#education", depth: 2 },
