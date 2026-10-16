@@ -30,7 +30,6 @@ import {
   AWARDS,
   BOOKMARKS,
   CERTIFICATIONS,
-  ETC_ITEMS,
   IDENTITY,
   NAV_ITEMS,
   PROJECTS,
@@ -141,14 +140,13 @@ const SECTIONS: SectionItem[] = [
   },
 ];
 
-const PAGES = [...NAV_ITEMS, ...ETC_ITEMS];
+const PAGES = NAV_ITEMS;
 
 /** Extra search terms per page, keyed by href, so the palette surfaces them. */
 const PAGE_KEYWORDS: Record<string, string[]> = {
   "/": ["home", "start", "top"],
   "/components": ["ui", "demos", "showcase", "playground"],
   "/blocks": ["ui", "pages", "showcase", "layouts"],
-  "/changelog": ["history", "releases", "updates", "what's new"],
 };
 
 function scrollToHash(hash: string) {

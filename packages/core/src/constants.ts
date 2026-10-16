@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import { Blocks, Component, History, Home } from "lucide-react";
+import { Blocks, Component, Home } from "lucide-react";
 
 // ---------- Navigation ----------
 
@@ -19,9 +19,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Components", href: "/components", icon: Component },
   { label: "Blocks", href: "/blocks", icon: Blocks },
 ];
-
-// Secondary pages, grouped under an "etc" dropdown in the header.
-export const ETC_ITEMS: NavItem[] = [{ label: "Changelog", href: "/changelog", icon: History }];
 
 // ---------- Local greetings ----------
 
@@ -869,113 +866,3 @@ export const BOOKMARKS = [
     tags: ["ui"],
   },
 ] as const satisfies ReadonlyArray<BookmarkEntry>;
-
-// ---------- Changelog ----------
-
-export interface ChangelogEntry {
-  date: string; // YYYY-MM-DD
-  changes: ReadonlyArray<string>;
-}
-
-// Curated from git history — big milestones only. Newest first.
-export const CHANGELOG = [
-  {
-    date: "2026-09-11",
-    changes: [
-      "Added a Blocks page — full-page UI blocks rendered inside a Safari frame with a Preview/Code toggle and a resizable file-tree code explorer.",
-      "Published the Error Page block: a centered 500 state with a clear message and recovery actions.",
-      "Published the CRM Data Table block — sorting, filtering, global search, column controls, row selection, a stonk column, DiceBear avatars, and pagination over 80 rows.",
-      "Block state syncs to the URL search params and the Safari address bar.",
-    ],
-  },
-  {
-    date: "2026-09-10",
-    changes: [
-      "Published Zod Data Table — generate typed TanStack Table columns from a Zod object schema and row data, with metadata labels and custom cell renderers.",
-      "Added complete documentation, empty-state handling, responsive table scrolling, tests, and a one-command shadcn registry install.",
-    ],
-  },
-  {
-    date: "2026-09-04",
-    changes: [
-      "Published GitHub Contributions 3D — an interactive Three.js contribution calendar with six color themes, live username lookup, fixed lighting, a proportional base, and date metadata.",
-    ],
-  },
-  {
-    date: "2026-08-10",
-    changes: [
-      "Published Scroll Minimap with mirrored left and right placement, container-aware tracking, a conversation demo, and inline installation source.",
-      "Added server and browser diagnostics for GitHub contribution and profile-stat requests, including missing-token, network, response, and render details.",
-    ],
-  },
-  {
-    date: "2026-08-09",
-    changes: [
-      "Refreshed the profile with the Vietnamese display name, current freelance role, richer experience stacks, and theme-aware generated avatars.",
-      "Added local-time handwritten greetings and a dimensional dotted map to the cover.",
-      "Rebuilt the GitHub contribution heatmap with responsive cells and theme-safe activity animation.",
-      "Redesigned the section minimap with proximity animation, live scroll tracking, detail popovers, and subtle sound feedback.",
-      "Hardened animated theme changes against repeated input and added consistent SoundCN feedback to copy and toggle actions.",
-      "Moved secondary pages into an icon-led navigation menu and added source inspiration to the footer.",
-    ],
-  },
-  {
-    date: "2026-06-24",
-    changes: [
-      "Retired the experimental AI blog and its weekly cron writer.",
-      "The site now builds without any secrets — database and Redis clients connect lazily.",
-    ],
-  },
-  {
-    date: "2026-06-15",
-    changes: ["Restructured the tech stack into titled category rows for faster scanning."],
-  },
-  {
-    date: "2026-05-25",
-    changes: [
-      "Added a Components page — a live showcase of UI built for the site: tags input, code block, and terminal block.",
-    ],
-  },
-  {
-    date: "2026-05-23",
-    changes: [
-      "Added this changelog page — a timeline of big milestones, linked from the header.",
-      "Added a ⌘K command palette with section navigation, project search, social links, and quick actions.",
-      "Shipped a page-view counter backed by Drizzle and Redis dedup, with a cumulative views chart.",
-      "Animated dotted world map on the cover, marking Ho Chi Minh City.",
-      "Typing animation cycling through roles in the profile section.",
-      "Root-level error boundary so failures land softly instead of a blank screen.",
-    ],
-  },
-  {
-    date: "2026-05-22",
-    changes: ["Added a bookmarks section — a public reading log of tools and resources."],
-  },
-  {
-    date: "2026-05-21",
-    changes: [
-      "Dedicated project detail pages with image galleries, zoom, and richer descriptions.",
-      "Profile download menu — export the resume as PDF, Markdown, or JSON.",
-      "Experience, education, certifications, and awards sections, plus a table-of-contents minimap.",
-      "Full SEO pass — metadata, OG image, sitemap, robots.txt, and llms.txt.",
-      "Top scroll progress bar and a sound engine wired to the @soundcn registry.",
-    ],
-  },
-  {
-    date: "2026-05-20",
-    changes: [
-      "Hero cover, profile, overview, and social-links sections built out.",
-      "Coding section with a GitHub contribution heatmap and activity stats.",
-      "New sticky header with theme toggle and profile constants.",
-      "Dropped i18n entirely — the site is now English-only.",
-    ],
-  },
-  {
-    date: "2026-05-19",
-    changes: [
-      "Turborepo + Next.js scaffold with a shared `@repo/core` package.",
-      "Husky, lint-staged, commitlint, and GitHub Actions CI.",
-      "Canonical profile data lives in `content/profile/*.md`.",
-    ],
-  },
-] as const satisfies ReadonlyArray<ChangelogEntry>;

@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     turbopackRustReactCompiler: true,
   },
   transpilePackages: ["@repo/core"],
+  async redirects() {
+    return [{ source: "/changelog", destination: "/", permanent: true }];
+  },
 };
 
 export default nextConfig;
