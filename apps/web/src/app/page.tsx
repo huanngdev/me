@@ -110,10 +110,6 @@ export default function Home() {
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>
-        <ShowcaseSection />
-      </Reveal>
-      <StripedSeparator height="h-12" />
-      <Reveal>
         <CodingSection />
       </Reveal>
       <StripedSeparator height="h-12" />
@@ -127,6 +123,10 @@ export default function Home() {
       <StripedSeparator height="h-12" />
       <Reveal>
         <ProjectsSection />
+      </Reveal>
+      <StripedSeparator height="h-12" />
+      <Reveal>
+        <ShowcaseSection />
       </Reveal>
       <StripedSeparator height="h-12" />
       <Reveal>

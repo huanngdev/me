@@ -5,6 +5,8 @@ import {
 } from "@repo/core/components/layouts/components-section";
 import { PageHeader } from "@repo/core/components/layouts/page-header";
 
+import { COMPONENT_PREVIEWS } from "./previews";
+
 export default function ComponentsPage() {
   return (
     <>
@@ -19,7 +21,7 @@ export default function ComponentsPage() {
         }
       />
       <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
-        <ComponentsSection />
+        <ComponentsSection previews={COMPONENT_PREVIEWS} />
       </article>
     </>
   );

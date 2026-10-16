@@ -44,13 +44,10 @@ export function ShowcaseSection() {
             </Link>
 
             <div className="flex min-w-0 flex-col gap-3">
-              <p className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
-                Featured block
-              </p>
               <h3 className="text-lg font-semibold tracking-tight">{FEATURED_BLOCK.name}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                A Plate-based block editor for shadcn/ui — slash menu, tables, media blocks, and
-                autosave. Also published as richcn.
+              <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
+                Plate-based block editor for shadcn/ui with slash menu, tables, and autosave. Also
+                published as richcn.
               </p>
               <CliCommand execute="shadcn@latest add https://www.huanngdev.site/r/notion-like-editor.json" />
               <div className="flex flex-wrap gap-2">
