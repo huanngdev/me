@@ -1,11 +1,13 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "cacheMaxAge": "7d",
+  "cacheMaxSize": "5GB",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
       "env": ["NODE_ENV", "GITHUB_TOKEN", "VERCEL", "NEXT_PUBLIC_*"]
     },
     "lint": {
