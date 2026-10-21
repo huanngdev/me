@@ -439,3 +439,32 @@ Thứ tự làm: R14 → R17 → R15 → R16.
 - **R18b:** thêm nút "Play jump" cạnh ô chọn cảnh. Nút này cho một con biết nhảy, chọn ngẫu nhiên, nhảy một cú, và bị khoá cho tới khi cú nhảy xong. Cảnh không có con nào biết nhảy (như hồ koi) thì không hiện nút.
 
 Thứ tự làm: R18a → R16 → R18b.
+
+## 17. Thu gọn: chỉ bơi (R21), các phần để sau
+
+**Quyết định (2026-10-22):** mặt biển và hình dáng các loài đã ổn. Phần nhảy khỏi mặt nước và phần đớp mồi được gỡ khỏi code. Từ giờ các con vật chỉ bơi qua bơi lại, và ưu tiên là bơi ổn định nhất có thể.
+
+**Toàn bộ code của các phần dưới đây vẫn còn ở commit `ab0a78d`** (nhánh feature/ascii-ocean-v2). Khi làm lại, hãy lấy từ đó ra, đừng viết lại từ đầu.
+
+Các phần để sau:
+
+- **Cho ăn:**
+  - click để thả mồi, nhóm mồi, gọi con vật tới;
+  - mỗi loài một cách đớp: approachAndBite, surfaceSlurp, carousel, bubbleNet, lunge, scanSweep, gulpAll, suction, …;
+  - vòng gợn khi đớp, bong bóng, quẫy đuôi nhanh khi lao tới mồi (R13, R17, R17b).
+- **Săn cá mồi:** cá mập đuổi và ăn bầy cá nhỏ. Bầy cá nhỏ vẫn còn, nhưng giờ chỉ bơi.
+- **Nhảy:**
+  - leap và breachRoll, cú breach của cá mập;
+  - thân trồi lên bắt đầu từ đầu (emerge), phóng to khi ở trên không (R16, R16b);
+  - nút "Play jump" (R18b).
+- **Thở:** lên mặt nước phun nước, chuỗi nhịp thở, lặn sâu giơ đuôi (soundDive).
+- **Chuyện cần sửa khi làm lại:**
+  - splash bắn theo giá trị emerge mục tiêu, nên sớm hơn hình khoảng 0.2 s;
+  - sau mỗi show có khoảng 1.5 s "recover", nên nút bấm mở lại khi con vật vẫn chưa nhảy lại được;
+  - cú breach của cá mập khi không có mồi thì không có hướng lao lên.
+
+**R21 gồm:**
+
+- **R21a:** gỡ phần mô phỏng và API (world, creatures, engine, component), và thêm test độ ổn định khi bơi.
+- **R21b:** gỡ code renderer và effects không còn dùng.
+- **R21c:** demo chỉ còn ô chọn cảnh. Trang docs có thêm section giới thiệu từng loài.
