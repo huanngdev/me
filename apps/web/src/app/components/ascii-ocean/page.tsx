@@ -24,8 +24,23 @@ import { DOCS } from "@/content/component-docs/ascii-ocean";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/ascii-ocean/math.ts",
+  "packages/core/src/components/ascii-ocean/palette.ts",
   "packages/core/src/components/ascii-ocean/species.ts",
+  "packages/core/src/components/ascii-ocean/creatures/types.ts",
+  "packages/core/src/components/ascii-ocean/creatures/paint.ts",
+  "packages/core/src/components/ascii-ocean/creatures/sharks.ts",
+  "packages/core/src/components/ascii-ocean/creatures/koi.ts",
+  "packages/core/src/components/ascii-ocean/creatures/bottlenose.ts",
+  "packages/core/src/components/ascii-ocean/creatures/orca.ts",
+  "packages/core/src/components/ascii-ocean/creatures/humpback.ts",
+  "packages/core/src/components/ascii-ocean/creatures/index.ts",
+  "packages/core/src/components/ascii-ocean/creatures/roster.ts",
+  "packages/core/src/components/ascii-ocean/creatures/behaviour.ts",
+  "packages/core/src/components/ascii-ocean/creatures/actions.ts",
   "packages/core/src/components/ascii-ocean/world.ts",
+  "packages/core/src/components/ascii-ocean/effects.ts",
+  "packages/core/src/components/ascii-ocean/pond.ts",
+  "packages/core/src/components/ascii-ocean/sea.ts",
   "packages/core/src/components/ascii-ocean/renderer.ts",
   "packages/core/src/components/ascii-ocean/engine.ts",
   "packages/core/src/components/ascii-ocean/ascii-ocean.tsx",
@@ -37,8 +52,23 @@ const REPO_ROOT = process.cwd().endsWith("apps/web")
 const ENGINE_DIR = "packages/core/src/components/ascii-ocean";
 const ENGINE_FILES = [
   "math.ts",
+  "palette.ts",
   "species.ts",
+  "creatures/types.ts",
+  "creatures/paint.ts",
+  "creatures/sharks.ts",
+  "creatures/koi.ts",
+  "creatures/bottlenose.ts",
+  "creatures/orca.ts",
+  "creatures/humpback.ts",
+  "creatures/index.ts",
+  "creatures/roster.ts",
+  "creatures/behaviour.ts",
+  "creatures/actions.ts",
   "world.ts",
+  "effects.ts",
+  "pond.ts",
+  "sea.ts",
   "renderer.ts",
   "engine.ts",
   "ascii-ocean.tsx",
@@ -49,7 +79,8 @@ const SOURCES = ENGINE_FILES.map((file) => ({
   language: file.endsWith(".tsx") ? "tsx" : "ts",
 }));
 
-const DESCRIPTION = "A canvas ASCII ocean where sharks hunt schools of fish.";
+const DESCRIPTION =
+  "A canvas ocean with sharks, koi, dolphins, orcas and humpbacks. Click to feed them; each species has its own feeding moves.";
 
 export const metadata: Metadata = {
   title: "ASCII Ocean",
