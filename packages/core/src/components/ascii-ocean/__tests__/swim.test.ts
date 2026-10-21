@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import { CREATURE_IDS } from "../creatures";
-import { behaviourOf } from "../creatures/behaviour";
+import { behaviourOf, DEFAULT_TURN_RADIUS, EDGE_TURN_RADIUS } from "../creatures/behaviour";
 import { type RosterEntry, rosterFromGroups } from "../creatures/roster";
 import type { CreatureSpecies } from "../creatures/types";
-import { createRng } from "../math";
+import { angleDiff, createRng } from "../math";
 import { type Creature, SPINE_NODES, World } from "../world";
 
 const DT = 1 / 60;
@@ -66,7 +66,7 @@ function stabilityRun(species: CreatureSpecies, seed: number): Run {
   const prevSpeed = new Float64Array(n);
   const prevDive = new Float64Array(n);
   const snoutHistory: Float64Array[] = world.creatures.map(() => new Float64Array(STEPS * 2 + 2));
-  const radius = behaviourOf(species).turnRadius ?? 0.22;
+  const radius = behaviourOf(species).turnRadius ?? DEFAULT_TURN_RADIUS;
   const maxCruise = Math.max(...world.creatures.map((sh) => cruiseOf(sh.length)));
   const run: Run = {
     finite: true,
@@ -109,7 +109,15 @@ function stabilityRun(species: CreatureSpecies, seed: number): Run {
       run.worstStepExcess = Math.max(run.worstStepExcess, moved - stepBound);
 
       const turned = Math.abs(turnBetween(prevHeading[i], sh.heading));
-      const turnBound = Math.min(TURN_CAP, prevSpeed[i] / (L * radius)) * DT + 1e-9;
+      // Past the canvas edge the turning radius drops to EDGE_TURN_RADIUS, so the bound follows the snout's position before the step.
+      const startOver = Math.max(
+        -prevSnout[i * 2],
+        prevSnout[i * 2] - W,
+        -prevSnout[i * 2 + 1],
+        prevSnout[i * 2 + 1] - H,
+      );
+      const turnRadius = startOver > 0 ? EDGE_TURN_RADIUS : radius;
+      const turnBound = Math.min(TURN_CAP, prevSpeed[i] / (L * turnRadius)) * DT + 1e-9;
       run.worstTurnExcess = Math.max(run.worstTurnExcess, turned - turnBound);
 
       // Stays on stage: the snout within the canvas plus one body length.
@@ -197,5 +205,143 @@ describe("pointer", () => {
       return [sh.nodes[0], sh.nodes[1]];
     };
     expect(run(true)).toEqual(run(false));
+  });
+});
+
+/*
+ * R21d: calmer, steadier swimming. Bend is the sum of |joint angle| along the spine; overlap is the share of frames in
+ * which two animals that are not pod mates have a node within 0.5 · (halfWidth A + halfWidth B), with halfWidth ≈ 0.1 L.
+ * Each measure runs 60 s at 1200×700 and 700×394 over three seeds. Baselines before R21d (p90 bend 2.88 per shark, 1.62 koi;
+ * overlap 0.277 / 0.152 Open ocean, 0.142 / 0.256 Shark gallery) are noted in the comments. The bounds lock what R21d reached.
+ */
+const METRIC_SECONDS = 60;
+const METRIC_STEPS = Math.round(METRIC_SECONDS / DT);
+const METRIC_SEEDS = [1, 2, 3];
+const METRIC_SIZES: [number, number][] = [
+  [1200, 700],
+  [700, 394],
+];
+
+/** Sum of |angleDiff| across the spine's joints, in radians. */
+function spineBend(sh: Creature) {
+  let prev = 0;
+  let total = 0;
+  for (let k = 1; k < SPINE_NODES; k++) {
+    const a = Math.atan2(
+      sh.nodes[k * 2 + 1] - sh.nodes[(k - 1) * 2 + 1],
+      sh.nodes[k * 2] - sh.nodes[(k - 1) * 2],
+    );
+    if (k > 1) total += Math.abs(angleDiff(prev, a));
+    prev = a;
+  }
+  return total;
+}
+
+function percentile(values: number[], p: number) {
+  const sorted = Float64Array.from(values).sort();
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+}
+
+/** p50 and p90 of spine bend over every creature-frame, for three animals of one species. */
+function bendPercentiles(species: CreatureSpecies, W: number, H: number) {
+  const samples: number[] = [];
+  for (const seed of METRIC_SEEDS) {
+    const scene = species === "koi" ? "pond" : "ocean";
+    const { entries } = rosterFromGroups(
+      [{ species, count: 3 }],
+      "stylized",
+      createRng(seed ^ 0x9e3779b9),
+    );
+    const world = new World({ roster: entries, seed, scene, baitFish: false });
+    world.resize(W, H, 10, 14.5);
+    for (let step = 0; step < METRIC_STEPS; step++) {
+      world.step(DT);
+      for (const sh of world.creatures) samples.push(spineBend(sh));
+    }
+  }
+  return { p50: percentile(samples, 0.5), p90: percentile(samples, 0.9) };
+}
+
+/** Share of frames in which any two animals (not pod mates) have a node within 0.5 · (0.1 L + 0.1 L'). */
+function overlapShare(
+  groups: { species: CreatureSpecies; count?: number }[],
+  scene: "ocean" | "pond",
+  W: number,
+  H: number,
+) {
+  let hit = 0;
+  let frames = 0;
+  for (const seed of METRIC_SEEDS) {
+    const { entries } = rosterFromGroups(groups, "stylized", createRng(seed ^ 0x9e3779b9));
+    const world = new World({ roster: entries, seed, scene, baitFish: false });
+    world.resize(W, H, 10, 14.5);
+    for (let step = 0; step < METRIC_STEPS; step++) {
+      world.step(DT);
+      frames++;
+      const cs = world.creatures;
+      let overlapping = false;
+      for (let i = 0; i < cs.length && !overlapping; i++) {
+        for (let j = i + 1; j < cs.length && !overlapping; j++) {
+          const a = cs[i];
+          const b = cs[j];
+          if (a.species === b.species && behaviourOf(a.species).pod) continue;
+          const reach = 0.5 * (0.1 * a.length + 0.1 * b.length);
+          for (let p = 0; p < SPINE_NODES && !overlapping; p++) {
+            for (let q = 0; q < SPINE_NODES; q++) {
+              const dx = a.nodes[p * 2] - b.nodes[q * 2];
+              const dy = a.nodes[p * 2 + 1] - b.nodes[q * 2 + 1];
+              if (dx * dx + dy * dy < reach * reach) {
+                overlapping = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (overlapping) hit++;
+    }
+  }
+  return hit / frames;
+}
+
+describe("R21d: steadier swimming", () => {
+  for (const species of CREATURE_IDS) {
+    test(`${species}: spine bend p90 stays under its regression bound`, () => {
+      // Reached: sharks and cetaceans ~1.80 (the joint cap), koi ~1.62. Bounds sit about 5% above what was reached.
+      const bound = species === "koi" ? 1.7 : 1.9;
+      for (const [W, H] of METRIC_SIZES) {
+        const { p90 } = bendPercentiles(species, W, H);
+        expect(p90).toBeLessThanOrEqual(bound);
+      }
+    });
+  }
+
+  test("Open ocean roster: overlap stays under its regression bound", () => {
+    const groups = [
+      { species: "classic" as const, count: 2 },
+      { species: "hammerhead" as const },
+      { species: "bottlenose" as const, count: 3 },
+      { species: "orca" as const },
+    ];
+    // Baseline before R21d: 0.277 at 1200×700, 0.152 at 700×394. Reached: 0.196 and 0.112.
+    expect(overlapShare(groups, "ocean", 1200, 700)).toBeLessThanOrEqual(0.21);
+    expect(overlapShare(groups, "ocean", 700, 394)).toBeLessThanOrEqual(0.12);
+  });
+
+  test("Shark gallery roster: overlap stays under its regression bound", () => {
+    const groups = [
+      "classic",
+      "hammerhead",
+      "greathammer",
+      "tiger",
+      "mako",
+      "thresher",
+      "nurse",
+      "zebra",
+    ].map((species) => ({ species: species as CreatureSpecies }));
+    // Baseline before R21d: 0.142 at 1200×700, 0.256 at 700×394. Reached: 0.195 and 0.110 (eight sharks on the
+    // wide canvas touch a little more often; on the demo-sized canvas, overlap more than halves).
+    expect(overlapShare(groups, "ocean", 1200, 700)).toBeLessThanOrEqual(0.21);
+    expect(overlapShare(groups, "ocean", 700, 394)).toBeLessThanOrEqual(0.12);
   });
 });

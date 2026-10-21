@@ -41,10 +41,12 @@ function simulate(seed: number) {
 }
 
 // R21a: animals only swim (no hunting, feeding or shows). Locks the simulation for seed 42.
-const WORLD_HASH_SEED_42 = 529700976;
+// R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
+const WORLD_HASH_SEED_42 = 2490914619;
 
 // R21a: animals only swim (no hunting, feeding or shows). Locks the renderer's draw calls for seed 42 at steps 100, 200 and 300.
-const RENDER_HASH_SEED_42 = 2858469954;
+// R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
+const RENDER_HASH_SEED_42 = 4191763121;
 
 describe("ascii-ocean determinism", () => {
   test("the same seed gives the same world", () => {

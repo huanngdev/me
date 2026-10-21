@@ -13,7 +13,12 @@
  * follow-the-leader spine. They only swim; nothing hunts or feeds.
  */
 import { angleDiff, clamp, createRng, current, rand, randInt, type Rng, TAU } from "./math";
-import { behaviourOf } from "./creatures/behaviour";
+import {
+  behaviourOf,
+  DEFAULT_MAX_BEND,
+  DEFAULT_TURN_RADIUS,
+  EDGE_TURN_RADIUS,
+} from "./creatures/behaviour";
 import { CREATURES } from "./creatures";
 import { rosterFromSharks, type RosterEntry } from "./creatures/roster";
 import type { CreatureSpecies, OceanScene } from "./creatures/types";
@@ -23,6 +28,17 @@ export const SPINE_NODES = 20;
 
 /** How fast the koi pond bob eases toward its target: d += (target − d) · min(1, dt · rate). */
 const DIVE_RATE = 5;
+/** Heading error gain (per second) while cruising: turn rate = gain · error, capped by the turning circle. */
+const TURN_GAIN = 1.8;
+/** Time constant (s) of the low-pass filter on an animal's steering direction, so terms don't flip the target each frame. */
+const STEER_TAU = 0.4;
+/** Pod mates keep less personal space than strangers: their separation weight is scaled by this. */
+const POD_SEPARATION = 0.15;
+/** How strongly a pod member turns to its pod's mean heading. */
+const POD_ALIGN = 2.5;
+/** Separation push strength, and its range in body lengths (sum of the two animals), between animals. */
+const SEPARATION_K = 20;
+const SEPARATION_RANGE = 0.9;
 
 export type SharkKind =
   "classic" | "hammerhead" | "zebra" | "tiger" | "greathammer" | "mako" | "thresher" | "nurse";
@@ -92,6 +108,9 @@ export interface Creature {
   coat?: string;
   /** Sinking under the surface, 0–1: pond koi bob between the surface and mid-water. 0 for everything else. */
   dive: number;
+  /** Low-passed steering direction (unit-ish vector, x and y): the target the heading turns toward. */
+  steerX: number;
+  steerY: number;
 }
 
 export interface WorldEvent {
@@ -218,6 +237,8 @@ export class World {
         depth: entry.depth,
         coat: entry.coat,
         dive: 0,
+        steerX: Math.cos(heading),
+        steerY: Math.sin(heading),
       });
     }
     // Smaller (farther) animals draw first so the big one swims over them.
@@ -536,6 +557,9 @@ export class World {
       // Momentum.
       let dx = Math.cos(sh.heading);
       let dy = Math.sin(sh.heading);
+      // Edge pulls (pod edge steer and the off-stage return) are added after the low-pass, so they act at full strength.
+      let backX = 0;
+      let backY = 0;
 
       // Wander: a slowly drifting offset on a circle ahead of the snout.
       sh.wander = clamp(sh.wander + (this.rng() - 0.5) * dt * 3.2, -1.1, 1.1);
@@ -582,13 +606,13 @@ export class World {
           // Swim the way the pod swims; a pod split evenly between two headings has no mean heading to follow.
           if (Math.hypot(headX, headY) >= 1e-6) {
             const mh = Math.atan2(headY, headX);
-            dx += Math.cos(mh) * 0.6;
-            dy += Math.sin(mh) * 0.6;
+            dx += Math.cos(mh) * POD_ALIGN;
+            dy += Math.sin(mh) * POD_ALIGN;
           }
           // Edge steer: the patrol is gone while podded, so a pod drifting off the canvas turns back here.
           // Inward push from 0 at half a length inside the edge to weight 2 at the edge and beyond.
-          dx += edgePush(hx, L) - edgePush(W - hx, L);
-          dy += edgePush(hy, L) - edgePush(H - hy, L);
+          backX += edgePush(hx, L) - edgePush(W - hx, L);
+          backY += edgePush(hy, L) - edgePush(H - hy, L);
           podSpeed = speedSum / (mates + 1);
           podded = true;
         }
@@ -627,19 +651,42 @@ export class World {
         followed = true;
       }
 
-      // Give other animals room.
+      // Give other animals room. Three probes, the snout and points half a body ahead and behind it, are checked against every other
+      // second node. Pod mates swim close on purpose, so they get less room; pond koi that sit at different depths may pass under each other.
+      const aheadX = hx + Math.cos(sh.heading) * 0.5 * L;
+      const aheadY = hy + Math.sin(sh.heading) * 0.5 * L;
+      const midX = hx - Math.cos(sh.heading) * 0.5 * L;
+      const midY = hy - Math.sin(sh.heading) * 0.5 * L;
       for (const other of creatures) {
         if (other === sh) continue;
-        for (let k = 0; k < SPINE_NODES; k += 4) {
-          const ox = hx - other.nodes[k * 2];
-          const oy = hy - other.nodes[k * 2 + 1];
-          const d = Math.hypot(ox, oy);
-          const range = (L + other.length) * 0.45;
-          if (d < range && d > 1e-3) {
-            const w = (1 - d / range) * 3;
-            dx += (ox / d) * w;
-            dy += (oy / d) * w;
+        let scale = other.species === sh.species && beh.pod ? POD_SEPARATION : 1;
+        if (sh.species === "koi" && other.species === "koi") {
+          scale *= 1 - 0.7 * clamp(Math.abs(sh.dive - other.dive) / 0.5, 0, 1);
+        }
+        const range = (L + other.length) * SEPARATION_RANGE;
+        // One push per neighbour, from its closest probe–node pair, so a big body alongside is no stronger than a
+        // small one and the edge return still wins.
+        let best = range;
+        let bx = 0;
+        let by = 0;
+        for (let p = 0; p < 3; p++) {
+          const qx = p === 0 ? hx : p === 1 ? aheadX : midX;
+          const qy = p === 0 ? hy : p === 1 ? aheadY : midY;
+          for (let k = 0; k < SPINE_NODES; k += 2) {
+            const ox = qx - other.nodes[k * 2];
+            const oy = qy - other.nodes[k * 2 + 1];
+            const d = Math.hypot(ox, oy);
+            if (d < best && d > 1e-3) {
+              best = d;
+              bx = ox / d;
+              by = oy / d;
+            }
           }
+        }
+        if (best < range) {
+          const w = (1 - best / range) * SEPARATION_K * scale;
+          dx += bx * w;
+          dy += by * w;
         }
       }
 
@@ -658,20 +705,29 @@ export class World {
       // now and then but the animals never wander away for good.
       const over = Math.max(-hx, hx - W, -hy, hy - H);
       if (over > -L * 0.05) {
-        const w = clamp((over + L * 0.05) / (L * 0.35), 0, 1) * 3.5;
+        const w = clamp((over + L * 0.05) / (L * 0.35), 0, 1) * 6;
         const toX = cxW - hx;
         const toY = cyW - hy;
         const d = Math.hypot(toX, toY) || 1;
-        dx += (toX / d) * w;
-        dy += (toY / d) * w;
+        backX += (toX / d) * w;
+        backY += (toY / d) * w;
       }
 
-      const desired = Math.atan2(dy, dx);
-      // Animals can't pivot on the spot: the turning circle grows with speed.
-      const radius = beh.turnRadius ?? 0.22;
+      // Low-pass the summed steering, so the target direction drifts instead of jumping with each term.
+      const smooth = Math.min(1, dt / STEER_TAU);
+      sh.steerX += (dx - sh.steerX) * smooth;
+      sh.steerY += (dy - sh.steerY) * smooth;
+      const desired = Math.atan2(sh.steerY + backY, sh.steerX + backX);
+      // Animals can't pivot on the spot: the turning circle grows with speed. The turn is proportional to the heading error,
+      // so small errors give gentle arcs and only large ones reach the cap.
+      const radius = over > 0 ? EDGE_TURN_RADIUS : (beh.turnRadius ?? DEFAULT_TURN_RADIUS);
       const agility = Math.min(0.8, sh.speed / (L * radius));
       const maxTurn = agility * dt;
-      const turned = clamp(angleDiff(sh.heading, desired), -maxTurn, maxTurn);
+      // A target nearly behind flips between "left" and "right" with every small wobble, so the animal would dither
+      // instead of turning round: past ~150° it keeps going the way it is already turning.
+      let error = angleDiff(sh.heading, desired);
+      if (Math.abs(error) > 2.6 && error * sh.turn < 0) error -= Math.sign(error) * TAU;
+      const turned = clamp(error * TURN_GAIN * dt, -maxTurn, maxTurn);
       sh.heading += turned;
       sh.turn += (turned / dt - sh.turn) * Math.min(1, dt * 3);
 
@@ -688,7 +744,7 @@ export class World {
       // Follow-the-leader spine, with a stiffness limit per joint so the
       // body bends into a C at most and never folds back on itself.
       const seg = L / (SPINE_NODES - 1);
-      const maxBend = beh.maxBend ?? 0.16;
+      const maxBend = beh.maxBend ?? DEFAULT_MAX_BEND;
       let prevAngle = sh.heading + Math.PI;
       for (let k = 1; k < SPINE_NODES; k++) {
         const px = nodes[(k - 1) * 2];
