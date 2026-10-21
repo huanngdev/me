@@ -68,8 +68,8 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
       <ResizablePanel
-        defaultSize={312}
-        minSize={200}
+        defaultSize="30%"
+        minSize="20%"
         maxSize={480}
         className="bg-background flex min-h-0 flex-col overflow-hidden"
       >

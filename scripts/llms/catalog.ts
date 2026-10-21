@@ -283,4 +283,20 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "apps/web/src/app/blocks/notion-like-editor/page.tsx",
     ],
   },
+  {
+    kind: "component",
+    slug: "ascii-ocean",
+    name: "ASCII Ocean",
+    description: "A canvas ASCII ocean where sharks hunt schools of fish.",
+    registryPath: "/r/ascii-ocean.json",
+    docsPath: "/components/ascii-ocean",
+    files: [
+      "packages/core/src/components/ascii-ocean/math.ts",
+      "packages/core/src/components/ascii-ocean/species.ts",
+      "packages/core/src/components/ascii-ocean/world.ts",
+      "packages/core/src/components/ascii-ocean/renderer.ts",
+      "packages/core/src/components/ascii-ocean/engine.ts",
+      "packages/core/src/components/ascii-ocean/ascii-ocean.tsx",
+    ],
+  },
 ];

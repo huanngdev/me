@@ -1,24 +1,26 @@
 import {
-  ArrowUpRight,
   AudioLines,
   Box,
   Clapperboard,
+  Fish,
   LayoutGrid,
   Map,
   SquareTerminal,
   TableProperties,
   Tags,
+  type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { DotPattern } from "@/components/dot-pattern";
+
+import { ShowcaseCard } from "./showcase-card";
 
 export const COMPONENT_LIST: {
   slug: string;
   name: string;
   description: string;
-  icon: typeof ArrowUpRight;
+  icon: LucideIcon;
 }[] = [
   {
     slug: "github-contributions-3d",
@@ -68,6 +70,12 @@ export const COMPONENT_LIST: {
     description: "A command block with a tab per package manager.",
     icon: SquareTerminal,
   },
+  {
+    slug: "ascii-ocean",
+    name: "ASCII Ocean",
+    description: "A canvas ASCII ocean where sharks hunt schools of fish.",
+    icon: Fish,
+  },
 ];
 
 export const COMPONENT_COUNT = COMPONENT_LIST.length;
@@ -95,9 +103,13 @@ export function ComponentsSection({
         const scale = preview?.scale ?? 0.5;
         return (
           <li key={comp.slug} className="border-b p-3 sm:border-r">
-            <article className="group relative overflow-hidden rounded-xl border">
+            <ShowcaseCard
+              href={`/components/${comp.slug}`}
+              name={comp.name}
+              linkLabel={`View ${comp.name} component`}
+            >
               {preview ? (
-                <div className="relative aspect-video w-full overflow-hidden">
+                <>
                   <DotPattern className="z-0" />
                   <div
                     inert
@@ -114,28 +126,16 @@ export function ComponentsSection({
                   >
                     {preview.node}
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden">
+                <>
                   <DotPattern className="z-0" />
-                  <Icon className="text-muted-foreground pointer-events-none relative z-10 size-8 transition-transform duration-300 ease-out group-hover:scale-110" />
-                </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon className="text-muted-foreground pointer-events-none relative z-10 size-8 transition-transform duration-300 ease-out group-hover:scale-110" />
+                  </div>
+                </>
               )}
-              <div className="border-t px-3 py-2.5">
-                <div className="flex items-center gap-3">
-                  <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{comp.name}</h2>
-                  <ArrowUpRight className="text-muted-foreground mt-0.5 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
-                <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
-                  {comp.description}
-                </p>
-              </div>
-              <Link
-                href={`/components/${comp.slug}`}
-                aria-label={`View ${comp.name} component`}
-                className="focus-visible:ring-ring absolute inset-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset"
-              />
-            </article>
+            </ShowcaseCard>
           </li>
         );
       })}

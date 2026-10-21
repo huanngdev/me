@@ -108,6 +108,14 @@
       ]
     },
     {
+      "name": "ascii-ocean",
+      "type": "registry:component",
+      "title": "ASCII Ocean",
+      "description": "A canvas ASCII ocean where sharks hunt schools of fish.",
+      "dependencies": [],
+      "registryDependencies": []
+    },
+    {
       "name": "crm-data-table",
       "type": "registry:block",
       "title": "CRM Data Table",

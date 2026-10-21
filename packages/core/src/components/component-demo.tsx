@@ -23,8 +23,8 @@ export function ComponentDemo({
   llm,
 }: ComponentDemoProps) {
   return (
-    <Tabs defaultValue="preview" className={className}>
-      <TabsList variant="line">
+    <Tabs defaultValue="preview" className={cn("gap-3", className)}>
+      <TabsList className="bg-background/80 border backdrop-blur">
         <TabsTrigger value="preview">
           <Eye />
           Preview
@@ -40,16 +40,16 @@ export function ComponentDemo({
           </TabsTrigger>
         ) : null}
       </TabsList>
-      <TabsContent value="preview" className="mt-2">
-        <div className="flex min-h-72 items-center justify-center rounded-lg border p-6 sm:p-10">
+      <TabsContent value="preview">
+        <div className="bg-secondary/30 flex min-h-72 items-center justify-center rounded-xl border p-6 sm:p-10">
           <div className={cn("w-full max-w-md", previewClassName)}>{children}</div>
         </div>
       </TabsContent>
-      <TabsContent value="code" className="mt-2">
+      <TabsContent value="code">
         <CodeBlock code={code} language={language} />
       </TabsContent>
       {llm ? (
-        <TabsContent value="llm" className="mt-2">
+        <TabsContent value="llm">
           <CodeBlock code={llm} language="txt" />
         </TabsContent>
       ) : null}

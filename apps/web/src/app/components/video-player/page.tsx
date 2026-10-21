@@ -8,7 +8,7 @@ import { ExternalLink } from "lucide-react";
 import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
-import { PageHeader } from "@repo/core/components/layouts/page-header";
+import { ComponentPreviewFrame } from "@repo/core/components/layouts/component-preview-frame";
 import { Separator } from "@repo/core/components/separator";
 import {
   Table,
@@ -18,14 +18,19 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicVideoPlayerDemo, SourceSwitcherDemo } from "./demo";
 
 const LLM_TEXT = readLlmsDocument("components", "video-player");
+
+const SOURCE_FILES = readSourceFiles([
+  "packages/core/src/components/video-player/use-video-player.ts",
+  "packages/core/src/components/video-player/video-player.tsx",
+]);
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -38,18 +43,6 @@ const VIDEO_PLAYER_HOOK_SOURCE = readFileSync(
   path.join(REPO_ROOT, "packages/core/src/components/video-player/use-video-player.ts"),
   "utf8",
 );
-
-const TOC: TOCItemType[] = [
-  { title: "Demo", url: "#demo", depth: 2 },
-  { title: "Install", url: "#install", depth: 2 },
-  { title: "Usage", url: "#usage", depth: 2 },
-  { title: "Streaming sources", url: "#sources", depth: 2 },
-  { title: "Features", url: "#features", depth: 2 },
-  { title: "Keyboard", url: "#keyboard", depth: 2 },
-  { title: "Props", url: "#props", depth: 2 },
-  { title: "Types", url: "#types", depth: 2 },
-  { title: "Browser limits", url: "#limits", depth: 2 },
-];
 
 const DESCRIPTION =
   "A headless video player with shadcn controls for files, adaptive streams, and embeds.";
@@ -314,7 +307,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="px-4 py-8 sm:px-6 lg:px-8">
+    <section id={id} className="py-8">
       {title && <h2 className="text-lg font-semibold tracking-tight">{title}</h2>}
       {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
       <div className="mt-4">{children}</div>
@@ -347,233 +340,230 @@ function Step({
 
 export default function VideoPlayerPage() {
   return (
+    <ComponentPreviewFrame
+      name="video-player"
+      files={SOURCE_FILES}
+      llmText={LLM_TEXT}
+      previewClassName="max-w-3xl"
+      docs={<Docs />}
+    >
+      <BasicVideoPlayerDemo />
+    </ComponentPreviewFrame>
+  );
+}
+
+function Docs() {
+  return (
     <>
-      <div
-        aria-label="Section navigation"
-        className="pointer-events-none fixed top-1/2 left-4 z-30 hidden -translate-y-1/2 xl:block"
+      <header className="pb-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Video Player</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{DESCRIPTION}</p>
+      </header>
+
+      <Section
+        id="install"
+        title="Install"
+        description="Install with one shadcn command, or add the files by hand."
       >
-        <div className="pointer-events-auto">
-          <TOCMinimap items={TOC} />
-        </div>
-      </div>
+        <RegistryInstall name="video-player" />
+        <details className="group">
+          <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+            Manual installation
+          </summary>
+          <div className="mt-6">
+            <div className="space-y-8">
+              <Step
+                index={1}
+                title="Install media dependencies"
+                description="Vidstack provides the headless player; hls.js and dash.js stay local."
+              >
+                <CliCommand install={INSTALL_PACKAGES} />
+              </Step>
+              <Step
+                index={2}
+                title="Add shadcn primitives"
+                description="The visible controls use your existing theme tokens."
+              >
+                <CliCommand execute={SHADCN_TARGET} />
+              </Step>
+              <Step
+                index={3}
+                title="Import media styles"
+                description="Add these lines to your global stylesheet."
+              >
+                <CodeBlock code={STYLE_IMPORTS} language="css" />
+              </Step>
+              <Step
+                index={4}
+                title="Copy the state hook"
+                description="Save as components/video-player/use-video-player.ts."
+              >
+                <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
+              </Step>
+              <Step
+                index={5}
+                title="Copy the player"
+                description="Save as components/video-player/video-player.tsx."
+              >
+                <CodeBlock code={VIDEO_PLAYER_SOURCE} language="tsx" />
+              </Step>
+            </div>
+          </div>
+        </details>
+      </Section>
+      <Separator />
 
-      <PageHeader title="Video Player" description={DESCRIPTION} />
+      <Section
+        id="usage"
+        title="Usage"
+        description="Pass a title and source. Tracks and every playback option are additive."
+      >
+        <CodeBlock code={USAGE_CODE} language="tsx" />
+      </Section>
+      <Separator />
 
-      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
-        <Section id="demo">
-          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-3xl">
-            <BasicVideoPlayerDemo />
+      <Section
+        id="sources"
+        title="Streaming sources"
+        description="The provider is selected from the source URL or explicit MIME type."
+      >
+        <div className="space-y-6">
+          <ComponentDemo llm={LLM_TEXT} code={SOURCE_SWITCHER_CODE} previewClassName="max-w-3xl">
+            <SourceSwitcherDemo />
           </ComponentDemo>
-        </Section>
-        <Separator />
-
-        <Section
-          id="install"
-          title="Install"
-          description="Install with one shadcn command, or add the files by hand."
-        >
-          <RegistryInstall name="video-player" />
-          <details className="group">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
-              Manual installation
-            </summary>
-            <div className="mt-6">
-              <div className="space-y-8">
-                <Step
-                  index={1}
-                  title="Install media dependencies"
-                  description="Vidstack provides the headless player; hls.js and dash.js stay local."
-                >
-                  <CliCommand install={INSTALL_PACKAGES} />
-                </Step>
-                <Step
-                  index={2}
-                  title="Add shadcn primitives"
-                  description="The visible controls use your existing theme tokens."
-                >
-                  <CliCommand execute={SHADCN_TARGET} />
-                </Step>
-                <Step
-                  index={3}
-                  title="Import media styles"
-                  description="Add these lines to your global stylesheet."
-                >
-                  <CodeBlock code={STYLE_IMPORTS} language="css" />
-                </Step>
-                <Step
-                  index={4}
-                  title="Copy the state hook"
-                  description="Save as components/video-player/use-video-player.ts."
-                >
-                  <CodeBlock code={VIDEO_PLAYER_HOOK_SOURCE} language="ts" />
-                </Step>
-                <Step
-                  index={5}
-                  title="Copy the player"
-                  description="Save as components/video-player/video-player.tsx."
-                >
-                  <CodeBlock code={VIDEO_PLAYER_SOURCE} language="tsx" />
-                </Step>
-              </div>
-            </div>
-          </details>
-        </Section>
-        <Separator />
-
-        <Section
-          id="usage"
-          title="Usage"
-          description="Pass a title and source. Tracks and every playback option are additive."
-        >
-          <CodeBlock code={USAGE_CODE} language="tsx" />
-        </Section>
-        <Separator />
-
-        <Section
-          id="sources"
-          title="Streaming sources"
-          description="The provider is selected from the source URL or explicit MIME type."
-        >
-          <div className="space-y-6">
-            <ComponentDemo llm={LLM_TEXT} code={SOURCE_SWITCHER_CODE} previewClassName="max-w-3xl">
-              <SourceSwitcherDemo />
-            </ComponentDemo>
-            <CodeBlock code={SOURCE_EXAMPLES} language="ts" />
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead>Requirement</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {SOURCE_SUPPORT.map((item) => (
-                    <TableRow key={item.source}>
-                      <TableCell className="font-medium whitespace-nowrap">{item.source}</TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {item.support}
-                      </TableCell>
-                      <TableCell className="min-w-72 text-sm">{item.note}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </Section>
-        <Separator />
-
-        <Section id="features" title="Features">
-          <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="flex gap-2 text-sm leading-relaxed">
-                <CheckMark />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-        <Separator />
-
-        <Section
-          id="keyboard"
-          title="Keyboard"
-          description="Shortcuts are scoped to the most recently active player."
-        >
+          <CodeBlock code={SOURCE_EXAMPLES} language="ts" />
           <div className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Keys</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Mode</TableHead>
+                  <TableHead>Requirement</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {KEYBOARD_SHORTCUTS.map((shortcut) => (
-                  <TableRow key={shortcut.keys}>
-                    <TableCell className="font-mono text-xs whitespace-nowrap">
-                      {shortcut.keys}
+                {SOURCE_SUPPORT.map((item) => (
+                  <TableRow key={item.source}>
+                    <TableCell className="font-medium whitespace-nowrap">{item.source}</TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {item.support}
                     </TableCell>
-                    <TableCell>{shortcut.action}</TableCell>
+                    <TableCell className="min-w-72 text-sm">{item.note}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        </Section>
-        <Separator />
+        </div>
+      </Section>
+      <Separator />
 
-        <Section
-          id="props"
-          title="Props"
-          description="All remaining Vidstack MediaPlayer props and typed events pass through."
-        >
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Prop</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Description</TableHead>
+      <Section id="features" title="Features">
+        <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {FEATURES.map((feature) => (
+            <li key={feature} className="flex gap-2 text-sm leading-relaxed">
+              <CheckMark />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Separator />
+
+      <Section
+        id="keyboard"
+        title="Keyboard"
+        description="Shortcuts are scoped to the most recently active player."
+      >
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Keys</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {KEYBOARD_SHORTCUTS.map((shortcut) => (
+                <TableRow key={shortcut.keys}>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">
+                    {shortcut.keys}
+                  </TableCell>
+                  <TableCell>{shortcut.action}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {PROPS.map((prop) => (
-                  <TableRow key={prop.name}>
-                    <TableCell className="font-mono text-xs whitespace-nowrap">
-                      {prop.name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground min-w-48 font-mono text-xs">
-                      {prop.type}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
-                      {prop.default}
-                    </TableCell>
-                    <TableCell className="min-w-72 text-sm">{prop.description}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Section>
-        <Separator />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Section>
+      <Separator />
 
-        <Section id="types" title="Types">
-          <CodeBlock code={TYPES_CODE} language="ts" />
-        </Section>
-        <Separator />
+      <Section
+        id="props"
+        title="Props"
+        description="All remaining Vidstack MediaPlayer props and typed events pass through."
+      >
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Default</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PROPS.map((prop) => (
+                <TableRow key={prop.name}>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{prop.name}</TableCell>
+                  <TableCell className="text-muted-foreground min-w-48 font-mono text-xs">
+                    {prop.type}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                    {prop.default}
+                  </TableCell>
+                  <TableCell className="min-w-72 text-sm">{prop.description}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Section>
+      <Separator />
 
-        <Section
-          id="limits"
-          title="Browser limits"
-          description="A player can normalize APIs, but it cannot bypass the browser or source owner."
-        >
-          <div className="space-y-4 text-sm leading-relaxed">
-            <p>
-              Direct files and adaptive manifests need valid CORS headers, MIME types, byte-range
-              support, and codecs the browser can decode. DRM streams additionally require an EME
-              license flow and are not unlocked by this component.
-            </p>
-            <p>
-              YouTube and Vimeo run through their official embed providers. Their branding,
-              advertising, availability, and control restrictions remain in effect. RTMP, RTSP, and
-              SRT are ingest protocols and must be converted to a browser delivery format.
-            </p>
-            <a
-              href="https://vidstack.io/docs/player/core-concepts/loading/"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:bg-muted inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
-            >
-              Vidstack source documentation
-              <ExternalLink className="size-4" />
-            </a>
-          </div>
-        </Section>
-      </article>
+      <Section id="types" title="Types">
+        <CodeBlock code={TYPES_CODE} language="ts" />
+      </Section>
+      <Separator />
+
+      <Section
+        id="limits"
+        title="Browser limits"
+        description="A player can normalize APIs, but it cannot bypass the browser or source owner."
+      >
+        <div className="space-y-4 text-sm leading-relaxed">
+          <p>
+            Direct files and adaptive manifests need valid CORS headers, MIME types, byte-range
+            support, and codecs the browser can decode. DRM streams additionally require an EME
+            license flow and are not unlocked by this component.
+          </p>
+          <p>
+            YouTube and Vimeo run through their official embed providers. Their branding,
+            advertising, availability, and control restrictions remain in effect. RTMP, RTSP, and
+            SRT are ingest protocols and must be converted to a browser delivery format.
+          </p>
+          <a
+            href="https://vidstack.io/docs/player/core-concepts/loading/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:bg-muted inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
+          >
+            Vidstack source documentation
+            <ExternalLink className="size-4" />
+          </a>
+        </div>
+      </Section>
     </>
   );
 }

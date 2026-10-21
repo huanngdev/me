@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import type { ComponentPreview } from "@repo/core/components/layouts/components-section";
 
+import { AsciiOcean } from "@repo/core/components/ascii-ocean/ascii-ocean";
 import { AudioPlayer } from "@repo/core/components/audio-player/audio-player";
 import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { TagsInput } from "@repo/core/components/shadcn-tags-input/tags-input";
@@ -64,5 +65,9 @@ export const COMPONENT_PREVIEWS: Partial<Record<string, ComponentPreview>> = {
   "cli-command": {
     node: <CliCommand execute="shadcn@latest add button" className="w-full max-w-md" />,
     scale: 0.75,
+  },
+  "ascii-ocean": {
+    node: <AsciiOcean className="rounded-lg" />,
+    scale: 0.4,
   },
 };

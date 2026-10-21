@@ -109,6 +109,14 @@ export const ITEMS: readonly ItemDefinition[] = [
     entries: [`${SRC}/components/cli-command/cli-command.tsx`],
   },
   {
+    name: "ascii-ocean",
+    type: "registry:component",
+    ...catalogEntry("ascii-ocean"),
+    sourcePrefix: "components/ascii-ocean",
+    targetRoot: "components/ascii-ocean",
+    entries: [`${SRC}/components/ascii-ocean/ascii-ocean.tsx`],
+  },
+  {
     name: "crm-data-table",
     type: "registry:block",
     ...catalogEntry("crm-data-table"),

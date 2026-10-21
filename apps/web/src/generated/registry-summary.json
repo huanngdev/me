@@ -171,6 +171,22 @@
       "docs": null
     },
     {
+      "name": "ascii-ocean",
+      "title": "ASCII Ocean",
+      "type": "registry:component",
+      "ownFileCount": 6,
+      "helperFileCount": 0,
+      "directory": "components/ascii-ocean",
+      "helperDirectory": null,
+      "npmPackages": [],
+      "shadcnComponents": [],
+      "registryItems": [],
+      "cssRules": 0,
+      "framework": null,
+      "primitives": null,
+      "docs": null
+    },
+    {
       "name": "crm-data-table",
       "title": "CRM Data Table",
       "type": "registry:block",

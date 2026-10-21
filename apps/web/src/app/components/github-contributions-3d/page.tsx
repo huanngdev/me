@@ -6,9 +6,8 @@ import type { ReactNode } from "react";
 
 import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
-import { ComponentDemo } from "@repo/core/components/component-demo";
 import type { ContributionDay } from "@repo/core/components/github-contributions-3d";
-import { PageHeader } from "@repo/core/components/layouts/page-header";
+import { ComponentPreviewFrame } from "@repo/core/components/layouts/component-preview-frame";
 import { Separator } from "@repo/core/components/separator";
 import {
   Table,
@@ -18,15 +17,20 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 import { getCachedContributions } from "@repo/core/functions";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { GitHubContributions3DDemo } from "./demo";
 
 const LLM_TEXT = readLlmsDocument("components", "github-contributions-3d");
+
+const SOURCE_FILES = readSourceFiles([
+  "packages/core/src/components/github-contributions-3d.utils.ts",
+  "packages/core/src/components/github-contributions-3d.tsx",
+]);
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -39,14 +43,6 @@ const UTILS_SOURCE = readFileSync(
   path.join(REPO_ROOT, "packages/core/src/components/github-contributions-3d.utils.ts"),
   "utf8",
 );
-
-const TOC: TOCItemType[] = [
-  { title: "Demo", url: "#demo", depth: 2 },
-  { title: "Install", url: "#install", depth: 2 },
-  { title: "Usage", url: "#usage", depth: 2 },
-  { title: "Props", url: "#props", depth: 2 },
-  { title: "Types", url: "#types", depth: 2 },
-];
 
 export const metadata: Metadata = {
   title: "GitHub Contributions 3D",
@@ -144,7 +140,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="scroll-mt-24 p-4 sm:p-6" id={id}>
+    <section className="scroll-mt-24 py-8" id={id}>
       {title && <h2 className="text-lg font-medium">{title}</h2>}
       {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
       <div className={title ? "mt-4" : undefined}>{children}</div>
@@ -161,106 +157,103 @@ export default async function GitHubContributions3DPage() {
   );
 
   return (
+    <ComponentPreviewFrame
+      name="github-contributions-3d"
+      files={SOURCE_FILES}
+      llmText={LLM_TEXT}
+      previewClassName="max-w-4xl"
+      docs={<Docs />}
+    >
+      <GitHubContributions3DDemo initialData={initialData} />
+    </ComponentPreviewFrame>
+  );
+}
+
+function Docs() {
+  return (
     <>
-      <div
-        aria-label="Section navigation"
-        className="pointer-events-none fixed top-1/2 left-4 z-30 hidden -translate-y-1/2 xl:block"
+      <header className="pb-2">
+        <h1 className="text-2xl font-semibold tracking-tight">GitHub Contributions 3D</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Turn a contribution calendar into an interactive 3D block graph.
+        </p>
+      </header>
+
+      <Section
+        id="install"
+        title="Install"
+        description="Install with one shadcn command, or add the files by hand."
       >
-        <div className="pointer-events-auto">
-          <TOCMinimap items={TOC} />
-        </div>
-      </div>
-
-      <PageHeader
-        title="GitHub Contributions 3D"
-        description="Turn a contribution calendar into an interactive 3D block graph."
-      />
-
-      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
-        <Section id="demo">
-          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-4xl">
-            <GitHubContributions3DDemo initialData={initialData} />
-          </ComponentDemo>
-        </Section>
-        <Separator />
-
-        <Section
-          id="install"
-          title="Install"
-          description="Install with one shadcn command, or add the files by hand."
-        >
-          <RegistryInstall name="github-contributions-3d" />
-          <details className="group">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
-              Manual installation
-            </summary>
-            <div className="mt-6">
-              <div className="space-y-6">
-                <CliCommand install="three @react-three/fiber @react-three/drei" />
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">
-                    Save as{" "}
-                    <code>components/github-contributions-3d/github-contributions-3d.utils.ts</code>
-                    .
-                  </p>
-                  <CodeBlock code={UTILS_SOURCE} language="ts" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">
-                    Save as{" "}
-                    <code>components/github-contributions-3d/github-contributions-3d.tsx</code>.
-                  </p>
-                  <CodeBlock code={SOURCE} language="tsx" />
-                </div>
+        <RegistryInstall name="github-contributions-3d" />
+        <details className="group">
+          <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+            Manual installation
+          </summary>
+          <div className="mt-6">
+            <div className="space-y-6">
+              <CliCommand install="three @react-three/fiber @react-three/drei" />
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-sm">
+                  Save as{" "}
+                  <code>components/github-contributions-3d/github-contributions-3d.utils.ts</code>.
+                </p>
+                <CodeBlock code={UTILS_SOURCE} language="ts" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-sm">
+                  Save as{" "}
+                  <code>components/github-contributions-3d/github-contributions-3d.tsx</code>.
+                </p>
+                <CodeBlock code={SOURCE} language="tsx" />
               </div>
             </div>
-          </details>
-        </Section>
-        <Separator />
-
-        <Section
-          id="usage"
-          title="Usage"
-          description="Fetch data outside the component and pass it as props."
-        >
-          <CodeBlock code={USAGE_CODE} language="tsx" />
-        </Section>
-        <Separator />
-
-        <Section id="props" title="Props">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Prop</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {PROPS.map((prop) => (
-                  <TableRow key={prop.name}>
-                    <TableCell className="font-mono text-xs">{prop.name}</TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
-                      {prop.type}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">
-                      {prop.default}
-                    </TableCell>
-                    <TableCell className="min-w-56 text-sm">{prop.description}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </div>
-        </Section>
-        <Separator />
+        </details>
+      </Section>
+      <Separator />
 
-        <Section id="types" title="Types">
-          <CodeBlock code={TYPES_CODE} language="ts" />
-        </Section>
-      </article>
+      <Section
+        id="usage"
+        title="Usage"
+        description="Fetch data outside the component and pass it as props."
+      >
+        <CodeBlock code={USAGE_CODE} language="tsx" />
+      </Section>
+      <Separator />
+
+      <Section id="props" title="Props">
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Default</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PROPS.map((prop) => (
+                <TableRow key={prop.name}>
+                  <TableCell className="font-mono text-xs">{prop.name}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                    {prop.type}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {prop.default}
+                  </TableCell>
+                  <TableCell className="min-w-56 text-sm">{prop.description}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Section>
+      <Separator />
+
+      <Section id="types" title="Types">
+        <CodeBlock code={TYPES_CODE} language="ts" />
+      </Section>
     </>
   );
 }
