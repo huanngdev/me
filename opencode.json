@@ -4,6 +4,7 @@
     "shadcn": {
       "type": "local",
       "command": ["npx", "shadcn@latest", "mcp"],
+      "cwd": "packages/core",
       "enabled": true
     }
   }

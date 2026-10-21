@@ -4,7 +4,7 @@ import { PUBLIC_PORTFOLIO_URL } from "../../constants";
 import { type FixedBackButtonProps } from "../fixed-back-button";
 import { BlockPreviewTabs } from "./block-preview-tabs";
 import { BlockUrlProvider, SafariPreview } from "./block-url";
-import { highlightFiles, highlightLlm, type BlockFile } from "./highlight-source";
+import { highlightFiles, type BlockFile } from "./highlight-source";
 
 export type { BlockFile } from "./highlight-source";
 
@@ -16,7 +16,6 @@ export type BlockPreviewFrameProps = {
   name?: string;
   backButton?: FixedBackButtonProps | false;
   files?: readonly BlockFile[];
-  llmText?: string;
   install?: ReactNode;
   docs?: ReactNode;
 };
@@ -27,12 +26,10 @@ export async function BlockPreviewFrame({
   name = "block",
   backButton,
   files,
-  llmText,
   install,
   docs,
 }: BlockPreviewFrameProps) {
   const explorerFiles = await highlightFiles(files ?? []);
-  const llm = await highlightLlm(llmText);
 
   const preview = (
     <div className="flex flex-col items-center gap-3">
@@ -56,7 +53,6 @@ export async function BlockPreviewFrame({
           rootName={name}
           url={url}
           backButton={backButton}
-          llm={llm}
           install={install}
           docs={docs}
         />

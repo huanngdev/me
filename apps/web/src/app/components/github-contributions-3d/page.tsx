@@ -19,13 +19,11 @@ import {
 } from "@repo/core/components/table";
 import { getCachedContributions } from "@repo/core/functions";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { GitHubContributions3DDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "github-contributions-3d");
+import { DOCS } from "@/content/component-docs/github-contributions-3d";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/github-contributions-3d.utils.ts",
@@ -60,74 +58,6 @@ export const metadata: Metadata = {
   },
 };
 
-const USAGE_CODE = `"use client";
-
-import { GitHubContributions3D } from "@/components/github-contributions-3d";
-
-const contributions = [
-  { date: "2026-01-04", count: 0, level: 0 },
-  { date: "2026-01-05", count: 3, level: 2 },
-  { date: "2026-01-06", count: 8, level: 4 },
-] as const;
-
-export function Example() {
-  return (
-    <GitHubContributions3D
-      data={[...contributions]}
-      name="shadcn"
-      variant="night-rainbow"
-    />
-  );
-}`;
-
-const TYPES_CODE = `type ContributionDay = {
-  date: string;
-  count: number;
-  level: 0 | 1 | 2 | 3 | 4;
-};
-
-type ContributionVariant =
-  | "green"
-  | "season"
-  | "night-view"
-  | "night-green"
-  | "night-rainbow"
-  | "gitblock";
-
-type GitHubContributions3DProps = {
-  data: ContributionDay[];
-  name: string;
-  variant?: ContributionVariant;
-  className?: string;
-};`;
-
-const PROPS = [
-  {
-    name: "name",
-    type: "string",
-    default: "—",
-    description: "The account name shown beside the contribution date range.",
-  },
-  {
-    name: "data",
-    type: "ContributionDay[]",
-    default: "—",
-    description: "Daily contribution records in chronological or unsorted order.",
-  },
-  {
-    name: "variant",
-    type: "ContributionVariant",
-    default: '"green"',
-    description: "The palette and canvas surface used by the block graph.",
-  },
-  {
-    name: "className",
-    type: "string",
-    default: "—",
-    description: "Classes applied to the canvas container.",
-  },
-];
-
 function Section({
   id,
   title,
@@ -160,7 +90,6 @@ export default async function GitHubContributions3DPage() {
     <ComponentPreviewFrame
       name="github-contributions-3d"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-4xl"
       docs={<Docs />}
     >
@@ -217,7 +146,7 @@ function Docs() {
         title="Usage"
         description="Fetch data outside the component and pass it as props."
       >
-        <CodeBlock code={USAGE_CODE} language="tsx" />
+        <CodeBlock code={DOCS.usage} language="tsx" />
       </Section>
       <Separator />
 
@@ -233,7 +162,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((prop) => (
+              {DOCS.props.map((prop) => (
                 <TableRow key={prop.name}>
                   <TableCell className="font-mono text-xs">{prop.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
@@ -252,7 +181,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
     </>
   );

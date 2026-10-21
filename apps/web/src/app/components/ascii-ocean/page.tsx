@@ -16,13 +16,11 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { AsciiOceanDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "ascii-ocean");
+import { DOCS } from "@/content/component-docs/ascii-ocean";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/ascii-ocean/math.ts",
@@ -68,45 +66,6 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
 };
-
-const USAGE_CODE = `import { AsciiOcean } from "@/components/ascii-ocean/ascii-ocean";
-
-export function Example() {
-  return (
-    <AsciiOcean
-      sharks={[
-        { kind: "hammerhead", size: 1 },
-        { kind: "greathammer", size: 0.85 },
-      ]}
-      className="aspect-video w-full rounded-lg"
-    />
-  );
-}`;
-
-const TYPES_CODE = `export type SharkKind = "classic" | "hammerhead" | "zebra" | "tiger" | "greathammer" | "mako" | "thresher" | "nurse";
-
-export type SharkSpec = { kind: SharkKind; size: number };
-
-export type AsciiOceanProps = {
-  sharks?: SharkSpec[];
-  className?: string;
-};`;
-
-const PROPS = [
-  {
-    name: "sharks",
-    type: "SharkSpec[]",
-    default: "4 classic sharks",
-    description:
-      "Sharks in the water. Size is relative to the biggest. Fixed for the life of the canvas; change `key` to swap the roster.",
-  },
-  {
-    name: "className",
-    type: "string",
-    default: "—",
-    description: "Classes for the canvas. Give it a size; the canvas fills it.",
-  },
-] as const;
 
 function Section({
   id,
@@ -156,7 +115,6 @@ export default function AsciiOceanPage() {
     <ComponentPreviewFrame
       name="ascii-ocean"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-3xl"
       docs={<Docs />}
     >
@@ -206,7 +164,7 @@ function Docs() {
         title="Usage"
         description="Pass a roster of sharks. Give the canvas a size through className."
       >
-        <CodeBlock code={USAGE_CODE} language="tsx" />
+        <CodeBlock code={DOCS.usage} language="tsx" />
       </Section>
       <Separator />
 
@@ -222,7 +180,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((prop) => (
+              {DOCS.props.map((prop) => (
                 <TableRow key={prop.name}>
                   <TableCell className="font-mono text-xs">{prop.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
@@ -241,7 +199,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
       <Separator />
 

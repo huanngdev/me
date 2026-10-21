@@ -17,13 +17,11 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicAudioPlayerDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "audio-player");
+import { DOCS } from "@/content/component-docs/audio-player";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/video-player/use-video-player.ts",
@@ -65,92 +63,11 @@ const INSTALL_PACKAGES = "@vidstack/react@next lucide-react";
 const SHADCN_TARGET = "shadcn@latest add button dropdown-menu slider tooltip";
 const STYLE_IMPORTS = `@import "@vidstack/react/player/styles/base.css";`;
 
-const USAGE_CODE = `"use client";
-
-import { AudioPlayer } from "@/components/audio-player/audio-player";
-
-export function Example() {
-  return (
-    <AudioPlayer
-      title="Field recording"
-      src={{ src: "/audio/recording.mp3", type: "audio/mpeg" }}
-      download
-    />
-  );
-}`;
-
-const TYPES_CODE = `type AudioPlayerProps = Omit<
-  MediaPlayerProps,
-  "children" | "className" | "controls" | "src" | "title" | "viewType"
-> & {
-  src: MediaPlayerProps["src"];
-  title: string;
-  playbackRates?: readonly number[];
-  download?: boolean | string;
-  className?: string;
-};`;
-
 const KEYBOARD_SHORTCUTS = [
   { keys: "Space / K", action: "Play or pause" },
   { keys: "J / ←", action: "Seek backward" },
   { keys: "L / →", action: "Seek forward" },
   { keys: "M", action: "Mute or unmute" },
-] as const;
-
-const FEATURES = [
-  "Play, pause, and replay after the end",
-  "Seek slider whose thumb announces the current time of the total",
-  "Mute button and volume slider, hidden on the narrowest screens",
-  "Playback speed menu from 0.5× to 2×, configurable",
-  "Download link for direct files, opt-in",
-  "Loading, buffering, and playback-error states inside the same row",
-  "Tabular times and a single row that works from 280px wide",
-  "Keyboard shortcuts scoped to the focused player",
-] as const;
-
-const PROPS = [
-  {
-    name: "src",
-    type: "PlayerSrc",
-    default: "—",
-    description: "A direct audio file, or an object with an explicit MIME type.",
-  },
-  {
-    name: "title",
-    type: "string",
-    default: "—",
-    description: "Accessible name of the player and Media Session title.",
-  },
-  {
-    name: "playbackRates",
-    type: "readonly number[]",
-    default: "0.5–2×",
-    description: "Rates listed in the options menu.",
-  },
-  {
-    name: "download",
-    type: "boolean | string",
-    default: "false",
-    description: "Shows download for the source, or uses an explicit download URL.",
-  },
-  {
-    name: "crossOrigin",
-    type: 'MediaPlayerProps["crossOrigin"]',
-    default: "true",
-    description: "Set null to play cross-origin files that send no CORS headers.",
-  },
-  {
-    name: "load",
-    type: '"eager" | "idle" | "visible" | "play" | "custom"',
-    default: '"visible"',
-    description: "Controls when the media provider begins loading.",
-  },
-  {
-    name: "className",
-    type: "string",
-    default: "—",
-    description: "Classes applied to the player root.",
-  },
 ] as const;
 
 function Section({
@@ -209,7 +126,6 @@ export default function AudioPlayerPage() {
     <ComponentPreviewFrame
       name="audio-player"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-3xl"
       docs={<Docs />}
     >
@@ -284,13 +200,13 @@ function Docs() {
         title="Usage"
         description="Pass a title and a source. The download link and playback rates are optional."
       >
-        <CodeBlock code={USAGE_CODE} language="tsx" />
+        <CodeBlock code={DOCS.usage} language="tsx" />
       </Section>
       <Separator />
 
       <Section id="features" title="Features">
         <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-          {FEATURES.map((feature) => (
+          {DOCS.notes[0]!.items.map((feature) => (
             <li key={feature} className="flex gap-2 text-sm leading-relaxed">
               <CheckMark />
               <span>{feature}</span>
@@ -344,7 +260,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((prop) => (
+              {DOCS.props.map((prop) => (
                 <TableRow key={prop.name}>
                   <TableCell className="font-mono text-xs whitespace-nowrap">{prop.name}</TableCell>
                   <TableCell className="text-muted-foreground min-w-48 font-mono text-xs">
@@ -363,7 +279,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
       <Separator />
 

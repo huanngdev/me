@@ -1,4 +1,4 @@
 interface:
   display_name: "Build Components Page"
-  short_description: "Build component and block pages, including llm.txt"
-  default_prompt: "Use $build-components-page to add or update a component or block page in this portfolio, and publish its llm.txt."
+  short_description: "Build component and block pages and their docs"
+  default_prompt: "Use $build-components-page to add or update a component or block page in this portfolio, and regenerate the llms and registry files."

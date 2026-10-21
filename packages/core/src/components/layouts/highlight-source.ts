@@ -40,21 +40,6 @@ export async function highlightFiles(files: readonly BlockFile[]): Promise<Block
   );
 }
 
-export async function highlightLlm(
-  text: string | undefined,
-): Promise<{ code: string; html: string } | undefined> {
-  return text
-    ? {
-        code: text,
-        html: await codeToHtml(text, {
-          lang: "text",
-          themes: { light: "github-light-default", dark: "github-dark-default" },
-          defaultColor: false,
-        }),
-      }
-    : undefined;
-}
-
 function languageForPath(filePath: string): BundledLanguage {
   const extension = filePath.split(".").pop()?.toLowerCase() ?? "";
   return LANGUAGE_BY_EXTENSION[extension] ?? "text";

@@ -155,14 +155,39 @@ export function renderFull(kind: LlmsCatalogEntry["kind"], documents: readonly s
   return `${header}\n\n${documents.join("\n---\n\n")}`;
 }
 
+const COUNT_WORDS: readonly string[] = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+];
+
+function countLabel(count: number): string {
+  return count >= 1 && count <= 12 ? COUNT_WORDS[count] : String(count);
+}
+
+function countKind(kind: LlmsCatalogEntry["kind"]): number {
+  return LLMS_CATALOG.filter((entry: LlmsCatalogEntry): boolean => entry.kind === kind).length;
+}
+
 export function updateLlmsTxt(current: string): string {
   const section = [
     "## Code",
     "",
     "Source for the component showcase and page blocks. Each linked file copies the repository source byte-for-byte.",
     "",
-    `- [Components](${SITE}/llms/components.txt): Eight showcase components.`,
-    `- [Blocks](${SITE}/llms/blocks.txt): Three full-page blocks.`,
+    `- [Components](${SITE}/llms/components.txt): ${countLabel(countKind("component"))} showcase components.`,
+    `- [Blocks](${SITE}/llms/blocks.txt): ${countLabel(countKind("block"))} full-page blocks.`,
+    `- [MCP server](${SITE}/mcp): Streamable HTTP. Tools: search_components, get_component_docs, get_component_source, get_install_command. Add with \`claude mcp add --transport http huanngdev ${SITE}/mcp\`.`,
     "",
   ].join("\n");
   const heading = "## Code\n";

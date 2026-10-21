@@ -73,6 +73,13 @@ export const SMOKE: Readonly<Record<string, readonly SmokePart[]>> = {
       jsx: `<CliCommand install="lucide-react" />`,
     },
   ],
+  "ascii-ocean": [
+    {
+      file: "ascii-ocean/ascii-ocean",
+      names: ["AsciiOcean"],
+      jsx: `<AsciiOcean className="h-64" />`,
+    },
+  ],
   "crm-data-table": [
     {
       file: "blocks/crm-data-table/crm-data-table-block",

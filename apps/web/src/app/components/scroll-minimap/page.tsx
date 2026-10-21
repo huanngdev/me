@@ -16,13 +16,11 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { ConversationMinimapDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "scroll-minimap");
+import { DOCS } from "@/content/component-docs/scroll-minimap";
 
 const SOURCE_FILES = readSourceFiles(["packages/core/src/components/scroll-minimap.tsx"]);
 
@@ -39,99 +37,6 @@ export const metadata: Metadata = {
   description: "A compact scrollspy navigator for long documents, chats, and timelines.",
   alternates: { canonical: "/components/scroll-minimap" },
 };
-
-const USAGE_CODE = `"use client";
-
-import { useRef } from "react";
-import { ScrollMinimap } from "@/components/scroll-minimap";
-
-const items = [
-  { label: "First message", href: "#message-1", description: "You" },
-  { label: "First response", href: "#message-2", description: "Assistant" },
-  { label: "Follow-up", href: "#message-3", description: "You" },
-] as const;
-
-export function Conversation() {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div className="grid h-96 grid-cols-[1fr_3rem]">
-      <div ref={scrollContainerRef} className="overflow-y-auto">
-        <article id="message-1">First message</article>
-        <article id="message-2">First response</article>
-        <article id="message-3">Follow-up</article>
-      </div>
-      <ScrollMinimap
-        items={items}
-        direction="right"
-        scrollContainerRef={scrollContainerRef}
-        ariaLabel="Conversation messages"
-      />
-    </div>
-  );
-}`;
-
-const TYPES_CODE = `type ScrollMinimapItem = {
-  label: React.ReactNode;
-  href: \`#\${string}\`;
-  depth?: number;
-  description?: React.ReactNode;
-};
-
-type ScrollMinimapProps = {
-  items: ScrollMinimapItem[];
-  direction?: "left" | "right";
-  className?: string;
-  ariaLabel?: string;
-  scrollContainerRef?: React.RefObject<HTMLElement | null>;
-  onNavigate?: (item: ScrollMinimapItem) => void;
-  onItemEnter?: (item: ScrollMinimapItem) => void;
-};`;
-
-const PROPS = [
-  {
-    name: "items",
-    type: "ScrollMinimapItem[]",
-    default: "—",
-    description: "Anchor targets and preview content rendered as minimap markers.",
-  },
-  {
-    name: "direction",
-    type: '"left" | "right"',
-    default: '"left"',
-    description: "Side where the minimap sits; marker growth and previews mirror automatically.",
-  },
-  {
-    name: "className",
-    type: "string",
-    default: "—",
-    description: "Classes applied to the navigation root.",
-  },
-  {
-    name: "ariaLabel",
-    type: "string",
-    default: '"Section navigation"',
-    description: "Accessible name for the navigation landmark.",
-  },
-  {
-    name: "scrollContainerRef",
-    type: "RefObject<HTMLElement | null>",
-    default: "window",
-    description: "Scrollable element to observe and navigate within.",
-  },
-  {
-    name: "onNavigate",
-    type: "(item) => void",
-    default: "—",
-    description: "Called after a marker is selected.",
-  },
-  {
-    name: "onItemEnter",
-    type: "(item) => void",
-    default: "—",
-    description: "Called when a marker receives hover or keyboard focus.",
-  },
-] as const;
 
 function Section({
   id,
@@ -181,7 +86,6 @@ export default function ScrollMinimapPage() {
     <ComponentPreviewFrame
       name="scroll-minimap"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-2xl"
       docs={<Docs />}
     >
@@ -237,7 +141,7 @@ function Docs() {
         title="Usage"
         description="Pass hash targets and optionally scope tracking to a scrollable container."
       >
-        <CodeBlock code={USAGE_CODE} language="tsx" />
+        <CodeBlock code={DOCS.usage} language="tsx" />
       </Section>
       <Separator />
 
@@ -253,7 +157,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((prop) => (
+              {DOCS.props.map((prop) => (
                 <TableRow key={prop.name}>
                   <TableCell className="font-mono text-xs">{prop.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
@@ -272,7 +176,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
     </>
   );

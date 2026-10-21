@@ -10,7 +10,6 @@ export type ComponentPreviewFrameProps = {
   children: ReactNode;
   name: string;
   files: readonly BlockFile[];
-  llmText?: string;
   docs: ReactNode;
   previewClassName?: string;
 };
@@ -19,7 +18,6 @@ export function ComponentPreviewFrame({
   children,
   name,
   files,
-  llmText,
   docs,
   previewClassName,
 }: ComponentPreviewFrameProps) {
@@ -28,7 +26,6 @@ export function ComponentPreviewFrame({
       name={name}
       url={`${PREVIEW_HOST}/components/${name}`}
       files={files}
-      llmText={llmText}
       docs={docs}
       backButton={{ label: "Go back", position: "top-left" }}
     >
