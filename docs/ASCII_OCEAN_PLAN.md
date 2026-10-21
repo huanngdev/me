@@ -468,3 +468,19 @@ Các phần để sau:
 - **R21a:** gỡ phần mô phỏng và API (world, creatures, engine, component), và thêm test độ ổn định khi bơi.
 - **R21b:** gỡ code renderer và effects không còn dùng.
 - **R21c:** demo chỉ còn ô chọn cảnh. Trang docs có thêm section giới thiệu từng loài.
+
+**R21d (bơi ổn định hơn):**
+
+- **Rẽ theo tỉ lệ:** con vật rẽ mạnh hay nhẹ theo độ lệch hướng, nên lệch ít thì chỉ lượn nhẹ, không còn lúc nào cũng rẽ hết cỡ.
+- **Bán kính rẽ mặc định 0.6 L:** vòng rẽ rộng hơn. Khi đã ra ngoài mép canvas thì rẽ gấp hơn để quay lại, với bán kính 0.22 L.
+- **Làm mượt hướng lái:** hướng con vật muốn tới được làm mượt trong khoảng 0.4 s, nên không giật qua lại mỗi frame.
+- **Khi mục tiêu gần như ở phía sau:** con vật giữ nguyên chiều đang rẽ, thay vì lưỡng lự giữa rẽ trái và rẽ phải.
+- **Tách khỏi con khác:** mỗi con hàng xóm chỉ tạo một lực đẩy, tính từ cặp điểm gần nhất, nên lực quay về canvas luôn thắng.
+- **Đàn cá heo, orca:** kéo theo hướng chung của đàn mạnh hơn (2.5), giữ khoảng cách giữa các con trong đàn nhẹ hơn (0.15).
+
+Kết quả đo:
+
+- **Cong thân ở mức 90%:** giảm 37% (từ 2.88 xuống 1.80 rad). Đây đúng bằng mức cong tối đa mà khớp cho phép.
+- **Chồng thân ở Open ocean:** giảm 26–29%.
+- **Hướng bơi trong đàn:** chênh lệch trung vị còn 0.45 rad, trước đó 0.8–1.5 rad.
+- **Còn lại:** koi trong hồ vẫn hay tụ lại và bơi đè lên nhau.
