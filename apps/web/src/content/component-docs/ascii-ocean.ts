@@ -1,4 +1,22 @@
+import type { CreatureSpecies } from "@repo/core/components/ascii-ocean/ascii-ocean";
+
 import type { ComponentDocs } from "./types";
+
+/** Display names for the species sheet. Ids are the API; these are for people. */
+export const SPECIES_NAMES: Record<CreatureSpecies, string> = {
+  classic: "Great white shark",
+  hammerhead: "Scalloped hammerhead",
+  greathammer: "Great hammerhead",
+  tiger: "Tiger shark",
+  mako: "Shortfin mako",
+  thresher: "Thresher shark",
+  nurse: "Nurse shark",
+  zebra: "Zebra shark",
+  koi: "Koi",
+  bottlenose: "Bottlenose dolphin",
+  orca: "Orca",
+  humpback: "Humpback whale",
+};
 
 export const DOCS: ComponentDocs = {
   keywords: ["ocean", "fish", "sharks", "koi", "whale", "dolphin", "background", "canvas"],
@@ -47,13 +65,6 @@ export function Example() {
   ],
   props: [
     {
-      name: "ref",
-      type: "Ref<AsciiOceanHandle>",
-      default: "—",
-      description:
-        "Imperative handle: playJump() makes a random animal that can jump do its jump, and hasJumpers() says whether any animal can jump at all.",
-    },
-    {
       name: "creatures",
       type: "CreatureGroup[]",
       default: "4 classic sharks",
@@ -88,10 +99,9 @@ export function Example() {
     },
     {
       name: "interaction",
-      type: '"feed" | "splash" | "none"',
-      default: '"feed"',
-      description:
-        '"feed" drops food and nearby animals swim over to eat, each in its own way; "splash" flashes the water; "none" ignores presses.',
+      type: '"splash" | "none"',
+      default: '"splash"',
+      description: '"splash" flashes the water where you press; "none" ignores presses.',
     },
     {
       name: "colors",
@@ -140,17 +150,11 @@ export type OceanScene = "ocean" | "pond";
 
 export type OceanScale = "stylized" | "true";
 
-export type OceanInteraction = "feed" | "splash" | "none";
+export type OceanInteraction = "splash" | "none";
 
 export type OceanColors = "natural" | "theme";
 
-export type AsciiOceanHandle = {
-  playJump(): number;
-  hasJumpers(): boolean;
-};
-
 export type AsciiOceanProps = {
-  ref?: Ref<AsciiOceanHandle>;
   creatures?: CreatureGroup[];
   /** @deprecated Use \`creatures\`. */
   sharks?: SharkSpec[];
@@ -165,22 +169,11 @@ export type AsciiOceanProps = {
 };`,
   notes: [
     {
-      title: "Feeding moves",
-      items: [
-        "Sharks: classic circles its prey, then lunges, or breaches; hammerhead sweeps its head across the food like a metal detector and bites; great hammerhead pins the food under its head before taking it; tiger takes every scrap, one after another; mako bursts at full speed and turns sharply to snatch its prey, or breaches; thresher whips its long upper tail through a bait ball, stunning fish, then doubles back for the rest; nurse hoovers the food in with suction; zebra noses along the bottom and takes one morsel at a time.",
-        "Koi: slow over the pellets with mouth open, and each bite breaks the surface.",
-        "Bottlenose dolphins: approach and bite, leap clear of the water to take what lies under the arc, or swim into a bait ball and slap it with their fluke, stunning fish, then mop them up.",
-        "Orcas: the pod circles a bait ball, flashing white bellies and blowing bubbles to tighten it; then each orca in turn slaps the ball with its fluke and eats the stunned fish (carousel). Or a spyhop: rises head-first out of the water to look around, then drops back and bites.",
-        "Humpbacks: blow a spiral bubble net around the bait and lunge up through the middle with mouth open (bubble net); or charge at the bait with throat pleats ballooning (lunge); or blow, raise the flukes and dive, then come back up for bait. They feed on krill, so they answer food one at a time.",
-      ],
-    },
-    {
       title: "Tips",
       items: [
         "Give the canvas a monospace font; glyphs come from its font-family.",
         "Colours follow the page's background-color and color, and switch with the theme.",
         "Props are read once, so change `key` to swap the roster or scene.",
-        "Use the ref's playJump() to trigger a jump; it returns the duration so you can disable your button.",
         "With prefers-reduced-motion, the canvas shows a still frame.",
         "`seed` makes a scene repeatable.",
       ],

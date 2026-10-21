@@ -3,20 +3,12 @@
 import { useEffect, useRef } from "react";
 
 import { createPaletteReader } from "@/components/ascii-ocean/palette";
-import { clamp } from "@/components/ascii-ocean/math";
-import type { ActionId } from "@/components/ascii-ocean/creatures/behaviour";
 import type { CreatureSpecies, OceanColors } from "@/components/ascii-ocean/creatures/types";
 import { AsciiRenderer } from "@/components/ascii-ocean/renderer";
 import { World, type WorldEvent } from "@/components/ascii-ocean/world";
 
 export type TheatreProps = {
   species: CreatureSpecies[];
-  /** Forced onto creature 0 after each offer, for browser tests of one action. */
-  action?: ActionId;
-  /** A food-less show (a leap, a breach) started on creature 0 every `every` seconds, instead of offering food. */
-  show?: ActionId;
-  /** Seconds between offers. */
-  every: number;
   colors: OceanColors;
   /** Bait fish in the water. */
   fish: boolean;
@@ -35,13 +27,8 @@ declare global {
 
 /** Event log cap; the oldest entries drop first. */
 const LOG_CAP = 2000;
-/** Offers land this far ahead of the snout, as a fraction of the length. */
-const OFFER_AHEAD = 0.9;
-/** Offers stay this far inside the canvas, as a fraction of the length. */
-const OFFER_MARGIN = 0.6;
-
-/** Full-viewport ASCII Ocean with food offered every few seconds. Development only. */
-export function Theatre({ species, action, show, every, colors, fish, seed }: TheatreProps) {
+/** Full-viewport ASCII Ocean with the chosen species swimming. Development only. */
+export function Theatre({ species, colors, fish, seed }: TheatreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -74,27 +61,6 @@ export function Theatre({ species, action, show, every, colors, fish, seed }: Th
       sized = true;
     };
 
-    // Offers the food in front of creature 0, kept inside the canvas.
-    const offer = () => {
-      const sh = world.creatures[0];
-      if (!sh) return;
-      const L = sh.length;
-      const m = OFFER_MARGIN * L;
-      const x = clamp(
-        sh.nodes[0] + Math.cos(sh.heading) * OFFER_AHEAD * L,
-        m,
-        Math.max(m, canvas.clientWidth - m),
-      );
-      const y = clamp(
-        sh.nodes[1] + Math.sin(sh.heading) * OFFER_AHEAD * L,
-        m,
-        Math.max(m, canvas.clientHeight - m),
-      );
-      world.offerFood(x, y);
-      if (action) sh.actionId = action;
-    };
-
-    let nextOffer = 0;
     let raf = 0;
     let last = performance.now();
     const frame = (now: number) => {
@@ -103,11 +69,6 @@ export function Theatre({ species, action, show, every, colors, fish, seed }: Th
       if (!sized) {
         raf = requestAnimationFrame(frame);
         return;
-      }
-      if (world.time >= nextOffer) {
-        if (show) world.startShow(world.creatures[0], show);
-        else offer();
-        nextOffer = world.time + every;
       }
       world.step(dt);
       // The renderer clears world.events once it has drawn them, so log them first.
@@ -128,7 +89,7 @@ export function Theatre({ species, action, show, every, colors, fish, seed }: Th
       delete window.__oceanWorld;
       delete window.__oceanLog;
     };
-  }, [species, action, show, every, colors, fish, seed]);
+  }, [species, colors, fish, seed]);
 
   return (
     <div className="relative min-h-[70vh] flex-1">
