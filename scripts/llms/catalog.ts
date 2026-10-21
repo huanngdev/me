@@ -305,7 +305,6 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
       "packages/core/src/components/ascii-ocean/creatures/index.ts",
       "packages/core/src/components/ascii-ocean/creatures/roster.ts",
       "packages/core/src/components/ascii-ocean/creatures/behaviour.ts",
-      "packages/core/src/components/ascii-ocean/creatures/actions.ts",
       "packages/core/src/components/ascii-ocean/world.ts",
       "packages/core/src/components/ascii-ocean/effects.ts",
       "packages/core/src/components/ascii-ocean/pond.ts",

@@ -3242,14 +3242,13 @@ export function CliCommand({ prompt = DEFAULT_PROMPT, className, ...rest }: CliC
 11. packages/core/src/components/ascii-ocean/creatures/index.ts
 12. packages/core/src/components/ascii-ocean/creatures/roster.ts
 13. packages/core/src/components/ascii-ocean/creatures/behaviour.ts
-14. packages/core/src/components/ascii-ocean/creatures/actions.ts
-15. packages/core/src/components/ascii-ocean/world.ts
-16. packages/core/src/components/ascii-ocean/effects.ts
-17. packages/core/src/components/ascii-ocean/pond.ts
-18. packages/core/src/components/ascii-ocean/sea.ts
-19. packages/core/src/components/ascii-ocean/renderer.ts
-20. packages/core/src/components/ascii-ocean/engine.ts
-21. packages/core/src/components/ascii-ocean/ascii-ocean.tsx
+14. packages/core/src/components/ascii-ocean/world.ts
+15. packages/core/src/components/ascii-ocean/effects.ts
+16. packages/core/src/components/ascii-ocean/pond.ts
+17. packages/core/src/components/ascii-ocean/sea.ts
+18. packages/core/src/components/ascii-ocean/renderer.ts
+19. packages/core/src/components/ascii-ocean/engine.ts
+20. packages/core/src/components/ascii-ocean/ascii-ocean.tsx
 
 ## packages/core/src/components/ascii-ocean/math.ts
 ```ts
@@ -3543,8 +3542,6 @@ export type OceanScale = "stylized" | "true";
 
 /** What a pointer press does to the water. */
 export type OceanInteraction =
-  /** A press drops food: nearby animals swim over to eat, each in its own way. */
-  | "feed"
   /** A press flashes the water. */
   | "splash"
   /** Presses are ignored. */
@@ -3564,10 +3561,6 @@ export type PaintPoint = {
   across: number;
   flag: number;
   id: number;
-  /** The animal has rolled far enough to show its underside (orca belly, a shark's pale ventral side). */
-  belly: boolean;
-  /** How far the underside shows, 0 (none) → 1 (fully rolled), eased across the roll so a belly grows in. `belly` is `bellyAmount > 0.5`. */
-  bellyAmount: number;
 };
 
 /** Natural colours: `regions[0]` is the base skin; `paint` returns a region index for a point. */
@@ -4077,7 +4070,7 @@ const SADDLE_GREY: Oklch = [0.6, 0.01, 250];
 
 /**
  * Killer whale, black base. A white eye patch sits behind and above each eye, and a grey saddle
- * patch sits just behind the dorsal fin. Fins are black. Rolled over, the white belly shows.
+ * patch sits just behind the dorsal fin. Fins are black.
  */
 const orcaCoat: Coat = {
   regions: [BLACK, WHITE, SADDLE_GREY],
@@ -4088,8 +4081,6 @@ const orcaCoat: Coat = {
     const ds = (p.s - 0.18) / 0.07;
     const da = (p.across - 0.68) / 0.38;
     if (ds * ds + da * da <= 1) return 1;
-    // Rolling over shows the underside: the white belly grows outward from the centre line as bellyAmount rises.
-    if (p.across < 0.75 * p.bellyAmount) return 1;
     // Saddle: grey where across is under a soft edge that is widest at its centre (s 0.525).
     if (p.s >= 0.45 && p.s <= 0.6 && p.across < 0.7 - (0.3 * Math.abs(p.s - 0.525)) / 0.075) {
       return 2;
@@ -4395,1155 +4386,66 @@ export function rosterFromGroups(
 ```ts
 import type { CreatureSpecies } from "./types";
 
-export type ActionId =
-  | "approachAndBite"
-  | "surfaceSlurp"
-  | "circleThenLunge"
-  | "breach"
-  | "scanSweep"
-  | "scanAndPin"
-  | "gulpAll"
-  | "burst"
-  | "tailWhip"
-  | "suction"
-  | "slowPeck"
-  | "leap"
-  | "fishWhack"
-  | "carousel"
-  | "spyhop"
-  | "bubbleNet"
-  | "lunge"
-  | "blowAndFluke"
-  | "breachRoll"
-  | "soundDive";
-
+/** How a species swims while cruising: pod, pointer and turning limits. Species without an entry use DEFAULT_BEHAVIOUR. */
 export interface Behaviour {
-  /** How far it notices food, as a fraction of the world's shorter side. Sharks smell it from far away. */
-  senseRange: number;
-  /** At most this many of the species answer one offering (koi crowd in). */
-  maxResponders: number;
-  /** Seconds before it answers food again: [min, max]. */
-  cooldown: [number, number];
-  /** Weighted actions; later rounds add signature moves with `requires`. */
-  actions: { id: ActionId; weight: number }[];
-  /** Hunts the bait fish like the sharks do. Koi and humpbacks don't. */
-  huntsFish: boolean;
-  /** Drifts after the pointer when it hovers nearby (koi learn people mean food). */
+  /** Drifts after the pointer when it hovers nearby (koi come up to people at the pond edge). */
   followsPointer: boolean;
-  /** Breathes at the surface every [min, max] seconds (cetaceans); absent for fish and sharks. */
-  breathes?: [number, number];
-  /**
-   * Breathes in series instead of singly (orca, humpback): a run of blows `gap` seconds apart, then a
-   * dive of `dive` seconds with no breath. `fluke` raises the flukes into a sounding dive before it.
-   * Each count and time comes from the creature's id and the clock, not rng.
-   */
-  breathSeries?: {
-    blows: [number, number];
-    gap: [number, number];
-    dive: [number, number];
-    fluke: boolean;
-  };
-  /**
-   * Food-less shows it puts on by itself while cruising, as "every [min, max] seconds" (see world.ts stepShows).
-   * Each is an action started with no food: a leap or a breach. Absent for species with no shows.
-   */
-  shows?: { id: ActionId; every: [number, number] }[];
-  /** Keeps company with its own species in cruise: cohesion and alignment toward pod mates. */
+  /** Keeps company with its own species: cohesion and alignment toward pod mates. */
   pod?: boolean;
   /** Most bend per spine joint (radians) in follow-the-leader; default 0.16. */
   maxBend?: number;
-  /** Smallest turning radius in body lengths while cruising (not hunting or going for food); default 0.22 (the classic shark agility). */
+  /** Smallest turning radius in body lengths while cruising; default 0.22 (the classic shark agility). */
   turnRadius?: number;
 }
 
 export const DEFAULT_BEHAVIOUR: Behaviour = {
-  senseRange: 0.9,
-  maxResponders: 2,
-  cooldown: [6, 10],
-  actions: [{ id: "approachAndBite", weight: 1 }],
-  huntsFish: true,
   followsPointer: false,
 };
 
 export const BEHAVIOURS: Partial<Record<CreatureSpecies, Behaviour>> = {
   koi: {
-    // Koi hear pellets land anywhere in a garden pond.
-    senseRange: 0.85,
-    maxResponders: 5,
-    cooldown: [2, 4],
-    actions: [{ id: "surfaceSlurp", weight: 1 }],
-    huntsFish: false,
     followsPointer: true,
     maxBend: 0.09,
     turnRadius: 0.5,
   },
-  // Dolphins and whales: bottlenose travel in pods and leap or whack bait fish; orcas hunt in pods.
-  bottlenose: {
-    ...DEFAULT_BEHAVIOUR,
-    senseRange: 0.7,
-    maxResponders: 3,
-    cooldown: [4, 7],
-    actions: [
-      { id: "approachAndBite", weight: 0.4 },
-      { id: "leap", weight: 0.35 },
-      { id: "fishWhack", weight: 0.25 },
-    ],
-    breathes: [8, 14],
-    pod: true,
-    shows: [{ id: "leap", every: [18, 32] }],
-  },
-  orca: {
-    ...DEFAULT_BEHAVIOUR,
-    senseRange: 0.75,
-    maxResponders: 4,
-    cooldown: [6, 10],
-    actions: [
-      { id: "carousel", weight: 0.6 },
-      { id: "approachAndBite", weight: 0.25 },
-      { id: "spyhop", weight: 0.15 },
-    ],
-    breathes: [12, 20],
-    breathSeries: { blows: [3, 5], gap: [4, 6], dive: [15, 25], fluke: false },
-    pod: true,
-    shows: [{ id: "breachRoll", every: [45, 75] }],
-  },
-  // Humpbacks feed on krill, not fish, and answer food one at a time.
-  humpback: {
-    ...DEFAULT_BEHAVIOUR,
-    senseRange: 0.7,
-    maxResponders: 1,
-    cooldown: [10, 15],
-    huntsFish: false,
-    actions: [
-      { id: "bubbleNet", weight: 0.6 },
-      { id: "lunge", weight: 0.25 },
-      { id: "blowAndFluke", weight: 0.15 },
-    ],
-    breathes: [18, 30],
-    breathSeries: { blows: [3, 4], gap: [5, 7], dive: [25, 40], fluke: true },
-    shows: [{ id: "breachRoll", every: [55, 95] }],
-  },
-  // Signature feeding moves, one or two per shark (docs/ascii-ocean-species.md §8.3).
-  classic: {
-    ...DEFAULT_BEHAVIOUR,
-    actions: [
-      { id: "circleThenLunge", weight: 0.75 },
-      { id: "breach", weight: 0.25 },
-    ],
-  },
-  hammerhead: { ...DEFAULT_BEHAVIOUR, actions: [{ id: "scanSweep", weight: 1 }] },
-  greathammer: { ...DEFAULT_BEHAVIOUR, actions: [{ id: "scanAndPin", weight: 1 }] },
-  tiger: { ...DEFAULT_BEHAVIOUR, actions: [{ id: "gulpAll", weight: 1 }] },
-  mako: {
-    ...DEFAULT_BEHAVIOUR,
-    actions: [
-      { id: "burst", weight: 0.7 },
-      { id: "breach", weight: 0.3 },
-    ],
-  },
-  thresher: {
-    ...DEFAULT_BEHAVIOUR,
-    actions: [
-      { id: "tailWhip", weight: 0.8 },
-      { id: "approachAndBite", weight: 0.2 },
-    ],
-  },
-  nurse: { ...DEFAULT_BEHAVIOUR, actions: [{ id: "suction", weight: 1 }] },
-  zebra: { ...DEFAULT_BEHAVIOUR, actions: [{ id: "slowPeck", weight: 1 }] },
+  // Dolphins and whales travel in pods.
+  bottlenose: { ...DEFAULT_BEHAVIOUR, pod: true },
+  orca: { ...DEFAULT_BEHAVIOUR, pod: true },
 };
 
-/** How a species behaves around food and the pointer. Species without an entry use DEFAULT_BEHAVIOUR. */
+/** How a species swims. Species without an entry use DEFAULT_BEHAVIOUR. */
 export function behaviourOf(species: CreatureSpecies): Behaviour {
   return BEHAVIOURS[species] ?? DEFAULT_BEHAVIOUR;
 }
-```
-
-## packages/core/src/components/ascii-ocean/creatures/actions.ts
-```ts
-import { clamp, smoothstep } from "../math";
-import type { Creature, Morsel, WorldEvent } from "../world";
-import type { ActionId } from "./behaviour";
-
-/** Steering a creature gets from its action this step; w = 0 means none. */
-export interface Aim {
-  /** Unit direction toward the target. */
-  dx: number;
-  dy: number;
-  /** Weight of the steering against the creature's own momentum. */
-  w: number;
-  /** Speed as a multiple of cruise. */
-  speed: number;
-  /** 0 far → 1 close to the target, for the turn and the wake. */
-  closing: number;
-  hunting: boolean;
-}
-
-/** Pose targets an action writes; the world eases each creature's pose toward them. */
-export interface PoseTargets {
-  height: number;
-  pitch: number;
-  roll: number;
-  gape: number;
-  slap: number;
-  /** Sinking under the surface, 0–1: the body reads as deeper (dimmer, bluer). */
-  dive: number;
-  /** Head-first surface crossing, 0 under → 1 out → 2 under again (see Creature.emerge). */
-  emerge: number;
-}
-
-export interface ActionContext {
-  readonly time: number;
-  readonly dt: number;
-  readonly L: number;
-  readonly sh: Creature;
-  /** Seconds since the action engaged (see `engageRange`); 0 before. */
-  readonly t: number;
-  /** Nearest live morsel of the creature's food group, and the snout's distance to it. */
-  readonly target: Morsel | null;
-  readonly dist: number;
-  /** World size in px, for `requires` checks such as keeping a leap on screen. */
-  readonly width: number;
-  readonly height: number;
-  /** Write this step's steering: direction (unit), weight, speed multiple of cruise, hunting flag. */
-  readonly aim: Aim;
-  /** Write pose targets; the world eases the creature's pose toward them. Reset to 0 every step before step() runs. */
-  readonly pose: PoseTargets;
-  /** Eat every live morsel of the group, and every stunned bait fish, within `radius` of the snout; returns how many. */
-  eatNear(radius: number): number;
-  /** Pull live morsels of the group within `radius` toward the snout at `speed` px/s (suction). */
-  pullMorsels(radius: number, speed: number): void;
-  /** Stun bait fish within `radius` of (x, y) for `seconds`; returns how many. */
-  stunFish(x: number, y: number, radius: number, seconds: number): number;
-  /** Herd live bait fish within `radius` of (x, y) this step: pull them in at `inward` px/s² and swirl them at `swirl` px/s². */
-  herd(x: number, y: number, radius: number, inward: number, swirl: number): void;
-  /** Eat every live bait fish within `radius` of the snout, stunned or not; returns how many. */
-  eatFishNear(radius: number): number;
-  /** Creatures of this species (this one included) with snouts within `radius` of the snout. */
-  packNear(radius: number): number;
-  /** Centroid of live bait fish within `radius` of (x, y), written into `out`; returns the count (0 = none). */
-  schoolNear(
-    x: number,
-    y: number,
-    radius: number,
-    out: { x: number; y: number },
-    stunnedOnly?: boolean,
-  ): number;
-  emit(kind: WorldEvent["kind"], x: number, y: number, size?: number): void;
-}
-
-export interface ActionDef {
-  /** Snout distance to the target at which the action engages; 0 = on the first bite (as today). */
-  engageRange: (L: number) => number;
-  /** Seconds the action lasts once engaged. */
-  seconds: number;
-  /** Optional precondition checked when the action is picked; false falls back to approachAndBite. */
-  requires?: (ctx: ActionContext) => boolean;
-  /** Distance the engagement check uses, when it is not the snout's distance to the nearest morsel. */
-  engageDistance?: (ctx: ActionContext) => number;
-  /** Approach speed before engagement, as a multiple of cruise. Default 2.2, or 1.7 for koi. */
-  approachSpeed?: number;
-  /** Runs every step from engagement until `seconds` pass or it returns true (done). Before engagement the world runs the default approach. */
-  step(ctx: ActionContext): boolean | void;
-}
-
-/** Steers at the target: a unit direction, with weight and turn closing as the snout nears it. */
-function steerAt(ctx: ActionContext, speed: number) {
-  const { aim, L, dist } = ctx;
-  const m = ctx.target;
-  if (!m) return;
-  const hx = ctx.sh.nodes[0];
-  const hy = ctx.sh.nodes[1];
-  const closing = clamp(1 - dist / (L * 0.9), 0, 1);
-  aim.dx = (m.x - hx) / dist;
-  aim.dy = (m.y - hy) / dist;
-  aim.w = 3 + 2 * closing;
-  aim.hunting = true;
-  aim.closing = closing;
-  aim.speed = speed;
-}
-
-/** Bite radius shared by every action: close enough to take a morsel. */
-const biteRange = (L: number) => L * 0.06 + 10;
-
-/**
- * Whether the action engages this step: the engagement distance is within engageRange, or, for
- * engageRange 0, within a bite (the first bite engages).
- */
-export function engaged(def: ActionDef, ctx: ActionContext): boolean {
-  const range = def.engageRange(ctx.L);
-  const reach = range > 0 ? range : biteRange(ctx.L);
-  const dist = def.engageDistance ? def.engageDistance(ctx) : ctx.dist;
-  return dist <= reach;
-}
-
-/** The default approach, before engagement: steer at the nearest morsel at the action's approach speed. */
-export function approachSteer(def: ActionDef, ctx: ActionContext) {
-  steerAt(ctx, def.approachSpeed ?? (ctx.sh.species === "koi" ? 1.7 : 2.2));
-}
-
-/** Strike radius for the lunges, bursts and sweeps: a little wider than the bite. */
-const strikeRange = (L: number) => L * 0.07 + 10;
-
-/** Scratch for schoolNear, so the whip allocates nothing. */
-const school = { x: 0, y: 0 };
-
-/** Tail sweep from 0 through the top of the arc (slap 1), then on to -0.3: sin(WHIP_SWING) = -0.3, monotonic after the peak. */
-const WHIP_SWING = Math.PI + Math.asin(0.3);
-
-/**
- * Slap pose of a whip that swings over `dur` seconds at `amp` (the swing's own overdrive). After `dur` it is held
- * at the swing's end, then eased back to rest over 0.4 s, so the fluke never drops from a slap to rest in one step.
- */
-function whipSlap(u: number, dur: number, amp: number) {
-  const swing = amp * Math.sin(Math.min(1, u / dur) * WHIP_SWING);
-  return clamp(swing * (1 - smoothstep(dur, dur + 0.4, u)), -1.2, 1.2);
-}
-
-/** Points the snout at (px, py): unit direction, weight, speed multiple of cruise, and closing from the target. */
-function aimAt(ctx: ActionContext, px: number, py: number, w: number, speed: number) {
-  const { aim, L, dist, sh } = ctx;
-  const dx = px - sh.nodes[0];
-  const dy = py - sh.nodes[1];
-  const d = Math.hypot(dx, dy) || 1;
-  aim.dx = dx / d;
-  aim.dy = dy / d;
-  aim.w = w;
-  aim.speed = speed;
-  aim.hunting = true;
-  aim.closing = clamp(1 - dist / (L * 0.9), 0, 1);
-}
-
-/** Head sweep: the bearing to the target swings ±0.55 rad at 1.3 Hz, like a hammerhead scanning with its head. */
-function aimSweep(ctx: ActionContext, speed: number) {
-  const m = ctx.target;
-  if (!m) return;
-  const hx = ctx.sh.nodes[0];
-  const hy = ctx.sh.nodes[1];
-  const a = Math.atan2(m.y - hy, m.x - hx) + 0.55 * Math.sin(ctx.t * Math.PI * 2 * 1.3);
-  aimAt(ctx, hx + Math.cos(a), hy + Math.sin(a), 3, speed);
-}
-
-/** True on the one step where the action's clock first reaches `at`: lets an action do something once, with no state. */
-function crossed(ctx: ActionContext, at: number) {
-  return ctx.t >= at && ctx.t - ctx.dt < at;
-}
-
-/** Steers at the target, or straight ahead of the snout once the food is gone, so the aim is never NaN. */
-function steerGoal(ctx: ActionContext, w: number, speed: number) {
-  const m = ctx.target;
-  const hx = ctx.sh.nodes[0];
-  const hy = ctx.sh.nodes[1];
-  if (m) aimAt(ctx, m.x, m.y, w, speed);
-  else
-    aimAt(
-      ctx,
-      hx + Math.cos(ctx.sh.heading) * ctx.L,
-      hy + Math.sin(ctx.sh.heading) * ctx.L,
-      w,
-      speed,
-    );
-}
-
-/** Where a school-centred action works: written into `herdAt`. */
-const herdAt = { x: 0, y: 0 };
-
-/**
- * Writes the centre a school-centred action works on into `herdAt`, and returns the bait count it came from.
- * Live bait near the food comes first, then stunned bait near the snout, then the snout itself (count 0).
- */
-function locateSchool(ctx: ActionContext, radius: number): number {
-  const m = ctx.target;
-  if (m) {
-    const n = ctx.schoolNear(m.x, m.y, radius, herdAt);
-    if (n > 0) return n;
-  }
-  const hx = ctx.sh.nodes[0];
-  const hy = ctx.sh.nodes[1];
-  const n = ctx.schoolNear(hx, hy, radius, herdAt, true);
-  if (n > 0) return n;
-  herdAt.x = hx;
-  herdAt.y = hy;
-  return 0;
-}
-
-/** Distance from the snout to the school centre an action engages on; with no school near the food, to the food. */
-function schoolDistance(ctx: ActionContext, radius: number): number {
-  const m = ctx.target;
-  if (!m || ctx.schoolNear(m.x, m.y, radius, herdAt) === 0) return ctx.dist;
-  return Math.hypot(herdAt.x - ctx.sh.nodes[0], herdAt.y - ctx.sh.nodes[1]);
-}
-
-/** A pose's value at each of its (time, value) knots. Between two knots it blends with smoothstep, so it is flat at every knot. */
-type Knot = readonly [number, number];
-function track(t: number, knots: readonly Knot[]): number {
-  let i = 1;
-  while (i < knots.length - 1 && t >= knots[i][0]) i++;
-  const [t0, v0] = knots[i - 1];
-  const [t1, v1] = knots[i];
-  return v0 + (v1 - v0) * smoothstep(t0, t1, t);
-}
-
-/**
- * A jump's timeline, in seconds from its start. The phases are: dip (0 to `rush`), rush up (`rush` to `up`),
- * airborne (`up` to `down`), sink (`down` to `sink`), surface (`sink` to `breath`), then the blow at `breath`.
- */
-interface JumpPlan {
-  rush: number;
-  up: number;
-  down: number;
-  sink: number;
-  breath: number;
-  seconds: number;
-  /** Speed multiple for the rush up, as a multiple of cruise. */
-  rushSpeed: number;
-  /** Whether the jump rolls onto its side in the air and crashes back (breachRoll). */
-  roll: boolean;
-  /** Pitch knots across the whole jump, eased with `track`. */
-  pitch: readonly Knot[];
-}
-
-/** Bottlenose leap: a short jump, out and back in. */
-const LEAP_JUMP: JumpPlan = {
-  rush: 0.7,
-  up: 1.3,
-  down: 3,
-  sink: 3.7,
-  breath: 4.7,
-  seconds: 4.9,
-  rushSpeed: 3,
-  roll: false,
-  pitch: [
-    [0, 0],
-    [0.7, -0.4],
-    [1.3, 0],
-    [2.15, 0.6],
-    [3, -0.6],
-    [3.7, -0.3],
-    [4.7, 0],
-    [4.9, 0],
-  ],
-};
-
-/** Orca and humpback breach: a long rolling jump, landing on its side with a crash. */
-const BREACH_ROLL_JUMP: JumpPlan = {
-  rush: 1.0,
-  up: 1.9,
-  down: 4.2,
-  sink: 5.3,
-  breath: 6.5,
-  seconds: 6.7,
-  rushSpeed: 2.6,
-  roll: true,
-  pitch: [
-    [0, 0],
-    [1.0, -0.4],
-    [1.9, 0],
-    [3.05, 0.6],
-    [4.2, -0.6],
-    [5.3, -0.3],
-    [6.5, 0],
-    [6.7, 0],
-  ],
-};
-
-/**
- * How far the body is out of the water, 0 under → 1 out → 2 under again. Each end is a smoothstep, so the
- * head-first crossing runs over the whole rise (up − 0.35 to up + 0.5) and fall (down − 0.35 to down + 0.5).
- */
-function emergeOf(p: JumpPlan, t: number) {
-  return smoothstep(p.up - 0.35, p.up + 0.5, t) + smoothstep(p.down - 0.35, p.down + 0.5, t);
-}
-
-/** True on the step where the emerge value first reaches `v`, from last step's `prev` to this step's `now`. */
-function reachedEmerge(prev: number, now: number, v: number) {
-  return prev < v && now >= v;
-}
-
-/**
- * Runs one jump (plan `p`): dip, rush up, break out, airborne arc, re-enter, sink, surface and blow. Every pose
- * is a continuous function of the clock. Food eaten in the air is taken, so the food-driven leap still eats.
- */
-function jump(ctx: ActionContext, p: JumpPlan): boolean {
-  const { L, sh, t } = ctx;
-  // Airborne: the height is a half sine over the arc, zero at both ends.
-  const air = clamp((t - p.up) / (p.down - p.up), 0, 1);
-  ctx.pose.height = Math.sin(Math.PI * air);
-  // Dips under at the start and sinks after landing; it rises to the surface in between.
-  ctx.pose.dive =
-    smoothstep(0, 0.3, t) * (1 - smoothstep(p.rush, p.up, t)) +
-    smoothstep(p.down, p.down + 0.4, t) * (1 - smoothstep(p.sink, p.breath, t));
-  ctx.pose.pitch = track(t, p.pitch);
-  const emerge = emergeOf(p, t);
-  const prevEmerge = emergeOf(p, t - ctx.dt);
-  ctx.pose.emerge = emerge;
-  if (p.roll) {
-    // Twists onto its side in the air, then rolls back as it sinks.
-    ctx.pose.roll = 0.9 * smoothstep(0.2, 0.8, air) * (1 - smoothstep(p.down, p.sink, t));
-  }
-  // Dip, rush, airborne, then sink and surface: the speed steers the snout to the food, or ahead of it.
-  const speed = t < p.rush ? 1 : t < p.up ? p.rushSpeed : t < p.down ? 2 : 1.6;
-  steerGoal(ctx, 3, speed);
-  if (t >= p.up && t < p.down) {
-    // Takes what lies under the arc at any point in the air.
-    ctx.eatNear(0.4 * L);
-  }
-  // Splashes and ripples follow the surface line: the snout breaks out and goes back in, the tail clears and goes under.
-  const tail = sh.nodes.length - 2;
-  if (reachedEmerge(prevEmerge, emerge, 0.05)) ctx.emit("splash", sh.nodes[0], sh.nodes[1]);
-  if (reachedEmerge(prevEmerge, emerge, 0.95))
-    ctx.emit("ripple", sh.nodes[tail], sh.nodes[tail + 1], 0.5 * L);
-  if (reachedEmerge(prevEmerge, emerge, 1.05)) ctx.emit("splash", sh.nodes[0], sh.nodes[1]);
-  if (reachedEmerge(prevEmerge, emerge, 1.95))
-    ctx.emit("splash", sh.nodes[tail], sh.nodes[tail + 1]);
-  if (p.roll && reachedEmerge(prevEmerge, emerge, 1.5)) {
-    // The crash: a big splash where the mid-spine comes down.
-    // The mid-spine node: half the coordinates in (the spine has an even count of x and y).
-    const mid = sh.nodes.length >> 1;
-    ctx.emit("splash", sh.nodes[mid], sh.nodes[mid + 1], 1.6 * L);
-  }
-  // Takes a breath after the jump, at the blowhole (spine node 2, as blowAndFluke).
-  if (crossed(ctx, p.breath)) ctx.emit("blow", sh.nodes[4], sh.nodes[5], L);
-  return t >= p.seconds;
-}
-
-export const ACTIONS: Record<ActionId, ActionDef> = {
-  approachAndBite: {
-    engageRange: () => 0,
-    seconds: 3,
-    step(ctx) {
-      if (!ctx.target) return true;
-      const bite = biteRange(ctx.L);
-      if (ctx.dist <= bite) {
-        ctx.eatNear(bite);
-        return;
-      }
-      // Rushes at the food, then slows to the bite speed inside 1.2 body lengths.
-      const rush = ctx.sh.species === "koi" ? 1.7 : 2.2;
-      steerAt(ctx, ctx.dist > 1.2 * ctx.L ? rush : 1.2);
-    },
-  },
-  surfaceSlurp: {
-    // Engages three lengths out, so the koi slows and opens its mouth over the pellets before the first bite.
-    engageRange: (L) => 3 * L,
-    seconds: 9,
-    step(ctx) {
-      if (!ctx.target) return true;
-      const { L, dist, sh } = ctx;
-      // Mouth open as it nears the pellets, closing on each bite.
-      // The mouth opens across the last 0.4·L of the approach, rather than in one step at 1.2·L.
-      ctx.pose.gape = smoothstep(1.6 * L, 1.2 * L, dist);
-      // A koi circles the pellets at about 0.22·L in radius, too wide to bite on the way past, so the slurp reaches
-      // wider than a bite.
-      const bite = L * 0.2 + 10;
-      if (dist <= bite) {
-        // Each bite breaks the surface.
-        if (ctx.eatNear(bite) > 0) ctx.emit("ripple", sh.nodes[0], sh.nodes[1], L);
-        return;
-      }
-      // Koi glide in, easing off over the last body length and slowing right down over the pellets.
-      const far = sh.species === "koi" ? 1.7 : 1.6;
-      const speed = 0.6 + (far - 0.6) * clamp((dist - 0.3 * L) / (0.9 * L), 0, 1);
-      steerAt(ctx, speed);
-    },
-  },
-  // Great white: circles its prey at arm's length, sizing it up, then turns in and strikes.
-  circleThenLunge: {
-    engageRange: (L) => 1.6 * L,
-    seconds: 6,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      const { L, dist, sh, t } = ctx;
-      if (t < 2.6) {
-        // Orbit at 0.7·L: tangent to the bearing from the prey, pulled back toward that radius.
-        const rx = (sh.nodes[0] - m.x) / (dist || 1);
-        const ry = (sh.nodes[1] - m.y) / (dist || 1);
-        const pull = clamp((0.7 * L - dist) / L, -1, 1);
-        const tx = (-ry * sh.orbitDir + rx * pull) * L;
-        const ty = (rx * sh.orbitDir + ry * pull) * L;
-        aimAt(ctx, sh.nodes[0] + tx, sh.nodes[1] + ty, 3, 1.5);
-        return;
-      }
-      // Strike: straight at the prey, mouth opening as it closes in. The bite runs until the food is gone.
-      aimAt(ctx, m.x, m.y, 5, 2.6);
-      // The mouth comes open over the first 0.4 s of the strike, rather than stepping from closed to open.
-      ctx.pose.gape = clamp(1 - dist / (0.8 * L), 0, 1) * smoothstep(2.6, 3.0, t);
-      ctx.eatNear(strikeRange(L));
-    },
-  },
-  // Great white and mako: rockets up from below, clears the surface, and falls back with a splash.
-  breach: {
-    engageRange: (L) => 0.8 * L,
-    seconds: 3,
-    requires(ctx) {
-      // The whole leap has to fit on screen, so the target stays at least half a length from each edge.
-      const m = ctx.target;
-      const edge = 0.5 * ctx.L;
-      return (
-        m !== null && m.x > edge && m.x < ctx.width - edge && m.y > edge && m.y < ctx.height - edge
-      );
-    },
-    step(ctx) {
-      // Once the food is eaten the target is null; the breach still lands.
-      const m = ctx.target;
-      const { L, sh, t } = ctx;
-      // The poses blend across the phases, so none of them steps at 0.8 s or 1.9 s. The nose tips up as it runs in,
-      // the body lifts clear of the water with the mouth open, and both ease back down as it falls.
-      const lift = smoothstep(0.5, 1.1, t) * (1 - smoothstep(1.9, 2.4, t));
-      ctx.pose.height = lift;
-      ctx.pose.gape = 0.8 * lift;
-      ctx.pose.pitch = (0.5 + 0.3 * smoothstep(0.7, 1.0, t)) * (1 - smoothstep(1.9, 2.6, t));
-      if (t < 0.8) {
-        // Run up from below.
-        if (m) aimAt(ctx, m.x, m.y, 3, 2.2);
-        return;
-      }
-      if (t < 1.9) {
-        // Airborne: it takes what lies under the arc.
-        if (m) aimAt(ctx, m.x, m.y, 3, 2.2);
-        // Takes what lies under the arc at any point in the air.
-        ctx.eatNear(L * 0.5);
-        return;
-      }
-      // Falls back: one splash where the snout lands.
-      if (crossed(ctx, 1.9)) ctx.emit("splash", sh.nodes[0], sh.nodes[1]);
-      return t >= 2.6;
-    },
-  },
-  // Scalloped hammerhead: sweeps its wide head across the food like a metal detector, then bites.
-  scanSweep: {
-    engageRange: (L) => 1.2 * L,
-    seconds: 7,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      if (ctx.t < 1.8) {
-        aimSweep(ctx, 1);
-        return;
-      }
-      aimAt(ctx, m.x, m.y, 3, 1.6);
-      if (ctx.dist <= strikeRange(ctx.L)) ctx.eatNear(strikeRange(ctx.L));
-    },
-  },
-  // Great hammerhead: sweeps, then drives its head down onto the food and pins it before taking it.
-  scanAndPin: {
-    engageRange: (L) => 1.2 * L,
-    seconds: 7,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      const { L, dist, t } = ctx;
-      if (t < 1.2) {
-        aimSweep(ctx, 1);
-        return;
-      }
-      if (t < 4.6) {
-        // Close in; once the head is on the food it slows, pitches down and draws in the loose pieces.
-        const pin = dist <= 0.15 * L;
-        aimAt(ctx, m.x, m.y, 3, pin ? 0.15 : 2.2);
-        // The head pitches down over the last 0.15·L of the approach, not in one step at the pin.
-        ctx.pose.pitch = -0.35 * smoothstep(0.3 * L, 0.15 * L, dist);
-        if (pin) ctx.pullMorsels(0.3 * L, 40);
-        return;
-      }
-      ctx.eatNear(0.35 * L);
-      return true;
-    },
-  },
-  // Tiger shark: unhurried and indiscriminate, it takes every scrap in the water, one after another.
-  gulpAll: {
-    engageRange: () => 0,
-    seconds: 6,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      const { L, dist } = ctx;
-      ctx.pose.gape = 0.6 * smoothstep(0.7 * L, 0.5 * L, dist);
-      aimAt(ctx, m.x, m.y, 3, 1.1);
-      ctx.eatNear(biteRange(L));
-    },
-  },
-  // Mako: the fastest shark in the sea. Bursts at full tilt and turns sharply to snatch its prey.
-  burst: {
-    engageRange: (L) => 2 * L,
-    seconds: 6,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      // Full burst until the food is 0.6·L off, then eases down to 1.6× so its turn can bring the snout onto the food.
-      const near = clamp((ctx.dist - 0.3 * ctx.L) / (0.3 * ctx.L), 0, 1);
-      aimAt(ctx, m.x, m.y, 6, 1.6 + 1.6 * near);
-      ctx.aim.closing = 1;
-      ctx.eatNear(strikeRange(ctx.L));
-    },
-  },
-  // Thresher: swims past a bait ball and whips its long upper tail lobe through it, stunning fish in the arc
-  // (Oliver et al. 2013). Then it doubles back and eats what is left.
-  tailWhip: {
-    engageRange: (L) => 1.4 * L,
-    seconds: 12,
-    requires(ctx) {
-      const m = ctx.target;
-      return m !== null && ctx.schoolNear(m.x, m.y, 1.5 * ctx.L, school) >= 4;
-    },
-    // Engages on the distance to the school's centre; with no school in reach, to the food.
-    engageDistance(ctx) {
-      const m = ctx.target;
-      if (!m || ctx.schoolNear(m.x, m.y, 1.5 * ctx.L, school) === 0) return ctx.dist;
-      return Math.hypot(school.x - ctx.sh.nodes[0], school.y - ctx.sh.nodes[1]);
-    },
-    step(ctx) {
-      const m = ctx.target;
-      const { L, sh, time } = ctx;
-      const hx = sh.nodes[0];
-      const hy = sh.nodes[1];
-      // Before the whip there is nothing to aim at; after it, the food can be gone and the snout is the aim.
-      if (!m && sh.actionMark < 0) return true;
-      const mx = m ? m.x : hx;
-      const my = m ? m.y : hy;
-      const n = m ? ctx.schoolNear(m.x, m.y, 0.6 * L, school) : 0;
-      const cx = n > 0 ? school.x : mx;
-      const cy = n > 0 ? school.y : my;
-      // The tail tip is the last spine node.
-      const tail = sh.nodes.length - 2;
-      // Aim point 0.3·L to the side of the school's centre and just beyond it, so the snout swims past.
-      const cd = Math.hypot(cx - hx, cy - hy) || 1;
-      const ux = (cx - hx) / cd;
-      const uy = (cy - hy) / cd;
-      const side = 0.3 * L * sh.orbitDir;
-      const px = cx + ux * 0.3 * L - uy * side;
-      const py = cy + uy * 0.3 * L + ux * side;
-      if (sh.actionMark < 0) {
-        // Still swimming in: whip once the snout has passed the school's centre.
-        aimAt(ctx, px, py, 3, 1.4);
-        const past = Math.cos(sh.heading) * (cx - hx) + Math.sin(sh.heading) * (cy - hy) < 0;
-        if (!past) return;
-        sh.actionMark = time;
-      }
-      const u = time - sh.actionMark;
-      // Overdriven ×1.2 (target capped at ±1.2): the eased pose lags the 0.5 s swing, so the tail reaches ~0.88 of its peak.
-      ctx.pose.slap = whipSlap(u, 0.5, 1.2);
-      if (u < 0.5) {
-        // The pectorals snap in and the shark stalls its approach as the tail comes over (Oliver et al. 2013).
-        aimAt(ctx, px, py, 3, 0.5);
-        // At the top of the swing the tail tip stuns the fish in its arc.
-        const peak = (0.5 * (Math.PI / 2)) / WHIP_SWING;
-        if (u >= peak && u - ctx.dt < peak) {
-          const tx = sh.nodes[tail];
-          const ty = sh.nodes[tail + 1];
-          // Oliver et al. 2013: the slap stuns or kills; dazed sardines stay put long enough for the turn back.
-          ctx.stunFish(tx, ty, 0.45 * L, 8);
-          ctx.emit("splash", tx, ty);
-        }
-        return;
-      }
-      // Circles back for the dazed fish it left behind if there are any, otherwise for the food.
-      if (ctx.schoolNear(hx, hy, 2.5 * L, school, true) > 0) {
-        aimAt(ctx, school.x, school.y, 4, 1.8);
-      } else {
-        aimAt(ctx, mx, my, 3, 1.2);
-      }
-      ctx.eatNear(biteRange(L));
-    },
-  },
-  // Nurse shark: nearly motionless, it opens its mouth and hoovers the food in with suction.
-  suction: {
-    engageRange: (L) => 1.0 * L,
-    seconds: 8,
-    approachSpeed: 1,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      const { L, sh, t } = ctx;
-      // Brakes hard while still moving faster than 0.35 cruise (cruise as world.ts sets it), then holds at 0.2.
-      const cruise = 30 + L * 0.04;
-      aimAt(ctx, m.x, m.y, 2, sh.speed > 0.35 * cruise ? 0.1 : 0.2);
-      ctx.pullMorsels(0.9 * L, 60);
-      // The gape pulses in from closed, so it does not open with a step at the start.
-      ctx.pose.gape = (0.5 + 0.5 * Math.sin(t * 8)) * smoothstep(0, 0.5, t);
-      ctx.eatNear(L * 0.08 + 8);
-    },
-  },
-  // Zebra shark: a slow bottom feeder that noses along and takes one morsel at a time, pausing after each.
-  slowPeck: {
-    engageRange: () => 0,
-    seconds: 6,
-    step(ctx) {
-      const m = ctx.target;
-      if (!m) return true;
-      const { L, dist, sh, time } = ctx;
-      // actionMark is the time the next bite is allowed (-1 before the first bite).
-      const resting = sh.actionMark >= 0 && time < sh.actionMark;
-      aimAt(ctx, m.x, m.y, 3, resting ? 0.3 : 0.8);
-      if (!resting && dist <= biteRange(L) && ctx.eatNear(biteRange(L)) > 0) {
-        sh.actionMark = time + 0.6;
-      }
-    },
-  },
-  // Bottlenose dolphin: leaps clear of the water, around food or on its own (a show). See jump().
-  leap: {
-    engageRange: (L) => 0.8 * L,
-    seconds: LEAP_JUMP.seconds,
-    requires(ctx) {
-      // The leap has to stay on screen, so the target keeps at least 0.8·L from each edge (the leap runs further than it did).
-      const m = ctx.target;
-      const edge = 0.8 * ctx.L;
-      return (
-        m !== null && m.x > edge && m.x < ctx.width - edge && m.y > edge && m.y < ctx.height - edge
-      );
-    },
-    step(ctx) {
-      const done = jump(ctx, LEAP_JUMP);
-      // A leap with no food can porpoise: an even-parity one chains into another leap a second after it lands.
-      if (done && ctx.sh.foodGroup < 0 && (ctx.sh.id + Math.floor(ctx.sh.actionStart)) % 2 === 0) {
-        ctx.sh.chain = true;
-        ctx.sh.nextShow = ctx.time + 1;
-      }
-      return done;
-    },
-  },
-  // Orca and humpback: breaches with a roll, landing on its side or back with a huge splash. Only ever a show.
-  breachRoll: {
-    engageRange: () => 0,
-    seconds: BREACH_ROLL_JUMP.seconds,
-    step: (ctx) => jump(ctx, BREACH_ROLL_JUMP),
-  },
-  // Humpback sounding dive: raises its flukes clear of the water and slips under them. Only ever a show.
-  soundDive: {
-    engageRange: () => 0,
-    seconds: 5,
-    step(ctx) {
-      const { sh, t } = ctx;
-      // A small lift as the flukes come up, eased back to rest by the time they rise (no step at t = 1).
-      ctx.pose.height = 0.2 * (1 - smoothstep(0.8, 1.2, t));
-      // Pitches the head down while the flukes are up, then levels off as the fluke swings clear.
-      ctx.pose.pitch = -0.8 * smoothstep(0.7, 1.3, t) * (1 - smoothstep(3.6, 4.4, t));
-      ctx.pose.dive = smoothstep(1, 3.5, t);
-      // The flukes rise and slip under: a slap that lifts and falls back to 0 at 1 s and at 4 s.
-      ctx.pose.slap = 0.6 * Math.sin(Math.PI * clamp((t - 1) / 3, 0, 1));
-      steerGoal(ctx, 3, 0.6);
-      // The fluke print: a bubble at the tail as the flukes go under.
-      if (crossed(ctx, 3.6)) {
-        const tail = sh.nodes.length - 2;
-        ctx.emit("bubble", sh.nodes[tail], sh.nodes[tail + 1]);
-      }
-      return t >= 4.5;
-    },
-  },
-  // Bottlenose dolphin: swims into a bait ball and slaps its fluke through it, stunning the fish, then mops them up.
-  fishWhack: {
-    engageRange: (L) => 1.2 * L,
-    seconds: 5,
-    requires(ctx) {
-      const m = ctx.target;
-      return m !== null && ctx.schoolNear(m.x, m.y, 1.5 * ctx.L, school) >= 3;
-    },
-    step(ctx) {
-      const m = ctx.target;
-      const { L, sh, time } = ctx;
-      const hx = sh.nodes[0];
-      const hy = sh.nodes[1];
-      // Before the whip there is nothing to aim at; after it, the food can be gone and the snout is the aim.
-      if (!m && sh.actionMark < 0) return true;
-      const mx = m ? m.x : hx;
-      const my = m ? m.y : hy;
-      const n = m ? ctx.schoolNear(m.x, m.y, 1.5 * L, school) : 0;
-      const cx = n > 0 ? school.x : mx;
-      const cy = n > 0 ? school.y : my;
-      if (sh.actionMark < 0) {
-        // Approach the school's centre, and whip once the snout is within 0.5·L of it.
-        aimAt(ctx, cx, cy, 3, 1.6);
-        if (Math.hypot(cx - hx, cy - hy) > 0.5 * L) return;
-        sh.actionMark = time;
-      }
-      const u = time - sh.actionMark;
-      ctx.pose.slap = whipSlap(u, 0.4, 1.5);
-      if (u < 0.4) {
-        // The body stalls as the fluke comes over, then slaps sideways through the school (same swing as the thresher).
-        aimAt(ctx, cx, cy, 3, 0.5);
-        // At the top of the swing the fluke tip stuns the fish in its arc, and a splash marks where they are flung.
-        const peak = (0.4 * (Math.PI / 2)) / WHIP_SWING;
-        if (u >= peak && u - ctx.dt < peak) {
-          const tail = sh.nodes.length - 2;
-          const tx = sh.nodes[tail];
-          const ty = sh.nodes[tail + 1];
-          // The tail's outward direction, so the splash lands 0.6·L past the tip.
-          const ex = tx - sh.nodes[tail - 2];
-          const ey = ty - sh.nodes[tail - 1];
-          const ed = Math.hypot(ex, ey) || 1;
-          ctx.stunFish(tx, ty, 0.35 * L, 6);
-          ctx.emit("splash", tx + (ex / ed) * 0.6 * L, ty + (ey / ed) * 0.6 * L);
-        }
-        return;
-      }
-      // Turns back for the stunned fish if there are any, otherwise for the food, and takes what it passes.
-      if (ctx.schoolNear(hx, hy, 2.5 * L, school, true) > 0) {
-        aimAt(ctx, school.x, school.y, 3, 1.6);
-      } else {
-        aimAt(ctx, mx, my, 3, 1.6);
-      }
-      ctx.eatNear(biteRange(L));
-    },
-  },
-  // Orca carousel: the pod circles a bait ball, flashing white bellies and blowing bubbles to tighten it. Then each
-  // orca in turn slaps the ball with its fluke, stunning fish, and eats the stunned ones one at a time.
-  carousel: {
-    engageRange: (L) => 2 * L,
-    seconds: 10,
-    requires(ctx) {
-      const m = ctx.target;
-      return (
-        m !== null &&
-        ctx.packNear(3 * ctx.L) >= 3 &&
-        ctx.schoolNear(m.x, m.y, 2 * ctx.L, herdAt) >= 6
-      );
-    },
-    engageDistance: (ctx) => schoolDistance(ctx, 2 * ctx.L),
-    step(ctx) {
-      const { L, sh, t, time, dt } = ctx;
-      const hx = sh.nodes[0];
-      const hy = sh.nodes[1];
-      const n = locateSchool(ctx, 2 * L);
-      // Each orca strikes at its own turn, so it needs bait to strike at. With none left before then, the carousel ends.
-      const strikeAt = 3.5 + (sh.id % 4) * 1.2;
-      if (n === 0 && t < strikeAt) return true;
-      const cx = herdAt.x;
-      const cy = herdAt.y;
-      ctx.herd(cx, cy, 1.6 * L, 60, 40);
-      // A bubble at the snout every 0.35 s, staggered by id: the bubbles tighten the ball.
-      const beat = (time + sh.id * 0.05) / 0.35;
-      if (Math.floor(beat) !== Math.floor(beat - dt / 0.35)) ctx.emit("bubble", hx, hy);
-      if (sh.actionMark < 0 && t >= strikeAt) {
-        // Cuts in toward the centre; the whip starts once the snout is within 0.6·L of it, or after 1.5 s of
-        // cutting in (a big orca turns wide and may never get closer).
-        aimAt(ctx, cx, cy, 3, 1.6);
-        if (Math.hypot(cx - hx, cy - hy) > 0.6 * L && t < strikeAt + 1.5) return;
-        sh.actionMark = time;
-      }
-      if (sh.actionMark >= 0) {
-        const u = time - sh.actionMark;
-        ctx.pose.slap = whipSlap(u, 0.5, 1.5);
-        if (u < 0.5) {
-          // The pectorals snap in and the orca stalls as the fluke comes over (the same swing as the thresher's).
-          aimAt(ctx, cx, cy, 3, 0.5);
-          // At the top of the swing the fluke comes down on the ball: the fish in it are stunned, and the splash
-          // rises at the fluke tip. The stun is centred on the ball, not the tip, because the turn that brings the
-          // fluke over the ball is too wide to model on this spine.
-          const peak = (0.5 * (Math.PI / 2)) / WHIP_SWING;
-          if (u >= peak && u - dt < peak) {
-            const tail = sh.nodes.length - 2;
-            ctx.stunFish(cx, cy, 0.5 * L, 6);
-            ctx.emit("splash", sh.nodes[tail], sh.nodes[tail + 1]);
-          }
-          return;
-        }
-        if (u < 3) {
-          // Turns toward the stunned fish (the centre stays put when none are stunned) and takes them one at a time.
-          ctx.schoolNear(cx, cy, 2 * L, herdAt, true);
-          aimAt(ctx, herdAt.x, herdAt.y, 3, 1.2);
-          ctx.eatFishNear(L * 0.15 + 10);
-          return;
-        }
-      }
-      // Circling: the whole pod goes the same way round the ball at 0.9·L, the belly rolling to flash.
-      const dir = sh.foodGroup % 2 ? 1 : -1;
-      const a = Math.atan2(hy - cy, hx - cx) + dir * 0.5;
-      aimAt(ctx, cx + Math.cos(a) * 0.9 * L, cy + Math.sin(a) * 0.9 * L, 3, 1.2);
-      // A slow roll onto one side about every 7 s, then back: a gentle belly flash, never a flip. The flash is a
-      // narrow lobe of a slow sine, so each orca rolls on its own beat (sh.id), and the roll eases in and out.
-      const flash = Math.max(0, Math.sin(t * 0.9 + sh.id * 1.7)) ** 3;
-      ctx.pose.roll = 0.75 * smoothstep(0, 1, flash);
-    },
-  },
-  // Orca spyhop: rises vertically with its head out of the water to look around, then drops back and bites.
-  spyhop: {
-    engageRange: (L) => 1.0 * L,
-    seconds: 3.4,
-    step(ctx) {
-      const { L, t } = ctx;
-      // The head rises over the first second and sinks back over the last 0.6 s of the hold, so the pitch never steps.
-      const up = smoothstep(0.4, 1.0, t) * (1 - smoothstep(2.4, 3.0, t));
-      ctx.pose.pitch = up;
-      ctx.pose.height = 0.7 * up;
-      if (t < 0.4) {
-        steerGoal(ctx, 3, 0.15);
-        return;
-      }
-      if (t < 2.4) {
-        // Head raised: the snout lifts clear of the water while the body stays in view.
-        steerGoal(ctx, 3, 0.15);
-        return;
-      }
-      const bite = biteRange(L);
-      if (ctx.dist <= bite) ctx.eatNear(bite);
-      else steerAt(ctx, 1.6);
-    },
-  },
-  // Humpback bubble net: circles beneath the bait, blowing a spiral wall of bubbles that tightens, then lunges up
-  // through the middle with its mouth open. Not every feed uses the net, so it is one of several moves.
-  bubbleNet: {
-    engageRange: (L) => 1.1 * L,
-    seconds: 10,
-    requires(ctx) {
-      const m = ctx.target;
-      return m !== null && ctx.schoolNear(m.x, m.y, 2 * ctx.L, herdAt) >= 6;
-    },
-    engageDistance: (ctx) => schoolDistance(ctx, 2 * ctx.L),
-    step(ctx) {
-      const { L, sh, t, time } = ctx;
-      const hx = sh.nodes[0];
-      const hy = sh.nodes[1];
-      const n = locateSchool(ctx, 2 * L);
-      // Before the lunge there must be bait for the net to hold; with none left the action ends.
-      if (n === 0 && t < 6) return true;
-      const cx = herdAt.x;
-      const cy = herdAt.y;
-      // The poses blend between the net and the lunge: it sinks as it spirals, then rises through the middle at 6 s
-      // and eases back down as it falls away, so no pose steps at either edge.
-      const rise = smoothstep(6, 6.8, t) * (1 - smoothstep(8.6, 9.2, t));
-      ctx.pose.height = rise;
-      ctx.pose.pitch = 0.6 * rise;
-      ctx.pose.gape = rise;
-      ctx.pose.dive = 0.6 * smoothstep(0, 1, t) * (1 - rise);
-      if (t < 6) {
-        // Spiral below the bait: the radius shrinks linearly from 1.0·L to 0.45·L over 6 s, in the creature's own
-        // orbit direction, with a radial pull toward that radius. A humpback turns wide, so it swims the net fast
-        // (2.4× cruise); slower, it can't hold the spiral and the lunge starts too far out to reach the bait.
-        const r = (1.0 - 0.55 * (t / 6)) * L;
-        const dc = Math.hypot(hx - cx, hy - cy) || 1;
-        const rx = (hx - cx) / dc;
-        const ry = (hy - cy) / dc;
-        const pull = clamp(((r - dc) / L) * 2, -1.5, 1.5);
-        const tx = (-ry * sh.orbitDir + rx * pull) * L;
-        const ty = (rx * sh.orbitDir + ry * pull) * L;
-        aimAt(ctx, hx + tx, hy + ty, 3, 2.4);
-        // The net bunches the bait inside the spiral as it tightens.
-        ctx.herd(cx, cy, r, 70, 15);
-        // A bubble every 0.12 s where the snout is. The bubbles stay where they are released, so they form the wall.
-        if (time >= sh.actionMark) {
-          ctx.emit("bubble", hx, hy);
-          sh.actionMark = time + 0.12;
-        }
-        return;
-      }
-      if (t < 8.6) {
-        // Lunges up through the middle of the net, mouth open, taking what is in it on the way through.
-        aimAt(ctx, cx, cy, 4, 3);
-        // The net still holds the bait while the open mouth comes through, and the inrush of water draws the
-        // nearest fish into it.
-        ctx.herd(cx, cy, 0.6 * L, 70, 0);
-        if (sh.gape > 0.6) {
-          ctx.herd(hx, hy, 0.8 * L, 140, 0);
-          ctx.eatFishNear(0.5 * L);
-          ctx.eatNear(0.5 * L);
-        }
-        if (crossed(ctx, 8.4)) ctx.emit("splash", hx, hy);
-        return;
-      }
-      // Everything eases back to rest while it falls away.
-      return t >= 9.4;
-    },
-  },
-  // Humpback lunge feeding: a fast charge at the bait with the throat pleats ballooning as the mouth opens.
-  lunge: {
-    engageRange: (L) => 1.0 * L,
-    seconds: 4,
-    step(ctx) {
-      const { L, dist } = ctx;
-      steerGoal(ctx, 3, 1.8);
-      // The throat opens as the bait comes within a length, not in one step at L.
-      ctx.pose.gape = smoothstep(1.1 * L, 0.9 * L, dist);
-      if (ctx.pose.gape > 0.6) {
-        ctx.eatFishNear(0.45 * L);
-        ctx.eatNear(0.45 * L);
-      }
-    },
-  },
-  // Humpback blow and fluke: blows at the surface, then raises its flukes and dives, and comes back up for bait.
-  blowAndFluke: {
-    engageRange: (L) => 1.4 * L,
-    seconds: 6,
-    step(ctx) {
-      const { L, sh, t, time } = ctx;
-      // Once, on engagement: the blowhole is spine node 2 (world.ts BLOWHOLE_NODE).
-      if (sh.actionMark < 0) {
-        sh.actionMark = time;
-        ctx.emit("blow", sh.nodes[4], sh.nodes[5], L);
-      }
-      // The head drops and the body sinks over 0.6 s from t = 1.6, and eases back up as it comes under at 3.6 s.
-      const sink = smoothstep(1.6, 2.2, t) * (1 - smoothstep(3.6, 4.2, t));
-      ctx.pose.pitch = -0.7 * sink;
-      ctx.pose.dive = sink;
-      if (t >= 3.6) {
-        // Back under: approaches and bites for the rest of the time.
-        if (ctx.dist <= biteRange(L)) ctx.eatNear(biteRange(L));
-        else steerAt(ctx, 1.6);
-        return;
-      }
-      steerGoal(ctx, 3, 0.6);
-      // The blow height eases in after the blow, and out as the body sinks.
-      ctx.pose.height = 0.3 * smoothstep(0.3, 0.9, t) * (1 - smoothstep(1.6, 2.2, t));
-      if (t < 1.6) return;
-      // Flukes up: the fluke lifts once as the body sinks, and swings back to rest by 3.6 s.
-      if (t < 3.6) ctx.pose.slap = 0.4 * Math.sin((Math.PI * (t - 1.6)) / 2);
-    },
-  },
-};
 ```
 
 ## packages/core/src/components/ascii-ocean/world.ts
 ```ts
 // Ported from https://github.com/stackedlol/ascii-sharks (used with the author's permission).
 /**
- * Artificial-life sim for the hero: tiny fish schools and the sharks that hunt them.
+ * Artificial-life sim for the hero: bait fish schools and the animals that swim among them.
  *
  * Fish: Reynolds boids (separation / alignment / cohesion) in Couzin-style
  * zones, with a blind spot behind each fish. Alarm spreads from fish to fish
  * through the school (a "wave of agitation"), so a whole school bolts even
- * when only its edge can see the shark. Fleeing fish break sideways around the
- * shark's path, which gives the fountain effect seen in real bait balls.
+ * when only its edge can see a predator. Fleeing fish break sideways around
+ * the predator's path, which gives the fountain effect seen in real bait balls.
+ * A fish that swims off the canvas is replaced by a new school from an edge.
  *
- * Sharks: Reynolds steering (wander + pursuit + separation) on a
- * follow-the-leader spine. Hunger builds over time and drops when they eat.
- * They prefer fish in sparse spots, since dense schools confuse predators,
- * so stragglers get picked off. Eaten fish come back later as new schools
- * swimming in from the edges, which keeps the population steady.
+ * Animals: Reynolds steering (wander + pod cohesion + patrol) on a
+ * follow-the-leader spine. They only swim; nothing hunts or feeds.
  */
 import { angleDiff, clamp, createRng, current, rand, randInt, type Rng, TAU } from "./math";
-import { type ActionId, behaviourOf, type Behaviour } from "./creatures/behaviour";
-import {
-  ACTIONS,
-  approachSteer,
-  engaged,
-  type Aim,
-  type ActionContext,
-  type PoseTargets,
-} from "./creatures/actions";
-import { CREATURE_IDS, CREATURES } from "./creatures";
+import { behaviourOf } from "./creatures/behaviour";
+import { CREATURES } from "./creatures";
 import { rosterFromSharks, type RosterEntry } from "./creatures/roster";
 import type { CreatureSpecies, OceanScene } from "./creatures/types";
 import { pickSpecies, SPECIES } from "./species";
 
 export const SPINE_NODES = 20;
-/** The spine node nearest 12% of the length from the snout: where a cetacean's blowhole sits. */
-const BLOWHOLE_NODE = Math.round(0.12 * (SPINE_NODES - 1));
 
-/** Most food groups in the water at once; a seventh offering is only a ripple. */
-const FOOD_GROUPS = 6;
-/** Morsels in the pool, shared by all food groups. */
-const MORSELS = 48;
-/**
- * How fast each pose eases toward its target: p += (target − p) · min(1, dt · rate). Slow enough that no pose
- * snaps; a body rolls, pitches and lifts over a fraction of a second, and a mouth can still open quickly.
- */
-const POSE_RATE = {
-  height: 3,
-  pitch: 2.2,
-  roll: 1.6,
-  gape: 5,
-  slap: 4,
-  dive: 5,
-} as const;
+/** How fast the koi pond bob eases toward its target: d += (target − d) · min(1, dt · rate). */
+const DIVE_RATE = 5;
 
 export type SharkKind =
   "classic" | "hammerhead" | "zebra" | "tiger" | "greathammer" | "mako" | "thresher" | "nurse";
@@ -5568,7 +4470,7 @@ export type WorldOptions = {
   baitFish?: number | "auto" | false;
   /** Exact fish count; overrides baitFish. */
   fishCount?: number;
-  /** Ocean has bait fish that nibble food; pond food is pellets that dissolve. Default "ocean". */
+  /** Ocean has bait fish; pond has koi and no fish by default. Default "ocean". */
   scene?: OceanScene;
 };
 
@@ -5590,35 +4492,7 @@ export interface Fish {
   depth: number;
   /** Rotation sense shared by a school when it mills into a bait ball. */
   millDir: 1 | -1;
-  /** Seconds left stunned: drifts, can't steer, and is an easy meal. */
-  stun: number;
 }
-
-/** A single piece of food in the water: a bait scrap in the ocean, a pellet in a pond. */
-export interface Morsel {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  alive: boolean;
-  age: number;
-  life: number;
-  /** 0 fresh → 1 sunk away (ocean) or dissolved (pond). */
-  fade: number;
-  group: number;
-}
-
-/** One offering: the morsels dropped by a single click. */
-export interface FoodGroup {
-  id: number;
-  x: number;
-  y: number;
-  alive: boolean;
-  born: number;
-}
-
-/** A creature's food state: cruise, or answering a group of food. */
-export type CreatureState = "cruise" | "notice" | "approach" | "action" | "recover";
 
 export interface Creature {
   id: number;
@@ -5632,70 +4506,30 @@ export interface Creature {
   phase: number;
   /** Smoothed angular velocity (rad/s); the body banks its fins into turns. */
   turn: number;
-  hunger: number;
   wander: number;
   orbitDir: 1 | -1;
   orbitRadius: number;
-  target: Fish | null;
-  retargetAt: number;
   /** 0 far / dim → 1 near / bright. */
   depth: number;
   /** Named coat from the species' `coats`, for species that have them. */
   coat?: string;
-  /** Food state machine; see stepForaging(). */
-  state: CreatureState;
-  stateUntil: number;
-  /** Food group being answered, or -1 for none. */
-  foodGroup: number;
-  actionId: ActionId | null;
-  actionStart: number;
-  /** Clock mark an action sets for its own phases (a whip's start, a slow peck's next bite); -1 until set. Reset on engagement. */
-  actionMark: number;
-  cooldownUntil: number;
-  /** Body poses, eased toward the action's targets. All 0 at rest; see the renderer's pose block. */
-  height: number;
-  pitch: number;
-  roll: number;
-  gape: number;
-  slap: number;
-  /** Sinking under the surface, 0–1 (cetaceans after a breath). */
+  /** Sinking under the surface, 0–1: pond koi bob between the surface and mid-water. 0 for everything else. */
   dive: number;
-  /**
-   * 0 under water, 1 fully out, 2 back under; the surface line runs from the snout (s = 0) to the tail as it rises
-   * and again as it falls. Set by a jump (see actions.ts); 0 for everything else.
-   */
-  emerge: number;
-  /** Cetaceans: when the next breath is due, and until when it lasts (Infinity for the rest). */
-  nextBreath: number;
-  breathUntil: number;
-  /** Breath series (orca, humpback): blows still to take in this series, and when the dive after it ends. */
-  blowsLeft: number;
-  diveUntil: number;
-  /** When the next show (Behaviour.shows) is due to be tried. */
-  nextShow: number;
-  /** Porpoising: the next show is a leap. Set by a food-less leap that chains; cleared when used. */
-  chain: boolean;
 }
-
-/** Mutable view of ActionContext: the world fills one shared object each step. */
-type MutableContext = { -readonly [K in keyof ActionContext]: ActionContext[K] };
 
 export interface WorldEvent {
-  kind: "eat" | "splash" | "ripple" | "blow" | "bubble";
+  kind: "splash";
   x: number;
   y: number;
-  /** Body length in px of the animal behind the event, when there is one. */
-  size?: number;
 }
-
-/** Most herd zones one step can hold: a pod of four orcas or humpbacks each adds one. */
-const HERD_ZONES = 4;
 
 const FISH_SEPARATION_K = 420;
 const FISH_ALIGN_K = 1.4;
 const FISH_COHESION_K = 1;
 const FISH_FLEE_K = 1100;
 const BLIND_COS = -0.6; // ~127° either side of the heading is visible
+/** Fish beyond this many px outside the canvas have left it and are replaced by respawn(). */
+const FISH_EXIT = 60;
 
 /** Inward steer from an edge `depth` px inside it: 0 at half a length in, 2 at the edge and beyond. */
 function edgePush(depth: number, L: number) {
@@ -5703,29 +4537,11 @@ function edgePush(depth: number, L: number) {
   return 2 * clamp((margin - depth) / margin, 0, 1);
 }
 
-/** Blows in a series, from the id and the clock: a whole number from blows[0] to blows[1]. */
-function seriesBlows(id: number, [lo, hi]: [number, number], time: number) {
-  return lo + Math.floor(((id * 4.9 + time * 0.17) % 1) * (hi - lo + 1));
-}
-
-/** Seconds between two blows of a series, from the id and the clock. */
-function seriesGap(id: number, [lo, hi]: [number, number], time: number) {
-  return lo + ((id * 3.7 + time * 0.31) % 1) * (hi - lo);
-}
-
-/** Seconds a series' dive lasts, from the id and the clock. */
-function seriesDive(id: number, [lo, hi]: [number, number], time: number) {
-  return lo + ((id * 4.1 + time * 0.07) % 1) * (hi - lo);
-}
-
-/** One eased pose step: p → target at rate k, snapped to exactly 0 when at rest there. */
-function easePose(p: number, target: number, k: number) {
-  const v = p + (target - p) * k;
+/** One eased step of the koi pond bob, snapped to exactly 0 when it is back at rest there. */
+function easeDive(d: number, target: number, dt: number) {
+  const v = d + (target - d) * Math.min(1, dt * DIVE_RATE);
   return target === 0 && Math.abs(v) < 1e-3 ? 0 : v;
 }
-
-/** The food-less shows that jump clear of the water. Sharks jump with `breach`, from their action list instead. */
-export const JUMP_SHOWS: ReadonlySet<ActionId> = new Set<ActionId>(["leap", "breachRoll"]);
 
 export class World {
   width = 0;
@@ -5736,9 +4552,6 @@ export class World {
   events: WorldEvent[] = [];
   pointer = { x: 0, y: 0, active: false };
   scene: OceanScene;
-  /** Preallocated food pools: nothing is allocated once the world is built. */
-  morsels: Morsel[];
-  food: FoodGroup[];
 
   /** Fish neighbourhood radius; the spatial hash bucket size matches it. */
   private perception = 60;
@@ -5749,7 +4562,6 @@ export class World {
   private bucketCols = 0;
   private bucketRows = 0;
   private bucketHead = new Int32Array(0);
-  private bucketCount = new Uint16Array(0);
   private bucketNext = new Int32Array(0);
   private lastSpawn = 0;
   private tmp = { x: 0, y: 0 };
@@ -5757,60 +4569,6 @@ export class World {
   private roster: RosterEntry[];
   private fishCount?: number;
   private baitFish: number | "auto" | false;
-  /** Cell size in px, set by resize(); morsels scatter in cells. */
-  private cellW = 0;
-  private cellH = 0;
-  /** True while any morsel is alive; the fish and food steps skip their work otherwise. */
-  private feeding = false;
-  /** Steering a creature gets from its food state this step; w = 0 means none. */
-  private aim: Aim = { dx: 0, dy: 0, w: 0, speed: 0, closing: 0, hunting: false };
-  /** Pose targets the current creature's action writes this step; reset before every step. */
-  private poseTarget: PoseTargets = {
-    height: 0,
-    pitch: 0,
-    roll: 0,
-    gape: 0,
-    slap: 0,
-    dive: 0,
-    emerge: 0,
-  };
-  /**
-   * The one ActionContext every action reads. Filled per creature in stepForaging, so no step allocates.
-   * `sh` is a placeholder until the first creature is stepped; no action runs before that.
-   */
-  private actx: MutableContext = {
-    time: 0,
-    dt: 0,
-    L: 0,
-    sh: null as unknown as Creature,
-    t: 0,
-    target: null,
-    dist: 0,
-    width: 0,
-    height: 0,
-    aim: this.aim,
-    pose: this.poseTarget,
-    eatNear: (radius) => this.eatNear(radius),
-    pullMorsels: (radius, speed) => this.pullMorsels(radius, speed),
-    stunFish: (x, y, radius, seconds) => this.stunFish(x, y, radius, seconds),
-    schoolNear: (x, y, radius, out, stunnedOnly) => this.schoolNear(x, y, radius, out, stunnedOnly),
-    herd: (x, y, radius, inward, swirl) => this.herd(x, y, radius, inward, swirl),
-    eatFishNear: (radius) => this.eatFishNear(radius),
-    packNear: (radius) => this.packNear(radius),
-    emit: (kind, x, y, size) => {
-      this.events.push({ kind, x, y, size });
-    },
-  };
-  /** Scratch for responder selection: creature indices sorted by distance, and their distances. */
-  private order: Int32Array;
-  private dist: Float64Array;
-  /** Scratch: creature indices of this offering's pod responders. */
-  private leads: Int32Array;
-  /** Scratch: responders taken per species this offering. */
-  private taken = new Int32Array(CREATURE_IDS.length);
-  /** Herd zones actions add this step: [x, y, radius, inward, swirl] per zone. stepFish reads and clears them. */
-  private herdZones = new Float64Array(HERD_ZONES * 5);
-  private herdCount = 0;
 
   /**
    * fishCount overrides the area-based population (the sidebar wants a single small school).
@@ -5822,37 +4580,12 @@ export class World {
     this.baitFish = options.baitFish ?? "auto";
     this.rng = options.seed === undefined ? Math.random : createRng(options.seed);
     this.scene = options.scene ?? "ocean";
-    this.morsels = Array.from({ length: MORSELS }, () => ({
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      alive: false,
-      age: 0,
-      life: 0,
-      fade: 0,
-      group: -1,
-    }));
-    this.food = Array.from({ length: FOOD_GROUPS }, (_, id) => ({
-      id,
-      x: 0,
-      y: 0,
-      alive: false,
-      born: 0,
-    }));
-    this.order = new Int32Array(this.roster.length);
-    this.dist = new Float64Array(this.roster.length);
-    this.leads = new Int32Array(this.roster.length);
   }
 
   resize(width: number, height: number, cellW: number, cellH: number) {
     const first = this.width === 0;
     this.width = width;
     this.height = height;
-    this.actx.width = width;
-    this.actx.height = height;
-    this.cellW = cellW;
-    this.cellH = cellH;
     // Spacing is set in grid cells so every fish lands in its own cell.
     this.sepX = SPECIES.map((sp) => sp.spacing[0] * cellW);
     this.sepY = SPECIES.map((sp) => sp.spacing[1] * cellH);
@@ -5884,10 +4617,6 @@ export class World {
       const orbitRadius = minSide * rand(this.rng, 0.28, 0.4);
       const a = (i / count) * TAU + rand(this.rng, -0.4, 0.4);
       const orbitDir: 1 | -1 = i % 2 === 0 ? 1 : -1;
-      // Breath timers are spread by id, so cetaceans breathe out of step without any rng.
-      const beh = behaviourOf(entry.species);
-      const breath = beh.breathes;
-      const series = beh.breathSeries;
       const x = W / 2 + Math.cos(a) * orbitRadius * (W / minSide) * 0.9;
       const y = H / 2 + Math.sin(a) * orbitRadius;
       const heading = a + (orbitDir * Math.PI) / 2;
@@ -5906,39 +4635,15 @@ export class World {
         speed: 30,
         phase: rand(this.rng, 0, TAU),
         turn: 0,
-        hunger: rand(this.rng, 0.25, 0.75),
         wander: 0,
         orbitDir,
         orbitRadius,
-        target: null,
-        retargetAt: 0,
         depth: entry.depth,
         coat: entry.coat,
-        state: "cruise",
-        stateUntil: 0,
-        foodGroup: -1,
-        actionId: null,
-        actionStart: 0,
-        actionMark: -1,
-        cooldownUntil: 0,
-        height: 0,
-        pitch: 0,
-        roll: 0,
-        gape: 0,
-        slap: 0,
         dive: 0,
-        emerge: 0,
-        nextBreath: breath
-          ? breath[0] + (((i + 1) * 7.31) % 1) * (breath[1] - breath[0])
-          : Infinity,
-        breathUntil: -Infinity,
-        blowsLeft: series ? seriesBlows(i + 1, series.blows, 0) : 0,
-        diveUntil: -Infinity,
-        nextShow: 8 + (((i + 1) * 3.17) % 1) * 10,
-        chain: false,
       });
     }
-    // Smaller (farther) sharks draw first so the big one swims over them.
+    // Smaller (farther) animals draw first so the big one swims over them.
     this.creatures.sort((a, b) => a.length - b.length);
 
     const total = this.fishTotal(W, H);
@@ -5969,7 +4674,6 @@ export class World {
           turn: 0,
           depth: rand(this.rng, 0.55, 1),
           millDir,
-          stun: 0,
         });
       }
     }
@@ -6003,220 +4707,9 @@ export class World {
   step(dt: number) {
     this.time += dt;
     this.rebuildHash();
-    this.stepFood(dt);
     this.stepFish(dt);
     this.stepCreatures(dt);
     this.respawn();
-  }
-
-  /**
-   * Drops food at (x, y). Creatures that are cruising and near enough answer it.
-   * Returns false, with only a ripple, when six offerings are already in the water.
-   */
-  offerFood(x: number, y: number): boolean {
-    let group: FoodGroup | undefined;
-    for (const g of this.food) {
-      if (!g.alive) {
-        group = g;
-        break;
-      }
-    }
-    if (!group) {
-      this.events.push({ kind: "splash", x, y });
-      return false;
-    }
-
-    const ocean = this.scene === "ocean";
-    const want = ocean ? randInt(this.rng, 3, 6) : randInt(this.rng, 4, 8);
-    let placed = 0;
-    for (const m of this.morsels) {
-      if (placed === want) break;
-      if (m.alive) continue;
-      m.alive = true;
-      m.group = group.id;
-      m.x = x + rand(this.rng, -1.5, 1.5) * this.cellW;
-      m.y = y + rand(this.rng, -1.5, 1.5) * this.cellH;
-      m.vx = 0;
-      m.vy = 0;
-      m.age = 0;
-      m.life = ocean ? rand(this.rng, 8, 11) : rand(this.rng, 12, 15);
-      m.fade = 0;
-      placed++;
-    }
-    if (placed === 0) {
-      this.events.push({ kind: "splash", x, y });
-      return false;
-    }
-
-    group.alive = true;
-    group.x = x;
-    group.y = y;
-    group.born = this.time;
-    if (ocean) this.splash(x, y);
-    this.recruit(group);
-    return true;
-  }
-
-  /**
-   * Picks who answers an offering: cruising creatures within their sense range, nearest first, up to
-   * their species' cap. Each one notices, then approaches. If nobody qualifies, the nearest cruiser
-   * glances at the food and goes straight back to cruising.
-   */
-  private recruit(group: FoodGroup) {
-    const { x, y } = group;
-    const { creatures, time } = this;
-    const minSide = Math.min(this.width, this.height);
-
-    let n = 0;
-    for (let i = 0; i < creatures.length; i++) {
-      const sh = creatures[i];
-      if (sh.state !== "cruise" || time < sh.cooldownUntil) continue;
-      const d = Math.hypot(sh.nodes[0] - x, sh.nodes[1] - y);
-      if (d > behaviourOf(sh.species).senseRange * minSide) continue;
-      // Insertion sort by distance into the preallocated index array.
-      let k = n++;
-      while (k > 0 && this.dist[this.order[k - 1]] > d) {
-        this.order[k] = this.order[k - 1];
-        k--;
-      }
-      this.order[k] = i;
-      this.dist[i] = d;
-    }
-
-    this.taken.fill(0);
-    let responders = 0;
-    let leads = 0;
-    for (let k = 0; k < n; k++) {
-      const sh = creatures[this.order[k]];
-      const beh = behaviourOf(sh.species);
-      const si = CREATURE_IDS.indexOf(sh.species);
-      if (this.taken[si] >= beh.maxResponders) continue;
-      this.taken[si]++;
-      responders++;
-      this.answer(sh, group, beh);
-      if (beh.pod) this.leads[leads++] = this.order[k];
-    }
-
-    // Pod response: a pod responder pulls its cruising mates within 3·L into the same food. They all go for the bite.
-    for (let k = 0; k < leads; k++) {
-      const lead = creatures[this.leads[k]];
-      const beh = behaviourOf(lead.species);
-      const si = CREATURE_IDS.indexOf(lead.species);
-      for (const mate of creatures) {
-        if (this.taken[si] >= beh.maxResponders) break;
-        if (mate === lead || mate.species !== lead.species || mate.state !== "cruise") continue;
-        if (time < mate.cooldownUntil) continue;
-        const d = Math.hypot(mate.nodes[0] - lead.nodes[0], mate.nodes[1] - lead.nodes[1]);
-        if (d > 3 * lead.length) continue;
-        this.taken[si]++;
-        responders++;
-        this.answer(mate, group, beh, "approachAndBite");
-      }
-    }
-
-    if (responders > 0) return;
-    let nearest: Creature | null = null;
-    let best = Infinity;
-    for (const sh of creatures) {
-      if (sh.state !== "cruise") continue;
-      const d = Math.hypot(sh.nodes[0] - x, sh.nodes[1] - y);
-      if (d < best) {
-        best = d;
-        nearest = sh;
-      }
-    }
-    if (nearest) {
-      nearest.state = "notice";
-      nearest.stateUntil = time + 1.2;
-      nearest.foodGroup = group.id;
-      nearest.actionId = null;
-    }
-  }
-
-  /**
-   * One creature takes the offering: pick its action by weight (one rng call), or use `forced` with no roll,
-   * then start its cooldown (one rng call).
-   */
-  private answer(sh: Creature, group: FoodGroup, beh: Behaviour, forced?: ActionId) {
-    let picked: ActionId = forced ?? beh.actions[beh.actions.length - 1].id;
-    if (!forced) {
-      let total = 0;
-      for (const a of beh.actions) total += a.weight;
-      let roll = this.rng() * total;
-      for (const a of beh.actions) {
-        roll -= a.weight;
-        if (roll < 0) {
-          picked = a.id;
-          break;
-        }
-      }
-    }
-    // A signature move whose precondition fails falls back to the plain bite. No rng here.
-    const def = ACTIONS[picked];
-    if (def.requires) {
-      const ctx = this.actx;
-      const m = this.nearestMorsel(group.id, sh.nodes[0], sh.nodes[1]);
-      ctx.time = this.time;
-      ctx.sh = sh;
-      ctx.L = sh.length;
-      ctx.t = 0;
-      ctx.target = m;
-      ctx.dist = m ? Math.hypot(m.x - sh.nodes[0], m.y - sh.nodes[1]) : Infinity;
-      if (!def.requires(ctx)) picked = "approachAndBite";
-    }
-    sh.state = "notice";
-    sh.stateUntil = this.time + 0.35;
-    sh.foodGroup = group.id;
-    sh.actionId = picked;
-    sh.cooldownUntil = this.time + rand(this.rng, beh.cooldown[0], beh.cooldown[1]);
-  }
-
-  /** Morsels drift with the current, sink (ocean) or dissolve at the end (pond), and die when their life runs out. */
-  private stepFood(dt: number) {
-    let live = false;
-    for (const m of this.morsels) {
-      if (m.alive) {
-        live = true;
-        break;
-      }
-    }
-    this.feeding = live;
-    if (!live) {
-      // The last morsel can be eaten outside this loop; with none left, every group is spent.
-      for (const g of this.food) g.alive = false;
-      return;
-    }
-
-    const ocean = this.scene === "ocean";
-    const drift = ocean ? 0.25 : 0.12;
-    const cur = this.tmp;
-    for (const m of this.morsels) {
-      if (!m.alive) continue;
-      m.age += dt;
-      if (m.age >= m.life) {
-        m.alive = false;
-        continue;
-      }
-      current(m.x, m.y, this.time, cur);
-      m.vx = cur.x * drift;
-      // Seen from above, sinking shows as fading (see `fade`), not as moving down the screen.
-      m.vy = cur.y * drift;
-      m.x += m.vx * dt;
-      m.y += m.vy * dt;
-      m.fade = ocean ? m.age / m.life : clamp((m.age - (m.life - 1.5)) / 1.5, 0, 1);
-    }
-    // A group is spent once none of its morsels is left.
-    for (const g of this.food) {
-      if (!g.alive) continue;
-      let any = false;
-      for (const m of this.morsels) {
-        if (m.alive && m.group === g.id) {
-          any = true;
-          break;
-        }
-      }
-      if (!any) g.alive = false;
-    }
   }
 
   private rebuildHash() {
@@ -6227,10 +4720,8 @@ export class World {
     const n = this.bucketCols * this.bucketRows;
     if (this.bucketHead.length !== n) {
       this.bucketHead = new Int32Array(n);
-      this.bucketCount = new Uint16Array(n);
     }
     this.bucketHead.fill(-1);
-    this.bucketCount.fill(0);
     if (this.bucketNext.length !== this.fish.length) {
       this.bucketNext = new Int32Array(this.fish.length);
     }
@@ -6240,7 +4731,6 @@ export class World {
       const b = this.bucketOf(f.x, f.y);
       this.bucketNext[i] = this.bucketHead[b];
       this.bucketHead[b] = i;
-      this.bucketCount[b]++;
     }
   }
 
@@ -6264,29 +4754,13 @@ export class World {
     const cur = this.tmp;
     const calmDecay = Math.exp(-dt * 0.7);
     const contagion = Math.min(1, dt * 6);
-    // Bait fish nibble at food that has been lying in the ocean for a bit.
-    const nibble = this.feeding && this.scene === "ocean";
-    const morsels = this.morsels;
-    const herdZones = this.herdZones;
-    const herdCount = this.herdCount;
 
     for (let i = 0; i < fish.length; i++) {
       const f = fish[i];
       if (!f.alive) continue;
-      if (f.stun > 0) {
-        // Stunned: no steering and no alarm; it slows to a drift.
-        f.stun = Math.max(0, f.stun - dt);
-        const damp = 1 - Math.min(1, dt * 3);
-        f.vx *= damp;
-        f.vy *= damp;
-        f.alarm = 0;
-        f.x = clamp(f.x + f.vx * dt, -60, W + 60);
-        f.y = clamp(f.y + f.vy * dt, -60, H + 60);
-        continue;
-      }
       const sp = SPECIES[f.species];
       // Alarmed fish want more room: the school flashes apart around a
-      // shark and closes back up once the threat fades.
+      // predator and closes back up once the threat fades.
       const spread = 1 + 1.8 * f.alarm;
       const sepX = this.sepX[f.species] * spread;
       const sepY = this.sepY[f.species] * spread;
@@ -6305,7 +4779,6 @@ export class World {
       let cy = 0;
       let n = 0;
       let neighbourAlarm = 0;
-      let herded = false;
 
       const bc = clamp(Math.floor(f.x / size) + 2, 0, cols - 1);
       const br = clamp(Math.floor(f.y / size) + 2, 0, rows - 1);
@@ -6369,7 +4842,7 @@ export class World {
       }
 
       // Predators. Distance is measured to the nearest point along the front
-      // half of the shark, so fish also give the flanks a wide berth.
+      // half of the animal, so fish also give the flanks a wide berth.
       let fear = 0;
       for (const sh of creatures) {
         const fearR = sh.length * 0.6 + 60;
@@ -6392,7 +4865,7 @@ export class World {
         w *= w;
         const awayX = (f.x - bx) / d;
         const awayY = (f.y - by) / d;
-        // Fountain effect: break to whichever side of the shark's path you're on.
+        // Fountain effect: break to whichever side of the animal's path you're on.
         const shx = Math.cos(sh.heading);
         const shy = Math.sin(sh.heading);
         const side = shx * (f.y - sh.nodes[1]) - shy * (f.x - sh.nodes[0]) >= 0 ? 1 : -1;
@@ -6414,35 +4887,9 @@ export class World {
         }
       }
 
-      if (nibble && f.alarm < 0.3) {
-        for (const m of morsels) {
-          if (!m.alive || m.age <= 2) continue;
-          const dx = m.x - f.x;
-          const dy = m.y - f.y;
-          const d = Math.hypot(dx, dy);
-          if (d >= 160 || d < 1e-3) continue;
-          const k = 260 * (1 - d / 160);
-          ax += (dx / d) * k;
-          ay += (dy / d) * k;
-        }
-      }
-
-      // Herd zones from this step's actions: pulled in toward the centre and swirled round it.
-      for (let z = 0; z < herdCount; z++) {
-        const o = z * 5;
-        const hdx = herdZones[o] - f.x;
-        const hdy = herdZones[o + 1] - f.y;
-        const hd = Math.hypot(hdx, hdy);
-        if (hd >= herdZones[o + 2] || hd < 1e-3) continue;
-        ax += (hdx / hd) * herdZones[o + 3] - (hdy / hd) * herdZones[o + 4];
-        ay += (hdy / hd) * herdZones[o + 3] + (hdx / hd) * herdZones[o + 4];
-        herded = true;
-      }
-
       // Alarm: direct threat sets it, neighbours pass it along (slightly
       // weaker each hop), and it fades on its own.
       let alarm = Math.max(f.alarm * calmDecay, fear);
-      if (herded && alarm < 0.5) alarm = 0.5;
       const relayed = neighbourAlarm * 0.86;
       if (relayed > alarm) alarm += (relayed - alarm) * contagion;
       f.alarm = alarm;
@@ -6480,23 +4927,14 @@ export class World {
       }
       f.turn += (angleDiff(before, Math.atan2(f.vy, f.vx)) / dt - f.turn) * Math.min(1, dt * 8);
       f.phase += dt * (7 + Math.hypot(f.vx, f.vy) * 0.12);
-      f.x = clamp(f.x + f.vx * dt, -60, W + 60);
-      f.y = clamp(f.y + f.vy * dt, -60, H + 60);
+      f.x += f.vx * dt;
+      f.y += f.vy * dt;
+      // Past the canvas and a margin: the fish is gone, and respawn() sends a new school in from an edge.
+      if (f.x < -FISH_EXIT || f.x > W + FISH_EXIT || f.y < -FISH_EXIT || f.y > H + FISH_EXIT) {
+        f.alive = false;
+        f.respawnAt = time;
+      }
     }
-    // The zones were for this step only; the next actions write fresh ones.
-    this.herdCount = 0;
-  }
-
-  /** ActionContext.herd: queues a herd zone for stepFish. Zones past HERD_ZONES are dropped. */
-  private herd(x: number, y: number, radius: number, inward: number, swirl: number) {
-    if (this.herdCount >= HERD_ZONES) return;
-    const o = this.herdCount * 5;
-    this.herdZones[o] = x;
-    this.herdZones[o + 1] = y;
-    this.herdZones[o + 2] = radius;
-    this.herdZones[o + 3] = inward;
-    this.herdZones[o + 4] = swirl;
-    this.herdCount++;
   }
 
   private stepCreatures(dt: number) {
@@ -6510,8 +4948,13 @@ export class World {
       const nodes = sh.nodes;
       const hx = nodes[0];
       const hy = nodes[1];
+      const beh = behaviourOf(sh.species);
 
-      sh.hunger = Math.min(1, sh.hunger + dt * 0.03);
+      // Pond koi bob between the surface and mid-water. No rng, so the ocean and every other animal are untouched.
+      if (this.scene === "pond" && sh.species === "koi") {
+        const target = clamp(0.35 + 0.45 * Math.sin(time * 0.09 + sh.id * 1.9), 0, 1);
+        sh.dive = easeDive(sh.dive, target, dt);
+      }
 
       // Momentum.
       let dx = Math.cos(sh.heading);
@@ -6522,19 +4965,11 @@ export class World {
       dx += Math.cos(sh.heading + sh.wander) * 0.45;
       dy += Math.sin(sh.heading + sh.wander) * 0.45;
 
-      // Food first: the state machine may take this creature off hunting for a while.
-      const beh = behaviourOf(sh.species);
-      this.stepForaging(sh, L, dt);
-      if (beh.breathes) this.stepBreath(sh, beh.breathes, beh.breathSeries);
-      if (beh.shows && sh.state === "cruise") this.stepShows(sh, beh.shows);
-      this.easePoses(sh, dt);
-      const aim = this.aim;
-
-      // Pod: a cruising cetacean keeps its mates close and swims abreast of them at their mean speed.
+      // Pod: a cetacean keeps its mates close and swims abreast of them at their mean speed.
       let podSpeed = -1;
       // A pod member with mates in reach drops the orbit patrol and follows its pod instead.
       let podded = false;
-      if (beh.pod && sh.state === "cruise") {
+      if (beh.pod) {
         let mates = 0;
         let px2 = 0;
         let py2 = 0;
@@ -6582,62 +5017,32 @@ export class World {
         }
       }
 
-      // Hunt. Animals busy with food, and species that don't hunt fish, never chase fish.
-      if (aim.w > 0 || !beh.huntsFish) {
-        sh.target = null;
-      } else if (time >= sh.retargetAt) {
-        sh.target = this.findPrey(sh);
-        sh.retargetAt = time + 0.45;
-      }
-      const t = sh.target;
-      let hunting = false;
-      let closing = 0;
-      let followed = false;
-      if (aim.w > 0) {
-        dx += aim.dx * aim.w;
-        dy += aim.dy * aim.w;
-        hunting = aim.hunting;
-        closing = aim.closing;
-      } else if (t && t.alive && sh.hunger > 0.3) {
-        // Pursuit: aim at where the fish is about to be.
-        const tx = t.x + t.vx * 0.35 - hx;
-        const ty = t.y + t.vy * 0.35 - hy;
-        const d = Math.hypot(tx, ty) || 1;
-        const w = 1.4 + 2.6 * sh.hunger;
-        dx += (tx / d) * w;
-        dy += (ty / d) * w;
-        hunting = true;
-        closing = clamp(1 - d / (L * 0.9), 0, 1);
-      } else if (!podded && this.scene === "pond") {
-        // Pond: koi meander over the whole pond toward a slow Lissajous point of their own (no rng, so no hash moves).
-        const gx = cxW + 0.36 * W * Math.sin(time * 0.071 + sh.id * 1.7) - hx;
-        const gy = cyW + 0.34 * H * Math.sin(time * 0.053 + sh.id * 2.3) - hy;
-        const g = Math.hypot(gx, gy) || 1;
-        dx += (gx / g) * 0.55;
-        dy += (gy / g) * 0.55;
-      } else if (!podded) {
-        // Patrol: a lazy circuit around the headline.
-        const rx = (hx - cxW) / (W / minSide);
-        const ry = hy - cyW;
-        const r = Math.hypot(rx, ry) || 1;
-        const radius = sh.orbitRadius * (1 + 0.15 * Math.sin(time * 0.05 + sh.id));
-        const radial = clamp((radius - r) / radius, -1, 1);
-        dx += ((-ry / r) * sh.orbitDir + (rx / r) * radial * 0.9) * 0.55;
-        dy += ((rx / r) * sh.orbitDir + (ry / r) * radial * 0.9) * 0.55;
+      // Cruise: a pond koi meanders the whole pond toward a slow Lissajous point of its own (no rng, so no hash moves);
+      // everything else that is not in a pod patrols a lazy circuit around the headline.
+      if (!podded) {
+        if (this.scene === "pond") {
+          const gx = cxW + 0.36 * W * Math.sin(time * 0.071 + sh.id * 1.7) - hx;
+          const gy = cyW + 0.34 * H * Math.sin(time * 0.053 + sh.id * 2.3) - hy;
+          const g = Math.hypot(gx, gy) || 1;
+          dx += (gx / g) * 0.55;
+          dy += (gy / g) * 0.55;
+        } else {
+          const rx = (hx - cxW) / (W / minSide);
+          const ry = hy - cyW;
+          const r = Math.hypot(rx, ry) || 1;
+          const radius = sh.orbitRadius * (1 + 0.15 * Math.sin(time * 0.05 + sh.id));
+          const radial = clamp((radius - r) / radius, -1, 1);
+          dx += ((-ry / r) * sh.orbitDir + (rx / r) * radial * 0.9) * 0.55;
+          dy += ((rx / r) * sh.orbitDir + (ry / r) * radial * 0.9) * 0.55;
+        }
       }
 
       // Pointer follow: species that follow it hover about 0.35 L short of a nearby pointer, begging.
       const px = this.pointer.x - hx;
       const py = this.pointer.y - hy;
       const pd = Math.hypot(px, py);
-      if (
-        beh.followsPointer &&
-        this.pointer.active &&
-        aim.w === 0 &&
-        sh.state === "cruise" &&
-        pd < minSide * 0.5 &&
-        pd > 1e-3
-      ) {
+      let followed = false;
+      if (beh.followsPointer && this.pointer.active && pd < minSide * 0.5 && pd > 1e-3) {
         const k = pd - 0.35 * L;
         const sgn = k >= 0 ? 1 : -1;
         dx += (px / pd) * sgn * 1.2;
@@ -6645,7 +5050,7 @@ export class World {
         followed = true;
       }
 
-      // Give other sharks room.
+      // Give other animals room.
       for (const other of creatures) {
         if (other === sh) continue;
         for (let k = 0; k < SPINE_NODES; k += 4) {
@@ -6667,13 +5072,13 @@ export class World {
       const e2 = ex * ex + ey * ey;
       if (e2 < 1 && this.scene !== "pond") {
         const e = Math.sqrt(e2) || 1e-3;
-        const w = (1 - e) * (hunting ? 1 : 2.5);
+        const w = (1 - e) * 2.5;
         dx += (ex / e) * w;
         dy += (ey / e) * w;
       }
 
       // Turn back once the snout leaves the frame, so bodies dip off-screen
-      // now and then but the sharks never wander away for good.
+      // now and then but the animals never wander away for good.
       const over = Math.max(-hx, hx - W, -hy, hy - H);
       if (over > -L * 0.05) {
         const w = clamp((over + L * 0.05) / (L * 0.35), 0, 1) * 3.5;
@@ -6685,28 +5090,20 @@ export class World {
       }
 
       const desired = Math.atan2(dy, dx);
-      // Sharks can't pivot on the spot: the turning circle grows with speed.
-      // A species turning radius applies to cruising only; going for food, every animal turns as tight as a shark.
-      const radius = hunting || sh.state !== "cruise" ? 0.22 : (beh.turnRadius ?? 0.22);
-      const agility = Math.min(hunting ? 1.7 + closing : 0.8, sh.speed / (L * radius));
+      // Animals can't pivot on the spot: the turning circle grows with speed.
+      const radius = beh.turnRadius ?? 0.22;
+      const agility = Math.min(0.8, sh.speed / (L * radius));
       const maxTurn = agility * dt;
       const turned = clamp(angleDiff(sh.heading, desired), -maxTurn, maxTurn);
       sh.heading += turned;
       sh.turn += (turned / dt - sh.turn) * Math.min(1, dt * 3);
 
       const cruise = 30 + L * 0.04;
-      let targetSpeed = hunting ? cruise * (1.45 + closing * 1.5) : cruise;
-      if (podSpeed >= 0 && !hunting) targetSpeed = podSpeed;
-      if (aim.w > 0) targetSpeed = cruise * aim.speed;
-      else if (followed) targetSpeed = cruise * 0.7;
-      // Surfacing to breathe slows a cetacean down, except in the middle of an action.
-      if (sh.state !== "action" && time < sh.breathUntil) targetSpeed *= 0.8;
-      // Going for food, the speed picks up at once, and the tail beats harder the faster it goes.
-      const foodRush = sh.state === "approach" || sh.state === "action";
-      sh.speed += (targetSpeed - sh.speed) * Math.min(1, dt * (foodRush ? 2.4 : 1.1));
-      // Tail beat multiplier: 1 at cruise, up to 2.7 at 2.2× cruise.
-      const beat = foodRush ? 1 + 1.4 * clamp(sh.speed / cruise - 1, 0, 1.2) : 1;
-      sh.phase += dt * (2 + sh.speed / 24) * beat;
+      let targetSpeed = cruise;
+      if (podSpeed >= 0) targetSpeed = podSpeed;
+      if (followed) targetSpeed = cruise * 0.7;
+      sh.speed += (targetSpeed - sh.speed) * Math.min(1, dt * 1.1);
+      sh.phase += dt * (2 + sh.speed / 24);
 
       nodes[0] += Math.cos(sh.heading) * sh.speed * dt;
       nodes[1] += Math.sin(sh.heading) * sh.speed * dt;
@@ -6725,478 +5122,7 @@ export class World {
         nodes[k * 2 + 1] = py + Math.sin(angle) * seg;
         prevAngle = angle;
       }
-
-      // Feed.
-      if (sh.hunger > 0.15) {
-        const mouthR = L * 0.05 + 8;
-        const mx = nodes[0];
-        const my = nodes[1];
-        for (const f of this.fish) {
-          if (!f.alive) continue;
-          if ((f.x - mx) ** 2 + (f.y - my) ** 2 < mouthR * mouthR) {
-            f.alive = false;
-            f.respawnAt = time + rand(this.rng, 3, 8);
-            sh.hunger = Math.max(0, sh.hunger - 0.16);
-            this.events.push({ kind: "eat", x: f.x, y: f.y, size: L });
-          }
-        }
-      }
     }
-  }
-
-  /**
-   * Advances a creature's food state (cruise → notice → approach → action → recover → cruise) and leaves
-   * this step's steering in `this.aim`. Cruising creatures are left alone. No rng is used here.
-   */
-  private stepForaging(sh: Creature, L: number, dt: number) {
-    const aim = this.aim;
-    aim.w = 0;
-    aim.speed = 0;
-    aim.hunting = false;
-    aim.closing = 0;
-    const pose = this.poseTarget;
-    pose.height = 0;
-    pose.pitch = 0;
-    pose.roll = 0;
-    pose.gape = 0;
-    pose.slap = 0;
-    pose.dive = 0;
-    pose.emerge = 0;
-    if (sh.state === "cruise") {
-      // Pond koi cruising bob between the surface and mid-water. Set here, because this step's reset
-      // clears the pose targets before easePoses; no rng, and the ocean is untouched.
-      if (this.scene === "pond" && sh.species === "koi") {
-        pose.dive = clamp(0.35 + 0.45 * Math.sin(this.time * 0.09 + sh.id * 1.9), 0, 1);
-      }
-      return;
-    }
-
-    const { time } = this;
-    const group = sh.foodGroup >= 0 ? this.food[sh.foodGroup] : undefined;
-    if (sh.state === "recover") {
-      if (time >= sh.stateUntil) this.calm(sh);
-      return;
-    }
-    // An engaged action plays out even once its food is gone (a leap still lands); before that, no food ends it.
-    const engagedAction = sh.state === "action";
-    if (!engagedAction && (!group || !group.alive)) {
-      this.recover(sh);
-      return;
-    }
-
-    if (sh.state === "notice" && group) {
-      if (time < sh.stateUntil) {
-        const hx = sh.nodes[0];
-        const hy = sh.nodes[1];
-        const d = Math.hypot(group.x - hx, group.y - hy) || 1;
-        aim.dx = (group.x - hx) / d;
-        aim.dy = (group.y - hy) / d;
-        aim.w = 2.5;
-        aim.speed = 1;
-      } else if (sh.actionId === null) {
-        // The glance at food was all there was to it.
-        this.calm(sh);
-      } else {
-        sh.state = "approach";
-      }
-      return;
-    }
-
-    // Approach: the default steering at the nearest morsel, until the action's engagement check passes.
-    // Action: the action's step runs every step until it returns true or its time is up.
-    if (sh.state === "action" && time >= sh.stateUntil) {
-      this.recover(sh);
-      return;
-    }
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    const m = group && group.alive ? this.nearestMorsel(group.id, hx, hy) : null;
-    if (!m && !engagedAction) {
-      this.recover(sh);
-      return;
-    }
-    const def = ACTIONS[sh.actionId ?? "approachAndBite"];
-    const ctx = this.actx;
-    ctx.time = time;
-    ctx.dt = dt;
-    ctx.L = L;
-    ctx.sh = sh;
-    ctx.target = m;
-    ctx.dist = m ? Math.hypot(m.x - hx, m.y - hy) : Infinity;
-    if (sh.state === "approach" && m) {
-      if (!engaged(def, ctx)) {
-        approachSteer(def, ctx);
-        return;
-      }
-      this.engage(sh);
-    }
-    ctx.t = time - sh.actionStart;
-    if (def.step(ctx) === true) this.recover(sh);
-  }
-
-  /** Eases each pose toward this step's target at its own rate; snaps to exactly 0 once it is back at rest. */
-  private easePoses(sh: Creature, dt: number) {
-    const tg = this.poseTarget;
-    sh.height = easePose(sh.height, tg.height, Math.min(1, dt * POSE_RATE.height));
-    sh.pitch = easePose(sh.pitch, tg.pitch, Math.min(1, dt * POSE_RATE.pitch));
-    sh.roll = easePose(sh.roll, tg.roll, Math.min(1, dt * POSE_RATE.roll));
-    sh.gape = easePose(sh.gape, tg.gape, Math.min(1, dt * POSE_RATE.gape));
-    sh.slap = easePose(sh.slap, tg.slap, Math.min(1, dt * POSE_RATE.slap));
-    sh.dive = easePose(sh.dive, tg.dive, Math.min(1, dt * POSE_RATE.dive));
-    // Back under at 2 looks the same as under at 0, so a finished jump drops straight to 0 rather than easing back
-    // through the falling range (which would sweep the surface line along the body again).
-    if (tg.emerge === 0 && sh.emerge > 1.9) sh.emerge = 0;
-    else sh.emerge = easePose(sh.emerge, tg.emerge, Math.min(1, dt * POSE_RATE.dive));
-  }
-
-  /**
-   * Cetacean breathing. A single breather (bottlenose) surfaces on its timer, blows and sinks back. A series breather
-   * (orca, humpback) blows a run of breaths, then dives for a while with no breath; a humpback raises its flukes
-   * into a sounding dive first. Timers come from the id and the clock, so no rng is used. Writes the height and dive
-   * pose targets; the speed drop is in stepCreatures. A breath due mid-action waits half a second.
-   */
-  private stepBreath(
-    sh: Creature,
-    [min, max]: [number, number],
-    series: Behaviour["breathSeries"],
-  ) {
-    const { time } = this;
-    if (time >= sh.nextBreath) {
-      if (sh.state === "action") {
-        sh.nextBreath = time + 0.5;
-      } else if (!series) {
-        this.blow(sh);
-        sh.nextBreath = time + min + ((sh.id * 7.31 + time * 0.37) % 1) * (max - min);
-      } else if (sh.blowsLeft > 0) {
-        this.blow(sh);
-        sh.blowsLeft--;
-        if (sh.blowsLeft > 0) {
-          sh.nextBreath = time + seriesGap(sh.id, series.gap, time);
-        } else {
-          // The last blow: the dive runs from the end of its breath pose.
-          sh.diveUntil = time + seriesDive(sh.id, series.dive, time);
-          sh.nextBreath = sh.breathUntil;
-        }
-      } else if (time < sh.diveUntil) {
-        // Sounding: a humpback raises its flukes once the breath pose is over. A fluke that cannot start yet waits a second.
-        if (!series.fluke || this.startShow(sh, "soundDive") > 0) sh.nextBreath = sh.diveUntil;
-        else sh.nextBreath = time + 1;
-      } else {
-        // The dive is over: a new series.
-        sh.blowsLeft = seriesBlows(sh.id, series.blows, time);
-        sh.nextBreath = time + 0.5;
-      }
-    }
-    if (sh.state === "action") return;
-    if (time < sh.breathUntil) {
-      this.poseTarget.height = 0.3;
-    } else if (time < sh.breathUntil + 2 || (series && time < sh.diveUntil)) {
-      // Sinks back under the surface after the breath, and stays under for the whole dive.
-      this.poseTarget.dive = 1;
-    }
-  }
-
-  /** One breath: a blow at the blowhole, sized by the animal (the renderer makes the plume from it). */
-  private blow(sh: Creature) {
-    sh.breathUntil = this.time + 1.4;
-    const i = BLOWHOLE_NODE * 2;
-    this.events.push({ kind: "blow", x: sh.nodes[i], y: sh.nodes[i + 1], size: sh.length });
-  }
-
-  /**
-   * Starts a food-less action on `sh`: a show from its species' `shows` list, or a humpback's fluke sounding. The
-   * dev theatre and the component's playShow use it too. Returns the action's seconds, or 0 when it cannot start:
-   * the species does not do that action, it is not cruising, or it is too close to an edge (see showable).
-   */
-  startShow(sh: Creature, id: ActionId): number {
-    const beh = behaviourOf(sh.species);
-    const listed =
-      beh.shows?.some((s) => s.id === id) === true ||
-      (id === "soundDive" && beh.breathSeries?.fluke === true) ||
-      (id === "breach" && beh.actions.some((a) => a.id === "breach"));
-    if (!listed || !this.showable(sh)) return 0;
-    sh.state = "action";
-    sh.actionId = id;
-    sh.foodGroup = -1;
-    this.engage(sh);
-    // Any leap that starts (a scheduled show or a forced one) echoes through a pod that is near it.
-    if (id === "leap" && beh.pod) this.echoLeap(sh);
-    return ACTIONS[id].seconds;
-  }
-
-  /**
-   * Whether `sh` can put on a show now: its species has shows (or a shark's breach), it is cruising, and it is clear of the edges. The
-   * snout keeps `edge` from each side (1.2 body lengths, or a quarter of the short side for a body longer than that),
-   * and the point 1.5 body lengths straight ahead (at most 0.35 of the short side) keeps 0.6 body lengths (at most
-   * 0.12 of the short side) inside the canvas.
-   */
-  showable(sh: Creature): boolean {
-    const beh = behaviourOf(sh.species);
-    const canShow = beh.shows !== undefined || beh.actions.some((a) => a.id === "breach");
-    if (!canShow || sh.state !== "cruise") return false;
-    const { width: W, height: H } = this;
-    const L = sh.length;
-    const edge = Math.min(1.2 * L, 0.25 * Math.min(W, H));
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    if (hx < edge || hx > W - edge || hy < edge || hy > H - edge) return false;
-    // A whale can be longer than the canvas is tall, so the look-ahead and its margin are capped the same way.
-    const minSide = Math.min(W, H);
-    const ahead = Math.min(1.5 * L, 0.35 * minSide);
-    const ax = hx + Math.cos(sh.heading) * ahead;
-    const ay = hy + Math.sin(sh.heading) * ahead;
-    const m = Math.min(0.6 * L, 0.12 * minSide);
-    return ax >= m && ax <= W - m && ay >= m && ay <= H - m;
-  }
-
-  /** The jump a creature can put on, or null: its first jump show (leap, breachRoll), or a shark's breach. */
-  private jumpFor(sh: Creature): ActionId | null {
-    const beh = behaviourOf(sh.species);
-    const show = beh.shows?.find((s) => JUMP_SHOWS.has(s.id));
-    if (show) return show.id;
-    return beh.actions.some((a) => a.id === "breach") ? "breach" : null;
-  }
-
-  /** Whether the roster has any animal that can jump at all, ignoring the current state. */
-  hasJumpers(): boolean {
-    return this.creatures.some((sh) => this.jumpFor(sh) !== null);
-  }
-
-  /**
-   * A user's "play jump": picks one of the jumpers that can jump now (see showable) and starts its jump. Uses
-   * Math.random, not the world rng, so it does not shift seeded sequences. Returns the jump's seconds, or 0 when
-   * no one is clear to jump.
-   */
-  playRandomJump(): number {
-    const options: { sh: Creature; id: ActionId }[] = [];
-    for (const sh of this.creatures) {
-      const id = this.jumpFor(sh);
-      if (id !== null && this.showable(sh)) options.push({ sh, id });
-    }
-    if (options.length === 0) return 0;
-    const pick = options[Math.floor(Math.random() * options.length)];
-    return this.startShow(pick.sh, pick.id);
-  }
-
-  /**
-   * Puts on the creature's own shows (Behaviour.shows) on timers drawn from its id and the clock; no rng. A show
-   * waits while the creature is breathing or diving, and is retried a second later when it cannot start. A chained
-   * creature (porpoising) takes a leap next. A leap starts a pod echo: its pod mates leap a beat apart.
-   */
-  private stepShows(sh: Creature, shows: NonNullable<Behaviour["shows"]>) {
-    const { time } = this;
-    if (time < sh.nextShow) return;
-    let pick = Math.floor(((sh.id * 5.3 + time * 0.21) % 1) * shows.length);
-    if (sh.chain) {
-      const leap = shows.findIndex((s) => s.id === "leap");
-      if (leap >= 0) pick = leap;
-    }
-    const show = shows[pick];
-    if (time < sh.breathUntil || time < sh.diveUntil || this.startShow(sh, show.id) === 0) {
-      sh.nextShow = time + 1;
-      return;
-    }
-    sh.chain = false;
-    const [min, max] = show.every;
-    sh.nextShow = time + min + ((sh.id * 3.17 + time * 0.53) % 1) * (max - min);
-  }
-
-  /**
-   * Pod echo: after a pod member leaps, up to three pod mates within 3 body lengths that are cruising and free
-   * (not breathing or diving) get their next show a beat apart. Their edges are checked again when the timer fires.
-   */
-  private echoLeap(sh: Creature) {
-    const { time } = this;
-    let k = 0;
-    for (const mate of this.creatures) {
-      if (k >= 3) break;
-      if (mate === sh || mate.species !== sh.species || mate.state !== "cruise") continue;
-      if (time < mate.breathUntil || time < mate.diveUntil) continue;
-      if (Math.hypot(mate.nodes[0] - sh.nodes[0], mate.nodes[1] - sh.nodes[1]) > 3 * sh.length)
-        continue;
-      k++;
-      mate.nextShow = time + 0.25 + 0.3 * k;
-    }
-  }
-
-  private nearestMorsel(group: number, x: number, y: number): Morsel | null {
-    let best: Morsel | null = null;
-    let bestD = Infinity;
-    for (const m of this.morsels) {
-      if (!m.alive || m.group !== group) continue;
-      const d = Math.hypot(m.x - x, m.y - y);
-      if (d < bestD) {
-        bestD = d;
-        best = m;
-      }
-    }
-    return best;
-  }
-
-  /** Moves an approaching creature into its action: it has engaged, and the action's clock starts. */
-  private engage(sh: Creature) {
-    sh.state = "action";
-    sh.actionStart = this.time;
-    sh.actionMark = -1;
-    sh.stateUntil = this.time + ACTIONS[sh.actionId ?? "approachAndBite"].seconds;
-  }
-
-  /** ActionContext.eatNear: eats every live morsel of the creature's group, and every stunned bait fish, within `radius` of the snout. */
-  private eatNear(radius: number): number {
-    const sh = this.actx.sh;
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    let n = 0;
-    for (const m of this.morsels) {
-      if (!m.alive || m.group !== sh.foodGroup) continue;
-      if (Math.hypot(m.x - hx, m.y - hy) > radius) continue;
-      m.alive = false;
-      sh.hunger = Math.max(0, sh.hunger - 0.1);
-      this.events.push({ kind: "eat", x: m.x, y: m.y, size: sh.length });
-      n++;
-    }
-    // Stunned bait fish drift helplessly, so the snout takes them too.
-    for (const f of this.fish) {
-      if (!f.alive || f.stun <= 0 || Math.hypot(f.x - hx, f.y - hy) > radius) continue;
-      f.alive = false;
-      f.respawnAt = this.time + rand(this.rng, 3, 8);
-      sh.hunger = Math.max(0, sh.hunger - 0.16);
-      this.events.push({ kind: "eat", x: f.x, y: f.y, size: sh.length });
-      n++;
-    }
-    // The first bite engages an approaching creature.
-    if (n > 0 && sh.state === "approach") this.engage(sh);
-    return n;
-  }
-
-  /** ActionContext.eatFishNear: eats every live bait fish within `radius` of the snout, stunned or not. */
-  private eatFishNear(radius: number): number {
-    const sh = this.actx.sh;
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    let n = 0;
-    for (const f of this.fish) {
-      if (!f.alive || Math.hypot(f.x - hx, f.y - hy) > radius) continue;
-      f.alive = false;
-      f.respawnAt = this.time + rand(this.rng, 3, 8);
-      sh.hunger = Math.max(0, sh.hunger - 0.16);
-      this.events.push({ kind: "eat", x: f.x, y: f.y, size: sh.length });
-      n++;
-    }
-    return n;
-  }
-
-  /** ActionContext.packNear: creatures of the same species (this one included) with snouts within `radius`. */
-  private packNear(radius: number): number {
-    const sh = this.actx.sh;
-    let n = 0;
-    for (const other of this.creatures) {
-      if (other.species !== sh.species) continue;
-      if (Math.hypot(other.nodes[0] - sh.nodes[0], other.nodes[1] - sh.nodes[1]) <= radius) n++;
-    }
-    return n;
-  }
-
-  /** ActionContext.pullMorsels: live morsels of the group within `radius` slide toward the snout. */
-  private pullMorsels(radius: number, speed: number) {
-    const sh = this.actx.sh;
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    for (const m of this.morsels) {
-      if (!m.alive || m.group !== sh.foodGroup) continue;
-      const dx = hx - m.x;
-      const dy = hy - m.y;
-      const d = Math.hypot(dx, dy);
-      if (d > radius || d < 1e-3) continue;
-      const step = Math.min(speed * this.actx.dt, d);
-      m.x += (dx / d) * step;
-      m.y += (dy / d) * step;
-    }
-  }
-
-  /** ActionContext.stunFish: live bait fish within `radius` of (x, y) stun for `seconds`. */
-  private stunFish(x: number, y: number, radius: number, seconds: number): number {
-    let n = 0;
-    for (const f of this.fish) {
-      if (!f.alive || Math.hypot(f.x - x, f.y - y) > radius) continue;
-      f.stun = Math.max(f.stun, seconds);
-      n++;
-    }
-    return n;
-  }
-
-  /** ActionContext.schoolNear: centroid of live bait fish within `radius` of (x, y), into `out` if any. */
-  private schoolNear(
-    x: number,
-    y: number,
-    radius: number,
-    out: { x: number; y: number },
-    stunnedOnly = false,
-  ): number {
-    let n = 0;
-    let sx = 0;
-    let sy = 0;
-    for (const f of this.fish) {
-      if (!f.alive || (stunnedOnly && f.stun <= 0) || Math.hypot(f.x - x, f.y - y) > radius)
-        continue;
-      sx += f.x;
-      sy += f.y;
-      n++;
-    }
-    if (n > 0) {
-      out.x = sx / n;
-      out.y = sy / n;
-    }
-    return n;
-  }
-
-  private recover(sh: Creature) {
-    sh.state = "recover";
-    sh.stateUntil = this.time + 1.5;
-    sh.foodGroup = -1;
-    sh.actionId = null;
-  }
-
-  private calm(sh: Creature) {
-    sh.state = "cruise";
-    sh.foodGroup = -1;
-    sh.actionId = null;
-  }
-
-  /**
-   * Pick prey in the shark's forward cone, preferring close fish in sparse
-   * buckets (stragglers) over fish buried in a dense school.
-   */
-  private findPrey(sh: Creature): Fish | null {
-    const range = sh.length * 0.9 + 160;
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    const fx = Math.cos(sh.heading);
-    const fy = Math.sin(sh.heading);
-    let best: Fish | null = null;
-    let bestScore = Infinity;
-    let currentScore = Infinity;
-
-    for (const f of this.fish) {
-      if (!f.alive) continue;
-      const dx = f.x - hx;
-      const dy = f.y - hy;
-      const d = Math.hypot(dx, dy);
-      if (d > range || d < 1e-3) continue;
-      const cos = (dx * fx + dy * fy) / d;
-      if (cos < 0.2) continue;
-      const crowd = this.bucketCount[this.bucketOf(f.x, f.y)];
-      // Stunned fish drift helplessly, so predators pick them over the rest.
-      const score = d * (1 + (1 - cos) * 0.8) * (1 + crowd * 0.07) * (f.stun > 0 ? 0.3 : 1);
-      if (score < bestScore) {
-        bestScore = score;
-        best = f;
-      }
-      if (f === sh.target) currentScore = score;
-    }
-    // Stick with the current target unless something is clearly better.
-    if (sh.target && currentScore < bestScore * 1.3) return sh.target;
-    return best;
   }
 
   private respawn() {
@@ -7220,7 +5146,6 @@ export class World {
       f.alive = true;
       f.species = species;
       f.alarm = 0;
-      f.stun = 0;
       f.turn = 0;
       f.millDir = millDir;
       f.x = x + rand(this.rng, -1, 1) * this.perception;
@@ -7234,24 +5159,10 @@ export class World {
 
 ## packages/core/src/components/ascii-ocean/effects.ts
 ```ts
-import { clamp, hash3 } from "./math";
-
-/** 0 spray, 1 bubble, 2 blow mist. */
-export type ParticleKind = 0 | 1 | 2;
-
-const KIND_SPRAY: ParticleKind = 0;
-const KIND_BUBBLE: ParticleKind = 1;
-const KIND_MIST: ParticleKind = 2;
+import { hash3 } from "./math";
 
 /** Spray decelerates as v *= exp(-SPRAY_DRAG * dt). */
 const SPRAY_DRAG = 3;
-/** Blow mist slows more gently, so the cloud keeps spreading for its whole life. */
-const MIST_DRAG = 1;
-const MIST_LIFE = 2.4;
-/** The plume leans downwind: a constant drift of (0.35, −0.12) plume radii per second, not slowed by drag. */
-const MIST_WIND_X = 0.35;
-const MIST_WIND_Y = -0.12;
-const BUBBLE_SPEED = 4;
 
 /**
  * Render-side particles and surface rings. Struct-of-arrays in fixed pools: a full pool
@@ -7268,12 +5179,8 @@ export class Effects {
   private py: Float32Array;
   private pvx: Float32Array;
   private pvy: Float32Array;
-  /** Constant drift per particle (mist only), not damped by drag. */
-  private pwx: Float32Array;
-  private pwy: Float32Array;
   private page: Float32Array;
   private plife: Float32Array;
-  private pkind: Uint8Array;
   private palive: Uint8Array;
   private pnext = 0;
 
@@ -7299,11 +5206,8 @@ export class Effects {
     this.py = new Float32Array(maxParticles);
     this.pvx = new Float32Array(maxParticles);
     this.pvy = new Float32Array(maxParticles);
-    this.pwx = new Float32Array(maxParticles);
-    this.pwy = new Float32Array(maxParticles);
     this.page = new Float32Array(maxParticles);
     this.plife = new Float32Array(maxParticles);
-    this.pkind = new Uint8Array(maxParticles);
     this.palive = new Uint8Array(maxParticles);
     this.rx = new Float32Array(maxRings);
     this.ry = new Float32Array(maxRings);
@@ -7342,48 +5246,15 @@ export class Effects {
       const angle = hash3(seed, k, 1) * Math.PI * 2;
       // Under exponential drag the droplet travels v0 / SPRAY_DRAG in total, so v0 sets the reach.
       const v0 = SPRAY_DRAG * reach * (0.4 + 0.6 * hash3(seed, k, 2));
-      const i = this.claim(x, y, KIND_SPRAY, 0.6 + 0.4 * hash3(seed, k, 3));
+      const i = this.claim(x, y, 0.6 + 0.4 * hash3(seed, k, 3));
       this.pvx[i] = Math.cos(angle) * v0;
       this.pvy[i] = Math.sin(angle) * v0;
-    }
-  }
-
-  /** A bubble that rises: shrinks o → ° → . and fades over `life` s, drifting slightly. */
-  bubble(x: number, y: number, life: number, seed: number) {
-    const i = this.claim(x, y, KIND_BUBBLE, life);
-    // Up at 2–4 px/s with a sideways wobble of up to 2 px/s, so the speed stays near BUBBLE_SPEED.
-    this.pvx[i] = (hash3(seed, 0, 4) * 2 - 1) * (BUBBLE_SPEED / 2);
-    this.pvy[i] = -(BUBBLE_SPEED / 2 + hash3(seed, 0, 5) * (BUBBLE_SPEED / 2));
-  }
-
-  /**
-   * A blow: a soft cluster of mist, `radius` px across, that spreads, fades slowly and leans downwind. A bigger
-   * radius (a bigger animal) gives more particles, from 8 up to 28.
-   */
-  blow(x: number, y: number, radius: number, seed: number) {
-    const n = Math.round(clamp(radius / 6, 8, 28));
-    for (let k = 0; k < n; k++) {
-      const angle = hash3(seed, k, 6) * Math.PI * 2;
-      const r0 = radius * Math.sqrt(hash3(seed, k, 7));
-      const i = this.claim(
-        x + Math.cos(angle) * r0,
-        y + Math.sin(angle) * r0,
-        KIND_MIST,
-        MIST_LIFE,
-      );
-      // Radial speed that carries the cloud out to about `radius` under MIST_DRAG.
-      const v0 = MIST_DRAG * radius * (0.5 + 0.5 * hash3(seed, k, 8));
-      this.pvx[i] = Math.cos(angle) * v0;
-      this.pvy[i] = Math.sin(angle) * v0;
-      this.pwx[i] = MIST_WIND_X * radius;
-      this.pwy[i] = MIST_WIND_Y * radius;
     }
   }
 
   step(dt: number) {
-    const { palive, page, plife, px, py, pvx, pvy, pwx, pwy, pkind } = this;
+    const { palive, page, plife, px, py, pvx, pvy } = this;
     const spray = Math.exp(-SPRAY_DRAG * dt);
-    const mist = Math.exp(-MIST_DRAG * dt);
     for (let i = 0; i < this.maxParticles; i++) {
       if (!palive[i]) continue;
       page[i] += dt;
@@ -7391,16 +5262,10 @@ export class Effects {
         palive[i] = 0;
         continue;
       }
-      const kind = pkind[i];
-      if (kind === KIND_SPRAY) {
-        pvx[i] *= spray;
-        pvy[i] *= spray;
-      } else if (kind === KIND_MIST) {
-        pvx[i] *= mist;
-        pvy[i] *= mist;
-      }
-      px[i] += (pvx[i] + pwx[i]) * dt;
-      py[i] += (pvy[i] + pwy[i]) * dt;
+      pvx[i] *= spray;
+      pvy[i] *= spray;
+      px[i] += pvx[i] * dt;
+      py[i] += pvy[i] * dt;
     }
     const { ralive, rr, rspeed, rmax, rdelay, rage } = this;
     for (let i = 0; i < this.maxRings; i++) {
@@ -7422,10 +5287,10 @@ export class Effects {
   }
 
   /** Visit live particles and rings. The renderer draws them; Effects knows nothing about canvas. */
-  forEachParticle(fn: (x: number, y: number, kind: ParticleKind, age01: number) => void) {
+  forEachParticle(fn: (x: number, y: number, age01: number) => void) {
     for (let i = 0; i < this.maxParticles; i++) {
       if (!this.palive[i]) continue;
-      fn(this.px[i], this.py[i], this.pkind[i] as ParticleKind, this.page[i] / this.plife[i]);
+      fn(this.px[i], this.py[i], this.page[i] / this.plife[i]);
     }
   }
 
@@ -7441,18 +5306,15 @@ export class Effects {
   }
 
   /** Takes the next slot (the oldest once the pool is full) and starts a particle there. */
-  private claim(x: number, y: number, kind: ParticleKind, life: number) {
+  private claim(x: number, y: number, life: number) {
     const i = this.pnext;
     this.pnext = (i + 1) % this.maxParticles;
     this.px[i] = x;
     this.py[i] = y;
     this.pvx[i] = 0;
     this.pvy[i] = 0;
-    this.pwx[i] = 0;
-    this.pwy[i] = 0;
     this.page[i] = 0;
     this.plife[i] = life;
-    this.pkind[i] = kind;
     this.palive[i] = 1;
     return i;
   }
@@ -7519,7 +5381,7 @@ const WIND_X = 2.2;
 const WIND_X_RATE = 0.05;
 const WIND_Y = 1.6;
 const WIND_Y_RATE = 0.037;
-/** A ripple or eat reaches PUSH_REACH_R radii plus PUSH_REACH_SIZE body lengths, and gives PUSH_SPEED px/s. */
+/** A splash reaches PUSH_REACH_R radii plus PUSH_REACH_SIZE body lengths, and gives PUSH_SPEED px/s. */
 const PUSH_SPEED = 14;
 const PUSH_DECAY = 1.5;
 const PUSH_REACH_R = 1.4;
@@ -7575,7 +5437,7 @@ function capSpeed(ax: Float64Array, ay: Float64Array, i: number) {
   }
 }
 
-/** Moves one body in a ripple or eat: a radial kick of PUSH_SPEED if it lies within reach of (x, y). */
+/** Moves one body in a splash: a radial kick of PUSH_SPEED if it lies within reach of (x, y). */
 function kick(
   px: number,
   py: number,
@@ -7657,7 +5519,7 @@ function wrap(p: number, span: number, R: number) {
  * koi pass underneath and are hidden. Duckweed drifts in patches and loose fronds on the same wind.
  *
  * Call layout() on resize, then per frame: pushFrom() per koi, step(), and drawShadows() and drawPlants() in
- * the render. ripples and eats call push().
+ * the render. Splashes call push().
  */
 export class PondSurface {
   /** Pads in use. The arrays hold the most a canvas can take; the first padCount are live. */
@@ -7892,7 +5754,7 @@ export class PondSurface {
     }
   }
 
-  /** A ripple set or an eat at (x, y): pads and patches within reach get a radial kick, capped in speed. */
+  /** A splash at (x, y): pads and patches within reach get a radial kick, capped in speed. */
   push(x: number, y: number, size: number) {
     const extra = PUSH_REACH_SIZE * size;
     for (let i = 0; i < this.padCount; i++) {
@@ -8635,7 +6497,7 @@ function valueNoise(u: number, lane: number, seed: number) {
  *   4. creatures rasterised cell-by-cell with supersampled edges: grey blocks
  *      shaded by the light, dense glyphs, and shimmering accent colours
  */
-import { clamp, hash3, oklchToRgb, rgbToOklabL, smoothstep, TAU } from "./math";
+import { clamp, hash3, oklchToRgb, rgbToOklabL, TAU } from "./math";
 import { CREATURE_IDS, CREATURES } from "./creatures";
 import type {
   Coat,
@@ -8645,7 +6507,7 @@ import type {
   PaintPoint,
   TailShape,
 } from "./creatures/types";
-import { Effects, type ParticleKind } from "./effects";
+import { Effects } from "./effects";
 import { PondSurface } from "./pond";
 import { FOAM_GLYPHS, GLINT_TICK, SeaSurface } from "./sea";
 import { type Creature, SPINE_NODES, type World } from "./world";
@@ -8682,22 +6544,6 @@ const WAKE = DOT_RGB.length - 1;
 // The pale cyan wake washes out on light backgrounds, so it darkens there.
 const WAKE_RGB_LIGHT: [number, number, number] = [0, 130, 180];
 
-/** Food colours by scene (ocean, pond) for dark and light pages; light pages get darker variants. */
-const MORSEL_RGB = {
-  dark: [
-    [255, 170, 90],
-    [214, 190, 140],
-  ],
-  light: [
-    [200, 110, 40],
-    [150, 120, 70],
-  ],
-} as const;
-const MORSEL_GLYPHS = ["*", "o"];
-/** Food alpha is quantised to this many steps, each with its own preallocated style. */
-const MORSEL_LEVELS = 5;
-const MORSEL_ALPHA = 0.95;
-
 // Water surface (natural mode, surface on, ocean and pond): the open sea from above, built in sea.ts.
 /** Swell tint: light on a face that tilts toward the sun, shade on one that tilts away. */
 const SWELL_RGB = { dark: [170, 225, 255], light: [0, 110, 160] } as const;
@@ -8729,8 +6575,6 @@ const RING_WOBBLE_POND = 0.06;
 const RING_GAP_POND = 0.27;
 const RING_DRIFT = 6;
 const RING_GLYPHS = [".", "'", "`", ","];
-/** A bite's ring set lasts this long, in seconds, from its start to the outer ring's edge. */
-const RIPPLE_LIFE = 0.8;
 /** The sea's layout seed: one fixed sea, the same on every load. */
 const SEA_SEED = 0x5ea;
 
@@ -8747,12 +6591,9 @@ function rampStyles(rgb: readonly number[], peak: number, levels: number) {
   );
 }
 
-// Rings and particles: each alpha quantised to ALPHA_LEVELS styles per kind.
+// Spray: each alpha quantised to ALPHA_LEVELS styles.
 const SPRAY_RGB = { dark: [230, 238, 255], light: [60, 70, 85] } as const;
-const BUBBLE_RGB = { dark: [190, 240, 255], light: [0, 120, 160] } as const;
 const PARTICLE_ALPHA = 0.85;
-/** Blow mist is 1.6× the particle alpha, capped so it stays a soft cloud. */
-const MIST_ALPHA = Math.min(0.9, PARTICLE_ALPHA * 1.6);
 
 const ACCENTS = ["#e0892c", "#e03a32", "#b44ae0", "#33c8cc", "#3cb54a", "#3150e8", "#d9c14a"];
 
@@ -9002,23 +6843,9 @@ function bodyDepthOf(sh: Creature) {
   return sh.dive === 0 ? sh.depth : sh.depth * (1 - 0.45 * sh.dive);
 }
 
-/**
- * The fraction of a body point at s (0 snout → 1 tail) that is out of the water, for Creature.emerge e. Rising
- * (e ≤ 1) the snout clears first; falling (e > 1) the snout goes back under first.
- */
-export function emergedAt(e: number, s: number) {
-  if (e <= 1) return smoothstep(0, 1, clamp((1.3 * e - s) / 0.3, 0, 1));
-  return 1 - smoothstep(0, 1, clamp((1.3 * (e - 1) - s) / 0.3, 0, 1));
-}
-
-/** The depth a body point is seen at: the part out of the water has no water veil, so it blends toward 1. */
-function emergedDepth(d0: number, e: number, s: number) {
-  return e === 0 ? d0 : d0 + (1 - d0) * emergedAt(e, s);
-}
-
-/** Draw key: a breaching animal (height) draws over the others at the same depth. */
+/** Draw key: the animal's depth. */
 function depthKey(sh: Creature) {
-  return sh.depth + 0.6 * sh.height;
+  return sh.depth;
 }
 
 /**
@@ -9039,19 +6866,10 @@ export function drawOrder(creatures: readonly Creature[], out: Int16Array) {
   }
 }
 
-/** Most eats per frame that stamp heat. */
-const EAT_HEAT_PER_FRAME = 4;
-/** Most bite ripple sets started per frame. */
-const EAT_RIPPLE_SETS_PER_FRAME = 2;
-/** Recent ripple starts remembered, so bites at one spot do not stack sets on top of each other. */
-const RIPPLE_HISTORY = 8;
-const RIPPLE_HISTORY_SECONDS = 0.3;
-/** A splash has no body length; it pushes the pond plants as a koi-sized bite would. */
+/** A splash has no body length; it pushes the pond plants as a koi of this length would. */
 const SPLASH_PUSH_SIZE = 60;
 /** A koi with dive below this swims shallow: it pushes the pond plants and shows on top of them. */
 const SHALLOW_DIVE = 0.35;
-/** A new set must start this many body lengths away from a recent one. */
-const RIPPLE_SPACING = 0.25;
 
 export class AsciiRenderer {
   private canvas: HTMLCanvasElement;
@@ -9071,7 +6889,6 @@ export class AsciiRenderer {
   private dotFreq = new Float32Array(0);
   private energy = new Float32Array(0);
   private energyTmp = new Float32Array(0);
-  private heat = new Float32Array(0);
   private bucketOf = new Uint8Array(0);
   private bucketOrder = new Int32Array(0);
   private bucketCounts = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
@@ -9079,18 +6896,8 @@ export class AsciiRenderer {
   private bucketStarts = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
   private bucketCursor = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
   private dotStyles: string[] = [];
-  /** Food glyph colours: [scene][level], scene 0 ocean and 1 pond. */
-  private morselStyles: string[][] = [];
-  /** Morsel cells drawn this frame (frame stamp); the sea skips them. */
-  private morselStamp = new Uint32Array(0);
-  /** Surface rings, spray, bubbles and mist: spawned by events, drawn in both colour modes. */
+  /** Surface rings and spray: spawned by events, drawn in both colour modes. */
   private effects = new Effects();
-  /** Ring starts of the last RIPPLE_HISTORY bite sets: x, y and world time. */
-  private rippleX = new Float64Array(RIPPLE_HISTORY);
-  private rippleY = new Float64Array(RIPPLE_HISTORY);
-  private rippleT = new Float64Array(RIPPLE_HISTORY).fill(-Infinity);
-  private rippleNext = 0;
-  private ripplesThisFrame = 0;
   /** Ring colours by alpha level. */
   private ringStyles: string[] = [];
   /** Pond scene: lily pads and duckweed, and the cells the pads cover (rings skip them). */
@@ -9102,8 +6909,8 @@ export class AsciiRenderer {
   private pondPending = true;
   /** This frame's scene is the pond. Turns off the open sea. */
   private pondScene = false;
-  /** Particle colours: [kind][level], kind 0 spray, 1 bubble, 2 blow mist. */
-  private particleStyles: string[][] = [];
+  /** Spray colours by alpha level. */
+  private particleStyles: string[] = [];
   /** The open sea: swell, glitter, windrows and whitecaps. Natural water with the surface on only. */
   private sea = new SeaSurface();
   private swellLit: string[] = [];
@@ -9115,12 +6922,9 @@ export class AsciiRenderer {
   private surface = true;
   /** Counts renders; mixed into effect seeds so each frame's randomness differs. */
   private frameCount = 0;
-  // Particle draw passes, bound once so the per-frame forEach allocates nothing.
-  private drawBubbleFn = (x: number, y: number, kind: ParticleKind, age01: number) => {
-    if (kind === 1) this.drawParticle(x, y, kind, age01, true);
-  };
-  private drawAirFn = (x: number, y: number, kind: ParticleKind, age01: number) => {
-    if (kind !== 1) this.drawParticle(x, y, kind, age01, false);
+  // Particle draw pass, bound once so the per-frame forEach allocates nothing.
+  private drawSprayFn = (x: number, y: number, age01: number) => {
+    this.drawParticle(x, y, age01);
   };
   private drawRingFn = (
     x: number,
@@ -9160,7 +6964,7 @@ export class AsciiRenderer {
   private bodyId = 0;
   private finTipLeft = 0;
   private finTipRight = 0;
-  /** Tail-fin beat for the current creature: lift is sin(phase), beat scales the flukes with it. */
+  /** Tail-fin beat for the current creature: tailLift is sin(phase), and the beat scales the flukes with it. */
   private tailLift = 0;
   private tailBeat = 1;
   // Scratch outputs of sampleBody(), to avoid allocating per sample.
@@ -9170,7 +6974,7 @@ export class AsciiRenderer {
   private hitS = 0;
   private hitV = 0;
   private hitDist = 0;
-  /** Reused for every coat paint call, so painting allocates nothing. belly and bellyAmount are set for every point. */
+  /** Reused for every coat paint call, so painting allocates nothing. */
   private paintPoint: PaintPoint = {
     s: 0,
     v: 0,
@@ -9178,40 +6982,15 @@ export class AsciiRenderer {
     across: 0,
     flag: 0,
     id: 0,
-    belly: false,
-    bellyAmount: 0,
   };
   /** Creature indices in draw order (see drawOrder); resized only when the creature count changes. */
   private order = new Int16Array(0);
-  // Pose factors for the creature being rasterized. Neutral (1, false, 0) when its poses are at rest.
-  /** Roll: width factor on the body and fins. */
-  private wf = 1;
-  /** Roll past a quarter turn: a pale belly. */
-  private belly = false;
-  /** How far the pale belly shows, 0–1; eased across the roll so it grows in rather than popping on. */
-  private bellyAmount = 0;
-  /** Gape: widens the head, and darkens the mouth when open. */
-  private gape = 0;
-  private mouthOpen = false;
-  /** Height: lifts the body shade. */
-  private lift = 0;
-  /** Height: how far the shadow falls. */
-  private shadowMul = 1;
-  /** Height: how strong the natural shadow is. */
-  private shadowFade = 1;
-  /** Airborne: how much bigger the body looks from above, 1 at rest and through a breath (see setPoseFactors). */
-  private airScale = 1;
-  /** The creature's emerge (0 under, 1 out, 2 under) and its airborne amount a, for the head-first pose. */
-  private emerge = 0;
-  private emergeA = 0;
 
   /** Cells holding a fish this frame (frame stamp); dots skip them. */
   private fishStamp = new Uint32Array(0);
   private frameId = 0;
   /** Fish cells bucketed by brightness, so each bucket is one fillStyle. */
   private fishBuckets: number[][] = FISH_ALPHAS.map(() => []);
-  /** Stunned fish cells this frame: drawn in the brightest fish style, with a `~`. */
-  private fishStunned: number[] = [];
   private fishStyles: string[] = [];
   private palette: OceanPalette = DEFAULT_PALETTE;
   private colors: OceanColors = "theme";
@@ -9281,13 +7060,10 @@ export class AsciiRenderer {
         (_, k) => `rgba(${rgb.join(",")},${((peak * (k + 1)) / ALPHA_LEVELS).toFixed(3)})`,
       );
     this.ringStyles = levelStyles(mode === "light" ? WAKE_RGB_LIGHT : DOT_RGB[WAKE], 1);
-    const spray = levelStyles(mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark, PARTICLE_ALPHA);
-    const bubble = levelStyles(
-      mode === "light" ? BUBBLE_RGB.light : BUBBLE_RGB.dark,
+    this.particleStyles = levelStyles(
+      mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark,
       PARTICLE_ALPHA,
     );
-    const mist = levelStyles(mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark, MIST_ALPHA);
-    this.particleStyles = [spray, bubble, mist];
     this.swellLit = rampStyles(SWELL_RGB[mode], SWELL_PEAK[mode].lit, SWELL_LEVELS);
     this.swellShade = rampStyles(SWELL_SHADE_RGB, SWELL_PEAK[mode].shade, SWELL_LEVELS);
     this.glintStyles = GLINT_ALPHA[mode].map((a) => `rgba(${GLINT_RGB[mode].join(",")},${a})`);
@@ -9301,12 +7077,6 @@ export class AsciiRenderer {
         this.dotStyles.push(`rgba(${r},${g},${b},${a.toFixed(3)})`);
       }
     }
-    this.morselStyles = MORSEL_RGB[mode].map(([r, g, b]) =>
-      Array.from(
-        { length: MORSEL_LEVELS },
-        (_, k) => `rgba(${r},${g},${b},${((MORSEL_ALPHA * (k + 1)) / MORSEL_LEVELS).toFixed(3)})`,
-      ),
-    );
     this.pond.setPalette(mode);
   }
 
@@ -9349,7 +7119,6 @@ export class AsciiRenderer {
     this.dotFreq = new Float32Array(n);
     this.energy = new Float32Array(n);
     this.energyTmp = new Float32Array(n);
-    this.heat = new Float32Array(n);
     this.bucketOf = new Uint8Array(n);
     this.bucketOrder = new Int32Array(n);
     this.bodyFlag = new Uint8Array(n);
@@ -9364,7 +7133,6 @@ export class AsciiRenderer {
     this.bodyCreature = new Uint8Array(n);
     this.bodyShadowStrength = new Float32Array(n);
     this.fishStamp = new Uint32Array(n);
-    this.morselStamp = new Uint32Array(n);
     this.sea.layout(this.cols, this.rows, this.cw, this.ch, SEA_SEED);
     this.padMask = new Uint8Array(n);
     this.koiMask = new Uint8Array(n);
@@ -9563,11 +7331,8 @@ export class AsciiRenderer {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    this.drawHeat();
     this.drawFish();
-    this.drawMorsels(world);
     if (waves) this.drawSea(t);
-    this.effects.forEachParticle(this.drawBubbleFn);
     // Pad shadows fall on the floor, so the creatures swim over them.
     if (plants) this.pond.drawShadows(ctx, this.cw, ch, cols, this.rows);
     if (natural) this.drawNatural(t);
@@ -9578,7 +7343,7 @@ export class AsciiRenderer {
     }
     // Rings and spray sit above the water line, over the animals.
     this.effects.forEachRing(this.drawRingFn);
-    this.effects.forEachParticle(this.drawAirFn);
+    this.effects.forEachParticle(this.drawSprayFn);
   }
 
   // ── simulation → field ──────────────────────────────────────────────
@@ -9604,56 +7369,20 @@ export class AsciiRenderer {
     }
   }
 
-  /** Events become field stamps (wake, heat) and render-side effects (rings, spray, bubbles, mist). */
+  /** Events become field stamps (wake) and render-side effects (rings and spray). */
   private consumeEvents(world: World) {
     const { effects } = this;
     const natural = this.colors === "natural";
     const surface = natural && this.surface;
-    const minSide = Math.min(this.width, this.height);
-    // A gulp of a whole bait ball eats dozens of fish in one step; only the first few leave heat, or the
-    // stamps merge into a solid block.
-    let heatStamps = 0;
-    this.ripplesThisFrame = 0;
     for (let ei = 0; ei < world.events.length; ei++) {
       const e = world.events[ei];
       if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) continue;
       // Effect randomness: hash3 on this seed, the particle index and the frame, never the world rng.
       const seed = this.frameCount * 1031 + ei;
-      if (e.kind === "eat") {
-        if (heatStamps++ < EAT_HEAT_PER_FRAME) this.stamp(this.heat, e.x, e.y, 2, 1);
-        if (!natural) this.stamp(this.energy, e.x, e.y, 3, 0.9);
-        if (surface) {
-          if (e.size === undefined) effects.ring(e.x, e.y, 40, 14, 0.5);
-          else if (this.claimRippleSet(e.x, e.y, e.size, world.time))
-            this.rippleSet(e.x, e.y, e.size);
-        }
-      } else if (e.kind === "ripple") {
-        if (!natural) this.stamp(this.energy, e.x, e.y, 3, 0.9);
-        // Ripple sets are a surface effect; theme mode and `surface: false` keep the single ring.
-        if (e.size === undefined || !surface) {
-          effects.ring(e.x, e.y, 55, 26, 0.8);
-          effects.spray(e.x, e.y, 3, 10, seed);
-        } else {
-          // The bite's eat event usually claims the set first, so this one is skipped and the bite draws one set.
-          if (this.claimRippleSet(e.x, e.y, e.size, world.time)) this.rippleSet(e.x, e.y, e.size);
-          effects.bubble(e.x, e.y, 1.2, seed);
-          effects.bubble(e.x, e.y, 1.2, seed + 1);
-        }
-      } else if (e.kind === "blow") {
-        // A blow's plume is a fifth of the animal's length across, so a humpback's column is far bigger than a dolphin's puff.
-        const radius = e.size === undefined ? 0.08 * minSide : Math.max(10, 0.2 * e.size);
-        effects.blow(e.x, e.y, radius, seed);
-        effects.ring(e.x, e.y, 30, 18, 0.6);
-      } else if (e.kind === "bubble") {
-        effects.bubble(e.x, e.y, 1.2, seed);
-      } else {
-        if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
-        // A splash with a size is a crash (a breach landing): its ring and spray grow with the animal.
-        const k = e.size === undefined ? 1 : clamp(e.size / 150, 1, 2.5);
-        effects.ring(e.x, e.y, 120 * k, 90 * k, 1);
-        effects.spray(e.x, e.y, 26, 60 * k, seed);
-        if (this.pondScene && surface) this.pond.push(e.x, e.y, SPLASH_PUSH_SIZE);
-      }
+      if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
+      effects.ring(e.x, e.y, 120, 90, 1);
+      effects.spray(e.x, e.y, 26, 60, seed);
+      if (this.pondScene && surface) this.pond.push(e.x, e.y, SPLASH_PUSH_SIZE);
     }
     world.events.length = 0;
   }
@@ -9681,32 +7410,6 @@ export class AsciiRenderer {
     }
   }
 
-  /** Two rings started one after another, each wider and fainter than the last: a bite breaking the surface. */
-  private rippleSet(x: number, y: number, size: number) {
-    if (this.pondScene) this.pond.push(x, y, size);
-    for (let k = 0; k < 2; k++) {
-      const maxR = (0.22 + 0.1 * k) * size + 10;
-      this.effects.ring(x, y, maxR / RIPPLE_LIFE, maxR, 0.9 - 0.25 * k, 0.16 * k);
-    }
-  }
-
-  /** True, and records the start, when a bite ripple may start at (x, y) now: under the frame cap and clear of recent starts. */
-  private claimRippleSet(x: number, y: number, size: number, now: number) {
-    if (this.ripplesThisFrame >= EAT_RIPPLE_SETS_PER_FRAME) return false;
-    const reach = RIPPLE_SPACING * size;
-    for (let j = 0; j < RIPPLE_HISTORY; j++) {
-      if (now - this.rippleT[j] >= RIPPLE_HISTORY_SECONDS) continue;
-      if (Math.hypot(this.rippleX[j] - x, this.rippleY[j] - y) < reach) return false;
-    }
-    const j = this.rippleNext;
-    this.rippleNext = (j + 1) % RIPPLE_HISTORY;
-    this.rippleX[j] = x;
-    this.rippleY[j] = y;
-    this.rippleT[j] = now;
-    this.ripplesThisFrame++;
-    return true;
-  }
-
   private depositWake(world: World) {
     // Natural water has no energy trails: the ripple rings and spray are the surface response.
     if (this.colors === "natural") return;
@@ -9730,7 +7433,7 @@ export class AsciiRenderer {
 
   /** Blur + decay so wakes spread out like ripples and fade. */
   private diffuse(dt: number) {
-    const { cols, rows, energy, energyTmp: tmp, heat } = this;
+    const { cols, rows, energy, energyTmp: tmp } = this;
     const decay = Math.exp(-dt * 1.5);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -9744,8 +7447,6 @@ export class AsciiRenderer {
     }
     this.energy = tmp;
     this.energyTmp = energy;
-    const heatDecay = Math.exp(-dt * 2.2);
-    for (let i = 0; i < heat.length; i++) heat[i] *= heatDecay;
   }
 
   // ── creatures ──────────────────────────────────────────────────────────
@@ -9787,11 +7488,7 @@ export class AsciiRenderer {
     const s = bestS;
     const u = s * L;
     const shape = this.def.shape;
-    let w = shape.halfWidth(s) * L * this.wf;
-    // Open mouth: the head flares out over the front quarter of the body.
-    if (this.gape > 0 && s < 0.25) w *= 1 + 0.5 * this.gape * (1 - s / 0.25);
-    // Head first: the emerged part swells a little, the part still under the surface keeps its width.
-    if (this.emerge !== 0) w *= 1 + 0.2 * this.emergeA * emergedAt(this.emerge, s);
+    const w = shape.halfWidth(s) * L;
     this.hitDist = a;
     this.hitS = s;
     this.hitV = a * bestSign;
@@ -9847,14 +7544,6 @@ export class AsciiRenderer {
         shade = Math.max(shade, 0.8);
       } else if (this.marked(s, a * bestSign, L, across)) {
         flag = FLAG_MARK;
-      }
-      // A rolled-over shark shows its pale belly. Coat species take the flag through PaintPoint instead.
-      if (!this.def.coats && flag === FLAG_BODY) {
-        shade = Math.max(shade, 0.85 * this.bellyAmount + shade * (1 - this.bellyAmount));
-      }
-      if (this.mouthOpen && s < 0.04) {
-        flag = FLAG_EYE;
-        shade = 0;
       }
       this.hitFlag = flag;
       this.hitShade = shade;
@@ -9937,59 +7626,6 @@ export class AsciiRenderer {
     return this.def.marking?.(s, v, L, across, this.bodyId) ?? false;
   }
 
-  /** Sets the pose factors for one creature. At rest they come out neutral: width 1, no belly, no gape, no lift. */
-  private setPoseFactors(sh: Creature) {
-    this.wf = sh.roll === 0 ? 1 : 0.4 + 0.6 * Math.abs(Math.cos((sh.roll * Math.PI) / 2));
-    // The belly eases in across the roll (0.3 → 0.8 rad of the quarter turn), so it grows outward rather than popping.
-    this.bellyAmount = smoothstep(0.3, 0.8, Math.abs(sh.roll));
-    this.belly = this.bellyAmount > 0.5;
-    this.gape = sh.gape;
-    this.mouthOpen = sh.gape > 0.3;
-    this.lift = 0.2 * sh.height;
-    this.shadowMul = 1 + 3 * sh.height;
-    this.shadowFade = 1 - 0.6 * sh.height;
-    // Seen from above, a body that leaves the water comes closer to the camera. A breath (height 0.3) stays at 1.
-    this.airScale = 1 + 0.45 * clamp((sh.height - 0.3) / 0.7, 0, 1);
-    this.emerge = sh.emerge;
-    this.emergeA = clamp((sh.height - 0.3) / 0.7, 0, 1);
-  }
-
-  /**
-   * Body poses on the render spine, after the travelling wave: slap whips the tail sideways, and pitch
-   * foreshortens the body toward a fixed head. Height's airborne scale is applied by rasterizeCreatures.
-   */
-  private posePoints(sh: Creature, L: number) {
-    const { spine } = this;
-    const N = SPINE_NODES;
-    const n = sh.nodes;
-    if (sh.slap !== 0) {
-      for (let k = 0; k < N; k++) {
-        const s = k / (N - 1);
-        const a = Math.max(0, k - 1);
-        const b = Math.min(N - 1, k + 1);
-        let tx = n[a * 2] - n[b * 2];
-        let ty = n[a * 2 + 1] - n[b * 2 + 1];
-        const tl = Math.hypot(tx, ty) || 1;
-        tx /= tl;
-        ty /= tl;
-        // Only the rear half swings, more toward the tail.
-        const off = L * 0.22 * sh.slap * Math.max(0, (s - 0.45) / 0.55) ** 2;
-        spine[k * 2] -= ty * off;
-        spine[k * 2 + 1] += tx * off;
-      }
-    }
-    if (sh.pitch !== 0) {
-      // Pitch foreshortens the body from above, but never to a stub: at full pitch it keeps 70% of its length.
-      const f = 1 - 0.3 * smoothstep(0, 1, Math.abs(sh.pitch));
-      const hx = spine[0];
-      const hy = spine[1];
-      for (let k = 1; k < N; k++) {
-        spine[k * 2] = hx + (spine[k * 2] - hx) * f;
-        spine[k * 2 + 1] = hy + (spine[k * 2 + 1] - hy) * f;
-      }
-    }
-  }
-
   /**
    * Build a smooth, undulating render spine from the sim spine, then
    * supersample every cell in the creature's bounding box against the shape.
@@ -10024,12 +7660,8 @@ export class AsciiRenderer {
       const L = sh.length;
       const N = SPINE_NODES;
       const n = sh.nodes;
-      // A rush to food sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
+      // A faster swim sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
       const swim = clamp(sh.speed / 60, 0.4, natural ? 1.7 : 1.4);
-      // At rest every pose is exactly 0, and the pose block and factors are skipped or neutral.
-      const posed =
-        sh.height !== 0 || sh.pitch !== 0 || sh.roll !== 0 || sh.gape !== 0 || sh.slap !== 0;
-      this.setPoseFactors(sh);
       this.def = CREATURES[sh.species];
       const shape = this.def.shape;
       const undulation = shape.undulation ?? 1;
@@ -10051,28 +7683,6 @@ export class AsciiRenderer {
         spine[k * 2] = n[k * 2] - ty * off;
         spine[k * 2 + 1] = n[k * 2 + 1] + tx * off;
       }
-      if (posed) this.posePoints(sh, L);
-      // Airborne, the body is drawn bigger about its mid-spine node. LA is the length as drawn; the shadow keeps L.
-      const LA = L * this.airScale;
-      if (sh.emerge !== 0) {
-        // Head first: each node grows by its own out fraction (about mid-spine), so the emerged part grows toward the camera.
-        const mid = (N >> 1) * 2;
-        const mx = spine[mid];
-        const my = spine[mid + 1];
-        for (let k = 0; k < N; k++) {
-          const f = 1 + (this.airScale - 1) * emergedAt(sh.emerge, k / (N - 1));
-          spine[k * 2] = mx + (spine[k * 2] - mx) * f;
-          spine[k * 2 + 1] = my + (spine[k * 2 + 1] - my) * f;
-        }
-      } else if (this.airScale !== 1) {
-        const mid = (N >> 1) * 2;
-        const mx = spine[mid];
-        const my = spine[mid + 1];
-        for (let k = 0; k < N; k++) {
-          spine[k * 2] = mx + (spine[k * 2] - mx) * this.airScale;
-          spine[k * 2 + 1] = my + (spine[k * 2 + 1] - my) * this.airScale;
-        }
-      }
       arc[0] = 0;
       for (let k = 1; k < N; k++) {
         arc[k] =
@@ -10085,8 +7695,8 @@ export class AsciiRenderer {
       const bank = clamp(sh.turn * 0.45, -0.35, 0.35);
       const flex = 1 + (shape.finFlap ?? 0.06) * Math.sin(sh.phase * (shape.finFlapRate ?? 0.5));
       const reachFin = shape.pectoral[3];
-      this.finTipRight = LA * reachFin * flex * (1 - bank) * this.wf;
-      this.finTipLeft = LA * reachFin * flex * (1 + bank) * this.wf;
+      this.finTipRight = L * reachFin * flex * (1 - bank);
+      this.finTipLeft = L * reachFin * flex * (1 + bank);
       this.tailLift = Math.sin(sh.phase);
       this.tailBeat = 1 + 0.1 * this.tailLift;
 
@@ -10110,8 +7720,7 @@ export class AsciiRenderer {
               shape.tail ? tailSpan(shape.tail) : 0,
             )
           : Math.max(shape.pectoral[3], shape.tail ? tailSpan(shape.tail) : 0);
-      let reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * LA;
-      if (posed && sh.slap !== 0) reach += 0.25 * Math.abs(sh.slap) * LA;
+      const reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L;
       const c0 = Math.max(0, Math.floor((minX - reach) / cw));
       const c1 = Math.min(cols - 1, Math.floor((maxX + reach) / cw));
       const r0 = Math.max(0, Math.floor((minY - reach) / ch));
@@ -10127,30 +7736,19 @@ export class AsciiRenderer {
             ? named[coatName]
             : null;
         this.bodyCoat.push(coat);
-        this.rasterizeNatural(
-          sh,
-          LA,
-          reach,
-          c0,
-          c1,
-          r0,
-          r1,
-          kindIndex,
-          this.bodyCoat.length - 1,
-          t,
-        );
+        this.rasterizeNatural(sh, L, reach, c0, c1, r0, r1, kindIndex, this.bodyCoat.length - 1, t);
         continue;
       }
 
       const skipBeyond = reach + Math.hypot(cw, ch);
-      const shadowDc = Math.round((L * 0.035 * this.shadowMul) / cw) + 1;
-      const shadowDr = Math.round((L * 0.02 * this.shadowMul) / ch) + 1;
+      const shadowDc = Math.round((L * 0.035) / cw) + 1;
+      const shadowDr = Math.round((L * 0.02) / ch) + 1;
 
       for (let r = r0; r <= r1; r++) {
         for (let c = c0; c <= c1; c++) {
           const x = c * cw;
           const y = r * ch;
-          const centerHit = this.sampleBody(x + cw / 2, y + ch / 2, LA);
+          const centerHit = this.sampleBody(x + cw / 2, y + ch / 2, L);
           if (!centerHit && this.hitDist > skipBeyond) continue;
           const flag = this.hitFlag;
           const shade = this.hitShade;
@@ -10159,7 +7757,7 @@ export class AsciiRenderer {
 
           let hits = centerHit ? 1 : 0;
           for (let k = 0; k < SUBSAMPLES.length; k += 2) {
-            if (this.sampleBody(x + SUBSAMPLES[k] * cw, y + SUBSAMPLES[k + 1] * ch, LA)) hits++;
+            if (this.sampleBody(x + SUBSAMPLES[k] * cw, y + SUBSAMPLES[k + 1] * ch, L)) hits++;
           }
           if (hits === 0) continue;
           const coverage = hits / 5;
@@ -10169,13 +7767,13 @@ export class AsciiRenderer {
           const key =
             (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
           bodyKey[i] = key;
-          bodyDepth[i] = emergedDepth(bodyDepthOf(sh), sh.emerge, s);
+          bodyDepth[i] = bodyDepthOf(sh);
           bodyKind[i] = kindIndex;
 
           if (centerHit && coverage >= 0.6) {
             bodyFlag[i] = flag;
             const flicker = (hash3(c, r, Math.floor(t * 6)) - 0.5) * 0.06;
-            bodyShade[i] = clamp(shade + flicker + this.lift, 0, 1);
+            bodyShade[i] = clamp(shade + flicker, 0, 1);
             const sc = c + shadowDc;
             const sr = r + shadowDr;
             if (sc < cols && sr < rows) bodyShadow[sr * cols + sc] = 1;
@@ -10190,8 +7788,7 @@ export class AsciiRenderer {
 
   /**
    * Natural mode: each cell is two half cells, and a half is solid when its centre and at least
-   * one side sample hit. Writes the per-half buffers that drawNatural reads. `L` is the length as drawn
-   * (scaled while airborne); the shadow is cast at the true length.
+   * one side sample hit. Writes the per-half buffers that drawNatural reads.
    */
   private rasterizeNatural(
     sh: Creature,
@@ -10224,11 +7821,10 @@ export class AsciiRenderer {
     const coat = this.bodyCoat[creature];
     const skipBeyond = reach + Math.hypot(cw, ch);
     const depth = bodyDepthOf(sh);
-    const shadowL = L / this.airScale;
-    const shadowDc = Math.round((shadowL * 0.035 * (0.4 + 1.2 * depth) * this.shadowMul) / cw) + 1;
-    const shadowDr = Math.round((shadowL * 0.02 * (0.4 + 1.2 * depth) * this.shadowMul) / ch) + 1;
-    // Shallow bodies throw a strong shadow, deep ones a faint one; a breaching one throws it softer.
-    const shadowStrength = (0.85 - 0.45 * depth) * this.shadowFade;
+    const shadowDc = Math.round((L * 0.035 * (0.4 + 1.2 * depth)) / cw) + 1;
+    const shadowDr = Math.round((L * 0.02 * (0.4 + 1.2 * depth)) / ch) + 1;
+    // Shallow bodies throw a strong shadow, deep ones a faint one.
+    const shadowStrength = 0.85 - 0.45 * depth;
     const flickerTick = Math.floor(t * 6);
 
     for (let r = r0; r <= r1; r++) {
@@ -10269,7 +7865,7 @@ export class AsciiRenderer {
           // A half is solid when its centre and at least one side sample hit.
           if (mid && sides > 0) {
             const flicker = (hash3(c, 2 * r + h, flickerTick) - 0.5) * 0.06;
-            const solidShade = clamp(shade + flicker + this.lift, 0, 1);
+            const solidShade = clamp(shade + flicker, 0, 1);
             const region = coat ? this.paintRegion(coat, pointS, pointV, pointAcross, flag, L) : 0;
             if (h === 0) {
               topSolid = true;
@@ -10296,7 +7892,7 @@ export class AsciiRenderer {
         // Body-anchored key so each glyph rides along with the skin.
         bodyKey[i] =
           (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
-        bodyDepth[i] = emergedDepth(bodyDepthOf(sh), sh.emerge, s);
+        bodyDepth[i] = bodyDepthOf(sh);
         bodyKind[i] = kindIndex;
         bodyCreature[i] = creature;
 
@@ -10399,8 +7995,6 @@ export class AsciiRenderer {
     p.across = across;
     p.flag = flag;
     p.id = this.bodyId;
-    p.belly = this.belly;
-    p.bellyAmount = this.bellyAmount;
     const region = coat.paint ? coat.paint(p) : 0;
     return Math.max(0, Math.min(coat.regions.length - 1, region | 0));
   }
@@ -10550,7 +8144,7 @@ export class AsciiRenderer {
     }
   }
 
-  // ── fish, dots, heat ────────────────────────────────────────────────
+  // ── fish, dots ──────────────────────────────────────────────────────
 
   /**
    * Snap each fish to a cell and bucket it by brightness: far fish are dim,
@@ -10558,20 +8152,15 @@ export class AsciiRenderer {
    * claim a cell first when two land in the same one.
    */
   private markFish(world: World) {
-    const { fishStamp, fishBuckets, fishStunned, bodyFlag } = this;
+    const { fishStamp, fishBuckets, bodyFlag } = this;
     const frame = ++this.frameId;
     for (const bucket of fishBuckets) bucket.length = 0;
-    fishStunned.length = 0;
     for (let pass = 0; pass < 2; pass++) {
       for (const f of world.fish) {
         if (!f.alive || (f.depth > 0.78 ? 0 : 1) !== pass) continue;
         const i = this.cellIndex(f.x, f.y);
         if (i < 0 || fishStamp[i] === frame || bodyFlag[i]) continue;
         fishStamp[i] = frame;
-        if (f.stun > 0) {
-          fishStunned.push(i);
-          continue;
-        }
         const glint = clamp(Math.abs(f.turn) / 3.5, 0, 1);
         const v = 0.3 + (0.4 * (f.depth - 0.55)) / 0.45 + 0.3 * Math.max(glint, f.alarm);
         fishBuckets[clamp(Math.floor(v * FISH_ALPHAS.length), 0, FISH_ALPHAS.length - 1)].push(i);
@@ -10579,32 +8168,8 @@ export class AsciiRenderer {
     }
   }
 
-  /**
-   * Food in the water: `*` for ocean bait, `o` for pond pellets. Each fades as it sinks or dissolves,
-   * and stays hidden in any cell a body covers.
-   */
-  private drawMorsels(world: World) {
-    const { ctx, cw, ch, cols, bodyFlag, morselStamp, frameId } = this;
-    const scene = world.scene === "pond" ? 1 : 0;
-    const glyph = MORSEL_GLYPHS[scene];
-    const styles = this.morselStyles[scene];
-    for (const m of world.morsels) {
-      if (!m.alive || m.fade >= 1) continue;
-      const i = this.cellIndex(m.x, m.y);
-      if (i < 0 || bodyFlag[i]) continue;
-      const level = clamp(
-        Math.ceil(MORSEL_ALPHA * (1 - m.fade) * MORSEL_LEVELS) - 1,
-        0,
-        MORSEL_LEVELS - 1,
-      );
-      morselStamp[i] = frameId;
-      ctx.fillStyle = styles[level];
-      ctx.fillText(glyph, (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
-    }
-  }
-
   private drawFish() {
-    const { ctx, cw, ch, cols, fishBuckets, fishStunned } = this;
+    const { ctx, cw, ch, cols, fishBuckets } = this;
     for (let b = 0; b < fishBuckets.length; b++) {
       const bucket = fishBuckets[b];
       if (!bucket.length) continue;
@@ -10612,25 +8177,6 @@ export class AsciiRenderer {
       for (const i of bucket) {
         ctx.fillText("-", (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
       }
-    }
-    if (fishStunned.length) {
-      ctx.fillStyle = this.fishStyles[fishBuckets.length - 1];
-      for (const i of fishStunned) {
-        ctx.fillText("~", (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
-      }
-    }
-  }
-
-  private drawHeat() {
-    const { ctx, heat, cols, cw, ch } = this;
-    for (let i = 0; i < heat.length; i++) {
-      const h = heat[i];
-      if (h < 0.08) continue;
-      const col = i % cols;
-      const row = (i / cols) | 0;
-      ctx.fillStyle =
-        h > 0.5 ? `rgba(255,120,60,${h.toFixed(2)})` : `rgba(220,40,40,${(h * 1.6).toFixed(2)})`;
-      ctx.fillText(h > 0.6 ? "*" : "·", col * cw + cw / 2, row * ch + ch / 2 + 1);
     }
   }
 
@@ -10726,15 +8272,14 @@ export class AsciiRenderer {
     }
   }
 
-  // ── water surface: the sea, rings, spray, bubbles ─────────────────
+  // ── water surface: the sea, rings, spray ──────────────────────────
 
   /**
    * The open sea from above, over the empty water cells: a faint swell tint, then the sun glitter,
-   * windrow dashes and whitecap foam on top. Empty means no body, fish or food, which are all drawn over it.
+   * windrow dashes and whitecap foam on top. Empty means no body or fish, which are both drawn over it.
    */
   private drawSea(t: number) {
-    const { ctx, cols, rows, cw, ch, energy, bodyFlag, fishStamp, morselStamp, frameId, sea } =
-      this;
+    const { ctx, cols, rows, cw, ch, energy, bodyFlag, fishStamp, frameId, sea } = this;
     const { z, streak, foamGlyph, foamLevel } = sea;
     const mode = this.palette.mode;
     // The swell tint: one alpha level per slope band. A run of cells on the same level is one fillRect.
@@ -10746,12 +8291,7 @@ export class AsciiRenderer {
         if (c < cols) {
           const i = r * cols + c;
           const v = z[i];
-          const open = !(
-            bodyFlag[i] ||
-            energy[i] > 0.45 ||
-            fishStamp[i] === frameId ||
-            morselStamp[i] === frameId
-          );
+          const open = !(bodyFlag[i] || energy[i] > 0.45 || fishStamp[i] === frameId);
           if (open && v > SWELL_START) {
             const level = Math.floor(((v - SWELL_START) / SWELL_SPAN) * SWELL_LEVELS);
             style = this.swellLit[clamp(level, 0, SWELL_LEVELS - 1)];
@@ -10775,12 +8315,7 @@ export class AsciiRenderer {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const i = r * cols + c;
-        if (
-          bodyFlag[i] ||
-          energy[i] > 0.45 ||
-          fishStamp[i] === frameId ||
-          morselStamp[i] === frameId
-        ) {
+        if (bodyFlag[i] || energy[i] > 0.45 || fishStamp[i] === frameId) {
           continue;
         }
         const x = (c + 0.5) * cw;
@@ -10805,26 +8340,14 @@ export class AsciiRenderer {
     }
   }
 
-  /**
-   * One particle at its cell, fading with age01. Bubbles (`skipBodies`) stay out of body cells;
-   * spray and mist draw over them.
-   */
-  private drawParticle(
-    x: number,
-    y: number,
-    kind: ParticleKind,
-    age01: number,
-    skipBodies: boolean,
-  ) {
-    const { ctx, cw, ch, cols, bodyFlag } = this;
+  /** One spray droplet at its cell, fading with age01. Spray draws over the animals. */
+  private drawParticle(x: number, y: number, age01: number) {
+    const { ctx, cw, ch, cols } = this;
     const i = this.cellIndex(x, y);
-    if (i < 0 || (skipBodies && bodyFlag[i])) return;
+    if (i < 0) return;
     const level = clamp(Math.floor((1 - age01) * ALPHA_LEVELS), 0, ALPHA_LEVELS - 1);
-    let glyph: string;
-    if (kind === 1) glyph = age01 < 0.45 ? "o" : age01 < 0.8 ? "°" : ".";
-    else if (kind === 0) glyph = age01 < 0.25 ? "*" : age01 < 0.5 ? "," : age01 < 0.8 ? "." : "'";
-    else glyph = age01 < 0.3 ? ":" : age01 < 0.65 ? "." : "'";
-    ctx.fillStyle = this.particleStyles[kind][level];
+    const glyph = age01 < 0.25 ? "*" : age01 < 0.5 ? "," : age01 < 0.8 ? "." : "'";
+    ctx.fillStyle = this.particleStyles[level];
     ctx.fillText(glyph, (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
   }
 
@@ -10923,11 +8446,6 @@ import { World } from "./world";
 
 const STEP = 1 / 60;
 const MAX_STEPS = 4;
-/** A press is a click only if the pointer moved less than this many px, within this many ms. */
-const CLICK_PX = 6;
-const CLICK_MS = 500;
-/** Presses on these are for the page (links, buttons, inputs), not for the ocean. */
-const INTERACTIVE = "a, button, input, textarea, select, label, [role=button], [contenteditable]";
 
 /** Constructor options for OceanEngine: the world's setup plus the pointer behaviour. */
 export type EngineOptions = {
@@ -10935,7 +8453,7 @@ export type EngineOptions = {
   seed?: number;
   scene?: OceanScene;
   baitFish?: number | "auto" | false;
-  /** "feed" drops food on a click; "splash" flashes the water on press; "none" ignores presses. Hover avoidance is always on. */
+  /** "splash" flashes the water on press; "none" ignores presses. Hover avoidance is always on. */
   interaction?: OceanInteraction;
   /** Animal colouring: real colours ("natural") or greyscale that inverts on light pages ("theme"). Default "theme". */
   colors?: OceanColors;
@@ -10962,8 +8480,6 @@ export class OceanEngine {
   private readPalette: (el: HTMLElement) => OceanPalette;
   private canvas: HTMLCanvasElement;
   private interaction: OceanInteraction;
-  /** Where the current feed press started, or null. */
-  private press: { x: number; y: number; t: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement, options: EngineOptions) {
     this.canvas = canvas;
@@ -11001,8 +8517,6 @@ export class OceanEngine {
     this.reducedMotion.addEventListener("change", this.onMotionPreference);
     window.addEventListener("pointermove", this.onPointerMove, { passive: true });
     window.addEventListener("pointerdown", this.onPointerDown, { passive: true });
-    window.addEventListener("pointerup", this.onPointerUp, { passive: true });
-    window.addEventListener("pointercancel", this.onPointerCancel, { passive: true });
     document.documentElement.addEventListener("pointerleave", this.onPointerLeave);
     window.addEventListener("blur", this.onPointerLeave);
 
@@ -11024,20 +8538,8 @@ export class OceanEngine {
     this.reducedMotion.removeEventListener("change", this.onMotionPreference);
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerdown", this.onPointerDown);
-    window.removeEventListener("pointerup", this.onPointerUp);
-    window.removeEventListener("pointercancel", this.onPointerCancel);
     document.documentElement.removeEventListener("pointerleave", this.onPointerLeave);
     window.removeEventListener("blur", this.onPointerLeave);
-  }
-
-  /** Starts a random jumper's jump (see World.playRandomJump). Reduced motion has no shows, so it returns 0. */
-  playRandomJump(): number {
-    if (this.reducedMotion.matches) return 0;
-    return this.world.playRandomJump();
-  }
-
-  hasJumpers(): boolean {
-    return this.world.hasJumpers();
   }
 
   private resize() {
@@ -11118,33 +8620,7 @@ export class OceanEngine {
   private onPointerDown = (e: PointerEvent) => {
     if (this.interaction === "none") return;
     const { x, y, inside } = this.toLocal(e);
-    if (this.interaction === "feed") {
-      // Only a primary-button press (or a touch or pen tap) can feed.
-      if (e.button !== 0) {
-        this.press = null;
-        return;
-      }
-      const onControl = (e.target as Element | null)?.closest?.(INTERACTIVE);
-      this.press = inside && !onControl ? { x, y, t: performance.now() } : null;
-      return;
-    }
     if (inside && !this.reducedMotion.matches) this.world.splash(x, y);
-  };
-
-  /** A scroll or other gesture took the pointer over, so the press is not a click. */
-  private onPointerCancel = () => {
-    this.press = null;
-  };
-
-  /** Feed mode: a press and release close together, in place, is a click that drops food. */
-  private onPointerUp = (e: PointerEvent) => {
-    const press = this.press;
-    this.press = null;
-    if (!press || this.interaction !== "feed" || this.reducedMotion.matches) return;
-    const { x, y, inside } = this.toLocal(e);
-    const moved = Math.hypot(x - press.x, y - press.y);
-    if (!inside || moved > CLICK_PX || performance.now() - press.t > CLICK_MS) return;
-    this.world.offerFood(press.x, press.y);
   };
 
   private onPointerLeave = () => {
@@ -11157,7 +8633,7 @@ export class OceanEngine {
 ```tsx
 "use client";
 
-import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { cn } from "../../lib/utils";
 import { createRng } from "./math";
@@ -11183,16 +8659,7 @@ export type {
 } from "./creatures/types";
 export type { SharkKind, SharkSpec } from "./world";
 
-export type AsciiOceanHandle = {
-  /** Makes a random animal that can jump do its jump; returns how long it lasts in seconds, or 0 when none can jump right now. */
-  playJump(): number;
-  /** Whether the roster has any animal that can jump at all. */
-  hasJumpers(): boolean;
-};
-
 export type AsciiOceanProps = {
-  /** Imperative handle: `playJump()` triggers a random jump, `hasJumpers()` says whether any animal can jump. */
-  ref?: Ref<AsciiOceanHandle>;
   /** Animals to put in the water, each with an optional count and size. */
   creatures?: CreatureGroup[];
   /** @deprecated Use `creatures`. Still supported. */
@@ -11203,7 +8670,7 @@ export type AsciiOceanProps = {
   baitFish?: number | "auto" | false;
   /** "true" keeps real length ratios between species; "stylized" compresses them. Default "stylized". */
   scale?: OceanScale;
-  /** What a press does: "feed" drops food and nearby animals swim over to eat, each in its own way; "splash" flashes the water; "none" ignores presses. Default "feed". */
+  /** What a press does: "splash" flashes the water; "none" ignores presses. Default "splash". */
   interaction?: OceanInteraction;
   /** "natural" paints animals in their real colours on any theme; "theme" keeps them greyscale and inverts them on light backgrounds. Default "natural". */
   colors?: OceanColors;
@@ -11221,29 +8688,18 @@ export type AsciiOceanProps = {
  * The props are read once per canvas; change `key` to swap the roster or scene.
  */
 export function AsciiOcean({
-  ref,
   creatures,
   sharks,
   scene = "ocean",
   baitFish,
   scale = "stylized",
-  interaction = "feed",
+  interaction = "splash",
   colors = "natural",
   surface = true,
   seed,
   className,
 }: AsciiOceanProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<OceanEngine | null>(null);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      playJump: () => engineRef.current?.playRandomJump() ?? 0,
-      hasJumpers: () => engineRef.current?.hasJumpers() ?? false,
-    }),
-    [],
-  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -11267,9 +8723,7 @@ export function AsciiOcean({
       colors,
       surface,
     });
-    engineRef.current = engine;
     return () => {
-      engineRef.current = null;
       engine.destroy();
     };
     // The props and seed are read once per canvas; a new array identity must not restart the simulation.
