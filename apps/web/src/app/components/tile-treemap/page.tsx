@@ -17,13 +17,11 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { TileTreemapDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "tile-treemap");
+import { DOCS } from "@/content/component-docs/tile-treemap";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/tile-treemap.utils.ts",
@@ -57,90 +55,6 @@ export const metadata: Metadata = {
     description: "Divide a single box into proportionally sized, color-coded tiles.",
   },
 };
-
-const USAGE_CODE = `"use client";
-
-import { TileTreemap } from "@/components/tile-treemap";
-
-const data = [
-  { label: "TypeScript", value: 42 },
-  { label: "JavaScript", value: 23 },
-  { label: "Python", value: 14 },
-  { label: "Rust", value: 9 },
-];
-
-export function Example() {
-  return <TileTreemap data={data} />;
-}`;
-
-const TOKENS_CODE = `:root {
-  --chart-1: oklch(0.5 0.19 292);
-  --chart-2: oklch(0.53 0.11 195);
-  --chart-3: oklch(0.55 0.13 75);
-  --chart-4: oklch(0.51 0.16 255);
-  --chart-5: oklch(0.53 0.18 20);
-  --chart-6: oklch(0.54 0.14 150);
-  --chart-7: oklch(0.52 0.14 230);
-  --chart-8: oklch(0.55 0.15 45);
-}
-
-.dark {
-  --chart-1: oklch(0.66 0.17 292);
-  --chart-2: oklch(0.7 0.1 195);
-  --chart-3: oklch(0.75 0.12 75);
-  --chart-4: oklch(0.67 0.14 255);
-  --chart-5: oklch(0.68 0.16 20);
-  --chart-6: oklch(0.71 0.13 150);
-  --chart-7: oklch(0.69 0.13 230);
-  --chart-8: oklch(0.73 0.14 45);
-}`;
-
-const TYPES_CODE = `type TileTreemapItem = {
-  label: string;
-  value: number;
-  color?: string;
-};
-
-type TileTreemapProps = {
-  data: TileTreemapItem[];
-  height?: number;
-  className?: string;
-  valueFormatter?: (value: number, percentage: number) => string;
-  hoverScale?: number;
-};`;
-
-const PROPS = [
-  {
-    name: "data",
-    type: "TileTreemapItem[]",
-    default: "—",
-    description: "Items to lay out. Each tile area is proportional to its value.",
-  },
-  {
-    name: "height",
-    type: "number",
-    default: "16:10",
-    description: "Fixed pixel height. Falls back to a 16:10 aspect ratio when omitted.",
-  },
-  {
-    name: "className",
-    type: "string",
-    default: "—",
-    description: "Classes applied to the treemap container.",
-  },
-  {
-    name: "valueFormatter",
-    type: "(value, percentage) => string",
-    default: "—",
-    description: "Formats the value shown inside each tile.",
-  },
-  {
-    name: "hoverScale",
-    type: "number",
-    default: "1.04",
-    description: "Scale applied to a tile on hover or keyboard focus.",
-  },
-] as const;
 
 function Section({
   id,
@@ -190,7 +104,6 @@ export default function TileTreemapPage() {
     <ComponentPreviewFrame
       name="tile-treemap"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-3xl"
       docs={<Docs />}
     >
@@ -226,7 +139,7 @@ function Docs() {
                 title="Add the chart tokens"
                 description="Eight categorical colors that adapt to light and dark mode."
               >
-                <CodeBlock code={TOKENS_CODE} language="css" />
+                <CodeBlock code={DOCS.examples[0]!.code} language="css" />
               </Step>
               <Step
                 index={2}
@@ -260,7 +173,7 @@ function Docs() {
         title="Usage"
         description="Pass values and the component computes each share and tile area."
       >
-        <CodeBlock code={USAGE_CODE} language="tsx" />
+        <CodeBlock code={DOCS.usage} language="tsx" />
       </Section>
       <Separator />
 
@@ -276,7 +189,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((prop) => (
+              {DOCS.props.map((prop) => (
                 <TableRow key={prop.name}>
                   <TableCell className="font-mono text-xs">{prop.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
@@ -295,7 +208,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
     </>
   );

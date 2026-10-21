@@ -1,6 +1,6 @@
 ---
 name: build-components-page
-description: Build and update component and block showcase pages for this portfolio. Use when adding a component to /components, adding a block to /blocks, editing a detail page, creating Preview, Code, and llm.txt tabs, documenting installation or APIs, or updating the components count and navigation.
+description: Build and update component and block showcase pages for this portfolio. Use when adding a component to /components, adding a block to /blocks, editing a detail page, creating Preview and Code tabs, documenting installation or APIs, or updating the components count and navigation.
 ---
 
 # Build Components Page
@@ -21,23 +21,31 @@ Create component and block documentation that matches the portfolio's existing l
 3. Register the component once in `COMPONENT_LIST` in `packages/core/src/components/layouts/components-section.tsx`.
 4. Derive displayed totals from `COMPONENT_COUNT`; never duplicate a numeric count.
 5. Keep page metadata, the table of contents, section ids, and visible sections synchronized.
-6. Publish `llm.txt` in the same change. Follow the section below for a new component and for a new block route at `apps/web/src/app/blocks/<slug>`.
+6. Add the `LLMS_CATALOG` entry in the same change so `/llms.txt` stays current. Follow the section below for a new component and for a new block route at `apps/web/src/app/blocks/<slug>`.
 
 ## Publish llm.txt
 
-Do this whenever a showcase component or block is added or its source files change. The generator owns the text. Do not hand-edit `apps/web/public/llms/**` or the `## Code` section of `apps/web/public/llms.txt`.
+Do this whenever a showcase component or block is added or its source files change. The generator feeds `/llms.txt` and the published text files. It does not add a tab to any page. The generator owns the text. Do not hand-edit `apps/web/public/llms/**` or the `## Code` section of `apps/web/public/llms.txt`.
 
 1. Add or update one entry in `LLMS_CATALOG` in `scripts/llms/catalog.ts`.
 2. Set `kind` to `component` or `block`. `slug` matches the route. `description` is the same one-line sentence used on the page. `docsPath` is `/components/<slug>` or `/blocks/<slug>`. Set `registryPath` only when `apps/web/public/r/<slug>.json` exists.
 3. List `files` as repo-root paths in read order. For a component, list implementation files, leaves first. For a block, list implementation files, then the route `data.ts` when the preview uses it, then `apps/web/src/app/blocks/<slug>/page.tsx`.
 4. From the repo root run `bun run llms`, then `bun run llms:check`. Both must exit 0.
-5. On a component page, load `const LLM_TEXT = readLlmsDocument("components", "<slug>")` from `@/lib/read-llms-document` and pass `llm={LLM_TEXT}` to every `ComponentDemo`. On a block page, pass `llmText={readLlmsDocument("blocks", "<slug>")}` to `BlockPreviewFrame`.
+5. Do not read the generated text in page code. Pages render only Preview and Code (and Install or Docs for blocks), so no page change is needed for llm.txt.
+
+## MCP
+
+The read-only MCP server at `/mcp` reads components from the registry, so a new component appears there automatically. Keyword search and docs need one more step:
+
+1. Add `apps/web/src/content/component-docs/<slug>.ts` with the component's docs entry, including `keywords`.
+2. Register that entry in `apps/web/src/content/component-docs/index.ts`.
+3. Run `bun run test:mcp`.
 
 ## Compose documentation pages
 
 - Use `PageHeader` for the title and an optional compact, single-line description.
 - Use `ComponentDemo` for interactive examples. Supply the rendered demo as `children` and the matching TSX usage as `code`.
-- Keep Preview, Code, and llm.txt as the line-style tabs, in that order, and retain their icons.
+- Keep Preview and Code as the line-style tabs, in that order, and retain their icons.
 - Center demos inside the bordered preview and constrain the interactive example with `previewClassName` when needed.
 - Reuse `Section`, `Separator`, `CodeBlock`, `CliCommand`, and the existing table primitives instead of creating parallel styling.
 - Pass an explicit language to `CodeBlock` when detection is ambiguous, especially `ts` for type-only snippets and `tsx` for component examples.
@@ -55,5 +63,5 @@ Do this whenever a showcase component or block is added or its source files chan
 
 1. Run formatting, type checks, lint, and the relevant build.
 2. Verify `/components` or `/blocks`, and the changed detail route, in the browser.
-3. Check Preview, Code, and llm.txt tab switching, interactive demo behavior, syntax highlighting, console errors, dark mode, and a 360px viewport. The llm.txt panel must show this slug's source paths.
+3. Check Preview and Code tab switching, interactive demo behavior, syntax highlighting, console errors, dark mode, and a 360px viewport.
 4. Confirm there is no horizontal page overflow and that the component count matches the registry.

@@ -14,6 +14,7 @@
     "./lib/utils": "./src/lib/utils.ts",
     "./lib/*": "./src/lib/*.ts",
     "./constants": "./src/constants.ts",
+    "./components/cli-command/package-managers": "./src/components/cli-command/package-managers.ts",
     "./components/*": "./src/components/*.tsx"
   },
   "scripts": {

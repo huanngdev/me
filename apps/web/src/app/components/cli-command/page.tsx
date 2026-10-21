@@ -14,11 +14,9 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
-
-const LLM_TEXT = readLlmsDocument("components", "cli-command");
+import { DOCS } from "@/content/component-docs/cli-command";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/cli-command/package-managers.ts",
@@ -33,95 +31,6 @@ export const metadata: Metadata = {
   description: "A command block with a tab per package manager.",
   alternates: { canonical: "/components/cli-command" },
 };
-
-const INSTALL_CODE = `import { CliCommand } from "@/components/cli-command/cli-command";
-
-export function Example() {
-  return <CliCommand install="lucide-react" />;
-}`;
-
-const DEV_CODE = `<CliCommand install="typescript" dev />`;
-
-const EXECUTE_CODE = `<CliCommand execute="shadcn@latest add button" />`;
-
-const RUN_CODE = `<CliCommand run="build" />`;
-
-const COMMANDS_CODE = `<CliCommand
-  commands={{
-    npm: "npx create-next-app@latest",
-    pnpm: "pnpm create next-app",
-    yarn: "yarn create next-app",
-    bun: "bunx create-next-app",
-  }}
-/>`;
-
-const PLAIN_CODE = `<CliCommand command="git clone https://github.com/huanngdev/me.git" />`;
-
-const TYPES_CODE = `type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
-
-type CliCommandSource =
-  | { install: string; dev?: boolean }
-  | { execute: string }
-  | { run: string }
-  | { commands: Record<PackageManager, string> };
-
-type CliCommandProps = (CliCommandSource | { command: string }) & {
-  defaultManager?: PackageManager;
-  prompt?: string;
-  className?: string;
-};`;
-
-const PROPS: { name: string; type: string; default: string; description: string }[] = [
-  {
-    name: "install",
-    type: "string",
-    default: "—",
-    description: "Packages to install. Resolved with install / add per manager.",
-  },
-  {
-    name: "dev",
-    type: "boolean",
-    default: "false",
-    description: "Adds -D right after the verb when install is set.",
-  },
-  {
-    name: "execute",
-    type: "string",
-    default: "—",
-    description: "A package binary, such as shadcn@latest add button.",
-  },
-  {
-    name: "run",
-    type: "string",
-    default: "—",
-    description: "A package.json script. Resolved with run / pnpm / yarn per manager.",
-  },
-  {
-    name: "commands",
-    type: "Record<PackageManager, string>",
-    default: "—",
-    description: "An explicit command per manager, shown as given.",
-  },
-  {
-    name: "command",
-    type: "string",
-    default: "—",
-    description: "A manager-independent command. No tabs are rendered.",
-  },
-  {
-    name: "defaultManager",
-    type: "PackageManager",
-    default: '"bun"',
-    description: "Manager shown before a selection is stored.",
-  },
-  {
-    name: "prompt",
-    type: "string",
-    default: '"$"',
-    description: "Prompt at the start of each line. Never copied.",
-  },
-  { name: "className", type: "string", default: "—", description: "Extra classes for the card." },
-];
 
 function Section({
   id,
@@ -160,21 +69,14 @@ function Demo({
         <h3 className="text-sm font-medium">{title}</h3>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      <ComponentDemo llm={LLM_TEXT} code={code}>
-        {children}
-      </ComponentDemo>
+      <ComponentDemo code={code}>{children}</ComponentDemo>
     </div>
   );
 }
 
 export default function CliCommandComponentPage() {
   return (
-    <ComponentPreviewFrame
-      name="cli-command"
-      files={SOURCE_FILES}
-      llmText={LLM_TEXT}
-      docs={<Docs />}
-    >
+    <ComponentPreviewFrame name="cli-command" files={SOURCE_FILES} docs={<Docs />}>
       <CliCommand install="lucide-react" />
     </ComponentPreviewFrame>
   );
@@ -195,28 +97,28 @@ function Docs() {
           <Demo
             title="Install dev dependencies"
             description="dev adds the -D flag to every manager's install verb."
-            code={DEV_CODE}
+            code={DOCS.examples[0]!.code}
           >
             <CliCommand install="typescript" dev />
           </Demo>
           <Demo
             title="Run a package binary"
             description="npx, pnpm dlx, yarn dlx, and bunx --bun."
-            code={EXECUTE_CODE}
+            code={DOCS.examples[1]!.code}
           >
             <CliCommand execute="shadcn@latest add button" />
           </Demo>
           <Demo
             title="Run a package script"
             description="npm run, pnpm, yarn, and bun run."
-            code={RUN_CODE}
+            code={DOCS.examples[2]!.code}
           >
             <CliCommand run="build" />
           </Demo>
           <Demo
             title="Custom commands"
             description="Pass one explicit command per manager when a resolver does not fit."
-            code={COMMANDS_CODE}
+            code={DOCS.examples[3]!.code}
           >
             <CliCommand
               commands={{
@@ -230,7 +132,7 @@ function Docs() {
           <Demo
             title="Plain command"
             description="A command with no manager dimension renders without tabs."
-            code={PLAIN_CODE}
+            code={DOCS.examples[4]!.code}
           >
             <CliCommand command="git clone https://github.com/huanngdev/me.git" />
           </Demo>
@@ -253,7 +155,7 @@ function Docs() {
         description="Pick the source kind that matches the command, then read the active tab."
       >
         <div className="space-y-4">
-          <CodeBlock code={INSTALL_CODE} />
+          <CodeBlock code={DOCS.usage} />
           <p className="text-muted-foreground text-sm leading-relaxed">
             Selecting a tab stores the choice in <code>localStorage</code>, so every command on the
             page follows it and the next page load starts on the manager you picked.
@@ -274,7 +176,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((p) => (
+              {DOCS.props.map((p) => (
                 <TableRow key={p.name}>
                   <TableCell className="font-mono text-xs">{p.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
@@ -293,7 +195,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
       <Separator />
 

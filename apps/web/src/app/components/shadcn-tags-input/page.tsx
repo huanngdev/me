@@ -15,14 +15,12 @@ import {
   TableRow,
 } from "@repo/core/components/table";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import registry from "../../../../public/r/shadcn-tags-input.json";
 import { BasicDemo, ConstrainedDemo, ZodDemo } from "./demo";
-
-const LLM_TEXT = readLlmsDocument("components", "shadcn-tags-input");
+import { DOCS } from "@/content/component-docs/shadcn-tags-input";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/shadcn-tags-input/tags-input.tsx",
@@ -41,228 +39,6 @@ const DEPS_PACKAGES = "lucide-react";
 const SHADCN_TARGET = "shadcn@latest add badge";
 
 const TAGS_INPUT_SOURCE = registry.files[0]!.content;
-
-const BASIC_USAGE_CODE = `"use client";
-
-import * as React from "react";
-import { TagsInput } from "@/components/shadcn-tags-input/tags-input";
-
-export function Example() {
-  const [tags, setTags] = React.useState<string[]>(["typescript", "next.js"]);
-  return (
-    <TagsInput
-      value={tags}
-      onChange={setTags}
-      placeholder="Type and press Enter..."
-    />
-  );
-}`;
-
-const CONSTRAINED_USAGE_CODE = `"use client";
-
-import * as React from "react";
-import { TagsInput } from "@/components/shadcn-tags-input/tags-input";
-
-export function ConstrainedTagsInput() {
-  const [tags, setTags] = React.useState<string[]>([]);
-  const [error, setError] = React.useState<string | null>(null);
-
-  return (
-    <div className="space-y-2">
-      <TagsInput
-        value={tags}
-        onChange={(next) => {
-          setTags(next);
-          setError(null);
-        }}
-        maxTags={4}
-        minLength={2}
-        maxLength={16}
-        onValidationError={setError}
-        placeholder="Add up to 4 tags..."
-      />
-      {error && <p className="text-destructive text-xs">{error}</p>}
-    </div>
-  );
-}`;
-
-const HOOK_USAGE_CODE = `import { useTagsInput } from "@/components/shadcn-tags-input/tags-input";
-
-const { tags, addTag, removeTag, clear } = useTagsInput({
-  defaultValue: ["alpha"],
-  maxTags: 5,
-  minLength: 2,
-});
-
-const result = addTag("beta");
-if (result !== true) console.error(result); // "Tag must be at least 2 characters"`;
-
-const ZOD_USAGE_CODE = `"use client";
-
-import * as React from "react";
-import { z } from "zod";
-import { TagsInput } from "@/components/shadcn-tags-input/tags-input";
-
-const schema = z.object({
-  tags: z
-    .array(z.string().min(2).max(16))
-    .min(1, "Add at least one tag")
-    .max(5, "Maximum 5 tags allowed"),
-});
-
-export function TagsForm() {
-  const [tags, setTags] = React.useState<string[]>([]);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const result = schema.safeParse({ tags });
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? "Invalid");
-      return;
-    }
-    setError(null);
-    // submit result.data.tags
-  };
-
-  return (
-    <form onSubmit={onSubmit}>
-      <TagsInput
-        value={tags}
-        onChange={setTags}
-        maxTags={5}
-        aria-invalid={Boolean(error)}
-      />
-      {error && <p className="text-destructive text-xs">{error}</p>}
-      <button type="submit">Submit</button>
-    </form>
-  );
-}`;
-
-const PROPS: { name: string; type: string; default: string; description: string }[] = [
-  { name: "value", type: "string[]", default: "—", description: "Controlled tags array." },
-  {
-    name: "defaultValue",
-    type: "string[]",
-    default: "[]",
-    description: "Initial tags (uncontrolled mode).",
-  },
-  {
-    name: "onChange",
-    type: "(value: string[]) => void",
-    default: "—",
-    description: "Fires when the tags array changes.",
-  },
-  {
-    name: "placeholder",
-    type: "string",
-    default: '"Add a tag..."',
-    description: "Placeholder shown when there are no tags.",
-  },
-  {
-    name: "disabled",
-    type: "boolean",
-    default: "false",
-    description: "Disables input and tag removal.",
-  },
-  { name: "maxTags", type: "number", default: "—", description: "Maximum number of tags allowed." },
-  { name: "minLength", type: "number", default: "1", description: "Minimum length per tag." },
-  { name: "maxLength", type: "number", default: "—", description: "Maximum length per tag." },
-  {
-    name: "allowDuplicates",
-    type: "boolean",
-    default: "false",
-    description: "Allow the same tag to be added more than once.",
-  },
-  {
-    name: "trim",
-    type: "boolean",
-    default: "true",
-    description: "Trim whitespace before committing a tag.",
-  },
-  {
-    name: "delimiters",
-    type: "string[]",
-    default: '["Enter", ","]',
-    description: "Keys that commit the current input as a tag.",
-  },
-  {
-    name: "validate",
-    type: "(tag, tags) => true | string",
-    default: "—",
-    description: "Custom validator; return an error message to reject.",
-  },
-  {
-    name: "onTagAdd",
-    type: "(tag: string) => void",
-    default: "—",
-    description: "Called after a tag is added successfully.",
-  },
-  {
-    name: "onTagRemove",
-    type: "(tag: string, index: number) => void",
-    default: "—",
-    description: "Called after a tag is removed.",
-  },
-  {
-    name: "onValidationError",
-    type: "(message: string) => void",
-    default: "—",
-    description: "Called when a tag is rejected by validation.",
-  },
-  {
-    name: "aria-invalid",
-    type: "boolean",
-    default: "—",
-    description: "Surfaces validation state to assistive tech and styling.",
-  },
-  {
-    name: "name",
-    type: "string",
-    default: "—",
-    description: "Adds a hidden input carrying JSON-encoded tags for form submission.",
-  },
-];
-
-const TYPES_CODE = `type TagsInputProps = {
-  value?: string[];
-  defaultValue?: string[];
-  onChange?: (value: string[]) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  maxTags?: number;
-  minLength?: number;
-  maxLength?: number;
-  allowDuplicates?: boolean;
-  trim?: boolean;
-  delimiters?: string[];
-  validate?: (tag: string, tags: string[]) => true | string;
-  onTagAdd?: (tag: string) => void;
-  onTagRemove?: (tag: string, index: number) => void;
-  onValidationError?: (message: string) => void;
-  "aria-invalid"?: boolean;
-  name?: string;
-};
-
-type UseTagsInputOptions = {
-  value?: string[];
-  defaultValue?: string[];
-  onChange?: (value: string[]) => void;
-  maxTags?: number;
-  minLength?: number;
-  maxLength?: number;
-  allowDuplicates?: boolean;
-  trim?: boolean;
-  validate?: (tag: string, tags: string[]) => true | string;
-};
-
-type UseTagsInputReturn = {
-  tags: string[];
-  setTags: (value: string[]) => void;
-  addTag: (tag: string) => true | string;
-  removeTag: (index: number) => void;
-  clear: () => void;
-};`;
 
 function Section({
   id,
@@ -312,7 +88,6 @@ export default function TagsInputComponentPage() {
     <ComponentPreviewFrame
       name="shadcn-tags-input"
       files={SOURCE_FILES}
-      llmText={LLM_TEXT}
       previewClassName="max-w-sm"
       docs={<Docs />}
     >
@@ -390,7 +165,7 @@ function Docs() {
         title="Usage"
         description="Render with a controlled value and onChange handler."
       >
-        <CodeBlock code={BASIC_USAGE_CODE} />
+        <CodeBlock code={DOCS.usage} />
       </Section>
       <Separator />
 
@@ -399,7 +174,7 @@ function Docs() {
         title="useTagsInput hook"
         description="Use the hook directly if you need state without rendering the component."
       >
-        <CodeBlock code={HOOK_USAGE_CODE} />
+        <CodeBlock code={DOCS.examples[0]!.code} />
       </Section>
       <Separator />
 
@@ -408,7 +183,7 @@ function Docs() {
         title="With constraints"
         description="Limit tag count, length, and surface validation errors inline."
       >
-        <ComponentDemo llm={LLM_TEXT} code={CONSTRAINED_USAGE_CODE} previewClassName="max-w-sm">
+        <ComponentDemo code={DOCS.examples[1]!.code} previewClassName="max-w-sm">
           <ConstrainedDemo />
         </ComponentDemo>
       </Section>
@@ -420,7 +195,7 @@ function Docs() {
         description="Validate the final array with a Zod schema on submit."
       >
         <div className="space-y-4">
-          <ComponentDemo llm={LLM_TEXT} code={ZOD_USAGE_CODE} previewClassName="max-w-sm">
+          <ComponentDemo code={DOCS.examples[2]!.code} previewClassName="max-w-sm">
             <ZodDemo />
           </ComponentDemo>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -446,7 +221,7 @@ function Docs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {PROPS.map((p) => (
+              {DOCS.props.map((p) => (
                 <TableRow key={p.name}>
                   <TableCell className="font-mono text-xs">{p.name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
@@ -465,7 +240,7 @@ function Docs() {
       <Separator />
 
       <Section id="types" title="Types">
-        <CodeBlock code={TYPES_CODE} language="ts" />
+        <CodeBlock code={DOCS.types} language="ts" />
       </Section>
     </>
   );

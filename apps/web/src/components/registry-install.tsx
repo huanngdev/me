@@ -3,6 +3,8 @@ import { CodeBlock } from "@repo/core/components/code-block";
 
 import {
   installCommands,
+  MCP_SERVER_NAME,
+  MCP_URL,
   namespaceSnippet,
   registryInstall,
   REGISTRY_NAMESPACE,
@@ -56,6 +58,31 @@ function InstallNotes({ info }: { info: RegistryInstallInfo }) {
   );
 }
 
+/** MCP server setup. Claude Code takes a command; other clients read the JSON config. */
+function AgentSetup() {
+  const mcpServers = JSON.stringify(
+    { mcpServers: { [MCP_SERVER_NAME]: { url: MCP_URL } } },
+    null,
+    2,
+  );
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">Use with an AI agent</p>
+      <p className="text-muted-foreground text-sm">
+        Connect the MCP server and your agent can search these components, read their docs, and
+        install them for you.
+      </p>
+      <CliCommand command={`claude mcp add --transport http ${MCP_SERVER_NAME} ${MCP_URL}`} />
+      <CodeBlock code={mcpServers} language="json" />
+      <p className="text-muted-foreground text-sm">
+        Cursor reads this from <code>.cursor/mcp.json</code>. VS Code uses{" "}
+        <code>.vscode/mcp.json</code> with a top-level <code>&quot;servers&quot;</code> key and{" "}
+        <code>&quot;type&quot;: &quot;http&quot;</code>.
+      </p>
+    </div>
+  );
+}
+
 /** Namespace setup, once per project. Rendered by `RegistryInstall`. */
 function RegistryNamespace({ name }: { name?: string }) {
   return (
@@ -89,6 +116,7 @@ export async function RegistryInstall({ name }: { name: string }) {
         <InstallNotes info={info} />
       </div>
       <RegistryNamespace name={name} />
+      <AgentSetup />
     </div>
   );
 }

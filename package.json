@@ -13,6 +13,8 @@
     "llms:check": "bun scripts/llms/check-llms.ts",
     "registry": "bun scripts/registry/build-registry.ts",
     "registry:check": "bun scripts/registry/check-registry.ts",
+    "test:mcp": "bun test apps/web/src/lib/mcp",
+    "mcp:smoke": "bun scripts/mcp/smoke.ts",
     "commitlint": "commitlint --edit",
     "prepare": "husky"
   },

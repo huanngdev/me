@@ -40,6 +40,9 @@ jobs:
       - name: Registry check
         run: bun run registry:check
 
+      - name: MCP tests
+        run: bun run test:mcp
+
       - name: Build
         run: bun run build
 

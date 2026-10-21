@@ -8,6 +8,9 @@ import { PUBLIC_PORTFOLIO_URL } from "@repo/core/constants";
 
 export const REGISTRY_NAMESPACE = "@huanngdev";
 
+export const MCP_SERVER_NAME = "huanngdev";
+export const MCP_URL = `${PUBLIC_PORTFOLIO_URL}/mcp`;
+
 export const TESTED_WITH: string = summary.testedWith;
 
 export type RegistryInstallInfo = (typeof summary.items)[number];
@@ -16,8 +19,12 @@ export function registryItemUrl(name: string): string {
   return `${PUBLIC_PORTFOLIO_URL}/r/${name}.json`;
 }
 
+export function findRegistryInstall(name: string): RegistryInstallInfo | undefined {
+  return summary.items.find((candidate) => candidate.name === name);
+}
+
 export function registryInstall(name: string): RegistryInstallInfo {
-  const item = summary.items.find((candidate) => candidate.name === name);
+  const item = findRegistryInstall(name);
   if (item === undefined) {
     throw new Error(`no generated registry item named ${name}`);
   }

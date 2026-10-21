@@ -2112,7 +2112,6 @@ import { CrmDataTableBlock } from "@repo/core/components/blocks/crm-data-table/c
 import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-frame";
 import type { Metadata } from "next";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { generateCrmCustomers } from "./data";
@@ -2210,7 +2209,6 @@ export default function CrmDataTableBlockPage() {
       name="crm-data-table"
       url="huanngdev.site/blocks/crm-data-table"
       files={BLOCK_FILES}
-      llmText={readLlmsDocument("blocks", "crm-data-table")}
       install={<RegistryInstall name="crm-data-table" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
@@ -2317,7 +2315,6 @@ import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-f
 import { Blocks, House } from "lucide-react";
 import type { Metadata } from "next";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
@@ -2361,7 +2358,6 @@ export default function ErrorPageBlockPage() {
     <BlockPreviewFrame
       name="error-page"
       files={BLOCK_FILES}
-      llmText={readLlmsDocument("blocks", "error-page")}
       install={<RegistryInstall name="error-page" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
@@ -32981,7 +32977,6 @@ import { NotionLikeEditorDemo } from "@repo/core/components/blocks/notion-like-e
 import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-frame";
 import type { Metadata } from "next";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
@@ -33430,7 +33425,6 @@ export default function NotionLikeEditorBlockPage() {
       name="notion-like-editor"
       url="huanngdev.site/blocks/notion-like-editor"
       files={BLOCK_FILES}
-      llmText={readLlmsDocument("blocks", "notion-like-editor")}
       install={<RegistryInstall name="notion-like-editor" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >

@@ -30591,7 +30591,6 @@ import { NotionLikeEditorDemo } from "@repo/core/components/blocks/notion-like-e
 import { BlockPreviewFrame } from "@repo/core/components/layouts/block-preview-frame";
 import type { Metadata } from "next";
 
-import { readLlmsDocument } from "@/lib/read-llms-document";
 import { RegistryInstall } from "@/components/registry-install";
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
@@ -31040,7 +31039,6 @@ export default function NotionLikeEditorBlockPage() {
       name="notion-like-editor"
       url="huanngdev.site/blocks/notion-like-editor"
       files={BLOCK_FILES}
-      llmText={readLlmsDocument("blocks", "notion-like-editor")}
       install={<RegistryInstall name="notion-like-editor" />}
       backButton={{ label: "Go back", position: "top-left" }}
     >
