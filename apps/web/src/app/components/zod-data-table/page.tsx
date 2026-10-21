@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
 import { ComponentDemo } from "@repo/core/components/component-demo";
-import { PageHeader } from "@repo/core/components/layouts/page-header";
+import { ComponentPreviewFrame } from "@repo/core/components/layouts/component-preview-frame";
 import { Separator } from "@repo/core/components/separator";
 import {
   Table,
@@ -13,25 +13,18 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { BasicZodDataTableDemo, CustomZodDataTableDemo, EmptyZodDataTableDemo } from "./demo";
 
 const LLM_TEXT = readLlmsDocument("components", "zod-data-table");
 
-const TOC: TOCItemType[] = [
-  { title: "Demo", url: "#demo", depth: 2 },
-  { title: "Install", url: "#install", depth: 2 },
-  { title: "Usage", url: "#usage", depth: 2 },
-  { title: "Custom columns", url: "#custom-columns", depth: 2 },
-  { title: "Zod metadata", url: "#metadata", depth: 2 },
-  { title: "Empty state", url: "#empty-state", depth: 2 },
-  { title: "Props", url: "#props", depth: 2 },
-  { title: "Types", url: "#types", depth: 2 },
-];
+const SOURCE_FILES = readSourceFiles([
+  "packages/core/src/components/zod-data-table/zod-data-table.tsx",
+]);
 
 const DESCRIPTION = "Generate a typed TanStack table from a Zod object schema and row data.";
 
@@ -206,7 +199,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 px-4 py-8 sm:px-6 lg:px-8">
+    <section id={id} className="scroll-mt-24 py-8">
       {title && <h2 className="text-lg font-semibold tracking-tight">{title}</h2>}
       {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
       <div className={title ? "mt-4" : undefined}>{children}</div>
@@ -216,134 +209,133 @@ function Section({
 
 export default function ZodDataTablePage() {
   return (
+    <ComponentPreviewFrame
+      name="zod-data-table"
+      files={SOURCE_FILES}
+      llmText={LLM_TEXT}
+      previewClassName="max-w-3xl"
+      docs={<Docs />}
+    >
+      <BasicZodDataTableDemo />
+    </ComponentPreviewFrame>
+  );
+}
+
+function Docs() {
+  return (
     <>
-      <div
-        aria-label="Section navigation"
-        className="pointer-events-none fixed top-1/2 left-4 z-30 hidden -translate-y-1/2 xl:block"
+      <header className="pb-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Zod Data Table</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{DESCRIPTION}</p>
+      </header>
+
+      <Section
+        id="install"
+        title="Install"
+        description="Install with one shadcn command, or add the files by hand."
       >
-        <div className="pointer-events-auto">
-          <TOCMinimap items={TOC} />
-        </div>
-      </div>
-
-      <PageHeader title="Zod Data Table" description={DESCRIPTION} />
-
-      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
-        <Section id="demo">
-          <ComponentDemo llm={LLM_TEXT} code={BASIC_USAGE_CODE} previewClassName="max-w-3xl">
-            <BasicZodDataTableDemo />
-          </ComponentDemo>
-        </Section>
-        <Separator />
-
-        <Section
-          id="install"
-          title="Install"
-          description="Install with one shadcn command, or add the files by hand."
-        >
-          <RegistryInstall name="zod-data-table" />
-          <details className="group">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
-              Manual installation
-            </summary>
-            <div className="mt-6">
-              <CliCommand execute={INSTALL_TARGET} />
-            </div>
-          </details>
-        </Section>
-        <Separator />
-
-        <Section
-          id="usage"
-          title="Usage"
-          description="Pass a Zod object schema and rows inferred from its output type."
-        >
-          <div className="space-y-6">
-            <CodeBlock code={BASIC_USAGE_CODE} language="tsx" />
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Validate at the boundary</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                The table uses the schema to define columns and infer types. Parse untrusted API or
-                form data before rendering so validation does not repeat on every render.
-              </p>
-              <CodeBlock code={VALIDATION_CODE} language="tsx" />
-            </div>
+        <RegistryInstall name="zod-data-table" />
+        <details className="group">
+          <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+            Manual installation
+          </summary>
+          <div className="mt-6">
+            <CliCommand execute={INSTALL_TARGET} />
           </div>
-        </Section>
-        <Separator />
+        </details>
+      </Section>
+      <Separator />
 
-        <Section
-          id="custom-columns"
-          title="Custom columns"
-          description="Override only the fields that need different content or visibility."
-        >
-          <ComponentDemo llm={LLM_TEXT} code={CUSTOM_COLUMNS_CODE} previewClassName="max-w-3xl">
-            <CustomZodDataTableDemo />
-          </ComponentDemo>
-        </Section>
-        <Separator />
-
-        <Section
-          id="metadata"
-          title="Zod metadata"
-          description="Use a field title for labels without adding a column override."
-        >
-          <div className="space-y-3">
-            <CodeBlock code={METADATA_CODE} language="ts" />
+      <Section
+        id="usage"
+        title="Usage"
+        description="Pass a Zod object schema and rows inferred from its output type."
+      >
+        <div className="space-y-6">
+          <CodeBlock code={BASIC_USAGE_CODE} language="tsx" />
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Validate at the boundary</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Header priority is the column override, then the field metadata title, then a
-              humanized field key. Put <code className="font-mono text-xs">.meta()</code> last when
-              composing a field so the metadata belongs to the final schema instance.
+              The table uses the schema to define columns and infer types. Parse untrusted API or
+              form data before rendering so validation does not repeat on every render.
             </p>
+            <CodeBlock code={VALIDATION_CODE} language="tsx" />
           </div>
-        </Section>
-        <Separator />
+        </div>
+      </Section>
+      <Separator />
 
-        <Section
-          id="empty-state"
-          title="Empty state"
-          description="Keep the generated headers visible while explaining that no rows matched."
-        >
-          <ComponentDemo llm={LLM_TEXT} code={EMPTY_STATE_CODE} previewClassName="max-w-3xl">
-            <EmptyZodDataTableDemo />
-          </ComponentDemo>
-        </Section>
-        <Separator />
+      <Section
+        id="custom-columns"
+        title="Custom columns"
+        description="Override only the fields that need different content or visibility."
+      >
+        <ComponentDemo llm={LLM_TEXT} code={CUSTOM_COLUMNS_CODE} previewClassName="max-w-3xl">
+          <CustomZodDataTableDemo />
+        </ComponentDemo>
+      </Section>
+      <Separator />
 
-        <Section id="props" title="Props">
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Prop</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Description</TableHead>
+      <Section
+        id="metadata"
+        title="Zod metadata"
+        description="Use a field title for labels without adding a column override."
+      >
+        <div className="space-y-3">
+          <CodeBlock code={METADATA_CODE} language="ts" />
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Header priority is the column override, then the field metadata title, then a humanized
+            field key. Put <code className="font-mono text-xs">.meta()</code> last when composing a
+            field so the metadata belongs to the final schema instance.
+          </p>
+        </div>
+      </Section>
+      <Separator />
+
+      <Section
+        id="empty-state"
+        title="Empty state"
+        description="Keep the generated headers visible while explaining that no rows matched."
+      >
+        <ComponentDemo llm={LLM_TEXT} code={EMPTY_STATE_CODE} previewClassName="max-w-3xl">
+          <EmptyZodDataTableDemo />
+        </ComponentDemo>
+      </Section>
+      <Separator />
+
+      <Section id="props" title="Props">
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Default</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PROPS.map((prop) => (
+                <TableRow key={prop.name}>
+                  <TableCell className="font-mono text-xs">{prop.name}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                    {prop.type}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {prop.default}
+                  </TableCell>
+                  <TableCell className="min-w-56 text-sm">{prop.description}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {PROPS.map((prop) => (
-                  <TableRow key={prop.name}>
-                    <TableCell className="font-mono text-xs">{prop.name}</TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs whitespace-nowrap">
-                      {prop.type}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">
-                      {prop.default}
-                    </TableCell>
-                    <TableCell className="min-w-56 text-sm">{prop.description}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Section>
-        <Separator />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Section>
+      <Separator />
 
-        <Section id="types" title="Types">
-          <CodeBlock code={TYPES_CODE} language="ts" />
-        </Section>
-      </article>
+      <Section id="types" title="Types">
+        <CodeBlock code={TYPES_CODE} language="ts" />
+      </Section>
     </>
   );
 }

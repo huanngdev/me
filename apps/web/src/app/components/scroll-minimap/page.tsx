@@ -5,8 +5,7 @@ import type { Metadata } from "next";
 
 import { CliCommand } from "@repo/core/components/cli-command/cli-command";
 import { CodeBlock } from "@repo/core/components/code-block";
-import { ComponentDemo } from "@repo/core/components/component-demo";
-import { PageHeader } from "@repo/core/components/layouts/page-header";
+import { ComponentPreviewFrame } from "@repo/core/components/layouts/component-preview-frame";
 import { Separator } from "@repo/core/components/separator";
 import {
   Table,
@@ -16,14 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/core/components/table";
-import { TOCMinimap, type TOCItemType } from "@repo/core/components/toc-minimap";
 
 import { readLlmsDocument } from "@/lib/read-llms-document";
+import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
 import { ConversationMinimapDemo } from "./demo";
 
 const LLM_TEXT = readLlmsDocument("components", "scroll-minimap");
+
+const SOURCE_FILES = readSourceFiles(["packages/core/src/components/scroll-minimap.tsx"]);
 
 const REPO_ROOT = process.cwd().endsWith("apps/web")
   ? path.resolve(process.cwd(), "../..")
@@ -32,14 +33,6 @@ const SCROLL_MINIMAP_SOURCE = readFileSync(
   path.join(REPO_ROOT, "packages/core/src/components/scroll-minimap.tsx"),
   "utf8",
 );
-
-const TOC: TOCItemType[] = [
-  { title: "Demo", url: "#demo", depth: 2 },
-  { title: "Install", url: "#install", depth: 2 },
-  { title: "Usage", url: "#usage", depth: 2 },
-  { title: "Props", url: "#props", depth: 2 },
-  { title: "Types", url: "#types", depth: 2 },
-];
 
 export const metadata: Metadata = {
   title: "Scroll Minimap",
@@ -152,7 +145,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="px-4 py-8 sm:px-6 lg:px-8">
+    <section id={id} className="py-8">
       {title && <h2 className="text-lg font-semibold tracking-tight">{title}</h2>}
       {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
       <div className="mt-4">{children}</div>
@@ -185,104 +178,102 @@ function Step({
 
 export default function ScrollMinimapPage() {
   return (
+    <ComponentPreviewFrame
+      name="scroll-minimap"
+      files={SOURCE_FILES}
+      llmText={LLM_TEXT}
+      previewClassName="max-w-2xl"
+      docs={<Docs />}
+    >
+      <ConversationMinimapDemo />
+    </ComponentPreviewFrame>
+  );
+}
+
+function Docs() {
+  return (
     <>
-      <div
-        aria-label="Section navigation"
-        className="pointer-events-none fixed top-1/2 left-4 z-30 hidden -translate-y-1/2 xl:block"
+      <header className="pb-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Scroll Minimap</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          A compact scrollspy navigator for long documents, chats, and timelines.
+        </p>
+      </header>
+
+      <Section
+        id="install"
+        title="Install"
+        description="Install with one shadcn command, or add the files by hand."
       >
-        <div className="pointer-events-auto">
-          <TOCMinimap items={TOC} />
-        </div>
-      </div>
-
-      <PageHeader
-        title="Scroll Minimap"
-        description="A compact scrollspy navigator for long documents, chats, and timelines."
-      />
-
-      <article className="mx-auto flex w-full max-w-4xl flex-1 flex-col border-x">
-        <Section id="demo">
-          <ComponentDemo llm={LLM_TEXT} code={USAGE_CODE} previewClassName="max-w-2xl">
-            <ConversationMinimapDemo />
-          </ComponentDemo>
-        </Section>
-        <Separator />
-
-        <Section
-          id="install"
-          title="Install"
-          description="Install with one shadcn command, or add the files by hand."
-        >
-          <RegistryInstall name="scroll-minimap" />
-          <details className="group">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
-              Manual installation
-            </summary>
-            <div className="mt-6">
-              <div className="space-y-8">
-                <Step
-                  index={1}
-                  title="Add the shadcn primitive"
-                  description="Installs the hover card used for marker previews."
-                >
-                  <CliCommand execute="shadcn@latest add hover-card" />
-                </Step>
-                <Step
-                  index={2}
-                  title="Copy the source"
-                  description="Save as components/scroll-minimap/scroll-minimap.tsx."
-                >
-                  <CodeBlock code={SCROLL_MINIMAP_SOURCE} language="tsx" />
-                </Step>
-              </div>
+        <RegistryInstall name="scroll-minimap" />
+        <details className="group">
+          <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium">
+            Manual installation
+          </summary>
+          <div className="mt-6">
+            <div className="space-y-8">
+              <Step
+                index={1}
+                title="Add the shadcn primitive"
+                description="Installs the hover card used for marker previews."
+              >
+                <CliCommand execute="shadcn@latest add hover-card" />
+              </Step>
+              <Step
+                index={2}
+                title="Copy the source"
+                description="Save as components/scroll-minimap/scroll-minimap.tsx."
+              >
+                <CodeBlock code={SCROLL_MINIMAP_SOURCE} language="tsx" />
+              </Step>
             </div>
-          </details>
-        </Section>
-        <Separator />
-
-        <Section
-          id="usage"
-          title="Usage"
-          description="Pass hash targets and optionally scope tracking to a scrollable container."
-        >
-          <CodeBlock code={USAGE_CODE} language="tsx" />
-        </Section>
-        <Separator />
-
-        <Section id="props" title="Props">
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[170px]">Prop</TableHead>
-                  <TableHead className="w-[240px]">Type</TableHead>
-                  <TableHead className="w-[130px]">Default</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {PROPS.map((prop) => (
-                  <TableRow key={prop.name}>
-                    <TableCell className="font-mono text-xs">{prop.name}</TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">
-                      {prop.type}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">
-                      {prop.default}
-                    </TableCell>
-                    <TableCell className="text-sm">{prop.description}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </div>
-        </Section>
-        <Separator />
+        </details>
+      </Section>
+      <Separator />
 
-        <Section id="types" title="Types">
-          <CodeBlock code={TYPES_CODE} language="ts" />
-        </Section>
-      </article>
+      <Section
+        id="usage"
+        title="Usage"
+        description="Pass hash targets and optionally scope tracking to a scrollable container."
+      >
+        <CodeBlock code={USAGE_CODE} language="tsx" />
+      </Section>
+      <Separator />
+
+      <Section id="props" title="Props">
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[170px]">Prop</TableHead>
+                <TableHead className="w-[240px]">Type</TableHead>
+                <TableHead className="w-[130px]">Default</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PROPS.map((prop) => (
+                <TableRow key={prop.name}>
+                  <TableCell className="font-mono text-xs">{prop.name}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {prop.type}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {prop.default}
+                  </TableCell>
+                  <TableCell className="text-sm">{prop.description}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Section>
+      <Separator />
+
+      <Section id="types" title="Types">
+        <CodeBlock code={TYPES_CODE} language="ts" />
+      </Section>
     </>
   );
 }

@@ -1,30 +1,14 @@
 import type { ReactNode } from "react";
-import { codeToHtml, type BundledLanguage } from "shiki";
 
 import { PUBLIC_PORTFOLIO_URL } from "../../constants";
 import { type FixedBackButtonProps } from "../fixed-back-button";
-import type { BlockExplorerFile } from "./block-file-explorer";
 import { BlockPreviewTabs } from "./block-preview-tabs";
 import { BlockUrlProvider, SafariPreview } from "./block-url";
+import { highlightFiles, highlightLlm, type BlockFile } from "./highlight-source";
+
+export type { BlockFile } from "./highlight-source";
 
 const DEFAULT_PREVIEW_URL = PUBLIC_PORTFOLIO_URL.replace(/^https?:\/\//, "");
-
-const LANGUAGE_BY_EXTENSION: Record<string, BundledLanguage> = {
-  tsx: "tsx",
-  ts: "ts",
-  jsx: "jsx",
-  js: "js",
-  json: "json",
-  css: "css",
-  md: "markdown",
-  html: "html",
-  bash: "bash",
-};
-
-export type BlockFile = {
-  path: string;
-  code: string;
-};
 
 export type BlockPreviewFrameProps = {
   children: ReactNode;
@@ -34,6 +18,7 @@ export type BlockPreviewFrameProps = {
   files?: readonly BlockFile[];
   llmText?: string;
   install?: ReactNode;
+  docs?: ReactNode;
 };
 
 export async function BlockPreviewFrame({
@@ -44,36 +29,10 @@ export async function BlockPreviewFrame({
   files,
   llmText,
   install,
+  docs,
 }: BlockPreviewFrameProps) {
-  const explorerFiles: BlockExplorerFile[] = await Promise.all(
-    (files ?? []).map(async (file) => {
-      const language = languageForPath(file.path);
-      const html = await codeToHtml(file.code, {
-        lang: language,
-        themes: { light: "github-light-default", dark: "github-dark-default" },
-        defaultColor: false,
-      });
-
-      return {
-        path: file.path,
-        name: file.path.split("/").pop() ?? file.path,
-        language,
-        html,
-        code: file.code,
-      };
-    }),
-  );
-
-  const llm = llmText
-    ? {
-        code: llmText,
-        html: await codeToHtml(llmText, {
-          lang: "text",
-          themes: { light: "github-light-default", dark: "github-dark-default" },
-          defaultColor: false,
-        }),
-      }
-    : undefined;
+  const explorerFiles = await highlightFiles(files ?? []);
+  const llm = await highlightLlm(llmText);
 
   const preview = (
     <div className="flex flex-col items-center gap-3">
@@ -99,13 +58,9 @@ export async function BlockPreviewFrame({
           backButton={backButton}
           llm={llm}
           install={install}
+          docs={docs}
         />
       </BlockUrlProvider>
     </div>
   );
-}
-
-function languageForPath(filePath: string): BundledLanguage {
-  const extension = filePath.split(".").pop()?.toLowerCase() ?? "";
-  return LANGUAGE_BY_EXTENSION[extension] ?? "text";
 }
