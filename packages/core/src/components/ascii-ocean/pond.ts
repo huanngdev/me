@@ -56,7 +56,7 @@ const WIND_X = 2.2;
 const WIND_X_RATE = 0.05;
 const WIND_Y = 1.6;
 const WIND_Y_RATE = 0.037;
-/** A ripple or eat reaches PUSH_REACH_R radii plus PUSH_REACH_SIZE body lengths, and gives PUSH_SPEED px/s. */
+/** A splash reaches PUSH_REACH_R radii plus PUSH_REACH_SIZE body lengths, and gives PUSH_SPEED px/s. */
 const PUSH_SPEED = 14;
 const PUSH_DECAY = 1.5;
 const PUSH_REACH_R = 1.4;
@@ -112,7 +112,7 @@ function capSpeed(ax: Float64Array, ay: Float64Array, i: number) {
   }
 }
 
-/** Moves one body in a ripple or eat: a radial kick of PUSH_SPEED if it lies within reach of (x, y). */
+/** Moves one body in a splash: a radial kick of PUSH_SPEED if it lies within reach of (x, y). */
 function kick(
   px: number,
   py: number,
@@ -194,7 +194,7 @@ function wrap(p: number, span: number, R: number) {
  * koi pass underneath and are hidden. Duckweed drifts in patches and loose fronds on the same wind.
  *
  * Call layout() on resize, then per frame: pushFrom() per koi, step(), and drawShadows() and drawPlants() in
- * the render. ripples and eats call push().
+ * the render. Splashes call push().
  */
 export class PondSurface {
   /** Pads in use. The arrays hold the most a canvas can take; the first padCount are live. */
@@ -429,7 +429,7 @@ export class PondSurface {
     }
   }
 
-  /** A ripple set or an eat at (x, y): pads and patches within reach get a radial kick, capped in speed. */
+  /** A splash at (x, y): pads and patches within reach get a radial kick, capped in speed. */
   push(x: number, y: number, size: number) {
     const extra = PUSH_REACH_SIZE * size;
     for (let i = 0; i < this.padCount; i++) {

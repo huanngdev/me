@@ -73,7 +73,7 @@ export const COMPONENT_LIST: {
   {
     slug: "ascii-ocean",
     name: "ASCII Ocean",
-    description: "A canvas ASCII ocean where sharks hunt schools of fish.",
+    description: "A canvas ASCII ocean where sharks and whales swim among schools of bait fish.",
     icon: Fish,
   },
 ];

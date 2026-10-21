@@ -7,7 +7,7 @@
  *   4. creatures rasterised cell-by-cell with supersampled edges: grey blocks
  *      shaded by the light, dense glyphs, and shimmering accent colours
  */
-import { clamp, hash3, oklchToRgb, rgbToOklabL, smoothstep, TAU } from "./math";
+import { clamp, hash3, oklchToRgb, rgbToOklabL, TAU } from "./math";
 import { CREATURE_IDS, CREATURES } from "./creatures";
 import type {
   Coat,
@@ -17,7 +17,7 @@ import type {
   PaintPoint,
   TailShape,
 } from "./creatures/types";
-import { Effects, type ParticleKind } from "./effects";
+import { Effects } from "./effects";
 import { PondSurface } from "./pond";
 import { FOAM_GLYPHS, GLINT_TICK, SeaSurface } from "./sea";
 import { type Creature, SPINE_NODES, type World } from "./world";
@@ -54,22 +54,6 @@ const WAKE = DOT_RGB.length - 1;
 // The pale cyan wake washes out on light backgrounds, so it darkens there.
 const WAKE_RGB_LIGHT: [number, number, number] = [0, 130, 180];
 
-/** Food colours by scene (ocean, pond) for dark and light pages; light pages get darker variants. */
-const MORSEL_RGB = {
-  dark: [
-    [255, 170, 90],
-    [214, 190, 140],
-  ],
-  light: [
-    [200, 110, 40],
-    [150, 120, 70],
-  ],
-} as const;
-const MORSEL_GLYPHS = ["*", "o"];
-/** Food alpha is quantised to this many steps, each with its own preallocated style. */
-const MORSEL_LEVELS = 5;
-const MORSEL_ALPHA = 0.95;
-
 // Water surface (natural mode, surface on, ocean and pond): the open sea from above, built in sea.ts.
 /** Swell tint: light on a face that tilts toward the sun, shade on one that tilts away. */
 const SWELL_RGB = { dark: [170, 225, 255], light: [0, 110, 160] } as const;
@@ -101,8 +85,6 @@ const RING_WOBBLE_POND = 0.06;
 const RING_GAP_POND = 0.27;
 const RING_DRIFT = 6;
 const RING_GLYPHS = [".", "'", "`", ","];
-/** A bite's ring set lasts this long, in seconds, from its start to the outer ring's edge. */
-const RIPPLE_LIFE = 0.8;
 /** The sea's layout seed: one fixed sea, the same on every load. */
 const SEA_SEED = 0x5ea;
 
@@ -119,12 +101,9 @@ function rampStyles(rgb: readonly number[], peak: number, levels: number) {
   );
 }
 
-// Rings and particles: each alpha quantised to ALPHA_LEVELS styles per kind.
+// Spray: each alpha quantised to ALPHA_LEVELS styles.
 const SPRAY_RGB = { dark: [230, 238, 255], light: [60, 70, 85] } as const;
-const BUBBLE_RGB = { dark: [190, 240, 255], light: [0, 120, 160] } as const;
 const PARTICLE_ALPHA = 0.85;
-/** Blow mist is 1.6× the particle alpha, capped so it stays a soft cloud. */
-const MIST_ALPHA = Math.min(0.9, PARTICLE_ALPHA * 1.6);
 
 const ACCENTS = ["#e0892c", "#e03a32", "#b44ae0", "#33c8cc", "#3cb54a", "#3150e8", "#d9c14a"];
 
@@ -374,23 +353,9 @@ function bodyDepthOf(sh: Creature) {
   return sh.dive === 0 ? sh.depth : sh.depth * (1 - 0.45 * sh.dive);
 }
 
-/**
- * The fraction of a body point at s (0 snout → 1 tail) that is out of the water, for Creature.emerge e. Rising
- * (e ≤ 1) the snout clears first; falling (e > 1) the snout goes back under first.
- */
-export function emergedAt(e: number, s: number) {
-  if (e <= 1) return smoothstep(0, 1, clamp((1.3 * e - s) / 0.3, 0, 1));
-  return 1 - smoothstep(0, 1, clamp((1.3 * (e - 1) - s) / 0.3, 0, 1));
-}
-
-/** The depth a body point is seen at: the part out of the water has no water veil, so it blends toward 1. */
-function emergedDepth(d0: number, e: number, s: number) {
-  return e === 0 ? d0 : d0 + (1 - d0) * emergedAt(e, s);
-}
-
-/** Draw key: a breaching animal (height) draws over the others at the same depth. */
+/** Draw key: the animal's depth. */
 function depthKey(sh: Creature) {
-  return sh.depth + 0.6 * sh.height;
+  return sh.depth;
 }
 
 /**
@@ -411,19 +376,10 @@ export function drawOrder(creatures: readonly Creature[], out: Int16Array) {
   }
 }
 
-/** Most eats per frame that stamp heat. */
-const EAT_HEAT_PER_FRAME = 4;
-/** Most bite ripple sets started per frame. */
-const EAT_RIPPLE_SETS_PER_FRAME = 2;
-/** Recent ripple starts remembered, so bites at one spot do not stack sets on top of each other. */
-const RIPPLE_HISTORY = 8;
-const RIPPLE_HISTORY_SECONDS = 0.3;
-/** A splash has no body length; it pushes the pond plants as a koi-sized bite would. */
+/** A splash has no body length; it pushes the pond plants as a koi of this length would. */
 const SPLASH_PUSH_SIZE = 60;
 /** A koi with dive below this swims shallow: it pushes the pond plants and shows on top of them. */
 const SHALLOW_DIVE = 0.35;
-/** A new set must start this many body lengths away from a recent one. */
-const RIPPLE_SPACING = 0.25;
 
 export class AsciiRenderer {
   private canvas: HTMLCanvasElement;
@@ -443,7 +399,6 @@ export class AsciiRenderer {
   private dotFreq = new Float32Array(0);
   private energy = new Float32Array(0);
   private energyTmp = new Float32Array(0);
-  private heat = new Float32Array(0);
   private bucketOf = new Uint8Array(0);
   private bucketOrder = new Int32Array(0);
   private bucketCounts = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
@@ -451,18 +406,8 @@ export class AsciiRenderer {
   private bucketStarts = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
   private bucketCursor = new Int32Array(DOT_RGB.length * ALPHA_LEVELS + 1);
   private dotStyles: string[] = [];
-  /** Food glyph colours: [scene][level], scene 0 ocean and 1 pond. */
-  private morselStyles: string[][] = [];
-  /** Morsel cells drawn this frame (frame stamp); the sea skips them. */
-  private morselStamp = new Uint32Array(0);
-  /** Surface rings, spray, bubbles and mist: spawned by events, drawn in both colour modes. */
+  /** Surface rings and spray: spawned by events, drawn in both colour modes. */
   private effects = new Effects();
-  /** Ring starts of the last RIPPLE_HISTORY bite sets: x, y and world time. */
-  private rippleX = new Float64Array(RIPPLE_HISTORY);
-  private rippleY = new Float64Array(RIPPLE_HISTORY);
-  private rippleT = new Float64Array(RIPPLE_HISTORY).fill(-Infinity);
-  private rippleNext = 0;
-  private ripplesThisFrame = 0;
   /** Ring colours by alpha level. */
   private ringStyles: string[] = [];
   /** Pond scene: lily pads and duckweed, and the cells the pads cover (rings skip them). */
@@ -474,8 +419,8 @@ export class AsciiRenderer {
   private pondPending = true;
   /** This frame's scene is the pond. Turns off the open sea. */
   private pondScene = false;
-  /** Particle colours: [kind][level], kind 0 spray, 1 bubble, 2 blow mist. */
-  private particleStyles: string[][] = [];
+  /** Spray colours by alpha level. */
+  private particleStyles: string[] = [];
   /** The open sea: swell, glitter, windrows and whitecaps. Natural water with the surface on only. */
   private sea = new SeaSurface();
   private swellLit: string[] = [];
@@ -487,12 +432,9 @@ export class AsciiRenderer {
   private surface = true;
   /** Counts renders; mixed into effect seeds so each frame's randomness differs. */
   private frameCount = 0;
-  // Particle draw passes, bound once so the per-frame forEach allocates nothing.
-  private drawBubbleFn = (x: number, y: number, kind: ParticleKind, age01: number) => {
-    if (kind === 1) this.drawParticle(x, y, kind, age01, true);
-  };
-  private drawAirFn = (x: number, y: number, kind: ParticleKind, age01: number) => {
-    if (kind !== 1) this.drawParticle(x, y, kind, age01, false);
+  // Particle draw pass, bound once so the per-frame forEach allocates nothing.
+  private drawSprayFn = (x: number, y: number, age01: number) => {
+    this.drawParticle(x, y, age01);
   };
   private drawRingFn = (
     x: number,
@@ -532,7 +474,7 @@ export class AsciiRenderer {
   private bodyId = 0;
   private finTipLeft = 0;
   private finTipRight = 0;
-  /** Tail-fin beat for the current creature: lift is sin(phase), beat scales the flukes with it. */
+  /** Tail-fin beat for the current creature: tailLift is sin(phase), and the beat scales the flukes with it. */
   private tailLift = 0;
   private tailBeat = 1;
   // Scratch outputs of sampleBody(), to avoid allocating per sample.
@@ -542,7 +484,7 @@ export class AsciiRenderer {
   private hitS = 0;
   private hitV = 0;
   private hitDist = 0;
-  /** Reused for every coat paint call, so painting allocates nothing. belly and bellyAmount are set for every point. */
+  /** Reused for every coat paint call, so painting allocates nothing. */
   private paintPoint: PaintPoint = {
     s: 0,
     v: 0,
@@ -550,40 +492,15 @@ export class AsciiRenderer {
     across: 0,
     flag: 0,
     id: 0,
-    belly: false,
-    bellyAmount: 0,
   };
   /** Creature indices in draw order (see drawOrder); resized only when the creature count changes. */
   private order = new Int16Array(0);
-  // Pose factors for the creature being rasterized. Neutral (1, false, 0) when its poses are at rest.
-  /** Roll: width factor on the body and fins. */
-  private wf = 1;
-  /** Roll past a quarter turn: a pale belly. */
-  private belly = false;
-  /** How far the pale belly shows, 0–1; eased across the roll so it grows in rather than popping on. */
-  private bellyAmount = 0;
-  /** Gape: widens the head, and darkens the mouth when open. */
-  private gape = 0;
-  private mouthOpen = false;
-  /** Height: lifts the body shade. */
-  private lift = 0;
-  /** Height: how far the shadow falls. */
-  private shadowMul = 1;
-  /** Height: how strong the natural shadow is. */
-  private shadowFade = 1;
-  /** Airborne: how much bigger the body looks from above, 1 at rest and through a breath (see setPoseFactors). */
-  private airScale = 1;
-  /** The creature's emerge (0 under, 1 out, 2 under) and its airborne amount a, for the head-first pose. */
-  private emerge = 0;
-  private emergeA = 0;
 
   /** Cells holding a fish this frame (frame stamp); dots skip them. */
   private fishStamp = new Uint32Array(0);
   private frameId = 0;
   /** Fish cells bucketed by brightness, so each bucket is one fillStyle. */
   private fishBuckets: number[][] = FISH_ALPHAS.map(() => []);
-  /** Stunned fish cells this frame: drawn in the brightest fish style, with a `~`. */
-  private fishStunned: number[] = [];
   private fishStyles: string[] = [];
   private palette: OceanPalette = DEFAULT_PALETTE;
   private colors: OceanColors = "theme";
@@ -653,13 +570,10 @@ export class AsciiRenderer {
         (_, k) => `rgba(${rgb.join(",")},${((peak * (k + 1)) / ALPHA_LEVELS).toFixed(3)})`,
       );
     this.ringStyles = levelStyles(mode === "light" ? WAKE_RGB_LIGHT : DOT_RGB[WAKE], 1);
-    const spray = levelStyles(mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark, PARTICLE_ALPHA);
-    const bubble = levelStyles(
-      mode === "light" ? BUBBLE_RGB.light : BUBBLE_RGB.dark,
+    this.particleStyles = levelStyles(
+      mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark,
       PARTICLE_ALPHA,
     );
-    const mist = levelStyles(mode === "light" ? SPRAY_RGB.light : SPRAY_RGB.dark, MIST_ALPHA);
-    this.particleStyles = [spray, bubble, mist];
     this.swellLit = rampStyles(SWELL_RGB[mode], SWELL_PEAK[mode].lit, SWELL_LEVELS);
     this.swellShade = rampStyles(SWELL_SHADE_RGB, SWELL_PEAK[mode].shade, SWELL_LEVELS);
     this.glintStyles = GLINT_ALPHA[mode].map((a) => `rgba(${GLINT_RGB[mode].join(",")},${a})`);
@@ -673,12 +587,6 @@ export class AsciiRenderer {
         this.dotStyles.push(`rgba(${r},${g},${b},${a.toFixed(3)})`);
       }
     }
-    this.morselStyles = MORSEL_RGB[mode].map(([r, g, b]) =>
-      Array.from(
-        { length: MORSEL_LEVELS },
-        (_, k) => `rgba(${r},${g},${b},${((MORSEL_ALPHA * (k + 1)) / MORSEL_LEVELS).toFixed(3)})`,
-      ),
-    );
     this.pond.setPalette(mode);
   }
 
@@ -721,7 +629,6 @@ export class AsciiRenderer {
     this.dotFreq = new Float32Array(n);
     this.energy = new Float32Array(n);
     this.energyTmp = new Float32Array(n);
-    this.heat = new Float32Array(n);
     this.bucketOf = new Uint8Array(n);
     this.bucketOrder = new Int32Array(n);
     this.bodyFlag = new Uint8Array(n);
@@ -736,7 +643,6 @@ export class AsciiRenderer {
     this.bodyCreature = new Uint8Array(n);
     this.bodyShadowStrength = new Float32Array(n);
     this.fishStamp = new Uint32Array(n);
-    this.morselStamp = new Uint32Array(n);
     this.sea.layout(this.cols, this.rows, this.cw, this.ch, SEA_SEED);
     this.padMask = new Uint8Array(n);
     this.koiMask = new Uint8Array(n);
@@ -935,11 +841,8 @@ export class AsciiRenderer {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    this.drawHeat();
     this.drawFish();
-    this.drawMorsels(world);
     if (waves) this.drawSea(t);
-    this.effects.forEachParticle(this.drawBubbleFn);
     // Pad shadows fall on the floor, so the creatures swim over them.
     if (plants) this.pond.drawShadows(ctx, this.cw, ch, cols, this.rows);
     if (natural) this.drawNatural(t);
@@ -950,7 +853,7 @@ export class AsciiRenderer {
     }
     // Rings and spray sit above the water line, over the animals.
     this.effects.forEachRing(this.drawRingFn);
-    this.effects.forEachParticle(this.drawAirFn);
+    this.effects.forEachParticle(this.drawSprayFn);
   }
 
   // ── simulation → field ──────────────────────────────────────────────
@@ -976,56 +879,20 @@ export class AsciiRenderer {
     }
   }
 
-  /** Events become field stamps (wake, heat) and render-side effects (rings, spray, bubbles, mist). */
+  /** Events become field stamps (wake) and render-side effects (rings and spray). */
   private consumeEvents(world: World) {
     const { effects } = this;
     const natural = this.colors === "natural";
     const surface = natural && this.surface;
-    const minSide = Math.min(this.width, this.height);
-    // A gulp of a whole bait ball eats dozens of fish in one step; only the first few leave heat, or the
-    // stamps merge into a solid block.
-    let heatStamps = 0;
-    this.ripplesThisFrame = 0;
     for (let ei = 0; ei < world.events.length; ei++) {
       const e = world.events[ei];
       if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) continue;
       // Effect randomness: hash3 on this seed, the particle index and the frame, never the world rng.
       const seed = this.frameCount * 1031 + ei;
-      if (e.kind === "eat") {
-        if (heatStamps++ < EAT_HEAT_PER_FRAME) this.stamp(this.heat, e.x, e.y, 2, 1);
-        if (!natural) this.stamp(this.energy, e.x, e.y, 3, 0.9);
-        if (surface) {
-          if (e.size === undefined) effects.ring(e.x, e.y, 40, 14, 0.5);
-          else if (this.claimRippleSet(e.x, e.y, e.size, world.time))
-            this.rippleSet(e.x, e.y, e.size);
-        }
-      } else if (e.kind === "ripple") {
-        if (!natural) this.stamp(this.energy, e.x, e.y, 3, 0.9);
-        // Ripple sets are a surface effect; theme mode and `surface: false` keep the single ring.
-        if (e.size === undefined || !surface) {
-          effects.ring(e.x, e.y, 55, 26, 0.8);
-          effects.spray(e.x, e.y, 3, 10, seed);
-        } else {
-          // The bite's eat event usually claims the set first, so this one is skipped and the bite draws one set.
-          if (this.claimRippleSet(e.x, e.y, e.size, world.time)) this.rippleSet(e.x, e.y, e.size);
-          effects.bubble(e.x, e.y, 1.2, seed);
-          effects.bubble(e.x, e.y, 1.2, seed + 1);
-        }
-      } else if (e.kind === "blow") {
-        // A blow's plume is a fifth of the animal's length across, so a humpback's column is far bigger than a dolphin's puff.
-        const radius = e.size === undefined ? 0.08 * minSide : Math.max(10, 0.2 * e.size);
-        effects.blow(e.x, e.y, radius, seed);
-        effects.ring(e.x, e.y, 30, 18, 0.6);
-      } else if (e.kind === "bubble") {
-        effects.bubble(e.x, e.y, 1.2, seed);
-      } else {
-        if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
-        // A splash with a size is a crash (a breach landing): its ring and spray grow with the animal.
-        const k = e.size === undefined ? 1 : clamp(e.size / 150, 1, 2.5);
-        effects.ring(e.x, e.y, 120 * k, 90 * k, 1);
-        effects.spray(e.x, e.y, 26, 60 * k, seed);
-        if (this.pondScene && surface) this.pond.push(e.x, e.y, SPLASH_PUSH_SIZE);
-      }
+      if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
+      effects.ring(e.x, e.y, 120, 90, 1);
+      effects.spray(e.x, e.y, 26, 60, seed);
+      if (this.pondScene && surface) this.pond.push(e.x, e.y, SPLASH_PUSH_SIZE);
     }
     world.events.length = 0;
   }
@@ -1053,32 +920,6 @@ export class AsciiRenderer {
     }
   }
 
-  /** Two rings started one after another, each wider and fainter than the last: a bite breaking the surface. */
-  private rippleSet(x: number, y: number, size: number) {
-    if (this.pondScene) this.pond.push(x, y, size);
-    for (let k = 0; k < 2; k++) {
-      const maxR = (0.22 + 0.1 * k) * size + 10;
-      this.effects.ring(x, y, maxR / RIPPLE_LIFE, maxR, 0.9 - 0.25 * k, 0.16 * k);
-    }
-  }
-
-  /** True, and records the start, when a bite ripple may start at (x, y) now: under the frame cap and clear of recent starts. */
-  private claimRippleSet(x: number, y: number, size: number, now: number) {
-    if (this.ripplesThisFrame >= EAT_RIPPLE_SETS_PER_FRAME) return false;
-    const reach = RIPPLE_SPACING * size;
-    for (let j = 0; j < RIPPLE_HISTORY; j++) {
-      if (now - this.rippleT[j] >= RIPPLE_HISTORY_SECONDS) continue;
-      if (Math.hypot(this.rippleX[j] - x, this.rippleY[j] - y) < reach) return false;
-    }
-    const j = this.rippleNext;
-    this.rippleNext = (j + 1) % RIPPLE_HISTORY;
-    this.rippleX[j] = x;
-    this.rippleY[j] = y;
-    this.rippleT[j] = now;
-    this.ripplesThisFrame++;
-    return true;
-  }
-
   private depositWake(world: World) {
     // Natural water has no energy trails: the ripple rings and spray are the surface response.
     if (this.colors === "natural") return;
@@ -1102,7 +943,7 @@ export class AsciiRenderer {
 
   /** Blur + decay so wakes spread out like ripples and fade. */
   private diffuse(dt: number) {
-    const { cols, rows, energy, energyTmp: tmp, heat } = this;
+    const { cols, rows, energy, energyTmp: tmp } = this;
     const decay = Math.exp(-dt * 1.5);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -1116,8 +957,6 @@ export class AsciiRenderer {
     }
     this.energy = tmp;
     this.energyTmp = energy;
-    const heatDecay = Math.exp(-dt * 2.2);
-    for (let i = 0; i < heat.length; i++) heat[i] *= heatDecay;
   }
 
   // ── creatures ──────────────────────────────────────────────────────────
@@ -1159,11 +998,7 @@ export class AsciiRenderer {
     const s = bestS;
     const u = s * L;
     const shape = this.def.shape;
-    let w = shape.halfWidth(s) * L * this.wf;
-    // Open mouth: the head flares out over the front quarter of the body.
-    if (this.gape > 0 && s < 0.25) w *= 1 + 0.5 * this.gape * (1 - s / 0.25);
-    // Head first: the emerged part swells a little, the part still under the surface keeps its width.
-    if (this.emerge !== 0) w *= 1 + 0.2 * this.emergeA * emergedAt(this.emerge, s);
+    const w = shape.halfWidth(s) * L;
     this.hitDist = a;
     this.hitS = s;
     this.hitV = a * bestSign;
@@ -1219,14 +1054,6 @@ export class AsciiRenderer {
         shade = Math.max(shade, 0.8);
       } else if (this.marked(s, a * bestSign, L, across)) {
         flag = FLAG_MARK;
-      }
-      // A rolled-over shark shows its pale belly. Coat species take the flag through PaintPoint instead.
-      if (!this.def.coats && flag === FLAG_BODY) {
-        shade = Math.max(shade, 0.85 * this.bellyAmount + shade * (1 - this.bellyAmount));
-      }
-      if (this.mouthOpen && s < 0.04) {
-        flag = FLAG_EYE;
-        shade = 0;
       }
       this.hitFlag = flag;
       this.hitShade = shade;
@@ -1309,59 +1136,6 @@ export class AsciiRenderer {
     return this.def.marking?.(s, v, L, across, this.bodyId) ?? false;
   }
 
-  /** Sets the pose factors for one creature. At rest they come out neutral: width 1, no belly, no gape, no lift. */
-  private setPoseFactors(sh: Creature) {
-    this.wf = sh.roll === 0 ? 1 : 0.4 + 0.6 * Math.abs(Math.cos((sh.roll * Math.PI) / 2));
-    // The belly eases in across the roll (0.3 → 0.8 rad of the quarter turn), so it grows outward rather than popping.
-    this.bellyAmount = smoothstep(0.3, 0.8, Math.abs(sh.roll));
-    this.belly = this.bellyAmount > 0.5;
-    this.gape = sh.gape;
-    this.mouthOpen = sh.gape > 0.3;
-    this.lift = 0.2 * sh.height;
-    this.shadowMul = 1 + 3 * sh.height;
-    this.shadowFade = 1 - 0.6 * sh.height;
-    // Seen from above, a body that leaves the water comes closer to the camera. A breath (height 0.3) stays at 1.
-    this.airScale = 1 + 0.45 * clamp((sh.height - 0.3) / 0.7, 0, 1);
-    this.emerge = sh.emerge;
-    this.emergeA = clamp((sh.height - 0.3) / 0.7, 0, 1);
-  }
-
-  /**
-   * Body poses on the render spine, after the travelling wave: slap whips the tail sideways, and pitch
-   * foreshortens the body toward a fixed head. Height's airborne scale is applied by rasterizeCreatures.
-   */
-  private posePoints(sh: Creature, L: number) {
-    const { spine } = this;
-    const N = SPINE_NODES;
-    const n = sh.nodes;
-    if (sh.slap !== 0) {
-      for (let k = 0; k < N; k++) {
-        const s = k / (N - 1);
-        const a = Math.max(0, k - 1);
-        const b = Math.min(N - 1, k + 1);
-        let tx = n[a * 2] - n[b * 2];
-        let ty = n[a * 2 + 1] - n[b * 2 + 1];
-        const tl = Math.hypot(tx, ty) || 1;
-        tx /= tl;
-        ty /= tl;
-        // Only the rear half swings, more toward the tail.
-        const off = L * 0.22 * sh.slap * Math.max(0, (s - 0.45) / 0.55) ** 2;
-        spine[k * 2] -= ty * off;
-        spine[k * 2 + 1] += tx * off;
-      }
-    }
-    if (sh.pitch !== 0) {
-      // Pitch foreshortens the body from above, but never to a stub: at full pitch it keeps 70% of its length.
-      const f = 1 - 0.3 * smoothstep(0, 1, Math.abs(sh.pitch));
-      const hx = spine[0];
-      const hy = spine[1];
-      for (let k = 1; k < N; k++) {
-        spine[k * 2] = hx + (spine[k * 2] - hx) * f;
-        spine[k * 2 + 1] = hy + (spine[k * 2 + 1] - hy) * f;
-      }
-    }
-  }
-
   /**
    * Build a smooth, undulating render spine from the sim spine, then
    * supersample every cell in the creature's bounding box against the shape.
@@ -1396,12 +1170,8 @@ export class AsciiRenderer {
       const L = sh.length;
       const N = SPINE_NODES;
       const n = sh.nodes;
-      // A rush to food sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
+      // A faster swim sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
       const swim = clamp(sh.speed / 60, 0.4, natural ? 1.7 : 1.4);
-      // At rest every pose is exactly 0, and the pose block and factors are skipped or neutral.
-      const posed =
-        sh.height !== 0 || sh.pitch !== 0 || sh.roll !== 0 || sh.gape !== 0 || sh.slap !== 0;
-      this.setPoseFactors(sh);
       this.def = CREATURES[sh.species];
       const shape = this.def.shape;
       const undulation = shape.undulation ?? 1;
@@ -1423,28 +1193,6 @@ export class AsciiRenderer {
         spine[k * 2] = n[k * 2] - ty * off;
         spine[k * 2 + 1] = n[k * 2 + 1] + tx * off;
       }
-      if (posed) this.posePoints(sh, L);
-      // Airborne, the body is drawn bigger about its mid-spine node. LA is the length as drawn; the shadow keeps L.
-      const LA = L * this.airScale;
-      if (sh.emerge !== 0) {
-        // Head first: each node grows by its own out fraction (about mid-spine), so the emerged part grows toward the camera.
-        const mid = (N >> 1) * 2;
-        const mx = spine[mid];
-        const my = spine[mid + 1];
-        for (let k = 0; k < N; k++) {
-          const f = 1 + (this.airScale - 1) * emergedAt(sh.emerge, k / (N - 1));
-          spine[k * 2] = mx + (spine[k * 2] - mx) * f;
-          spine[k * 2 + 1] = my + (spine[k * 2 + 1] - my) * f;
-        }
-      } else if (this.airScale !== 1) {
-        const mid = (N >> 1) * 2;
-        const mx = spine[mid];
-        const my = spine[mid + 1];
-        for (let k = 0; k < N; k++) {
-          spine[k * 2] = mx + (spine[k * 2] - mx) * this.airScale;
-          spine[k * 2 + 1] = my + (spine[k * 2 + 1] - my) * this.airScale;
-        }
-      }
       arc[0] = 0;
       for (let k = 1; k < N; k++) {
         arc[k] =
@@ -1457,8 +1205,8 @@ export class AsciiRenderer {
       const bank = clamp(sh.turn * 0.45, -0.35, 0.35);
       const flex = 1 + (shape.finFlap ?? 0.06) * Math.sin(sh.phase * (shape.finFlapRate ?? 0.5));
       const reachFin = shape.pectoral[3];
-      this.finTipRight = LA * reachFin * flex * (1 - bank) * this.wf;
-      this.finTipLeft = LA * reachFin * flex * (1 + bank) * this.wf;
+      this.finTipRight = L * reachFin * flex * (1 - bank);
+      this.finTipLeft = L * reachFin * flex * (1 + bank);
       this.tailLift = Math.sin(sh.phase);
       this.tailBeat = 1 + 0.1 * this.tailLift;
 
@@ -1482,8 +1230,7 @@ export class AsciiRenderer {
               shape.tail ? tailSpan(shape.tail) : 0,
             )
           : Math.max(shape.pectoral[3], shape.tail ? tailSpan(shape.tail) : 0);
-      let reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * LA;
-      if (posed && sh.slap !== 0) reach += 0.25 * Math.abs(sh.slap) * LA;
+      const reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L;
       const c0 = Math.max(0, Math.floor((minX - reach) / cw));
       const c1 = Math.min(cols - 1, Math.floor((maxX + reach) / cw));
       const r0 = Math.max(0, Math.floor((minY - reach) / ch));
@@ -1499,30 +1246,19 @@ export class AsciiRenderer {
             ? named[coatName]
             : null;
         this.bodyCoat.push(coat);
-        this.rasterizeNatural(
-          sh,
-          LA,
-          reach,
-          c0,
-          c1,
-          r0,
-          r1,
-          kindIndex,
-          this.bodyCoat.length - 1,
-          t,
-        );
+        this.rasterizeNatural(sh, L, reach, c0, c1, r0, r1, kindIndex, this.bodyCoat.length - 1, t);
         continue;
       }
 
       const skipBeyond = reach + Math.hypot(cw, ch);
-      const shadowDc = Math.round((L * 0.035 * this.shadowMul) / cw) + 1;
-      const shadowDr = Math.round((L * 0.02 * this.shadowMul) / ch) + 1;
+      const shadowDc = Math.round((L * 0.035) / cw) + 1;
+      const shadowDr = Math.round((L * 0.02) / ch) + 1;
 
       for (let r = r0; r <= r1; r++) {
         for (let c = c0; c <= c1; c++) {
           const x = c * cw;
           const y = r * ch;
-          const centerHit = this.sampleBody(x + cw / 2, y + ch / 2, LA);
+          const centerHit = this.sampleBody(x + cw / 2, y + ch / 2, L);
           if (!centerHit && this.hitDist > skipBeyond) continue;
           const flag = this.hitFlag;
           const shade = this.hitShade;
@@ -1531,7 +1267,7 @@ export class AsciiRenderer {
 
           let hits = centerHit ? 1 : 0;
           for (let k = 0; k < SUBSAMPLES.length; k += 2) {
-            if (this.sampleBody(x + SUBSAMPLES[k] * cw, y + SUBSAMPLES[k + 1] * ch, LA)) hits++;
+            if (this.sampleBody(x + SUBSAMPLES[k] * cw, y + SUBSAMPLES[k + 1] * ch, L)) hits++;
           }
           if (hits === 0) continue;
           const coverage = hits / 5;
@@ -1541,13 +1277,13 @@ export class AsciiRenderer {
           const key =
             (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
           bodyKey[i] = key;
-          bodyDepth[i] = emergedDepth(bodyDepthOf(sh), sh.emerge, s);
+          bodyDepth[i] = bodyDepthOf(sh);
           bodyKind[i] = kindIndex;
 
           if (centerHit && coverage >= 0.6) {
             bodyFlag[i] = flag;
             const flicker = (hash3(c, r, Math.floor(t * 6)) - 0.5) * 0.06;
-            bodyShade[i] = clamp(shade + flicker + this.lift, 0, 1);
+            bodyShade[i] = clamp(shade + flicker, 0, 1);
             const sc = c + shadowDc;
             const sr = r + shadowDr;
             if (sc < cols && sr < rows) bodyShadow[sr * cols + sc] = 1;
@@ -1562,8 +1298,7 @@ export class AsciiRenderer {
 
   /**
    * Natural mode: each cell is two half cells, and a half is solid when its centre and at least
-   * one side sample hit. Writes the per-half buffers that drawNatural reads. `L` is the length as drawn
-   * (scaled while airborne); the shadow is cast at the true length.
+   * one side sample hit. Writes the per-half buffers that drawNatural reads.
    */
   private rasterizeNatural(
     sh: Creature,
@@ -1596,11 +1331,10 @@ export class AsciiRenderer {
     const coat = this.bodyCoat[creature];
     const skipBeyond = reach + Math.hypot(cw, ch);
     const depth = bodyDepthOf(sh);
-    const shadowL = L / this.airScale;
-    const shadowDc = Math.round((shadowL * 0.035 * (0.4 + 1.2 * depth) * this.shadowMul) / cw) + 1;
-    const shadowDr = Math.round((shadowL * 0.02 * (0.4 + 1.2 * depth) * this.shadowMul) / ch) + 1;
-    // Shallow bodies throw a strong shadow, deep ones a faint one; a breaching one throws it softer.
-    const shadowStrength = (0.85 - 0.45 * depth) * this.shadowFade;
+    const shadowDc = Math.round((L * 0.035 * (0.4 + 1.2 * depth)) / cw) + 1;
+    const shadowDr = Math.round((L * 0.02 * (0.4 + 1.2 * depth)) / ch) + 1;
+    // Shallow bodies throw a strong shadow, deep ones a faint one.
+    const shadowStrength = 0.85 - 0.45 * depth;
     const flickerTick = Math.floor(t * 6);
 
     for (let r = r0; r <= r1; r++) {
@@ -1641,7 +1375,7 @@ export class AsciiRenderer {
           // A half is solid when its centre and at least one side sample hit.
           if (mid && sides > 0) {
             const flicker = (hash3(c, 2 * r + h, flickerTick) - 0.5) * 0.06;
-            const solidShade = clamp(shade + flicker + this.lift, 0, 1);
+            const solidShade = clamp(shade + flicker, 0, 1);
             const region = coat ? this.paintRegion(coat, pointS, pointV, pointAcross, flag, L) : 0;
             if (h === 0) {
               topSolid = true;
@@ -1668,7 +1402,7 @@ export class AsciiRenderer {
         // Body-anchored key so each glyph rides along with the skin.
         bodyKey[i] =
           (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
-        bodyDepth[i] = emergedDepth(bodyDepthOf(sh), sh.emerge, s);
+        bodyDepth[i] = bodyDepthOf(sh);
         bodyKind[i] = kindIndex;
         bodyCreature[i] = creature;
 
@@ -1771,8 +1505,6 @@ export class AsciiRenderer {
     p.across = across;
     p.flag = flag;
     p.id = this.bodyId;
-    p.belly = this.belly;
-    p.bellyAmount = this.bellyAmount;
     const region = coat.paint ? coat.paint(p) : 0;
     return Math.max(0, Math.min(coat.regions.length - 1, region | 0));
   }
@@ -1922,7 +1654,7 @@ export class AsciiRenderer {
     }
   }
 
-  // ── fish, dots, heat ────────────────────────────────────────────────
+  // ── fish, dots ──────────────────────────────────────────────────────
 
   /**
    * Snap each fish to a cell and bucket it by brightness: far fish are dim,
@@ -1930,20 +1662,15 @@ export class AsciiRenderer {
    * claim a cell first when two land in the same one.
    */
   private markFish(world: World) {
-    const { fishStamp, fishBuckets, fishStunned, bodyFlag } = this;
+    const { fishStamp, fishBuckets, bodyFlag } = this;
     const frame = ++this.frameId;
     for (const bucket of fishBuckets) bucket.length = 0;
-    fishStunned.length = 0;
     for (let pass = 0; pass < 2; pass++) {
       for (const f of world.fish) {
         if (!f.alive || (f.depth > 0.78 ? 0 : 1) !== pass) continue;
         const i = this.cellIndex(f.x, f.y);
         if (i < 0 || fishStamp[i] === frame || bodyFlag[i]) continue;
         fishStamp[i] = frame;
-        if (f.stun > 0) {
-          fishStunned.push(i);
-          continue;
-        }
         const glint = clamp(Math.abs(f.turn) / 3.5, 0, 1);
         const v = 0.3 + (0.4 * (f.depth - 0.55)) / 0.45 + 0.3 * Math.max(glint, f.alarm);
         fishBuckets[clamp(Math.floor(v * FISH_ALPHAS.length), 0, FISH_ALPHAS.length - 1)].push(i);
@@ -1951,32 +1678,8 @@ export class AsciiRenderer {
     }
   }
 
-  /**
-   * Food in the water: `*` for ocean bait, `o` for pond pellets. Each fades as it sinks or dissolves,
-   * and stays hidden in any cell a body covers.
-   */
-  private drawMorsels(world: World) {
-    const { ctx, cw, ch, cols, bodyFlag, morselStamp, frameId } = this;
-    const scene = world.scene === "pond" ? 1 : 0;
-    const glyph = MORSEL_GLYPHS[scene];
-    const styles = this.morselStyles[scene];
-    for (const m of world.morsels) {
-      if (!m.alive || m.fade >= 1) continue;
-      const i = this.cellIndex(m.x, m.y);
-      if (i < 0 || bodyFlag[i]) continue;
-      const level = clamp(
-        Math.ceil(MORSEL_ALPHA * (1 - m.fade) * MORSEL_LEVELS) - 1,
-        0,
-        MORSEL_LEVELS - 1,
-      );
-      morselStamp[i] = frameId;
-      ctx.fillStyle = styles[level];
-      ctx.fillText(glyph, (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
-    }
-  }
-
   private drawFish() {
-    const { ctx, cw, ch, cols, fishBuckets, fishStunned } = this;
+    const { ctx, cw, ch, cols, fishBuckets } = this;
     for (let b = 0; b < fishBuckets.length; b++) {
       const bucket = fishBuckets[b];
       if (!bucket.length) continue;
@@ -1984,25 +1687,6 @@ export class AsciiRenderer {
       for (const i of bucket) {
         ctx.fillText("-", (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
       }
-    }
-    if (fishStunned.length) {
-      ctx.fillStyle = this.fishStyles[fishBuckets.length - 1];
-      for (const i of fishStunned) {
-        ctx.fillText("~", (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
-      }
-    }
-  }
-
-  private drawHeat() {
-    const { ctx, heat, cols, cw, ch } = this;
-    for (let i = 0; i < heat.length; i++) {
-      const h = heat[i];
-      if (h < 0.08) continue;
-      const col = i % cols;
-      const row = (i / cols) | 0;
-      ctx.fillStyle =
-        h > 0.5 ? `rgba(255,120,60,${h.toFixed(2)})` : `rgba(220,40,40,${(h * 1.6).toFixed(2)})`;
-      ctx.fillText(h > 0.6 ? "*" : "·", col * cw + cw / 2, row * ch + ch / 2 + 1);
     }
   }
 
@@ -2098,15 +1782,14 @@ export class AsciiRenderer {
     }
   }
 
-  // ── water surface: the sea, rings, spray, bubbles ─────────────────
+  // ── water surface: the sea, rings, spray ──────────────────────────
 
   /**
    * The open sea from above, over the empty water cells: a faint swell tint, then the sun glitter,
-   * windrow dashes and whitecap foam on top. Empty means no body, fish or food, which are all drawn over it.
+   * windrow dashes and whitecap foam on top. Empty means no body or fish, which are both drawn over it.
    */
   private drawSea(t: number) {
-    const { ctx, cols, rows, cw, ch, energy, bodyFlag, fishStamp, morselStamp, frameId, sea } =
-      this;
+    const { ctx, cols, rows, cw, ch, energy, bodyFlag, fishStamp, frameId, sea } = this;
     const { z, streak, foamGlyph, foamLevel } = sea;
     const mode = this.palette.mode;
     // The swell tint: one alpha level per slope band. A run of cells on the same level is one fillRect.
@@ -2118,12 +1801,7 @@ export class AsciiRenderer {
         if (c < cols) {
           const i = r * cols + c;
           const v = z[i];
-          const open = !(
-            bodyFlag[i] ||
-            energy[i] > 0.45 ||
-            fishStamp[i] === frameId ||
-            morselStamp[i] === frameId
-          );
+          const open = !(bodyFlag[i] || energy[i] > 0.45 || fishStamp[i] === frameId);
           if (open && v > SWELL_START) {
             const level = Math.floor(((v - SWELL_START) / SWELL_SPAN) * SWELL_LEVELS);
             style = this.swellLit[clamp(level, 0, SWELL_LEVELS - 1)];
@@ -2147,12 +1825,7 @@ export class AsciiRenderer {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const i = r * cols + c;
-        if (
-          bodyFlag[i] ||
-          energy[i] > 0.45 ||
-          fishStamp[i] === frameId ||
-          morselStamp[i] === frameId
-        ) {
+        if (bodyFlag[i] || energy[i] > 0.45 || fishStamp[i] === frameId) {
           continue;
         }
         const x = (c + 0.5) * cw;
@@ -2177,26 +1850,14 @@ export class AsciiRenderer {
     }
   }
 
-  /**
-   * One particle at its cell, fading with age01. Bubbles (`skipBodies`) stay out of body cells;
-   * spray and mist draw over them.
-   */
-  private drawParticle(
-    x: number,
-    y: number,
-    kind: ParticleKind,
-    age01: number,
-    skipBodies: boolean,
-  ) {
-    const { ctx, cw, ch, cols, bodyFlag } = this;
+  /** One spray droplet at its cell, fading with age01. Spray draws over the animals. */
+  private drawParticle(x: number, y: number, age01: number) {
+    const { ctx, cw, ch, cols } = this;
     const i = this.cellIndex(x, y);
-    if (i < 0 || (skipBodies && bodyFlag[i])) return;
+    if (i < 0) return;
     const level = clamp(Math.floor((1 - age01) * ALPHA_LEVELS), 0, ALPHA_LEVELS - 1);
-    let glyph: string;
-    if (kind === 1) glyph = age01 < 0.45 ? "o" : age01 < 0.8 ? "°" : ".";
-    else if (kind === 0) glyph = age01 < 0.25 ? "*" : age01 < 0.5 ? "," : age01 < 0.8 ? "." : "'";
-    else glyph = age01 < 0.3 ? ":" : age01 < 0.65 ? "." : "'";
-    ctx.fillStyle = this.particleStyles[kind][level];
+    const glyph = age01 < 0.25 ? "*" : age01 < 0.5 ? "," : age01 < 0.8 ? "." : "'";
+    ctx.fillStyle = this.particleStyles[level];
     ctx.fillText(glyph, (i % cols) * cw + cw / 2, ((i / cols) | 0) * ch + ch / 2 + 1);
   }
 

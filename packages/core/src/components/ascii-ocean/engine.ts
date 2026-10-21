@@ -7,11 +7,6 @@ import { World } from "./world";
 
 const STEP = 1 / 60;
 const MAX_STEPS = 4;
-/** A press is a click only if the pointer moved less than this many px, within this many ms. */
-const CLICK_PX = 6;
-const CLICK_MS = 500;
-/** Presses on these are for the page (links, buttons, inputs), not for the ocean. */
-const INTERACTIVE = "a, button, input, textarea, select, label, [role=button], [contenteditable]";
 
 /** Constructor options for OceanEngine: the world's setup plus the pointer behaviour. */
 export type EngineOptions = {
@@ -19,7 +14,7 @@ export type EngineOptions = {
   seed?: number;
   scene?: OceanScene;
   baitFish?: number | "auto" | false;
-  /** "feed" drops food on a click; "splash" flashes the water on press; "none" ignores presses. Hover avoidance is always on. */
+  /** "splash" flashes the water on press; "none" ignores presses. Hover avoidance is always on. */
   interaction?: OceanInteraction;
   /** Animal colouring: real colours ("natural") or greyscale that inverts on light pages ("theme"). Default "theme". */
   colors?: OceanColors;
@@ -46,8 +41,6 @@ export class OceanEngine {
   private readPalette: (el: HTMLElement) => OceanPalette;
   private canvas: HTMLCanvasElement;
   private interaction: OceanInteraction;
-  /** Where the current feed press started, or null. */
-  private press: { x: number; y: number; t: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement, options: EngineOptions) {
     this.canvas = canvas;
@@ -85,8 +78,6 @@ export class OceanEngine {
     this.reducedMotion.addEventListener("change", this.onMotionPreference);
     window.addEventListener("pointermove", this.onPointerMove, { passive: true });
     window.addEventListener("pointerdown", this.onPointerDown, { passive: true });
-    window.addEventListener("pointerup", this.onPointerUp, { passive: true });
-    window.addEventListener("pointercancel", this.onPointerCancel, { passive: true });
     document.documentElement.addEventListener("pointerleave", this.onPointerLeave);
     window.addEventListener("blur", this.onPointerLeave);
 
@@ -108,20 +99,8 @@ export class OceanEngine {
     this.reducedMotion.removeEventListener("change", this.onMotionPreference);
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerdown", this.onPointerDown);
-    window.removeEventListener("pointerup", this.onPointerUp);
-    window.removeEventListener("pointercancel", this.onPointerCancel);
     document.documentElement.removeEventListener("pointerleave", this.onPointerLeave);
     window.removeEventListener("blur", this.onPointerLeave);
-  }
-
-  /** Starts a random jumper's jump (see World.playRandomJump). Reduced motion has no shows, so it returns 0. */
-  playRandomJump(): number {
-    if (this.reducedMotion.matches) return 0;
-    return this.world.playRandomJump();
-  }
-
-  hasJumpers(): boolean {
-    return this.world.hasJumpers();
   }
 
   private resize() {
@@ -202,33 +181,7 @@ export class OceanEngine {
   private onPointerDown = (e: PointerEvent) => {
     if (this.interaction === "none") return;
     const { x, y, inside } = this.toLocal(e);
-    if (this.interaction === "feed") {
-      // Only a primary-button press (or a touch or pen tap) can feed.
-      if (e.button !== 0) {
-        this.press = null;
-        return;
-      }
-      const onControl = (e.target as Element | null)?.closest?.(INTERACTIVE);
-      this.press = inside && !onControl ? { x, y, t: performance.now() } : null;
-      return;
-    }
     if (inside && !this.reducedMotion.matches) this.world.splash(x, y);
-  };
-
-  /** A scroll or other gesture took the pointer over, so the press is not a click. */
-  private onPointerCancel = () => {
-    this.press = null;
-  };
-
-  /** Feed mode: a press and release close together, in place, is a click that drops food. */
-  private onPointerUp = (e: PointerEvent) => {
-    const press = this.press;
-    this.press = null;
-    if (!press || this.interaction !== "feed" || this.reducedMotion.matches) return;
-    const { x, y, inside } = this.toLocal(e);
-    const moved = Math.hypot(x - press.x, y - press.y);
-    if (!inside || moved > CLICK_PX || performance.now() - press.t > CLICK_MS) return;
-    this.world.offerFood(press.x, press.y);
   };
 
   private onPointerLeave = () => {

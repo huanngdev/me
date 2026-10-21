@@ -101,8 +101,6 @@ describe("Effects pool", () => {
   test("after 2.5 s every particle and ring is dead", () => {
     const fx = new Effects();
     fx.spray(10, 10, 26, 60, 3);
-    fx.blow(50, 50, 80, 4);
-    fx.bubble(70, 70, 1.2, 5);
     fx.ring(0, 0, 120, 90, 1);
     for (let k = 0; k < 150; k++) fx.step(DT);
     let live = 0;
@@ -118,7 +116,6 @@ describe("Effects pool", () => {
     const before = arrays();
     for (let k = 0; k < 2000; k++) {
       fx.spray(k, k, 4, 30, k);
-      if (k % 5 === 0) fx.blow(k, k, 40, k);
       if (k % 7 === 0) fx.ring(k, k, 50, 20, 0.5);
       fx.step(DT);
       fx.forEachParticle(() => {});
@@ -135,34 +132,12 @@ describe("Effects pool", () => {
       const out: number[] = [];
       for (let k = 0; k < 50; k++) {
         fx.spray(k * 3, k * 2, 6, 40, k * 17);
-        fx.blow(k, 9, 30, k * 5);
-        fx.bubble(k, k, 1.2, k * 3);
         fx.step(DT);
-        fx.forEachParticle((x, y, kind, age) => out.push(x, y, kind, age));
+        fx.forEachParticle((x, y, age) => out.push(x, y, age));
       }
       return out;
     };
     expect(run()).toEqual(run());
-  });
-
-  test("blow mist: round(radius / 6) particles, from 8 to 28, that spread out to about the given radius", () => {
-    const fx = new Effects();
-    fx.blow(0, 0, 60, 9);
-    let count = 0;
-    let maxR = 0;
-    fx.forEachParticle((x, y) => {
-      count++;
-      maxR = Math.max(maxR, Math.hypot(x, y));
-    });
-    // The count was 14 for every blow. It now scales with the plume's radius: 60 px gives 10.
-    expect(count).toBe(10);
-    for (let k = 0; k < 60; k++) fx.step(DT);
-    let farthest = 0;
-    fx.forEachParticle((x, y) => {
-      farthest = Math.max(farthest, Math.hypot(x, y));
-    });
-    expect(farthest).toBeGreaterThan(maxR);
-    expect(farthest).toBeGreaterThan(30);
   });
 });
 

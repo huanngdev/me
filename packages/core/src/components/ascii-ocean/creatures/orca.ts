@@ -10,7 +10,7 @@ const SADDLE_GREY: Oklch = [0.6, 0.01, 250];
 
 /**
  * Killer whale, black base. A white eye patch sits behind and above each eye, and a grey saddle
- * patch sits just behind the dorsal fin. Fins are black. Rolled over, the white belly shows.
+ * patch sits just behind the dorsal fin. Fins are black.
  */
 const orcaCoat: Coat = {
   regions: [BLACK, WHITE, SADDLE_GREY],
@@ -21,8 +21,6 @@ const orcaCoat: Coat = {
     const ds = (p.s - 0.18) / 0.07;
     const da = (p.across - 0.68) / 0.38;
     if (ds * ds + da * da <= 1) return 1;
-    // Rolling over shows the underside: the white belly grows outward from the centre line as bellyAmount rises.
-    if (p.across < 0.75 * p.bellyAmount) return 1;
     // Saddle: grey where across is under a soft edge that is widest at its centre (s 0.525).
     if (p.s >= 0.45 && p.s <= 0.6 && p.across < 0.7 - (0.3 * Math.abs(p.s - 0.525)) / 0.075) {
       return 2;

@@ -31,7 +31,7 @@ function paintGrid(
   finBand: [number, number] = [0.16, 0.3],
 ): Cell[][] {
   const paint = coat.paint ?? (() => 0);
-  const p: PaintPoint = { s: 0, v: 0, L, across: 0, flag: 0, id, belly: false, bellyAmount: 0 };
+  const p: PaintPoint = { s: 0, v: 0, L, across: 0, flag: 0, id };
   const rows: Cell[][] = [];
   for (let k = 0; k <= 400; k++) {
     const s = k / 400;

@@ -170,10 +170,12 @@ function naturalSharkHash(seed: number, surface = true) {
   return hash;
 }
 
+// R21a: animals only swim (no hunting, feeding or shows).
 // Natural-mode shark draw calls for seed 42 before the water surface existed, with `surface: false`.
 // R17: no energy trails in natural mode, and a wider tail sweep when rushing
 // R15: seabed
-const NATURAL_NO_SURFACE_HASH = 3051593154;
+const NATURAL_NO_SURFACE_HASH = 2276086267;
+// R21a: animals only swim (no hunting, feeding or shows).
 // Locks the natural-mode shark draw calls for seed 42 at steps 100, 200 and 300, surface on.
 // R9: natural mode gained the water surface (caustics)
 // R10: a caustic net of wavy light bands tinting the water cells
@@ -181,7 +183,7 @@ const NATURAL_NO_SURFACE_HASH = 3051593154;
 // R17: no energy trails in natural mode, and a wider tail sweep when rushing
 // R15: seabed
 // R20: open-sea surface (swell, glitter, streaks) replaces caustics
-const NATURAL_SHARK_HASH_SEED_42 = 3897662886;
+const NATURAL_SHARK_HASH_SEED_42 = 707235081;
 
 describe("natural mode", () => {
   test("bodies split into half-height blocks", () => {

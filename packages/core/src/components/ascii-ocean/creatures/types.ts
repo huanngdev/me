@@ -22,8 +22,6 @@ export type OceanScale = "stylized" | "true";
 
 /** What a pointer press does to the water. */
 export type OceanInteraction =
-  /** A press drops food: nearby animals swim over to eat, each in its own way. */
-  | "feed"
   /** A press flashes the water. */
   | "splash"
   /** Presses are ignored. */
@@ -43,10 +41,6 @@ export type PaintPoint = {
   across: number;
   flag: number;
   id: number;
-  /** The animal has rolled far enough to show its underside (orca belly, a shark's pale ventral side). */
-  belly: boolean;
-  /** How far the underside shows, 0 (none) → 1 (fully rolled), eased across the roll so a belly grows in. `belly` is `bellyAmount > 0.5`. */
-  bellyAmount: number;
 };
 
 /** Natural colours: `regions[0]` is the base skin; `paint` returns a region index for a point. */

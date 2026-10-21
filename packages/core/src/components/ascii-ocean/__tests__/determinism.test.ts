@@ -40,11 +40,11 @@ function simulate(seed: number) {
   return hash;
 }
 
-// Locks the v2 baseline: if this changes, the simulation behaviour changed.
-const WORLD_HASH_SEED_42 = 94153949;
+// R21a: animals only swim (no hunting, feeding or shows). Locks the simulation for seed 42.
+const WORLD_HASH_SEED_42 = 529700976;
 
-// Locks the renderer's draw calls for seed 42 at steps 100, 200 and 300.
-const RENDER_HASH_SEED_42 = 66986010;
+// R21a: animals only swim (no hunting, feeding or shows). Locks the renderer's draw calls for seed 42 at steps 100, 200 and 300.
+const RENDER_HASH_SEED_42 = 2858469954;
 
 describe("ascii-ocean determinism", () => {
   test("the same seed gives the same world", () => {

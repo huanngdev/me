@@ -1,6 +1,6 @@
 "use client";
 
-import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { cn } from "../../lib/utils";
 import { createRng } from "./math";
@@ -26,16 +26,7 @@ export type {
 } from "./creatures/types";
 export type { SharkKind, SharkSpec } from "./world";
 
-export type AsciiOceanHandle = {
-  /** Makes a random animal that can jump do its jump; returns how long it lasts in seconds, or 0 when none can jump right now. */
-  playJump(): number;
-  /** Whether the roster has any animal that can jump at all. */
-  hasJumpers(): boolean;
-};
-
 export type AsciiOceanProps = {
-  /** Imperative handle: `playJump()` triggers a random jump, `hasJumpers()` says whether any animal can jump. */
-  ref?: Ref<AsciiOceanHandle>;
   /** Animals to put in the water, each with an optional count and size. */
   creatures?: CreatureGroup[];
   /** @deprecated Use `creatures`. Still supported. */
@@ -46,7 +37,7 @@ export type AsciiOceanProps = {
   baitFish?: number | "auto" | false;
   /** "true" keeps real length ratios between species; "stylized" compresses them. Default "stylized". */
   scale?: OceanScale;
-  /** What a press does: "feed" drops food and nearby animals swim over to eat, each in its own way; "splash" flashes the water; "none" ignores presses. Default "feed". */
+  /** What a press does: "splash" flashes the water; "none" ignores presses. Default "splash". */
   interaction?: OceanInteraction;
   /** "natural" paints animals in their real colours on any theme; "theme" keeps them greyscale and inverts them on light backgrounds. Default "natural". */
   colors?: OceanColors;
@@ -64,29 +55,18 @@ export type AsciiOceanProps = {
  * The props are read once per canvas; change `key` to swap the roster or scene.
  */
 export function AsciiOcean({
-  ref,
   creatures,
   sharks,
   scene = "ocean",
   baitFish,
   scale = "stylized",
-  interaction = "feed",
+  interaction = "splash",
   colors = "natural",
   surface = true,
   seed,
   className,
 }: AsciiOceanProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<OceanEngine | null>(null);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      playJump: () => engineRef.current?.playRandomJump() ?? 0,
-      hasJumpers: () => engineRef.current?.hasJumpers() ?? false,
-    }),
-    [],
-  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -110,9 +90,7 @@ export function AsciiOcean({
       colors,
       surface,
     });
-    engineRef.current = engine;
     return () => {
-      engineRef.current = null;
       engine.destroy();
     };
     // The props and seed are read once per canvas; a new array identity must not restart the simulation.
