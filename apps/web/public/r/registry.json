@@ -111,7 +111,7 @@
       "name": "ascii-ocean",
       "type": "registry:component",
       "title": "ASCII Ocean",
-      "description": "A canvas ASCII ocean where sharks hunt schools of fish.",
+      "description": "A canvas ocean with sharks, koi, dolphins, orcas and humpbacks: click to feed them, each with its own feeding moves, in natural colours with depth and a water surface.",
       "dependencies": [],
       "registryDependencies": []
     },

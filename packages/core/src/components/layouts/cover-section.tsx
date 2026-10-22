@@ -39,7 +39,7 @@ export function CoverSection() {
   return (
     <section className="border-b">
       <div className="relative isolate mx-auto h-48 w-full max-w-4xl overflow-hidden border-x sm:h-56">
-        <AsciiOcean className="absolute inset-0" />
+        <AsciiOcean className="absolute inset-0" colors="theme" />
         <div className="pointer-events-none relative z-10 flex h-full items-end px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8">
           <div className="min-h-9">
             <AnimatePresence mode="wait" initial={false}>

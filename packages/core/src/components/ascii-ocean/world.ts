@@ -1,23 +1,44 @@
 // Ported from https://github.com/stackedlol/ascii-sharks (used with the author's permission).
 /**
- * Artificial-life sim for the hero: tiny fish schools and the sharks that hunt them.
+ * Artificial-life sim for the hero: bait fish schools and the animals that swim among them.
  *
  * Fish: Reynolds boids (separation / alignment / cohesion) in Couzin-style
  * zones, with a blind spot behind each fish. Alarm spreads from fish to fish
  * through the school (a "wave of agitation"), so a whole school bolts even
- * when only its edge can see the shark. Fleeing fish break sideways around the
- * shark's path, which gives the fountain effect seen in real bait balls.
+ * when only its edge can see a predator. Fleeing fish break sideways around
+ * the predator's path, which gives the fountain effect seen in real bait balls.
+ * A fish that swims off the canvas is replaced by a new school from an edge.
  *
- * Sharks: Reynolds steering (wander + pursuit + separation) on a
- * follow-the-leader spine. Hunger builds over time and drops when they eat.
- * They prefer fish in sparse spots, since dense schools confuse predators,
- * so stragglers get picked off. Eaten fish come back later as new schools
- * swimming in from the edges, which keeps the population steady.
+ * Animals: Reynolds steering (wander + pod cohesion + patrol) on a
+ * follow-the-leader spine. They only swim; nothing hunts or feeds.
  */
-import { angleDiff, clamp, current, rand, randInt, TAU } from "./math";
+import { angleDiff, clamp, createRng, current, rand, randInt, type Rng, TAU } from "./math";
+import {
+  behaviourOf,
+  DEFAULT_MAX_BEND,
+  DEFAULT_TURN_RADIUS,
+  EDGE_TURN_RADIUS,
+} from "./creatures/behaviour";
+import { CREATURES } from "./creatures";
+import { rosterFromSharks, type RosterEntry } from "./creatures/roster";
+import type { CreatureSpecies, OceanScene } from "./creatures/types";
 import { pickSpecies, SPECIES } from "./species";
 
-export const SHARK_NODES = 20;
+export const SPINE_NODES = 20;
+
+/** How fast the koi pond bob eases toward its target: d += (target − d) · min(1, dt · rate). */
+const DIVE_RATE = 5;
+/** Heading error gain (per second) while cruising: turn rate = gain · error, capped by the turning circle. */
+const TURN_GAIN = 1.8;
+/** Time constant (s) of the low-pass filter on an animal's steering direction, so terms don't flip the target each frame. */
+const STEER_TAU = 0.4;
+/** Pod mates keep less personal space than strangers: their separation weight is scaled by this. */
+const POD_SEPARATION = 0.15;
+/** How strongly a pod member turns to its pod's mean heading. */
+const POD_ALIGN = 2.5;
+/** Separation push strength, and its range in body lengths (sum of the two animals), between animals. */
+const SEPARATION_K = 20;
+const SEPARATION_RANGE = 0.9;
 
 export type SharkKind =
   "classic" | "hammerhead" | "zebra" | "tiger" | "greathammer" | "mako" | "thresher" | "nurse";
@@ -32,6 +53,19 @@ const DEFAULT_SHARKS: SharkSpec[] = [
   { kind: "classic", size: 0.84 },
   { kind: "classic", size: 0.77 },
 ];
+
+/** Constructor options for World: roster, seed, and population overrides. */
+export type WorldOptions = {
+  roster?: RosterEntry[];
+  /** Same seed, same world. Omit for a different ocean each time. */
+  seed?: number;
+  /** Fish population: a multiple of the area-based default, "auto", or false for none. */
+  baitFish?: number | "auto" | false;
+  /** Exact fish count; overrides baitFish. */
+  fishCount?: number;
+  /** Ocean has bait fish; pond has koi and no fish by default. Default "ocean". */
+  scene?: OceanScene;
+};
 
 export interface Fish {
   x: number;
@@ -53,9 +87,9 @@ export interface Fish {
   millDir: 1 | -1;
 }
 
-export interface Shark {
+export interface Creature {
   id: number;
-  kind: SharkKind;
+  species: CreatureSpecies;
   length: number;
   /** Spine positions, snout first: [x0, y0, x1, y1, ...]. */
   nodes: Float32Array;
@@ -63,20 +97,24 @@ export interface Shark {
   speed: number;
   /** Tail-beat phase; drives the body wave in the renderer. */
   phase: number;
-  /** Smoothed angular velocity (rad/s); the shark banks its fins into turns. */
+  /** Smoothed angular velocity (rad/s); the body banks its fins into turns. */
   turn: number;
-  hunger: number;
   wander: number;
   orbitDir: 1 | -1;
   orbitRadius: number;
-  target: Fish | null;
-  retargetAt: number;
   /** 0 far / dim → 1 near / bright. */
   depth: number;
+  /** Named coat from the species' `coats`, for species that have them. */
+  coat?: string;
+  /** Sinking under the surface, 0–1: pond koi bob between the surface and mid-water. 0 for everything else. */
+  dive: number;
+  /** Low-passed steering direction (unit-ish vector, x and y): the target the heading turns toward. */
+  steerX: number;
+  steerY: number;
 }
 
 export interface WorldEvent {
-  kind: "eat" | "splash";
+  kind: "splash";
   x: number;
   y: number;
 }
@@ -86,15 +124,30 @@ const FISH_ALIGN_K = 1.4;
 const FISH_COHESION_K = 1;
 const FISH_FLEE_K = 1100;
 const BLIND_COS = -0.6; // ~127° either side of the heading is visible
+/** Fish beyond this many px outside the canvas have left it and are replaced by respawn(). */
+const FISH_EXIT = 60;
+
+/** Inward steer from an edge `depth` px inside it: 0 at half a length in, 2 at the edge and beyond. */
+function edgePush(depth: number, L: number) {
+  const margin = 0.5 * L;
+  return 2 * clamp((margin - depth) / margin, 0, 1);
+}
+
+/** One eased step of the koi pond bob, snapped to exactly 0 when it is back at rest there. */
+function easeDive(d: number, target: number, dt: number) {
+  const v = d + (target - d) * Math.min(1, dt * DIVE_RATE);
+  return target === 0 && Math.abs(v) < 1e-3 ? 0 : v;
+}
 
 export class World {
   width = 0;
   height = 0;
   time = 0;
   fish: Fish[] = [];
-  sharks: Shark[] = [];
+  creatures: Creature[] = [];
   events: WorldEvent[] = [];
   pointer = { x: 0, y: 0, active: false };
+  scene: OceanScene;
 
   /** Fish neighbourhood radius; the spatial hash bucket size matches it. */
   private perception = 60;
@@ -105,16 +158,25 @@ export class World {
   private bucketCols = 0;
   private bucketRows = 0;
   private bucketHead = new Int32Array(0);
-  private bucketCount = new Uint16Array(0);
   private bucketNext = new Int32Array(0);
   private lastSpawn = 0;
   private tmp = { x: 0, y: 0 };
+  private rng: Rng;
+  private roster: RosterEntry[];
+  private fishCount?: number;
+  private baitFish: number | "auto" | false;
 
-  /** fishCount overrides the area-based population (the sidebar wants a single small school). */
-  constructor(
-    private sharkSpecs: SharkSpec[] = DEFAULT_SHARKS,
-    private fishCount?: number,
-  ) {}
+  /**
+   * fishCount overrides the area-based population (the sidebar wants a single small school).
+   * seed makes every random choice repeatable; omit it for a different ocean each time.
+   */
+  constructor(options: WorldOptions = {}) {
+    this.roster = options.roster ?? rosterFromSharks(DEFAULT_SHARKS);
+    this.fishCount = options.fishCount;
+    this.baitFish = options.baitFish ?? "auto";
+    this.rng = options.seed === undefined ? Math.random : createRng(options.seed);
+    this.scene = options.scene ?? "ocean";
+  }
 
   resize(width: number, height: number, cellW: number, cellH: number) {
     const first = this.width === 0;
@@ -126,7 +188,7 @@ export class World {
     this.perception = Math.max(cellH * 3, cellW * 5.5);
     this.foreignSep = cellW * 3;
 
-    if (first || this.fish.length === 0) {
+    if (first || (this.fish.length === 0 && this.creatures.length === 0)) {
       this.seed();
       return;
     }
@@ -139,75 +201,88 @@ export class World {
   seed() {
     const { width: W, height: H } = this;
     const minSide = Math.min(W, H);
-    const baseLength = clamp(minSide * 0.44, 170, 430);
-    const sharkCount = this.sharkSpecs.length;
+    // A roster with a whale in it (realLength 7 or more, orca and humpback) lets the biggest animal be big.
+    const whales = this.roster.some((e) => CREATURES[e.species].realLength >= 7);
+    const baseLength = whales ? clamp(minSide * 0.6, 200, 520) : clamp(minSide * 0.44, 170, 430);
+    const count = this.roster.length;
 
-    this.sharks = [];
-    for (let i = 0; i < sharkCount; i++) {
-      const { kind, size } = this.sharkSpecs[i];
-      const length = baseLength * size;
-      const orbitRadius = minSide * rand(0.28, 0.4);
-      const a = (i / sharkCount) * TAU + rand(-0.4, 0.4);
+    this.creatures = [];
+    for (let i = 0; i < count; i++) {
+      const entry = this.roster[i];
+      const length = baseLength * entry.rel;
+      const orbitRadius = minSide * rand(this.rng, 0.28, 0.4);
+      const a = (i / count) * TAU + rand(this.rng, -0.4, 0.4);
       const orbitDir: 1 | -1 = i % 2 === 0 ? 1 : -1;
       const x = W / 2 + Math.cos(a) * orbitRadius * (W / minSide) * 0.9;
       const y = H / 2 + Math.sin(a) * orbitRadius;
       const heading = a + (orbitDir * Math.PI) / 2;
-      const nodes = new Float32Array(SHARK_NODES * 2);
-      const seg = length / (SHARK_NODES - 1);
-      for (let n = 0; n < SHARK_NODES; n++) {
+      const nodes = new Float32Array(SPINE_NODES * 2);
+      const seg = length / (SPINE_NODES - 1);
+      for (let n = 0; n < SPINE_NODES; n++) {
         nodes[n * 2] = x - Math.cos(heading) * seg * n;
         nodes[n * 2 + 1] = y - Math.sin(heading) * seg * n;
       }
-      this.sharks.push({
+      this.creatures.push({
         id: i + 1,
-        kind,
+        species: entry.species,
         length,
         nodes,
         heading,
         speed: 30,
-        phase: rand(0, TAU),
+        phase: rand(this.rng, 0, TAU),
         turn: 0,
-        hunger: rand(0.25, 0.75),
         wander: 0,
         orbitDir,
         orbitRadius,
-        target: null,
-        retargetAt: 0,
-        depth: size,
+        depth: entry.depth,
+        coat: entry.coat,
+        dive: 0,
+        steerX: Math.cos(heading),
+        steerY: Math.sin(heading),
       });
     }
-    // Smaller (farther) sharks draw first so the big one swims over them.
-    this.sharks.sort((a, b) => a.length - b.length);
+    // Smaller (farther) animals draw first so the big one swims over them.
+    this.creatures.sort((a, b) => a.length - b.length);
 
-    const total = this.fishCount ?? clamp(Math.round((W * H) / 4400), 85, 340);
+    const total = this.fishTotal(W, H);
     this.fish = [];
     while (this.fish.length < total) {
-      const species = pickSpecies();
+      const species = pickSpecies(this.rng);
       const sp = SPECIES[species];
-      const size = Math.min(randInt(sp.schoolSize[0], sp.schoolSize[1]), total - this.fish.length);
-      const millDir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
-      const cx = rand(W * 0.06, W * 0.94);
-      const cy = rand(H * 0.08, H * 0.92);
+      const size = Math.min(
+        randInt(this.rng, sp.schoolSize[0], sp.schoolSize[1]),
+        total - this.fish.length,
+      );
+      const millDir: 1 | -1 = this.rng() < 0.5 ? 1 : -1;
+      const cx = rand(this.rng, W * 0.06, W * 0.94);
+      const cy = rand(this.rng, H * 0.08, H * 0.92);
       // Mostly level headings: fish cruise sideways far more than up or down.
-      const dir = (Math.random() < 0.5 ? 0 : Math.PI) + rand(-0.5, 0.5);
+      const dir = (this.rng() < 0.5 ? 0 : Math.PI) + rand(this.rng, -0.5, 0.5);
       for (let k = 0; k < size; k++) {
         this.fish.push({
-          x: cx + rand(-1, 1) * this.sepX[species] * Math.sqrt(size),
-          y: cy + rand(-1, 1) * this.sepY[species] * Math.sqrt(size) * 0.6,
+          x: cx + rand(this.rng, -1, 1) * this.sepX[species] * Math.sqrt(size),
+          y: cy + rand(this.rng, -1, 1) * this.sepY[species] * Math.sqrt(size) * 0.6,
           vx: Math.cos(dir) * sp.cruise,
           vy: Math.sin(dir) * sp.cruise,
           species,
           alarm: 0,
           alive: true,
           respawnAt: 0,
-          phase: rand(0, TAU),
+          phase: rand(this.rng, 0, TAU),
           turn: 0,
-          depth: rand(0.55, 1),
+          depth: rand(this.rng, 0.55, 1),
           millDir,
         });
       }
     }
     this.bucketNext = new Int32Array(this.fish.length);
+  }
+
+  private fishTotal(W: number, H: number): number {
+    if (this.fishCount !== undefined) return this.fishCount;
+    if (this.baitFish === false) return 0;
+    if (this.baitFish === "auto") return clamp(Math.round((W * H) / 4400), 85, 340);
+    return clamp(Math.round(((W * H) / 4400) * this.baitFish), 0, 600);
   }
 
   splash(x: number, y: number) {
@@ -231,7 +306,7 @@ export class World {
     this.time += dt;
     this.rebuildHash();
     this.stepFish(dt);
-    this.stepSharks(dt);
+    this.stepCreatures(dt);
     this.respawn();
   }
 
@@ -243,10 +318,8 @@ export class World {
     const n = this.bucketCols * this.bucketRows;
     if (this.bucketHead.length !== n) {
       this.bucketHead = new Int32Array(n);
-      this.bucketCount = new Uint16Array(n);
     }
     this.bucketHead.fill(-1);
-    this.bucketCount.fill(0);
     if (this.bucketNext.length !== this.fish.length) {
       this.bucketNext = new Int32Array(this.fish.length);
     }
@@ -256,7 +329,6 @@ export class World {
       const b = this.bucketOf(f.x, f.y);
       this.bucketNext[i] = this.bucketHead[b];
       this.bucketHead[b] = i;
-      this.bucketCount[b]++;
     }
   }
 
@@ -268,7 +340,7 @@ export class World {
   }
 
   private stepFish(dt: number) {
-    const { fish, sharks, pointer, width: W, height: H, time } = this;
+    const { fish, creatures, pointer, width: W, height: H, time } = this;
     const R = this.perception;
     const R2 = R * R;
     const foreignSep = this.foreignSep;
@@ -286,7 +358,7 @@ export class World {
       if (!f.alive) continue;
       const sp = SPECIES[f.species];
       // Alarmed fish want more room: the school flashes apart around a
-      // shark and closes back up once the threat fades.
+      // predator and closes back up once the threat fades.
       const spread = 1 + 1.8 * f.alarm;
       const sepX = this.sepX[f.species] * spread;
       const sepY = this.sepY[f.species] * spread;
@@ -368,9 +440,9 @@ export class World {
       }
 
       // Predators. Distance is measured to the nearest point along the front
-      // half of the shark, so fish also give the flanks a wide berth.
+      // half of the animal, so fish also give the flanks a wide berth.
       let fear = 0;
-      for (const sh of sharks) {
+      for (const sh of creatures) {
         const fearR = sh.length * 0.6 + 60;
         let best = Infinity;
         let bx = 0;
@@ -391,7 +463,7 @@ export class World {
         w *= w;
         const awayX = (f.x - bx) / d;
         const awayY = (f.y - by) / d;
-        // Fountain effect: break to whichever side of the shark's path you're on.
+        // Fountain effect: break to whichever side of the animal's path you're on.
         const shx = Math.cos(sh.heading);
         const shy = Math.sin(sh.heading);
         const side = shx * (f.y - sh.nodes[1]) - shy * (f.x - sh.nodes[0]) >= 0 ? 1 : -1;
@@ -429,8 +501,8 @@ export class World {
 
       // Ambient current and a little individual restlessness.
       current(f.x, f.y, time, cur);
-      ax += cur.x * 0.5 + (Math.random() - 0.5) * sp.jitter;
-      ay += cur.y * 0.5 + (Math.random() - 0.5) * sp.jitter;
+      ax += cur.x * 0.5 + (this.rng() - 0.5) * sp.jitter;
+      ay += cur.y * 0.5 + (this.rng() - 0.5) * sp.jitter;
       // Swim level, except when bolting from danger.
       ay -= f.vy * sp.verticalDrag * (1 - 0.7 * f.alarm);
 
@@ -453,112 +525,216 @@ export class World {
       }
       f.turn += (angleDiff(before, Math.atan2(f.vy, f.vx)) / dt - f.turn) * Math.min(1, dt * 8);
       f.phase += dt * (7 + Math.hypot(f.vx, f.vy) * 0.12);
-      f.x = clamp(f.x + f.vx * dt, -60, W + 60);
-      f.y = clamp(f.y + f.vy * dt, -60, H + 60);
+      f.x += f.vx * dt;
+      f.y += f.vy * dt;
+      // Past the canvas and a margin: the fish is gone, and respawn() sends a new school in from an edge.
+      if (f.x < -FISH_EXIT || f.x > W + FISH_EXIT || f.y < -FISH_EXIT || f.y > H + FISH_EXIT) {
+        f.alive = false;
+        f.respawnAt = time;
+      }
     }
   }
 
-  private stepSharks(dt: number) {
-    const { sharks, width: W, height: H, time } = this;
+  private stepCreatures(dt: number) {
+    const { creatures, width: W, height: H, time } = this;
     const minSide = Math.min(W, H);
     const cxW = W / 2;
     const cyW = H / 2;
 
-    for (const sh of sharks) {
+    for (const sh of creatures) {
       const L = sh.length;
       const nodes = sh.nodes;
       const hx = nodes[0];
       const hy = nodes[1];
+      const beh = behaviourOf(sh.species);
 
-      sh.hunger = Math.min(1, sh.hunger + dt * 0.03);
+      // Pond koi bob between the surface and mid-water. No rng, so the ocean and every other animal are untouched.
+      if (this.scene === "pond" && sh.species === "koi") {
+        const target = clamp(0.35 + 0.45 * Math.sin(time * 0.09 + sh.id * 1.9), 0, 1);
+        sh.dive = easeDive(sh.dive, target, dt);
+      }
 
       // Momentum.
       let dx = Math.cos(sh.heading);
       let dy = Math.sin(sh.heading);
+      // Edge pulls (pod edge steer and the off-stage return) are added after the low-pass, so they act at full strength.
+      let backX = 0;
+      let backY = 0;
 
       // Wander: a slowly drifting offset on a circle ahead of the snout.
-      sh.wander = clamp(sh.wander + (Math.random() - 0.5) * dt * 3.2, -1.1, 1.1);
+      sh.wander = clamp(sh.wander + (this.rng() - 0.5) * dt * 3.2, -1.1, 1.1);
       dx += Math.cos(sh.heading + sh.wander) * 0.45;
       dy += Math.sin(sh.heading + sh.wander) * 0.45;
 
-      // Hunt.
-      if (time >= sh.retargetAt) {
-        sh.target = this.findPrey(sh);
-        sh.retargetAt = time + 0.45;
-      }
-      const t = sh.target;
-      let hunting = false;
-      let closing = 0;
-      if (t && t.alive && sh.hunger > 0.3) {
-        // Pursuit: aim at where the fish is about to be.
-        const tx = t.x + t.vx * 0.35 - hx;
-        const ty = t.y + t.vy * 0.35 - hy;
-        const d = Math.hypot(tx, ty) || 1;
-        const w = 1.4 + 2.6 * sh.hunger;
-        dx += (tx / d) * w;
-        dy += (ty / d) * w;
-        hunting = true;
-        closing = clamp(1 - d / (L * 0.9), 0, 1);
-      } else {
-        // Patrol: a lazy circuit around the headline.
-        const rx = (hx - cxW) / (W / minSide);
-        const ry = hy - cyW;
-        const r = Math.hypot(rx, ry) || 1;
-        const radius = sh.orbitRadius * (1 + 0.15 * Math.sin(time * 0.05 + sh.id));
-        const radial = clamp((radius - r) / radius, -1, 1);
-        dx += ((-ry / r) * sh.orbitDir + (rx / r) * radial * 0.9) * 0.55;
-        dy += ((rx / r) * sh.orbitDir + (ry / r) * radial * 0.9) * 0.55;
-      }
-
-      // Give other sharks room.
-      for (const other of sharks) {
-        if (other === sh) continue;
-        for (let k = 0; k < SHARK_NODES; k += 4) {
-          const ox = hx - other.nodes[k * 2];
-          const oy = hy - other.nodes[k * 2 + 1];
+      // Pod: a cetacean keeps its mates close and swims abreast of them at their mean speed.
+      let podSpeed = -1;
+      // A pod member with mates in reach drops the orbit patrol and follows its pod instead.
+      let podded = false;
+      if (beh.pod) {
+        let mates = 0;
+        let px2 = 0;
+        let py2 = 0;
+        let headX = 0;
+        let headY = 0;
+        let speedSum = sh.speed;
+        for (const mate of creatures) {
+          if (mate === sh || mate.species !== sh.species) continue;
+          const ox = mate.nodes[0] - hx;
+          const oy = mate.nodes[1] - hy;
           const d = Math.hypot(ox, oy);
-          const range = (L + other.length) * 0.45;
-          if (d < range && d > 1e-3) {
-            const w = (1 - d / range) * 3;
-            dx += (ox / d) * w;
-            dy += (oy / d) * w;
+          if (d > 3 * L || d < 1e-3) continue;
+          mates++;
+          px2 += mate.nodes[0];
+          py2 += mate.nodes[1];
+          headX += Math.cos(mate.heading);
+          headY += Math.sin(mate.heading);
+          speedSum += mate.speed;
+          // Keep a body length of water between pod members.
+          if (d < 0.8 * L) {
+            const w = 1.5 * (1 - d / (0.8 * L));
+            dx -= (ox / d) * w;
+            dy -= (oy / d) * w;
           }
+        }
+        if (mates > 0) {
+          const cx = px2 / mates - hx;
+          const cy = py2 / mates - hy;
+          const cd = Math.hypot(cx, cy) || 1;
+          const wc = 0.5 * Math.min(1, mates / 2);
+          dx += (cx / cd) * wc;
+          dy += (cy / cd) * wc;
+          // Swim the way the pod swims; a pod split evenly between two headings has no mean heading to follow.
+          if (Math.hypot(headX, headY) >= 1e-6) {
+            const mh = Math.atan2(headY, headX);
+            dx += Math.cos(mh) * POD_ALIGN;
+            dy += Math.sin(mh) * POD_ALIGN;
+          }
+          // Edge steer: the patrol is gone while podded, so a pod drifting off the canvas turns back here.
+          // Inward push from 0 at half a length inside the edge to weight 2 at the edge and beyond.
+          backX += edgePush(hx, L) - edgePush(W - hx, L);
+          backY += edgePush(hy, L) - edgePush(H - hy, L);
+          podSpeed = speedSum / (mates + 1);
+          podded = true;
         }
       }
 
-      // Keep the headline mostly clear: a soft elliptical no-swim zone.
+      // Cruise: a pond koi meanders the whole pond toward a slow Lissajous point of its own (no rng, so no hash moves);
+      // everything else that is not in a pod patrols a lazy circuit around the headline.
+      if (!podded) {
+        if (this.scene === "pond") {
+          const gx = cxW + 0.36 * W * Math.sin(time * 0.071 + sh.id * 1.7) - hx;
+          const gy = cyW + 0.34 * H * Math.sin(time * 0.053 + sh.id * 2.3) - hy;
+          const g = Math.hypot(gx, gy) || 1;
+          dx += (gx / g) * 0.55;
+          dy += (gy / g) * 0.55;
+        } else {
+          const rx = (hx - cxW) / (W / minSide);
+          const ry = hy - cyW;
+          const r = Math.hypot(rx, ry) || 1;
+          const radius = sh.orbitRadius * (1 + 0.15 * Math.sin(time * 0.05 + sh.id));
+          const radial = clamp((radius - r) / radius, -1, 1);
+          dx += ((-ry / r) * sh.orbitDir + (rx / r) * radial * 0.9) * 0.55;
+          dy += ((rx / r) * sh.orbitDir + (ry / r) * radial * 0.9) * 0.55;
+        }
+      }
+
+      // Pointer follow: species that follow it hover about 0.35 L short of a nearby pointer, begging.
+      const px = this.pointer.x - hx;
+      const py = this.pointer.y - hy;
+      const pd = Math.hypot(px, py);
+      let followed = false;
+      if (beh.followsPointer && this.pointer.active && pd < minSide * 0.5 && pd > 1e-3) {
+        const k = pd - 0.35 * L;
+        const sgn = k >= 0 ? 1 : -1;
+        dx += (px / pd) * sgn * 1.2;
+        dy += (py / pd) * sgn * 1.2;
+        followed = true;
+      }
+
+      // Give other animals room. Three probes, the snout and points half a body ahead and behind it, are checked against every other
+      // second node. Pod mates swim close on purpose, so they get less room; pond koi that sit at different depths may pass under each other.
+      const aheadX = hx + Math.cos(sh.heading) * 0.5 * L;
+      const aheadY = hy + Math.sin(sh.heading) * 0.5 * L;
+      const midX = hx - Math.cos(sh.heading) * 0.5 * L;
+      const midY = hy - Math.sin(sh.heading) * 0.5 * L;
+      for (const other of creatures) {
+        if (other === sh) continue;
+        let scale = other.species === sh.species && beh.pod ? POD_SEPARATION : 1;
+        if (sh.species === "koi" && other.species === "koi") {
+          scale *= 1 - 0.7 * clamp(Math.abs(sh.dive - other.dive) / 0.5, 0, 1);
+        }
+        const range = (L + other.length) * SEPARATION_RANGE;
+        // One push per neighbour, from its closest probe–node pair, so a big body alongside is no stronger than a
+        // small one and the edge return still wins.
+        let best = range;
+        let bx = 0;
+        let by = 0;
+        for (let p = 0; p < 3; p++) {
+          const qx = p === 0 ? hx : p === 1 ? aheadX : midX;
+          const qy = p === 0 ? hy : p === 1 ? aheadY : midY;
+          for (let k = 0; k < SPINE_NODES; k += 2) {
+            const ox = qx - other.nodes[k * 2];
+            const oy = qy - other.nodes[k * 2 + 1];
+            const d = Math.hypot(ox, oy);
+            if (d < best && d > 1e-3) {
+              best = d;
+              bx = ox / d;
+              by = oy / d;
+            }
+          }
+        }
+        if (best < range) {
+          const w = (1 - best / range) * SEPARATION_K * scale;
+          dx += bx * w;
+          dy += by * w;
+        }
+      }
+
+      // Keep the headline mostly clear: a soft elliptical no-swim zone. A pond has no headline.
       const ex = (hx - cxW) / (W * 0.3);
       const ey = (hy - cyW) / (H * 0.16);
       const e2 = ex * ex + ey * ey;
-      if (e2 < 1) {
+      if (e2 < 1 && this.scene !== "pond") {
         const e = Math.sqrt(e2) || 1e-3;
-        const w = (1 - e) * (hunting ? 1 : 2.5);
+        const w = (1 - e) * 2.5;
         dx += (ex / e) * w;
         dy += (ey / e) * w;
       }
 
       // Turn back once the snout leaves the frame, so bodies dip off-screen
-      // now and then but the sharks never wander away for good.
+      // now and then but the animals never wander away for good.
       const over = Math.max(-hx, hx - W, -hy, hy - H);
       if (over > -L * 0.05) {
-        const w = clamp((over + L * 0.05) / (L * 0.35), 0, 1) * 3.5;
+        const w = clamp((over + L * 0.05) / (L * 0.35), 0, 1) * 6;
         const toX = cxW - hx;
         const toY = cyW - hy;
         const d = Math.hypot(toX, toY) || 1;
-        dx += (toX / d) * w;
-        dy += (toY / d) * w;
+        backX += (toX / d) * w;
+        backY += (toY / d) * w;
       }
 
-      const desired = Math.atan2(dy, dx);
-      // Sharks can't pivot on the spot: the turning circle grows with speed.
-      const agility = Math.min(hunting ? 1.7 + closing : 0.8, sh.speed / (L * 0.22));
+      // Low-pass the summed steering, so the target direction drifts instead of jumping with each term.
+      const smooth = Math.min(1, dt / STEER_TAU);
+      sh.steerX += (dx - sh.steerX) * smooth;
+      sh.steerY += (dy - sh.steerY) * smooth;
+      const desired = Math.atan2(sh.steerY + backY, sh.steerX + backX);
+      // Animals can't pivot on the spot: the turning circle grows with speed. The turn is proportional to the heading error,
+      // so small errors give gentle arcs and only large ones reach the cap.
+      const radius = over > 0 ? EDGE_TURN_RADIUS : (beh.turnRadius ?? DEFAULT_TURN_RADIUS);
+      const agility = Math.min(0.8, sh.speed / (L * radius));
       const maxTurn = agility * dt;
-      const turned = clamp(angleDiff(sh.heading, desired), -maxTurn, maxTurn);
+      // A target nearly behind flips between "left" and "right" with every small wobble, so the animal would dither
+      // instead of turning round: past ~150° it keeps going the way it is already turning.
+      let error = angleDiff(sh.heading, desired);
+      if (Math.abs(error) > 2.6 && error * sh.turn < 0) error -= Math.sign(error) * TAU;
+      const turned = clamp(error * TURN_GAIN * dt, -maxTurn, maxTurn);
       sh.heading += turned;
       sh.turn += (turned / dt - sh.turn) * Math.min(1, dt * 3);
 
       const cruise = 30 + L * 0.04;
-      const targetSpeed = hunting ? cruise * (1.45 + closing * 1.5) : cruise;
+      let targetSpeed = cruise;
+      if (podSpeed >= 0) targetSpeed = podSpeed;
+      if (followed) targetSpeed = cruise * 0.7;
       sh.speed += (targetSpeed - sh.speed) * Math.min(1, dt * 1.1);
       sh.phase += dt * (2 + sh.speed / 24);
 
@@ -567,10 +743,10 @@ export class World {
 
       // Follow-the-leader spine, with a stiffness limit per joint so the
       // body bends into a C at most and never folds back on itself.
-      const seg = L / (SHARK_NODES - 1);
-      const maxBend = 0.16;
+      const seg = L / (SPINE_NODES - 1);
+      const maxBend = beh.maxBend ?? DEFAULT_MAX_BEND;
       let prevAngle = sh.heading + Math.PI;
-      for (let k = 1; k < SHARK_NODES; k++) {
+      for (let k = 1; k < SPINE_NODES; k++) {
         const px = nodes[(k - 1) * 2];
         const py = nodes[(k - 1) * 2 + 1];
         let angle = Math.atan2(nodes[k * 2 + 1] - py, nodes[k * 2] - px);
@@ -579,58 +755,7 @@ export class World {
         nodes[k * 2 + 1] = py + Math.sin(angle) * seg;
         prevAngle = angle;
       }
-
-      // Feed.
-      if (sh.hunger > 0.15) {
-        const mouthR = L * 0.05 + 8;
-        const mx = nodes[0];
-        const my = nodes[1];
-        for (const f of this.fish) {
-          if (!f.alive) continue;
-          if ((f.x - mx) ** 2 + (f.y - my) ** 2 < mouthR * mouthR) {
-            f.alive = false;
-            f.respawnAt = time + rand(3, 8);
-            sh.hunger = Math.max(0, sh.hunger - 0.16);
-            this.events.push({ kind: "eat", x: f.x, y: f.y });
-          }
-        }
-      }
     }
-  }
-
-  /**
-   * Pick prey in the shark's forward cone, preferring close fish in sparse
-   * buckets (stragglers) over fish buried in a dense school.
-   */
-  private findPrey(sh: Shark): Fish | null {
-    const range = sh.length * 0.9 + 160;
-    const hx = sh.nodes[0];
-    const hy = sh.nodes[1];
-    const fx = Math.cos(sh.heading);
-    const fy = Math.sin(sh.heading);
-    let best: Fish | null = null;
-    let bestScore = Infinity;
-    let currentScore = Infinity;
-
-    for (const f of this.fish) {
-      if (!f.alive) continue;
-      const dx = f.x - hx;
-      const dy = f.y - hy;
-      const d = Math.hypot(dx, dy);
-      if (d > range || d < 1e-3) continue;
-      const cos = (dx * fx + dy * fy) / d;
-      if (cos < 0.2) continue;
-      const crowd = this.bucketCount[this.bucketOf(f.x, f.y)];
-      const score = d * (1 + (1 - cos) * 0.8) * (1 + crowd * 0.07);
-      if (score < bestScore) {
-        bestScore = score;
-        best = f;
-      }
-      if (f === sh.target) currentScore = score;
-    }
-    // Stick with the current target unless something is clearly better.
-    if (sh.target && currentScore < bestScore * 1.3) return sh.target;
-    return best;
   }
 
   private respawn() {
@@ -642,22 +767,22 @@ export class World {
     this.lastSpawn = time;
 
     // A new school swims in from a random edge.
-    const side = randInt(0, 3);
-    const along = rand(0.15, 0.85);
+    const side = randInt(this.rng, 0, 3);
+    const along = rand(this.rng, 0.15, 0.85);
     const x = side === 0 ? -20 : side === 1 ? W + 20 : along * W;
     const y = side === 2 ? -20 : side === 3 ? H + 20 : along * H;
-    const inward = Math.atan2(H / 2 - y, W / 2 - x) + rand(-0.5, 0.5);
-    const species = pickSpecies();
+    const inward = Math.atan2(H / 2 - y, W / 2 - x) + rand(this.rng, -0.5, 0.5);
+    const species = pickSpecies(this.rng);
     const sp = SPECIES[species];
-    const millDir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
+    const millDir: 1 | -1 = this.rng() < 0.5 ? 1 : -1;
     for (const f of due.slice(0, sp.schoolSize[1])) {
       f.alive = true;
       f.species = species;
       f.alarm = 0;
       f.turn = 0;
       f.millDir = millDir;
-      f.x = x + rand(-1, 1) * this.perception;
-      f.y = y + rand(-1, 1) * this.perception;
+      f.x = x + rand(this.rng, -1, 1) * this.perception;
+      f.y = y + rand(this.rng, -1, 1) * this.perception;
       f.vx = Math.cos(inward) * sp.cruise * 1.4;
       f.vy = Math.sin(inward) * sp.cruise * 1.4;
     }

@@ -174,7 +174,7 @@
       "name": "ascii-ocean",
       "title": "ASCII Ocean",
       "type": "registry:component",
-      "ownFileCount": 6,
+      "ownFileCount": 20,
       "helperFileCount": 0,
       "directory": "components/ascii-ocean",
       "helperDirectory": null,

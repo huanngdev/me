@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-
-import { AsciiOcean, type SharkSpec } from "@repo/core/components/ascii-ocean/ascii-ocean";
+import {
+  AsciiOcean,
+  type CreatureGroup,
+  type OceanScene,
+} from "@repo/core/components/ascii-ocean/ascii-ocean";
 import { Label } from "@repo/core/components/label";
 import {
   Select,
@@ -11,45 +13,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/core/components/select";
+import { useState } from "react";
 
 const PRESETS = {
-  classic: {
-    label: "Classic",
-    sharks: [
-      { kind: "classic", size: 1 },
-      { kind: "classic", size: 0.7 },
-      { kind: "classic", size: 0.84 },
-      { kind: "classic", size: 0.77 },
+  "open-ocean": {
+    label: "Open ocean",
+    scene: "ocean",
+    creatures: [
+      { species: "classic", count: 2 },
+      { species: "hammerhead" },
+      { species: "bottlenose", count: 3 },
+      { species: "orca" },
     ],
   },
-  hammerheads: {
-    label: "Hammerheads",
-    sharks: [
-      { kind: "hammerhead", size: 1 },
-      { kind: "greathammer", size: 0.85 },
+  "orca-pod": {
+    label: "Orca pod",
+    scene: "ocean",
+    creatures: [{ species: "orca", count: 4 }],
+  },
+  "humpback-pod": {
+    label: "Humpbacks and dolphins",
+    scene: "ocean",
+    creatures: [{ species: "humpback" }, { species: "bottlenose", count: 2 }],
+  },
+  "koi-pond": {
+    label: "Koi pond",
+    scene: "pond",
+    creatures: [
+      {
+        species: "koi",
+        count: 7,
+        variety: ["kohaku", "sanke", "showa", "tancho", "ogon", "asagi"],
+      },
     ],
   },
-  mixed: {
-    label: "Mixed",
-    sharks: [
-      { kind: "thresher", size: 1 },
-      { kind: "tiger", size: 0.9 },
-      { kind: "mako", size: 0.8 },
-      { kind: "nurse", size: 0.7 },
+  "shark-gallery": {
+    label: "Shark gallery",
+    scene: "ocean",
+    creatures: [
+      { species: "classic" },
+      { species: "hammerhead" },
+      { species: "greathammer" },
+      { species: "tiger" },
+      { species: "mako" },
+      { species: "thresher" },
+      { species: "nurse" },
+      { species: "zebra" },
     ],
   },
-} satisfies Record<string, { label: string; sharks: SharkSpec[] }>;
+} satisfies Record<string, { label: string; scene?: OceanScene; creatures: CreatureGroup[] }>;
 
 type PresetId = keyof typeof PRESETS;
 
-const PRESET_IDS: PresetId[] = ["classic", "hammerheads", "mixed"];
+const PRESET_IDS: PresetId[] = [
+  "open-ocean",
+  "orca-pod",
+  "humpback-pod",
+  "koi-pond",
+  "shark-gallery",
+];
 
 function isPresetId(value: string): value is PresetId {
   return value in PRESETS;
 }
 
 export function AsciiOceanDemo() {
-  const [preset, setPreset] = useState<PresetId>("classic");
+  const [preset, setPreset] = useState<PresetId>("open-ocean");
 
   const handlePresetChange = (value: string) => {
     if (!isPresetId(value)) return;
@@ -59,9 +88,9 @@ export function AsciiOceanDemo() {
   return (
     <div className="w-full space-y-4">
       <div className="max-w-xs min-w-0 space-y-2">
-        <Label htmlFor="ascii-ocean-sharks">Sharks</Label>
+        <Label htmlFor="ascii-ocean-scene">Scene</Label>
         <Select value={preset} onValueChange={handlePresetChange}>
-          <SelectTrigger className="h-11 w-full sm:h-8" id="ascii-ocean-sharks">
+          <SelectTrigger className="h-11 w-full min-w-0 sm:h-8" id="ascii-ocean-scene">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -76,12 +105,14 @@ export function AsciiOceanDemo() {
 
       <AsciiOcean
         key={preset}
-        sharks={PRESETS[preset].sharks}
+        creatures={PRESETS[preset].creatures}
+        scene={PRESETS[preset].scene}
         className="aspect-video w-full overflow-hidden rounded-lg"
       />
 
       <p className="text-muted-foreground text-xs">
-        Move the pointer to scatter fish. Click to splash.
+        Every animal is drawn with text characters. Pick a scene to see different species. Click the
+        water to make a splash.
       </p>
     </div>
   );

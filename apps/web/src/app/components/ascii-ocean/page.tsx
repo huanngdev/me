@@ -19,13 +19,29 @@ import {
 import { readSourceFiles } from "@/lib/read-source-files";
 import { RegistryInstall } from "@/components/registry-install";
 
+import { CREATURE_IDS, CREATURES } from "@/components/ascii-ocean/creatures";
 import { AsciiOceanDemo } from "./demo";
-import { DOCS } from "@/content/component-docs/ascii-ocean";
+import { LazySpecimen } from "./lazy-specimen";
+import { DOCS, SPECIES_NAMES } from "@/content/component-docs/ascii-ocean";
 
 const SOURCE_FILES = readSourceFiles([
   "packages/core/src/components/ascii-ocean/math.ts",
+  "packages/core/src/components/ascii-ocean/palette.ts",
   "packages/core/src/components/ascii-ocean/species.ts",
+  "packages/core/src/components/ascii-ocean/creatures/types.ts",
+  "packages/core/src/components/ascii-ocean/creatures/paint.ts",
+  "packages/core/src/components/ascii-ocean/creatures/sharks.ts",
+  "packages/core/src/components/ascii-ocean/creatures/koi.ts",
+  "packages/core/src/components/ascii-ocean/creatures/bottlenose.ts",
+  "packages/core/src/components/ascii-ocean/creatures/orca.ts",
+  "packages/core/src/components/ascii-ocean/creatures/humpback.ts",
+  "packages/core/src/components/ascii-ocean/creatures/index.ts",
+  "packages/core/src/components/ascii-ocean/creatures/roster.ts",
+  "packages/core/src/components/ascii-ocean/creatures/behaviour.ts",
   "packages/core/src/components/ascii-ocean/world.ts",
+  "packages/core/src/components/ascii-ocean/effects.ts",
+  "packages/core/src/components/ascii-ocean/pond.ts",
+  "packages/core/src/components/ascii-ocean/sea.ts",
   "packages/core/src/components/ascii-ocean/renderer.ts",
   "packages/core/src/components/ascii-ocean/engine.ts",
   "packages/core/src/components/ascii-ocean/ascii-ocean.tsx",
@@ -37,8 +53,22 @@ const REPO_ROOT = process.cwd().endsWith("apps/web")
 const ENGINE_DIR = "packages/core/src/components/ascii-ocean";
 const ENGINE_FILES = [
   "math.ts",
+  "palette.ts",
   "species.ts",
+  "creatures/types.ts",
+  "creatures/paint.ts",
+  "creatures/sharks.ts",
+  "creatures/koi.ts",
+  "creatures/bottlenose.ts",
+  "creatures/orca.ts",
+  "creatures/humpback.ts",
+  "creatures/index.ts",
+  "creatures/roster.ts",
+  "creatures/behaviour.ts",
   "world.ts",
+  "effects.ts",
+  "pond.ts",
+  "sea.ts",
   "renderer.ts",
   "engine.ts",
   "ascii-ocean.tsx",
@@ -49,7 +79,8 @@ const SOURCES = ENGINE_FILES.map((file) => ({
   language: file.endsWith(".tsx") ? "tsx" : "ts",
 }));
 
-const DESCRIPTION = "A canvas ASCII ocean where sharks hunt schools of fish.";
+const DESCRIPTION =
+  "A canvas ocean drawn in ASCII: sharks, koi, dolphins, orcas and humpbacks swim with real proportions over a living sea or a koi pond.";
 
 export const metadata: Metadata = {
   title: "ASCII Ocean",
@@ -165,6 +196,37 @@ function Docs() {
         description="Pass a roster of sharks. Give the canvas a size through className."
       >
         <CodeBlock code={DOCS.usage} language="tsx" />
+      </Section>
+      <Separator />
+
+      <Section
+        id="species"
+        title="Species"
+        description="Every species the ocean supports. Pass any of these ids in `creatures`."
+      >
+        <div className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+          {CREATURE_IDS.map((id) => (
+            <div key={id}>
+              <div className="h-32 overflow-hidden rounded-lg border">
+                <LazySpecimen species={id} colors="natural" swim />
+              </div>
+              <p className="mt-2 text-sm font-medium">{SPECIES_NAMES[id]}</p>
+              <p className="text-muted-foreground font-mono text-xs">{id}</p>
+              <p className="text-muted-foreground text-xs">≈ {CREATURES[id].realLength} m</p>
+            </div>
+          ))}
+        </div>
+        <h3 className="mt-10 text-sm font-medium">Koi varieties</h3>
+        <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Object.keys(CREATURES.koi.coats ?? {}).map((coat) => (
+            <div key={coat}>
+              <div className="h-32 overflow-hidden rounded-lg border">
+                <LazySpecimen species="koi" coat={coat} colors="natural" swim />
+              </div>
+              <p className="mt-2 text-sm font-medium capitalize">{coat}</p>
+            </div>
+          ))}
+        </div>
       </Section>
       <Separator />
 

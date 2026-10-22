@@ -1,12 +1,29 @@
 // Ported from https://github.com/stackedlol/ascii-sharks (used with the author's permission).
-import { AsciiRenderer, DEFAULT_PALETTE, type OceanPalette } from "./renderer";
-import { World, type SharkSpec } from "./world";
+import { createPaletteReader } from "./palette";
+import { AsciiRenderer, type OceanPalette } from "./renderer";
+import type { RosterEntry } from "./creatures/roster";
+import type { OceanColors, OceanInteraction, OceanScene } from "./creatures/types";
+import { World } from "./world";
 
 const STEP = 1 / 60;
 const MAX_STEPS = 4;
 
+/** Constructor options for OceanEngine: the world's setup plus the pointer behaviour. */
+export type EngineOptions = {
+  roster?: RosterEntry[];
+  seed?: number;
+  scene?: OceanScene;
+  baitFish?: number | "auto" | false;
+  /** "splash" flashes the water on press; "none" ignores presses. Hover avoidance is always on. */
+  interaction?: OceanInteraction;
+  /** Animal colouring: real colours ("natural") or greyscale that inverts on light pages ("theme"). Default "theme". */
+  colors?: OceanColors;
+  /** Sea surface (swell, sun glitter, wind streaks) and wakes (natural colours only). Turn off for a calmer background. Default true. */
+  surface?: boolean;
+};
+
 /**
- * Wires World + AsciiRenderer to a canvas: fixed-timestep loop, resize,
+ * Wires World + AsciiRenderer to a canvas: variable-substep loop, resize,
  * pointer input, pausing off-screen, and prefers-reduced-motion.
  */
 export class OceanEngine {
@@ -14,7 +31,6 @@ export class OceanEngine {
   private renderer: AsciiRenderer;
   private raf = 0;
   private last = 0;
-  private acc = 0;
   private visible = true;
   private reducedMotion: MediaQueryList;
   private colorScheme: MediaQueryList;
@@ -22,16 +38,26 @@ export class OceanEngine {
   private resizeObserver: ResizeObserver;
   private intersectionObserver: IntersectionObserver;
   private disposed = false;
-  private probe: CanvasRenderingContext2D | null = null;
+  private readPalette: (el: HTMLElement) => OceanPalette;
+  private canvas: HTMLCanvasElement;
+  private interaction: OceanInteraction;
 
-  constructor(
-    private canvas: HTMLCanvasElement,
-    sharks?: SharkSpec[],
-  ) {
-    this.world = new World(sharks);
+  constructor(canvas: HTMLCanvasElement, options: EngineOptions) {
+    this.canvas = canvas;
+    this.readPalette = createPaletteReader();
+    this.interaction = options.interaction ?? "splash";
+    this.world = new World({
+      roster: options.roster,
+      seed: options.seed,
+      scene: options.scene,
+      baitFish: options.baitFish,
+    });
     this.renderer = new AsciiRenderer(canvas);
+    this.renderer.setColors(options.colors ?? "theme");
+    this.renderer.setSurface(options.surface ?? true);
+    this.renderer.setScene(options.scene ?? "ocean", options.seed ?? 0);
     this.renderer.setFontFamily(getComputedStyle(canvas).fontFamily);
-    this.renderer.setPalette(this.readPalette());
+    this.renderer.setPalette(this.readPalette(this.canvas));
     this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     this.colorScheme.addEventListener("change", this.onThemeChange);
@@ -99,15 +125,13 @@ export class OceanEngine {
   private frame = (now: number) => {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
-    this.acc += dt;
-    let steps = 0;
-    while (this.acc >= STEP && steps < MAX_STEPS) {
-      this.world.step(STEP);
-      this.acc -= STEP;
-      steps++;
+    // Variable substeps: n equal steps that add up to this frame's dt, so motion does not judder at 120 or 144 Hz.
+    // A non-positive dt (a timestamp from before the last schedule) steps nothing; the world divides by dt.
+    if (dt > 0) {
+      const n = Math.min(MAX_STEPS, Math.max(1, Math.ceil(dt / STEP)));
+      for (let i = 0; i < n; i++) this.world.step(dt / n);
     }
-    if (steps === MAX_STEPS) this.acc = 0;
-    this.renderer.render(this.world, dt);
+    this.renderer.render(this.world, Math.max(0, dt));
     this.raf = requestAnimationFrame(this.frame);
   };
 
@@ -128,41 +152,9 @@ export class OceanEngine {
     }
   };
 
-  /** Background and text colours of the canvas, read from the theme tokens it is styled with. */
-  private readPalette(): OceanPalette {
-    const style = getComputedStyle(this.canvas);
-    const bg = this.toRgba(style.backgroundColor);
-    const fg = this.toRgba(style.color);
-    // No background colour (transparent): keep the default look.
-    if (!bg || !fg || bg[3] === 0) return DEFAULT_PALETTE;
-    const luminance = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255;
-    return {
-      background: [bg[0], bg[1], bg[2]],
-      foreground: [fg[0], fg[1], fg[2]],
-      mode: luminance > 0.5 ? "light" : "dark",
-    };
-  }
-
-  /** Resolves any CSS colour (including oklch()) to rgba bytes via a reusable 1×1 canvas. */
-  private toRgba(css: string): Uint8ClampedArray | null {
-    if (!this.probe) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1;
-      canvas.height = 1;
-      this.probe = canvas.getContext("2d", { willReadFrequently: true });
-    }
-    const ctx = this.probe;
-    if (!ctx) return null;
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = "#000";
-    ctx.fillStyle = css;
-    ctx.fillRect(0, 0, 1, 1);
-    return ctx.getImageData(0, 0, 1, 1).data;
-  }
-
   /** Light/dark switch or accent change: re-read the page colours and repaint. */
   private onThemeChange = () => {
-    this.renderer.setPalette(this.readPalette());
+    this.renderer.setPalette(this.readPalette(this.canvas));
     if (this.reducedMotion.matches) this.drawStill();
   };
 
@@ -187,6 +179,7 @@ export class OceanEngine {
   };
 
   private onPointerDown = (e: PointerEvent) => {
+    if (this.interaction === "none") return;
     const { x, y, inside } = this.toLocal(e);
     if (inside && !this.reducedMotion.matches) this.world.splash(x, y);
   };
