@@ -33,6 +33,7 @@ export default async function AsciiOceanTheatrePage({
       <Theatre
         species={species.length > 0 ? species : DEFAULT_SPECIES}
         colors={colors}
+        scene={query.scene === "pond" ? "pond" : "ocean"}
         fish={query.fish !== "0"}
         seed={Number.isFinite(seed) && query.seed !== undefined ? seed : 7}
       />

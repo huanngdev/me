@@ -3,13 +3,19 @@
 import { useEffect, useRef } from "react";
 
 import { createPaletteReader } from "@/components/ascii-ocean/palette";
-import type { CreatureSpecies, OceanColors } from "@/components/ascii-ocean/creatures/types";
+import type {
+  CreatureSpecies,
+  OceanColors,
+  OceanScene,
+} from "@/components/ascii-ocean/creatures/types";
 import { AsciiRenderer } from "@/components/ascii-ocean/renderer";
 import { World, type WorldEvent } from "@/components/ascii-ocean/world";
 
 export type TheatreProps = {
   species: CreatureSpecies[];
   colors: OceanColors;
+  /** The water: open sea or koi pond. */
+  scene: OceanScene;
   /** Bait fish in the water. */
   fish: boolean;
   seed: number;
@@ -28,7 +34,7 @@ declare global {
 /** Event log cap; the oldest entries drop first. */
 const LOG_CAP = 2000;
 /** Full-viewport ASCII Ocean with the chosen species swimming. Development only. */
-export function Theatre({ species, colors, fish, seed }: TheatreProps) {
+export function Theatre({ species, colors, scene, fish, seed }: TheatreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -37,12 +43,13 @@ export function Theatre({ species, colors, fish, seed }: TheatreProps) {
     const world = new World({
       roster: species.map((s) => ({ species: s, rel: 1, depth: 1 })),
       seed,
+      scene,
       baitFish: fish ? "auto" : false,
     });
     const renderer = new AsciiRenderer(canvas);
     renderer.setColors(colors);
     // Same scene and seed as the world above.
-    renderer.setScene("ocean", seed ?? 0);
+    renderer.setScene(scene, seed ?? 0);
     renderer.setFontFamily(getComputedStyle(canvas).fontFamily);
     renderer.setPalette(createPaletteReader()(canvas));
     window.__oceanWorld = world;
@@ -89,7 +96,7 @@ export function Theatre({ species, colors, fish, seed }: TheatreProps) {
       delete window.__oceanWorld;
       delete window.__oceanLog;
     };
-  }, [species, colors, fish, seed]);
+  }, [species, colors, scene, fish, seed]);
 
   return (
     <div className="relative min-h-[70vh] flex-1">
