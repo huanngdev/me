@@ -128,7 +128,8 @@ describe("renderer colour modes", () => {
       },
       fillRect(x: number, y: number, w: number, h: number) {
         hash = fnv(hash, `rect ${round2(x)},${round2(y)},${round2(w)},${round2(h)} ${fillStyle};`);
-        if (fillStyle.startsWith("rgb(")) rectFills.push(fillStyle);
+        if (typeof fillStyle === "string" && fillStyle.startsWith("rgb("))
+          rectFills.push(fillStyle);
       },
       fillText(text: string, x: number, y: number) {
         hash = fnv(hash, `text ${text},${round2(x)},${round2(y)} ${fillStyle};`);
@@ -142,6 +143,12 @@ describe("renderer colour modes", () => {
       lineTo() {},
       stroke() {},
       clearRect() {},
+      createLinearGradient() {
+        return { addColorStop() {} };
+      },
+      createRadialGradient() {
+        return { addColorStop() {} };
+      },
       getImageData() {
         return null;
       },

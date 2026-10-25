@@ -54,6 +54,12 @@ function scene(
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },
@@ -145,6 +151,12 @@ function naturalSharkHash(seed: number, surface = true) {
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },
@@ -175,7 +187,11 @@ function naturalSharkHash(seed: number, surface = true) {
 // R17: no energy trails in natural mode, and a wider tail sweep when rushing
 // R15: seabed
 // R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
-const NATURAL_NO_SURFACE_HASH = 676169366;
+// V3 R8: sharks have heterocercal blade tails (the forked caudal is gone), so the draw calls changed.
+// V3 R10: the seed draws for breath and drift come after the fish, which moves the rng stream for every later step, and sharks drift in depth.
+// R11: habitat water under the animals (gradient, seabed veiled toward the water), depth veil toward the deep water colour.
+// V3 R13: shark pectorals widened (root 0.14 TL, reach 0.32) and the falcate cut made shallower, so the draw calls changed.
+const NATURAL_NO_SURFACE_HASH = 1963944584;
 // R21a: animals only swim (no hunting, feeding or shows).
 // Locks the natural-mode shark draw calls for seed 42 at steps 100, 200 and 300, surface on.
 // R9: natural mode gained the water surface (caustics)
@@ -185,7 +201,11 @@ const NATURAL_NO_SURFACE_HASH = 676169366;
 // R15: seabed
 // R20: open-sea surface (swell, glitter, streaks) replaces caustics
 // R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
-const NATURAL_SHARK_HASH_SEED_42 = 2279881326;
+// V3 R8: heterocercal shark tails, so the draw calls changed.
+// V3 R10: rng stream and fish drift, as above.
+// R11: water fill and depth veil, as above.
+// V3 R13: classic shark pectorals widened, so the draw calls changed.
+const NATURAL_SHARK_HASH_SEED_42 = 2505656097;
 
 describe("natural mode", () => {
   test("bodies split into half-height blocks", () => {
@@ -227,8 +247,11 @@ describe("natural mode", () => {
   });
 
   test("water attenuation: far bodies lose red relative to blue, on dark and white pages", () => {
+    // A red kohaku koi, not the default sharks: blue-grey bodies gain R/B when the neutral page veil
+    // greys them out, so the red-loss claim is only meaningful for a body that carries red.
+    const kohaku: RosterEntry[] = [{ species: "koi", rel: 1, depth: 1, coat: "kohaku" }];
     const ratio = (page: OceanPalette, depth: number) => {
-      const s = scene("natural", page);
+      const s = scene("natural", page, 42, kohaku);
       for (const sh of s.world.creatures) sh.depth = depth;
       const fills = bodyFills(renderAt(s, 100), s.renderer.cellWidth);
       const ratios = fills

@@ -1,4 +1,5 @@
 import type { SharkKind } from "../world";
+import type { TaxonId } from "./taxa";
 
 /** Every animal the sim and renderer know how to draw. Later rounds extend this union. */
 export type CreatureSpecies = SharkKind | "koi" | "bottlenose" | "orca" | "humpback";
@@ -54,12 +55,20 @@ export interface Coat {
 /** `natural` paints animals in their real colours on any theme; `theme` keeps them greyscale. */
 export type OceanColors = "natural" | "theme";
 
-/** Tail drawn instead of the shark's forked caudal fin. */
+/** The tail fin, drawn in place of the tail body. */
 export type TailShape =
   /** Whale/dolphin flukes: a horizontal, swept-back wing. From `1 - length` to the tail tip; the tips reach the end, the centre notch sits `notch` before it. */
   | { kind: "fluke"; span: number; length: number; notch: number }
   /** A fish's vertical caudal fin seen from above: a narrow blade behind the peduncle. `width` is its half-width at the tip at rest, `twist` the extra half-width at the peak of a beat, both fractions of length. */
-  | { kind: "caudal"; length: number; width: number; twist: number };
+  | { kind: "caudal"; length: number; width: number; twist: number }
+  /**
+   * A shark's heterocercal tail: a vertical caudal fin seen edge-on from above, so a narrow blade.
+   * It starts `length` (a fraction of the body length) behind the body tip, and its upper lobe runs
+   * `upper` (a fraction of the total length) past the tip. The body is shortened so that snout to
+   * blade tip is the full length. `width` is the half-width at rest and `twist` the extra half-width
+   * at the peak of a beat, both fractions of the total length.
+   */
+  | { kind: "heterocercal"; length: number; upper: number; width: number; twist: number };
 
 /** Body outline and fin layout per species. All values are fractions of length. */
 export interface BodyShape {
@@ -72,8 +81,6 @@ export interface BodyShape {
   paddle?: boolean;
   /** Pelvic fins: leading root, trailing root, tip, reach. */
   pelvic: [number, number, number, number];
-  /** Forked caudal fin reach, or 0 when the tail is a ribbon (zebra shark). */
-  caudal: number;
   dorsal: [number, number];
   secondDorsal: [number, number];
   /**
@@ -86,9 +93,9 @@ export interface BodyShape {
   gills: [number, number];
   /** Skin colour multipliers (r, g, b). */
   tint: [number, number, number];
-  /** Tail drawn instead of the shark's forked caudal fin. */
+  /** The tail fin: a fluke, a koi's caudal blade, or a shark's heterocercal blade. */
   tail?: TailShape;
-  /** Multiplies the side-to-side body wave. Default 1. Whales and dolphins beat their tails up and down, so from above they barely bend; use about 0.15 for them. */
+  /** Multiplies the side-to-side body wave. Default: the taxon's `undulation`. Whales and dolphins beat their tails up and down, so from above they barely bend. */
   undulation?: number;
   /** Pectoral flex amplitude. Default 0.06. */
   finFlap?: number;
@@ -99,6 +106,8 @@ export interface BodyShape {
 export interface CreatureDef {
   /** Typical adult length in metres. Sets the size ratios between species. */
   realLength: number;
+  /** Fish or mammal; the taxon supplies the traits this species does not set itself. */
+  taxon: TaxonId;
   shape: BodyShape;
   /** Dark skin markings at body point (s along, v across); `id` seeds per-animal patterns. */
   marking?: (s: number, v: number, L: number, across: number, id: number) => boolean;

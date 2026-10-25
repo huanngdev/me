@@ -15,6 +15,7 @@
     "./lib/*": "./src/lib/*.ts",
     "./constants": "./src/constants.ts",
     "./components/cli-command/package-managers": "./src/components/cli-command/package-managers.ts",
+    "./ascii-ocean/*": "./src/components/ascii-ocean/*.ts",
     "./components/*": "./src/components/*.tsx"
   },
   "scripts": {

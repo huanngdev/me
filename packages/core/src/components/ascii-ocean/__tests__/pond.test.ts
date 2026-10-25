@@ -55,6 +55,12 @@ function stage(scene: "pond" | "ocean", colors: OceanColors = "natural", page = 
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },

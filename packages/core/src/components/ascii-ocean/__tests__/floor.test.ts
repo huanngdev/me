@@ -64,6 +64,12 @@ function fakeContext(log: Op[]) {
     moveTo() {},
     lineTo() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
   };
 }
 
@@ -135,7 +141,9 @@ describe("seabed floor", () => {
       const bgL = rgbToOklabL(...bg);
       for (const scene of ["ocean", "pond"] as const) {
         const { bgLog } = stage(scene, "natural", page, 42);
-        const floor = bgLog.filter((o) => o.style.startsWith("rgba("));
+        const floor = bgLog.filter(
+          (o) => typeof o.style === "string" && o.style.startsWith("rgba("),
+        );
         expect(floor.length).toBeGreaterThan(0);
         for (const o of floor) {
           // The fill at its alpha, composited over the page: what the eye sees.

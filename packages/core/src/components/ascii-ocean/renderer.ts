@@ -9,6 +9,7 @@
  */
 import { clamp, hash3, oklchToRgb, rgbToOklabL, TAU } from "./math";
 import { CREATURE_IDS, CREATURES } from "./creatures";
+import { TAXA } from "./creatures/taxa";
 import type {
   Coat,
   CreatureDef,
@@ -18,6 +19,7 @@ import type {
   TailShape,
 } from "./creatures/types";
 import { Effects } from "./effects";
+import { type Habitat, habitatOf, OCEAN, type Rgb } from "./habitats";
 import { PondSurface } from "./pond";
 import { FOAM_GLYPHS, GLINT_TICK, SeaSurface } from "./sea";
 import { type Creature, SPINE_NODES, type World } from "./world";
@@ -135,18 +137,6 @@ const SUBSAMPLES = [0.25, 0.3, 0.75, 0.3, 0.25, 0.72, 0.75, 0.72];
 
 // Natural mode only. Five bits per channel for the fillStyle cache.
 const STYLE_CACHE_SIZE = 1 << 15;
-/**
- * Beer-Lambert absorption rate per channel, in 1/m: light fades as exp(-k · z) over the water it crosses.
- * Red goes first and blue survives longest in clear ocean water.
- */
-const WATER_K = [0.9, 0.35, 0.18];
-/**
- * Pond water is tannin-brown and algae-green, so it absorbs blue more than green: r > b > g.
- * Deep pond water reads green-brown rather than blue.
- */
-const POND_WATER_K = [0.75, 0.32, 0.5];
-// Veil: a uniform haze of the page colour over everything at depth, the same for all channels.
-const VEIL_K = 0.35;
 const DEPTH_STEPS = 16;
 
 /** Factor per depth step (depth quantised to 1/16), so no Math.exp per cell. z = (1 - depth) * 2.2. */
@@ -160,45 +150,56 @@ function waterTable(k: number) {
 
 type WaterTables = { r: Float32Array; g: Float32Array; b: Float32Array; veil: Float32Array };
 
-/** Per-channel absorb factors (light from the animal loses red first) and the shared veil, for one scene's water. */
-function waterTables(k: readonly number[], veilK: number): WaterTables {
+/** Per-channel absorb factors (light from the animal loses red first) and the haze, for one habitat. */
+function waterTables(absorb: Habitat["absorb"], veilK: number): WaterTables {
   return {
-    r: waterTable(k[0]),
-    g: waterTable(k[1]),
-    b: waterTable(k[2]),
+    r: waterTable(absorb[0]),
+    g: waterTable(absorb[1]),
+    b: waterTable(absorb[2]),
     veil: waterTable(veilK),
   };
 }
 
-const OCEAN_WATER = waterTables(WATER_K, VEIL_K);
-// Garden ponds are shallow: less veil than the open sea, so koi keep their colours at depth.
-const POND_WATER = waterTables(POND_WATER_K, 0.25);
+const habitatTables = new WeakMap<Habitat, WaterTables>();
+/** The water tables of a habitat, built once. */
+function tablesFor(habitat: Habitat) {
+  let tables = habitatTables.get(habitat);
+  if (!tables) {
+    tables = waterTables(habitat.absorb, habitat.veil);
+    habitatTables.set(habitat, tables);
+  }
+  return tables;
+}
 
 function depthIndex(depth: number) {
   return clamp(Math.round(depth * DEPTH_STEPS), 0, DEPTH_STEPS);
 }
 
-/** Absorb the channel, then veil it toward the page background. */
-function attenuateChannel(c: number, bg: number, absorb: number, haze: number) {
-  return clamp(Math.round(bg + (c * absorb - bg) * haze), 0, 255);
+/** Mix two rgb colours: t = 0 is a, t = 1 is b. */
+function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+/** Absorb the channel, then veil it toward the haze target (the habitat's deep water colour). */
+function attenuateChannel(c: number, toward: number, absorb: number, haze: number) {
+  return clamp(Math.round(toward + (c * absorb - toward) * haze), 0, 255);
 }
 
 /**
- * Natural colour as seen through water at depth (0 far, 1 near): absorbed, then veiled toward bg.
- * The scene picks the water; the ocean default is the original behaviour.
+ * Natural colour as seen through water at depth (0 far, 1 near): absorbed, then veiled toward `toward`,
+ * the water's deep colour. The scene picks the habitat; the ocean default is the original behaviour.
  */
-export function attenuate(
-  c: [number, number, number],
-  bg: [number, number, number],
-  depth: number,
-  scene: OceanScene = "ocean",
-): [number, number, number] {
-  const w = scene === "pond" ? POND_WATER : OCEAN_WATER;
+export function attenuate(c: Rgb, toward: Rgb, depth: number, scene: OceanScene = "ocean"): Rgb {
+  const w = tablesFor(habitatOf(scene));
   const zi = depthIndex(depth);
   return [
-    attenuateChannel(c[0], bg[0], w.r[zi], w.veil[zi]),
-    attenuateChannel(c[1], bg[1], w.g[zi], w.veil[zi]),
-    attenuateChannel(c[2], bg[2], w.b[zi], w.veil[zi]),
+    attenuateChannel(c[0], toward[0], w.r[zi], w.veil[zi]),
+    attenuateChannel(c[1], toward[1], w.g[zi], w.veil[zi]),
+    attenuateChannel(c[2], toward[2], w.b[zi], w.veil[zi]),
   ];
 }
 
@@ -244,7 +245,7 @@ function halfLevel(flag: number, shade: number) {
   return 46 + shade * 160;
 }
 
-/** How far a tail reaches across the body, as a fraction of length: a fluke's span or a caudal fin's widest half-width. */
+/** How far a tail reaches across the body, as a fraction of length: a fluke's span or a blade's widest half-width. */
 function tailSpan(tail: TailShape) {
   return tail.kind === "fluke" ? tail.span : tail.width + tail.twist;
 }
@@ -288,6 +289,8 @@ type Oklch = [number, number, number];
 // The seabed, natural mode. It is the deepest layer: colours go through the water at the far depth, then a further veil toward the page.
 const FLOOR_DEPTH = 0;
 const FLOOR_VEIL = 0.45;
+// Natural water: the light patch's peak alpha at the top centre (the surface colour, fading to nothing at its edge).
+const WATER_LIGHT_PATCH = 0.22;
 /** Low-frequency patches are value noise on a coarse lattice of this many columns and rows over the page. */
 const FLOOR_NOISE_COLS = 12;
 const FLOOR_NOISE_ROWS = 8;
@@ -348,9 +351,15 @@ export function paintGrid(
   g.stroke();
 }
 
-/** The depth a body is seen at: a diving cetacean (dive 1) reads 45% deeper, dimmer and bluer. Sharks never dive, so theirs is unchanged. */
-function bodyDepthOf(sh: Creature) {
-  return sh.dive === 0 ? sh.depth : sh.depth * (1 - 0.45 * sh.dive);
+/**
+ * The depth a body is seen at. Natural colours: its depth plus a fish's drift, then a diving animal (dive 1)
+ * reads 45% deeper, dimmer and bluer, and a surfaced one (dive 0) reads at its full depth, in full colour.
+ * Theme colours keep the classic cover, so they ignore the drift and the dive and read the base depth only.
+ */
+function bodyDepthOf(sh: Creature, natural: boolean) {
+  if (!natural) return sh.depth;
+  const depth = clamp(sh.depth + sh.depthOffset, 0, 1);
+  return sh.dive === 0 ? depth : depth * (1 - 0.45 * sh.dive);
 }
 
 /** Draw key: the animal's depth. */
@@ -477,6 +486,13 @@ export class AsciiRenderer {
   /** Tail-fin beat for the current creature: tailLift is sin(phase), and the beat scales the flukes with it. */
   private tailLift = 0;
   private tailBeat = 1;
+  /** Half-width of the blade where it leaves the peduncle, in px. Set once per animal, not per sample. */
+  private tailW0 = 0;
+  // The spine's end and the direction past it, for a heterocercal blade (set per creature in rasterize).
+  private tailX = 0;
+  private tailY = 0;
+  private tailDx = 1;
+  private tailDy = 0;
   // Scratch outputs of sampleBody(), to avoid allocating per sample.
   private hitFlag = 0;
   private hitShade = 0;
@@ -510,7 +526,13 @@ export class AsciiRenderer {
   private rampCache = new WeakMap<Coat, Uint8Array[]>();
   /** The scene's water and seabed; see setScene. */
   private scene: OceanScene = "ocean";
-  private water: WaterTables = OCEAN_WATER;
+  private habitat: Habitat = OCEAN;
+  private water: WaterTables = tablesFor(OCEAN);
+  /** Natural mode: the colour animals veil toward with depth (the habitat's deep water for this page mode). */
+  private hazeTarget: Rgb = OCEAN.water.dark.deep;
+  /** Natural mode: the water's surface and deep colours over this page, each mixed toward the page. */
+  private waterSurface: Rgb = [0, 0, 0];
+  private waterDeep: Rgb = [0, 0, 0];
   /** Seed for the seabed's patches, rocks, pebbles and leaves. */
   private floorSeed = 0;
 
@@ -520,6 +542,7 @@ export class AsciiRenderer {
     if (!ctx) throw new Error("2D canvas unavailable");
     this.ctx = ctx;
     this.bg = document.createElement("canvas");
+    this.updateWater();
     this.buildStyles();
   }
 
@@ -528,9 +551,20 @@ export class AsciiRenderer {
     this.palette = p;
     this.bgL = rgbToOklabL(...p.background);
     this.rampCache = new WeakMap();
+    this.updateWater();
     this.buildStyles();
     this.styleCache = new Array(STYLE_CACHE_SIZE);
     if (this.bg.width > 0) this.paintBackground();
+  }
+
+  /** The habitat's water over this page: the haze target, and the surface and deep fill colours. */
+  private updateWater() {
+    const { mode, background } = this.palette;
+    const tone = this.habitat.water[mode];
+    const fill = this.habitat.fill[mode];
+    this.hazeTarget = tone.deep;
+    this.waterSurface = mixRgb(background, tone.surface, fill);
+    this.waterDeep = mixRgb(background, tone.deep, fill);
   }
 
   /** Natural keeps animals in their real colours; theme keeps them greyscale and inverts on light pages. */
@@ -548,7 +582,9 @@ export class AsciiRenderer {
    */
   setScene(scene: OceanScene, seed = 0) {
     this.scene = scene;
-    this.water = scene === "pond" ? POND_WATER : OCEAN_WATER;
+    this.habitat = habitatOf(scene);
+    this.water = tablesFor(this.habitat);
+    this.updateWater();
     this.floorSeed = seed;
     // Cached styles hold water-attenuated colours, so they belong to the old water.
     this.rampCache = new WeakMap();
@@ -667,8 +703,11 @@ export class AsciiRenderer {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = `rgb(${background.join(",")})`;
     g.fillRect(0, 0, W, H);
-    // Natural colours have a seabed under the grid; theme keeps the flat background.
-    if (this.colors === "natural") this.paintFloor(g);
+    // Natural colours have water and a seabed under the grid; theme keeps the flat background.
+    if (this.colors === "natural") {
+      this.paintWater(g);
+      this.paintFloor(g);
+    }
     paintGrid(
       g,
       W,
@@ -681,22 +720,47 @@ export class AsciiRenderer {
   }
 
   /**
+   * The water, painted once into the background and blitted each frame. A vertical gradient from the
+   * surface colour at the top to the deep colour at the bottom, with a broad light patch near the top centre.
+   */
+  private paintWater(g: CanvasRenderingContext2D) {
+    const { width: W, height: H } = this;
+    const [sr, sg, sb] = this.waterSurface;
+    const surface = `${sr},${sg},${sb}`;
+    const down = g.createLinearGradient(0, 0, 0, H);
+    down.addColorStop(0, `rgb(${surface})`);
+    down.addColorStop(1, `rgb(${this.waterDeep.join(",")})`);
+    g.fillStyle = down;
+    g.fillRect(0, 0, W, H);
+    const light = g.createRadialGradient(W / 2, 0, 0, W / 2, 0, Math.max(W, H) * 0.8);
+    light.addColorStop(0, `rgba(${surface},${WATER_LIGHT_PATCH})`);
+    light.addColorStop(1, `rgba(${surface},0)`);
+    g.fillStyle = light;
+    g.fillRect(0, 0, W, H);
+  }
+
+  /**
    * The seabed, painted once into the background. Each cell gets at most one glyph, and the patches
    * are faint fills under them. Every colour is seen through the scene's water at the far depth.
    */
   private paintFloor(g: CanvasRenderingContext2D) {
     const { cols, rows, cw, ch, scene, floorSeed, fontFamily } = this;
-    const bg = this.palette.background;
+    const bed = this.waterDeep;
     const dark = this.palette.mode === "dark";
     const z = (k: number) => FLOOR_SALT + floorSeed * 97 + k * 1009;
     const styles = new Map<string, string>();
-    /** An OKLCH colour at an alpha, through the water and then veiled toward the page. Memoised. */
+    /** An OKLCH colour at an alpha, through the water and then veiled toward the water's bed colour. Memoised. */
     const fill = (c: Oklch, alpha: number) => {
       const key = `${c.join()}|${alpha}`;
       let s = styles.get(key);
       if (s === undefined) {
-        const [r, gn, b] = attenuate(oklchToRgb(c[0], c[1], c[2]), bg, FLOOR_DEPTH, scene);
-        const veiled = (x: number, i: number) => Math.round(x + (bg[i] - x) * FLOOR_VEIL);
+        const [r, gn, b] = attenuate(
+          oklchToRgb(c[0], c[1], c[2]),
+          this.hazeTarget,
+          FLOOR_DEPTH,
+          scene,
+        );
+        const veiled = (x: number, i: number) => Math.round(x + (bed[i] - x) * FLOOR_VEIL);
         s = `rgba(${veiled(r, 0)},${veiled(gn, 1)},${veiled(b, 2)},${alpha.toFixed(3)})`;
         styles.set(key, s);
       }
@@ -889,6 +953,11 @@ export class AsciiRenderer {
       if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) continue;
       // Effect randomness: hash3 on this seed, the particle index and the frame, never the world rng.
       const seed = this.frameCount * 1031 + ei;
+      if (e.kind === "blow") {
+        // Natural colours only: theme mode skips the blow and keeps the cover as it was.
+        if (natural) effects.spray(e.x, e.y, e.drops, e.reach, seed, e.life);
+        continue;
+      }
       if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
       effects.ring(e.x, e.y, 120, 90, 1);
       effects.spray(e.x, e.y, 26, 60, seed);
@@ -1020,14 +1089,20 @@ export class AsciiRenderer {
       }
     }
 
-    // A caudal blade is a fin, so past where it joins the stalk it is tried before the body and wins the cell.
+    // A blade is a fin, so past where it joins the stalk it is tried before the body and wins the cell.
     const tail = shape.tail;
     if (tail?.kind === "caudal" && s > 1 - tail.length + 0.03 && this.tailHit(u, a, L, tail)) {
       this.hitFlag = FLAG_FIN;
       return true;
     }
+    if (tail?.kind === "heterocercal" && this.bladeAt(px, py, L, tail)) {
+      this.hitFlag = FLAG_FIN;
+      return true;
+    }
 
-    if (a <= w) {
+    // Past a fluke's notch there is only water between the lobes, so no body is drawn there.
+    const inNotch = tail?.kind === "fluke" && s > 1 - tail.notch;
+    if (a <= w && !inNotch) {
       const across = a / (w || 1);
       // Rounded back lit from the top-left; flanks fall off into shadow.
       const facing = (bestNx * -0.6 + bestNy * -0.8) * across;
@@ -1042,7 +1117,12 @@ export class AsciiRenderer {
       } else if (shape.eye && s > shape.eye[0] && s < shape.eye[1] && across > 0.6) {
         flag = FLAG_EYE;
         shade = 0;
-      } else if (s > shape.gills[0] && s < shape.gills[1] && across > 0.58) {
+      } else if (
+        TAXA[this.def.taxon].gillSlits &&
+        s > shape.gills[0] &&
+        s < shape.gills[1] &&
+        across > 0.58
+      ) {
         // Five gill slits.
         if (Math.floor(((s - shape.gills[0]) / (shape.gills[1] - shape.gills[0])) * 5) % 2 === 0)
           shade *= 0.45;
@@ -1070,7 +1150,7 @@ export class AsciiRenderer {
           // Falcate (sickle) fins get a concave trailing edge.
           !(
             shape.falcate &&
-            inTriangle(u, a, L * p1, 0, L * (p1 + (p2 - p1) * 0.33), tip * 0.55, L * p2, tip)
+            inTriangle(u, a, L * p1, 0, L * (p1 + (p2 - p1) * 0.7), tip * 0.3, L * p2, tip)
           )
     ) {
       this.hitFlag = this.marked(s, a * bestSign, L, 0) ? FLAG_MARK : FLAG_FIN;
@@ -1087,29 +1167,22 @@ export class AsciiRenderer {
       this.hitAcross = clamp(a / (L * vr), 0, 1);
       return true;
     }
-    if (shape.tail) {
-      if (!this.tailHit(u, a, L, shape.tail)) return false;
+    if (tail && tail.kind !== "heterocercal") {
+      if (!this.tailHit(u, a, L, tail)) return false;
       this.hitFlag = FLAG_FIN;
-      return true;
-    }
-    // Forked caudal fin.
-    if (shape.caudal > 0 && inTriangle(u, a, L * 0.86, 0, L * 0.95, 0, L, L * shape.caudal)) {
-      this.hitFlag = FLAG_FIN;
-      this.hitShade = 0.36;
-      this.hitAcross = clamp(a / (L * shape.caudal), 0, 1);
       return true;
     }
     return false;
   }
 
   /**
-   * Whether a point (u along, a across) is on a tail that replaces the forked caudal fin.
+   * Whether a point (u along, a across) is on a fluke or a koi's caudal blade, both of which end at the body tip.
    * Sets hitShade for the fin; the caller sets the flag.
    */
-  private tailHit(u: number, a: number, L: number, tail: TailShape) {
-    const u0 = L * (1 - tail.length);
+  private tailHit(u: number, a: number, L: number, tail: TailShape & { kind: "fluke" | "caudal" }) {
     if (tail.kind === "fluke") {
       // A swept-back wing on each side of the centre line, notched at the middle.
+      const u0 = L * (1 - tail.length);
       const notchU = L * (1 - tail.notch);
       const halfSpan = L * tail.span * this.tailBeat;
       if (!inTriangle(u, a, u0, 0, L, halfSpan, notchU, 0)) return false;
@@ -1117,17 +1190,49 @@ export class AsciiRenderer {
       this.hitAcross = clamp(a / (L * tail.span), 0, 1);
       return true;
     }
-    // Koi caudal fin: a vertical blade seen edge-on from above, a little wider than the stalk.
-    // It starts at the peduncle's half-width and widens to the tip; the beat twists it wider.
-    const k = (u - u0) / (L - u0);
+    return this.bladeHit(u - L, a, tail, L, L);
+  }
+
+  /**
+   * Whether a heterocercal blade covers a point. The blade lies on the spine's end, extended straight
+   * past the body tip, so the point is measured in the tail's own frame. `L` is the body length.
+   */
+  private bladeAt(px: number, py: number, L: number, tail: TailShape & { kind: "heterocercal" }) {
+    const rx = px - this.tailX;
+    const ry = py - this.tailY;
+    const along = rx * this.tailDx + ry * this.tailDy;
+    const off = Math.abs(rx * -this.tailDy + ry * this.tailDx);
+    return this.bladeHit(along, off, tail, L, L / (1 - tail.upper));
+  }
+
+  /**
+   * A tail blade, seen edge-on from above. `along` is the distance from the body tip (negative toward the
+   * snout) and `a` the distance from the axis. The blade starts `length` of the body behind the tip and
+   * widens to its tip; the beat twists it wider. A koi's blade ends at the tip, a heterocercal one runs
+   * `upper` of the total length past it. Sets hitShade and hitAcross; the caller sets the flag.
+   * `L` is the body length and `total` the length the tail width fractions are taken from.
+   */
+  private bladeHit(
+    along: number,
+    a: number,
+    tail: TailShape & { kind: "caudal" | "heterocercal" },
+    L: number,
+    total: number,
+  ) {
+    const base = -tail.length * L;
+    const tip = tail.kind === "heterocercal" ? tail.upper * total : 0;
+    const k = (along - base) / (tip - base);
     if (k < 0 || k > 1) return false;
-    const w0 = this.def.shape.halfWidth(1 - tail.length);
-    let hw = w0 + (tail.width - w0) * k + tail.twist * Math.abs(this.tailLift) * k;
+    // The blade starts at the peduncle's half-width and widens to the tip; the beat twists it wider.
+    const w0 = this.tailW0;
+    let hw = w0 + (tail.width * total - w0) * k + tail.twist * total * Math.abs(this.tailLift) * k;
     // The tip is rounded off over its last 12%.
     if (k > 0.88) hw *= Math.sqrt(1 - ((k - 0.88) / 0.12) ** 2);
-    if (a > L * hw) return false;
+    // A heterocercal blade is never thinner than half a cell, so it stays visible from above.
+    if (tail.kind === "heterocercal") hw = Math.max(hw, this.cw * 0.5);
+    if (a > hw) return false;
     this.hitShade = 0.3 + 0.15 * (1 - k);
-    this.hitAcross = clamp(a / (L * (hw || 1)), 0, 1);
+    this.hitAcross = clamp(a / (hw || 1), 0, 1);
     return true;
   }
 
@@ -1167,14 +1272,17 @@ export class AsciiRenderer {
 
     for (let q = 0; q < creatures.length; q++) {
       const sh = creatures[this.order[q]];
-      const L = sh.length;
       const N = SPINE_NODES;
       const n = sh.nodes;
       // A faster swim sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
       const swim = clamp(sh.speed / 60, 0.4, natural ? 1.7 : 1.4);
       this.def = CREATURES[sh.species];
       const shape = this.def.shape;
-      const undulation = shape.undulation ?? 1;
+      // A heterocercal blade counts toward the length, so the body is shortened to leave room for it:
+      // snout to blade tip is sh.length, and L is the body alone.
+      const shrink = shape.tail?.kind === "heterocercal" ? 1 - shape.tail.upper : 1;
+      const L = sh.length * shrink;
+      const undulation = shape.undulation ?? TAXA[this.def.taxon].undulation;
       this.bodyId = sh.id;
       const kindIndex = CREATURE_IDS.indexOf(sh.species);
 
@@ -1190,8 +1298,8 @@ export class AsciiRenderer {
         ty /= tl;
         const amp = L * 0.05 * (0.1 + 0.9 * Math.pow(s, 1.8)) * swim * undulation;
         const off = amp * Math.sin(sh.phase - s * 5.2);
-        spine[k * 2] = n[k * 2] - ty * off;
-        spine[k * 2 + 1] = n[k * 2 + 1] + tx * off;
+        spine[k * 2] = n[0] + (n[k * 2] - n[0]) * shrink - ty * off;
+        spine[k * 2 + 1] = n[1] + (n[k * 2 + 1] - n[1]) * shrink + tx * off;
       }
       arc[0] = 0;
       for (let k = 1; k < N; k++) {
@@ -1200,6 +1308,16 @@ export class AsciiRenderer {
           Math.hypot(spine[k * 2] - spine[(k - 1) * 2], spine[k * 2 + 1] - spine[(k - 1) * 2 + 1]);
       }
       this.arcTotal = arc[N - 1] || 1;
+      // The spine's end and the direction past it: where a heterocercal blade starts.
+      this.tailX = spine[(N - 1) * 2];
+      this.tailY = spine[(N - 1) * 2 + 1];
+      const tdx = this.tailX - spine[(N - 2) * 2];
+      const tdy = this.tailY - spine[(N - 2) * 2 + 1];
+      const tdl = Math.hypot(tdx, tdy) || 1;
+      this.tailDx = tdx / tdl;
+      this.tailDy = tdy / tdl;
+      // How far a heterocercal blade runs past the body tip; 0 for every other tail.
+      const ext = sh.length - L;
 
       // Bank into turns: the inside fin foreshortens, the outside one spreads.
       const bank = clamp(sh.turn * 0.45, -0.35, 0.35);
@@ -1209,6 +1327,7 @@ export class AsciiRenderer {
       this.finTipLeft = L * reachFin * flex * (1 + bank);
       this.tailLift = Math.sin(sh.phase);
       this.tailBeat = 1 + 0.1 * this.tailLift;
+      this.tailW0 = shape.tail ? shape.halfWidth(1 - shape.tail.length) * L : 0;
 
       let minX = Infinity;
       let minY = Infinity;
@@ -1220,6 +1339,12 @@ export class AsciiRenderer {
         minY = Math.min(minY, spine[k * 2 + 1]);
         maxY = Math.max(maxY, spine[k * 2 + 1]);
       }
+      const tipX = this.tailX + this.tailDx * ext;
+      const tipY = this.tailY + this.tailDy * ext;
+      minX = Math.min(minX, tipX);
+      maxX = Math.max(maxX, tipX);
+      minY = Math.min(minY, tipY);
+      maxY = Math.max(maxY, tipY);
       // Padding that covers the widest fin; sharks keep the classic 0.36.
       // Long-finned species pad for the widest fin tip: reach × flap × the outside fin of a full bank.
       // Sharks (reach ≤ 0.26) keep the original 0.36 so their look stays exactly as it was.
@@ -1230,7 +1355,7 @@ export class AsciiRenderer {
               shape.tail ? tailSpan(shape.tail) : 0,
             )
           : Math.max(shape.pectoral[3], shape.tail ? tailSpan(shape.tail) : 0);
-      const reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L;
+      const reach = Math.max((finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L, ext);
       const c0 = Math.max(0, Math.floor((minX - reach) / cw));
       const c1 = Math.min(cols - 1, Math.floor((maxX + reach) / cw));
       const r0 = Math.max(0, Math.floor((minY - reach) / ch));
@@ -1277,7 +1402,7 @@ export class AsciiRenderer {
           const key =
             (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
           bodyKey[i] = key;
-          bodyDepth[i] = bodyDepthOf(sh);
+          bodyDepth[i] = bodyDepthOf(sh, natural);
           bodyKind[i] = kindIndex;
 
           if (centerHit && coverage >= 0.6) {
@@ -1330,7 +1455,7 @@ export class AsciiRenderer {
     } = this;
     const coat = this.bodyCoat[creature];
     const skipBeyond = reach + Math.hypot(cw, ch);
-    const depth = bodyDepthOf(sh);
+    const depth = bodyDepthOf(sh, true);
     const shadowDc = Math.round((L * 0.035 * (0.4 + 1.2 * depth)) / cw) + 1;
     const shadowDr = Math.round((L * 0.02 * (0.4 + 1.2 * depth)) / ch) + 1;
     // Shallow bodies throw a strong shadow, deep ones a faint one.
@@ -1402,7 +1527,7 @@ export class AsciiRenderer {
         // Body-anchored key so each glyph rides along with the skin.
         bodyKey[i] =
           (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
-        bodyDepth[i] = bodyDepthOf(sh);
+        bodyDepth[i] = bodyDepthOf(sh, true);
         bodyKind[i] = kindIndex;
         bodyCreature[i] = creature;
 
@@ -1537,11 +1662,11 @@ export class AsciiRenderer {
   /** An rgb colour (0–255) seen through water at depth, as a cached fillStyle. */
   private attenuatedStyle(r0: number, g0: number, b0: number, depth: number) {
     const zi = depthIndex(depth);
-    const bg = this.palette.background;
+    const target = this.hazeTarget;
     const { r: absR, g: absG, b: absB, veil: haze } = this.water;
-    const r = attenuateChannel(r0, bg[0], absR[zi], haze[zi]);
-    const g = attenuateChannel(g0, bg[1], absG[zi], haze[zi]);
-    const b = attenuateChannel(b0, bg[2], absB[zi], haze[zi]);
+    const r = attenuateChannel(r0, target[0], absR[zi], haze[zi]);
+    const g = attenuateChannel(g0, target[1], absG[zi], haze[zi]);
+    const b = attenuateChannel(b0, target[2], absB[zi], haze[zi]);
     const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
     let style = this.styleCache[key];
     if (style === undefined) {

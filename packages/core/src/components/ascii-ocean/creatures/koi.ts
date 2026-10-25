@@ -89,6 +89,7 @@ const coats: Record<KoiVariety, Coat> = {
 /** Thick, deep-bodied spindle with a blunt head, large round pectorals that scull, and a long low dorsal. */
 export const KOI: CreatureDef = {
   realLength: 0.75,
+  taxon: "fish",
   shape: {
     halfWidth: (s) => {
       // Blunt head: fills out fast, then holds its depth through the shoulders.
@@ -104,7 +105,6 @@ export const KOI: CreatureDef = {
     paddle: true,
     falcate: false,
     pelvic: [0.44, 0.52, 0.6, 0.12],
-    caudal: 0,
     dorsal: [0.3, 0.62],
     secondDorsal: [0, 0],
     eye: [0.06, 0.09],

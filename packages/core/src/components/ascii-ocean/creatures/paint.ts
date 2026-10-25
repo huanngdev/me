@@ -1,4 +1,8 @@
 import { hash3 } from "../math";
+import type { Coat, Oklch } from "./types";
+
+// The renderer's fin flag, repeated here for the same reason as in the species files.
+const FLAG_FIN = 3;
 
 /**
  * Smooth value noise in [0, 1): bilinear blend of hashed lattice values, eased with smoothstep
@@ -24,4 +28,15 @@ export function valueNoise(x: number, y: number, seed: number): number {
  */
 export function blobs(s: number, vOverL: number, id: number, scale: number, salt: number): number {
   return valueNoise(s / scale, vOverL / scale, id * 131 + salt);
+}
+
+/**
+ * Countershading, seen from above: `back` over the top, `belly` past `edge` (0 at the spine, 1 at the
+ * flank edge). The belly shows only as a thin rim, with a sharp line where it meets the back. Fins take the back.
+ */
+export function countershaded(back: Oklch, belly: Oklch, edge = 0.8): Coat {
+  return {
+    regions: [back, belly],
+    paint: (p) => (p.flag !== FLAG_FIN && p.across > edge ? 1 : 0),
+  };
 }

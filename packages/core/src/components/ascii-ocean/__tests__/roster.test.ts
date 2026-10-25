@@ -218,7 +218,8 @@ describe("rosterFromGroups varieties", () => {
     expect(warnings).toEqual(['koi variety "sumi" is unknown; skipped']);
   });
 
-  test("species without coats ignore the variety, with no warning and no extra rng call", () => {
+  test("a shark asked for a variety it lacks falls back to its own coat, with one warning and one rng call", () => {
+    // Every shark now has a natural coat, so the fallback is the shark's default rather than no coat.
     let calls = 0;
     const counting = () => {
       calls++;
@@ -229,8 +230,8 @@ describe("rosterFromGroups varieties", () => {
       "stylized",
       counting,
     );
-    expect(entries[0].coat).toBeUndefined();
-    expect(warnings).toEqual([]);
+    expect(entries[0].coat).toBe("classic");
+    expect(warnings).toEqual(['classic variety "kohaku" is unknown; using classic']);
     expect(calls).toBe(1);
   });
 });

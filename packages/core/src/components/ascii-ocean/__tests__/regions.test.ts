@@ -218,6 +218,12 @@ describe("natural koi render", () => {
       lineTo() {},
       stroke() {},
       clearRect() {},
+      createLinearGradient() {
+        return { addColorStop() {} };
+      },
+      createRadialGradient() {
+        return { addColorStop() {} };
+      },
       getImageData() {
         return null;
       },

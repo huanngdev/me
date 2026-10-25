@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils";
 import { createPaletteReader } from "./palette";
 import { AsciiRenderer } from "./renderer";
 import type { CreatureSpecies, OceanColors } from "./creatures/types";
-import { SPINE_NODES, World } from "./world";
+import { type Creature, SPINE_NODES, World } from "./world";
 
 export type SpecimenProps = {
   species: CreatureSpecies;
@@ -16,6 +16,16 @@ export type SpecimenProps = {
   swim?: boolean;
   className?: string;
 };
+
+/**
+ * Puts an animal in its specimen pose at rest: no breath cycle, surfaced (full colour), no drift. Without
+ * this a mammal would stay where its seeded breath left it (in a dive) because the sheet never steps the sim.
+ */
+export function restSpecimen(sh: Creature) {
+  sh.breath = null;
+  sh.dive = 0;
+  sh.depthOffset = 0;
+}
 
 /**
  * One animal in place, for the species sheet. The body is posed straight across the canvas
@@ -59,6 +69,7 @@ export function Specimen({
         sh.heading = 0;
         sh.speed = 40;
         sh.turn = 0;
+        restSpecimen(sh);
         for (let k = 0; k < SPINE_NODES; k++) {
           sh.nodes[k * 2] = cx + L / 2 - k * seg;
           sh.nodes[k * 2 + 1] = cy;

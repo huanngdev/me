@@ -19,8 +19,8 @@ function fnv(hash: number, text: string) {
 const round3 = (v: number) => Math.round(v * 1000);
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
-function simulate(seed: number) {
-  const world = new World({ seed });
+function simulate(seed: number, scene: "ocean" | "pond" = "ocean") {
+  const world = new World({ seed, scene });
   world.resize(1200, 700, 10, 14.5);
   for (let i = 0; i < 600; i++) world.step(1 / 60);
 
@@ -42,11 +42,19 @@ function simulate(seed: number) {
 
 // R21a: animals only swim (no hunting, feeding or shows). Locks the simulation for seed 42.
 // R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
-const WORLD_HASH_SEED_42 = 2490914619;
+// V3 R10: breath and drift seeds drawn after the fish, so the rng stream for every later step changed.
+const WORLD_HASH_SEED_42 = 1644542565;
 
 // R21a: animals only swim (no hunting, feeding or shows). Locks the renderer's draw calls for seed 42 at steps 100, 200 and 300.
 // R21d: proportional turning, wider turning circle, smoothed steering, one separation push per neighbour, stronger pod alignment.
-const RENDER_HASH_SEED_42 = 4191763121;
+// V3 R8: heterocercal shark tails and the fluke notch (no body between the flukes), so the draw calls changed.
+// V3 R10: rng stream, and sharks drift in depth, which moves their theme shadows.
+// V3 R13: theme mode reads the base depth only (no drift, no dive; it keeps the classic cover), and the
+// classic shark pectorals are widened. Seed 42 is four classic sharks, so both changes show here; the sim hash is unchanged.
+const RENDER_HASH_SEED_42 = 2603119813;
+
+// V3 R13: a pond world draws no breath or drift rng (the ocean-only guard runs first), so its stream is the pre-R10 one.
+const POND_HASH_SEED_42 = 1887595833;
 
 describe("ascii-ocean determinism", () => {
   test("the same seed gives the same world", () => {
@@ -59,6 +67,10 @@ describe("ascii-ocean determinism", () => {
 
   test("seed 42 matches the locked baseline", () => {
     expect(simulate(42)).toBe(WORLD_HASH_SEED_42);
+  });
+
+  test("seed 42 pond matches the locked baseline (the pond draws no breath or drift rng)", () => {
+    expect(simulate(42, "pond")).toBe(POND_HASH_SEED_42);
   });
 
   test("seed 42 renders the locked draw calls", () => {
@@ -93,6 +105,12 @@ describe("ascii-ocean determinism", () => {
       lineTo() {},
       stroke() {},
       clearRect() {},
+      createLinearGradient() {
+        return { addColorStop() {} };
+      },
+      createRadialGradient() {
+        return { addColorStop() {} };
+      },
       getImageData() {
         return null;
       },
