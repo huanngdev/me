@@ -50,6 +50,8 @@ export interface Coat {
   paint?: (p: PaintPoint) => number;
   /** Sparkle the scale glyphs in pale gold and white instead of the accent colours (ogon). */
   glint?: boolean;
+  /** Shade the glyphs on light regions with a see-through dark, so they tint the skin's colour instead of dirtying it (koi). */
+  softInk?: boolean;
 }
 
 /** `natural` paints animals in their real colours on any theme; `theme` keeps them greyscale. */

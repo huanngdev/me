@@ -207,6 +207,9 @@ export function attenuate(c: Rgb, toward: Rgb, depth: number, scene: OceanScene 
 const COAT_STEPS = 16;
 // Koi fins are translucent: they veil as if one step further off.
 const COAT_FIN_VEIL = 0.15;
+// Glyph ink on a soft-ink coat's light regions: a see-through dark, so the texture shades the skin's
+// own colour instead of dirtying it with near-black.
+const COAT_DARK_INK = "rgba(14,15,19,0.26)";
 // Glyph ink on a coat's dark regions: a light ink, so black patches still show texture.
 const COAT_LIGHT_INK = "rgba(236,238,242,0.55)";
 // Glint glyphs on a coat with `glint`: pale gold or white.
@@ -1782,7 +1785,7 @@ export class AsciiRenderer {
       else if (coat) {
         if (coat.glint && roll < 0.09) color = COAT_GLINT[key % COAT_GLINT.length];
         else if (coat.regions[topRegion][0] > 0.55) {
-          color = shade > 0.55 ? INK.dark.ink : INK.dark.inkSoft;
+          color = coat.softInk ? COAT_DARK_INK : shade > 0.55 ? INK.dark.ink : INK.dark.inkSoft;
         } else color = COAT_LIGHT_INK;
       } else if (roll < 0.09) color = ACCENTS[key % ACCENTS.length];
       else if (roll < 0.13) color = INK.dark.bright;
