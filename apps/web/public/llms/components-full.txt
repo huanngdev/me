@@ -3220,7 +3220,7 @@ export function CliCommand({ prompt = DEFAULT_PROMPT, className, ...rest }: CliC
 
 # ASCII Ocean
 
-> A canvas ocean with sharks, koi, dolphins, orcas and humpbacks: click to feed them, each with its own feeding moves, in natural colours with depth and a water surface.
+> A canvas ocean of swimming animals: sharks and koi (fish, with vertical tails), and dolphins, orcas and humpbacks (mammals that surface to breathe and blow). Natural colours with a habitat water colour that shifts with depth, a water surface, and click splashes.
 
 - Kind: component
 - Docs: https://www.huanngdev.site/components/ascii-ocean
@@ -3519,6 +3519,7 @@ export function pickSpecies(rng: Rng) {
 ## packages/core/src/components/ascii-ocean/creatures/types.ts
 ```ts
 import type { SharkKind } from "../world";
+import type { TaxonId } from "./taxa";
 
 /** Every animal the sim and renderer know how to draw. Later rounds extend this union. */
 export type CreatureSpecies = SharkKind | "koi" | "bottlenose" | "orca" | "humpback";
@@ -3569,17 +3570,27 @@ export interface Coat {
   paint?: (p: PaintPoint) => number;
   /** Sparkle the scale glyphs in pale gold and white instead of the accent colours (ogon). */
   glint?: boolean;
+  /** Shade the glyphs on light regions with a see-through dark, so they tint the skin's colour instead of dirtying it (koi). */
+  softInk?: boolean;
 }
 
 /** `natural` paints animals in their real colours on any theme; `theme` keeps them greyscale. */
 export type OceanColors = "natural" | "theme";
 
-/** Tail drawn instead of the shark's forked caudal fin. */
+/** The tail fin, drawn in place of the tail body. */
 export type TailShape =
   /** Whale/dolphin flukes: a horizontal, swept-back wing. From `1 - length` to the tail tip; the tips reach the end, the centre notch sits `notch` before it. */
   | { kind: "fluke"; span: number; length: number; notch: number }
-  /** A fish's vertical caudal fin seen from above: a narrow blade behind the peduncle. `width` is its half-width at the tip at rest, `twist` the extra half-width at the peak of a beat, both fractions of length. */
-  | { kind: "caudal"; length: number; width: number; twist: number };
+  /** A fish's vertical caudal fin seen from above: a narrow blade behind the peduncle. `width` is its half-width at the tip at rest, `twist` how far the tip sways to each side at the peak of a beat, both fractions of length. */
+  | { kind: "caudal"; length: number; width: number; twist: number }
+  /**
+   * A shark's heterocercal tail: a vertical caudal fin seen edge-on from above, so a narrow blade.
+   * It starts `length` (a fraction of the body length) behind the body tip, and its upper lobe runs
+   * `upper` (a fraction of the total length) past the tip. The body is shortened so that snout to
+   * blade tip is the full length. `width` is the half-width at rest and `twist` how far the tip sways
+   * to each side at the peak of a beat, both fractions of the total length.
+   */
+  | { kind: "heterocercal"; length: number; upper: number; width: number; twist: number };
 
 /** Body outline and fin layout per species. All values are fractions of length. */
 export interface BodyShape {
@@ -3592,8 +3603,6 @@ export interface BodyShape {
   paddle?: boolean;
   /** Pelvic fins: leading root, trailing root, tip, reach. */
   pelvic: [number, number, number, number];
-  /** Forked caudal fin reach, or 0 when the tail is a ribbon (zebra shark). */
-  caudal: number;
   dorsal: [number, number];
   secondDorsal: [number, number];
   /**
@@ -3606,9 +3615,9 @@ export interface BodyShape {
   gills: [number, number];
   /** Skin colour multipliers (r, g, b). */
   tint: [number, number, number];
-  /** Tail drawn instead of the shark's forked caudal fin. */
+  /** The tail fin: a fluke, a koi's caudal blade, or a shark's heterocercal blade. */
   tail?: TailShape;
-  /** Multiplies the side-to-side body wave. Default 1. Whales and dolphins beat their tails up and down, so from above they barely bend; use about 0.15 for them. */
+  /** Multiplies the side-to-side body wave. Default: the taxon's `undulation`. Whales and dolphins beat their tails up and down, so from above they barely bend. */
   undulation?: number;
   /** Pectoral flex amplitude. Default 0.06. */
   finFlap?: number;
@@ -3619,6 +3628,8 @@ export interface BodyShape {
 export interface CreatureDef {
   /** Typical adult length in metres. Sets the size ratios between species. */
   realLength: number;
+  /** Fish or mammal; the taxon supplies the traits this species does not set itself. */
+  taxon: TaxonId;
   shape: BodyShape;
   /** Dark skin markings at body point (s along, v across); `id` seeds per-animal patterns. */
   marking?: (s: number, v: number, L: number, across: number, id: number) => boolean;
@@ -3634,6 +3645,10 @@ export interface CreatureDef {
 ## packages/core/src/components/ascii-ocean/creatures/paint.ts
 ```ts
 import { hash3 } from "../math";
+import type { Coat, Oklch } from "./types";
+
+// The renderer's fin flag, repeated here for the same reason as in the species files.
+const FLAG_FIN = 3;
 
 /**
  * Smooth value noise in [0, 1): bilinear blend of hashed lattice values, eased with smoothstep
@@ -3660,177 +3675,285 @@ export function valueNoise(x: number, y: number, seed: number): number {
 export function blobs(s: number, vOverL: number, id: number, scale: number, salt: number): number {
   return valueNoise(s / scale, vOverL / scale, id * 131 + salt);
 }
+
+/**
+ * Countershading, seen from above: `back` over the top, `belly` past `edge` (0 at the spine, 1 at the
+ * flank edge). The belly shows only as a thin rim, with a sharp line where it meets the back. Fins take the back.
+ */
+export function countershaded(back: Oklch, belly: Oklch, edge = 0.8): Coat {
+  return {
+    regions: [back, belly],
+    paint: (p) => (p.flag !== FLAG_FIN && p.across > edge ? 1 : 0),
+  };
+}
 ```
 
 ## packages/core/src/components/ascii-ocean/creatures/sharks.ts
 ```ts
 import { hash3, smoothstep } from "../math";
 import type { SharkKind } from "../world";
-import type { CreatureDef } from "./types";
+import { countershaded } from "./paint";
+import type { Coat, CreatureDef, Oklch, PaintPoint } from "./types";
+
+// The renderer's fin flag, repeated here because importing the renderer would make a cycle.
+const FLAG_FIN = 3;
 
 /** Classic top-down half-width at s ∈ [0, 1] (snout → tail), as a fraction of length. */
 function classicHalfWidth(s: number) {
-  if (s < 0.13) return 0.09 * Math.pow(Math.sin(((s / 0.13) * Math.PI) / 2), 0.95);
-  if (s < 0.3) return 0.09 + 0.016 * smoothstep(0.13, 0.3, s);
-  if (s < 0.84) return 0.019 + 0.087 * Math.pow(1 - (s - 0.3) / 0.54, 1.25);
+  // anatomy: [est. 1] conical snout tapering to a point, then full width ~0.18 TL at the gills.
+  if (s < 0.16) return 0.1 * Math.pow(Math.sin(((s / 0.16) * Math.PI) / 2), 0.7);
+  if (s < 0.38) return 0.1 + 0.005 * smoothstep(0.16, 0.38, s);
+  if (s < 0.84) return 0.019 + 0.086 * Math.pow(1 - (s - 0.38) / 0.46, 1.25);
   const k = (s - 0.84) / 0.16;
   return 0.019 * (1 - k) + 0.012 * Math.sin(k * Math.PI);
 }
 
-/** Shark body outlines, fin layouts and skin, per species. */
+/** Tiger shark bars: wavy vertical bars over the back half, fading out toward the head. */
+function tigerBar(s: number, v: number, L: number, across: number) {
+  if (s < 0.2 || s > 0.9 || across > 0.85) return false;
+  const wobble = 0.35 * Math.sin((v / L) * 25 + s * 5);
+  const bar = Math.sin(s * Math.PI * 2 * 9 + wobble);
+  return bar > 0.65 - 0.5 * smoothstep(0.2, 0.42, s) + 0.4 * smoothstep(0.8, 0.9, s);
+}
+
+/** Leopard spots on a jittered grid, so they ride along with the skin. */
+function zebraSpot(s: number, v: number, L: number, id: number) {
+  if (s < 0.07) return false;
+  const gu = (s * L) / (L * 0.06);
+  const gv = v / (L * 0.045);
+  const cu = Math.floor(gu);
+  const cv = Math.floor(gv);
+  const jx = hash3(cu, cv, id) * 0.5 + 0.25;
+  const jy = hash3(cu, cv, id + 11) * 0.5 + 0.25;
+  return (gu - cu - jx) ** 2 + (gv - cv - jy) ** 2 < 0.08;
+}
+
+/** Pale ridges down the back, between the spots. */
+function zebraRidge(s: number, across: number) {
+  return s > 0.08 && s < 0.55 && (across < 0.1 || Math.abs(across - 0.6) < 0.08);
+}
+
+// Natural colours, OKLCH. Dorsal view: the back and flank show, the belly only as a rim (see countershaded).
+// anatomy: [est. 1] great white: dark grey to blue-grey back, white belly.
+const CLASSIC_BACK: Oklch = [0.42, 0.02, 250];
+const CLASSIC_BELLY: Oklch = [0.96, 0.005, 250];
+// anatomy: [est. 1] scalloped hammerhead: olive-grey back, paler belly.
+const HAMMER_BACK: Oklch = [0.5, 0.035, 110];
+const HAMMER_BELLY: Oklch = [0.9, 0.015, 95];
+// anatomy: [est. 1] great hammerhead: slate-grey back, white belly.
+const GREATHAMMER_BACK: Oklch = [0.46, 0.025, 250];
+const GREATHAMMER_BELLY: Oklch = [0.95, 0.005, 250];
+// anatomy: [est. 1] tiger: grey-brown back, darker bars, pale belly.
+const TIGER_BACK: Oklch = [0.5, 0.035, 70];
+const TIGER_BAR: Oklch = [0.27, 0.025, 60];
+const TIGER_BELLY: Oklch = [0.9, 0.02, 85];
+// anatomy: [est. 1] zebra: tan to yellow-brown back, dark spots, pale ridges.
+const ZEBRA_BACK: Oklch = [0.72, 0.08, 85];
+const ZEBRA_SPOT: Oklch = [0.3, 0.04, 55];
+const ZEBRA_RIDGE: Oklch = [0.85, 0.05, 90];
+const ZEBRA_BELLY: Oklch = [0.9, 0.04, 90];
+// anatomy: [est. 1] shortfin mako: metallic indigo-blue back, white belly.
+const MAKO_BACK: Oklch = [0.38, 0.1, 275];
+const MAKO_BELLY: Oklch = [0.95, 0.005, 250];
+// anatomy: [est. 1] thresher: bronze to purplish-grey back, white belly.
+const THRESHER_BACK: Oklch = [0.45, 0.06, 310];
+const THRESHER_BELLY: Oklch = [0.95, 0.01, 90];
+// anatomy: [est. 1] nurse: uniform tawny yellow-brown, pale belly.
+const NURSE_BACK: Oklch = [0.6, 0.08, 70];
+const NURSE_BELLY: Oklch = [0.9, 0.03, 85];
+
+const tigerCoat: Coat = {
+  regions: [TIGER_BACK, TIGER_BAR, TIGER_BELLY],
+  paint: (p: PaintPoint) => {
+    if (p.flag === FLAG_FIN) return 0;
+    if (p.across > 0.8) return 2;
+    return tigerBar(p.s, p.v, p.L, p.across) ? 1 : 0;
+  },
+};
+
+const zebraCoat: Coat = {
+  regions: [ZEBRA_BACK, ZEBRA_SPOT, ZEBRA_RIDGE, ZEBRA_BELLY],
+  paint: (p: PaintPoint) => {
+    if (p.flag === FLAG_FIN) return 0;
+    if (p.across > 0.8) return 3;
+    if (zebraSpot(p.s, p.v, p.L, p.id)) return 1;
+    return zebraRidge(p.s, p.across) ? 2 : 0;
+  },
+};
+
+/**
+ * Shark body outlines, fin layouts and skin, per species. Tail blades (heterocercal) use the values in
+ * docs/ascii-ocean-anatomy.md; where the research marked a length as an estimate, the value is one too.
+ * Each shark has a natural coat; theme mode ignores coats and keeps the greyscale silhouette.
+ */
 export const SHARKS: Record<SharkKind, CreatureDef> = {
   classic: {
     realLength: 5,
+    taxon: "fish",
     shape: {
       halfWidth: classicHalfWidth,
-      pectoral: [0.15, 0.43, 0.55, 0.26],
+      // anatomy: [est. 1] root 0.16–0.2 TL, length ~0.2 TL, falcate.
+      pectoral: [0.16, 0.3, 0.46, 0.32],
       falcate: true,
       pelvic: [0.57, 0.65, 0.69, 0.085],
-      caudal: 0.085,
-      dorsal: [0.33, 0.47],
+      // anatomy: [est. 1] first dorsal origin 0.3–0.35 TL, base ~0.1 TL.
+      dorsal: [0.32, 0.42],
       secondDorsal: [0.71, 0.76],
+      tail: { kind: "heterocercal", length: 0.22, upper: 0.05, width: 0.012, twist: 0.05 },
       eye: [0.1, 0.14],
       gills: [0.19, 0.29],
       tint: [0.92, 0.97, 1.05],
     },
+    coats: { classic: countershaded(CLASSIC_BACK, CLASSIC_BELLY) },
+    defaultCoat: "classic",
   },
   // Slim neck under a wide, swept-back cephalofoil (drawn in sampleBody),
   // tall first dorsal, long upper tail lobe. Bronze-olive grey.
   hammerhead: {
     realLength: 3.5,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
         if (s < 0.06) return 0.045;
-        if (s < 0.3) return 0.045 + 0.061 * smoothstep(0.06, 0.3, s);
-        return classicHalfWidth(s) * 0.92;
+        if (s < 0.3) return 0.045 + 0.04 * smoothstep(0.06, 0.3, s);
+        return classicHalfWidth(s) * 0.81;
       },
-      head: { span: 0.17, sweep: 0.035, depth: 0.09, notch: 0 },
-      pectoral: [0.17, 0.4, 0.5, 0.22],
+      // anatomy: [est. 1] full head width ~0.24–0.3 TL (span is the half-width, so 0.135).
+      head: { span: 0.135, sweep: 0.035, depth: 0.09, notch: 0 },
+      // anatomy: [est. 1] root ~0.18 TL, length ~0.2 TL, falcate.
+      pectoral: [0.18, 0.31, 0.44, 0.3],
       falcate: true,
       pelvic: [0.56, 0.63, 0.67, 0.075],
-      caudal: 0.11,
-      dorsal: [0.28, 0.44],
+      // anatomy: [est. 1] first dorsal origin ~0.28 TL.
+      dorsal: [0.28, 0.38],
       secondDorsal: [0.7, 0.74],
+      tail: { kind: "heterocercal", length: 0.2, upper: 0.05, width: 0.012, twist: 0.05 },
       eye: null,
       gills: [0.16, 0.26],
       tint: [0.96, 0.98, 0.9],
     },
+    coats: { hammer: countershaded(HAMMER_BACK, HAMMER_BELLY) },
+    defaultCoat: "hammer",
   },
   // Blunt, square snout on a heavy body; barred back. Warm grey-brown.
   tiger: {
     realLength: 3.8,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
-        if (s < 0.13) return 0.1 * Math.pow(Math.sin(((s / 0.13) * Math.PI) / 2), 0.45);
-        if (s < 0.3) return 0.1 + 0.014 * smoothstep(0.13, 0.3, s);
-        if (s < 0.84) return 0.019 + 0.095 * Math.pow(1 - (s - 0.3) / 0.54, 1.2);
+        // anatomy: [est. 1] square, blunt snout; full width ~0.18 TL at the gills.
+        if (s < 0.12) return 0.1 * Math.pow(Math.sin(((s / 0.12) * Math.PI) / 2), 0.3);
+        if (s < 0.34) return 0.1 + 0.005 * smoothstep(0.12, 0.34, s);
+        if (s < 0.84) return 0.019 + 0.086 * Math.pow(1 - (s - 0.34) / 0.5, 1.2);
         const k = (s - 0.84) / 0.16;
         return 0.019 * (1 - k) + 0.012 * Math.sin(k * Math.PI);
       },
-      pectoral: [0.15, 0.42, 0.53, 0.25],
+      // anatomy: [5] broad falcate triangle: root ~0.14 TL, reach ~0.3 TL past the edge, tip swept back.
+      pectoral: [0.16, 0.3, 0.46, 0.3],
       falcate: true,
       pelvic: [0.57, 0.65, 0.69, 0.085],
-      caudal: 0.095,
-      dorsal: [0.33, 0.46],
+      dorsal: [0.33, 0.44],
       secondDorsal: [0.71, 0.75],
+      tail: { kind: "heterocercal", length: 0.3, upper: 0.04, width: 0.012, twist: 0.05 },
       eye: [0.08, 0.12],
       gills: [0.19, 0.28],
       tint: [1.02, 0.95, 0.84],
     },
-    marking: (s, v, L, across) => {
-      // Wavy vertical bars over the back half, fading out toward the head.
-      if (s < 0.2 || s > 0.9 || across > 0.85) return false;
-      const wobble = 0.35 * Math.sin((v / L) * 25 + s * 5);
-      const bar = Math.sin(s * Math.PI * 2 * 9 + wobble);
-      return bar > 0.65 - 0.5 * smoothstep(0.2, 0.42, s) + 0.4 * smoothstep(0.8, 0.9, s);
-    },
+    marking: (s, v, L, across) => tigerBar(s, v, L, across),
+    coats: { tiger: tigerCoat },
+    defaultCoat: "tiger",
   },
   // Short rounded head, body done by half-length, then a long ribbon of a
   // tail fin. Broad rounded pectorals, spotted sandy skin.
   zebra: {
     realLength: 2.3,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
-        if (s < 0.1) return 0.075 * Math.pow(Math.sin(((s / 0.1) * Math.PI) / 2), 0.7);
-        if (s < 0.28) return 0.075 + 0.025 * smoothstep(0.1, 0.28, s);
-        if (s < 0.55) return 0.022 + 0.078 * Math.pow(1 - (s - 0.28) / 0.27, 1.1);
+        if (s < 0.1) return 0.08 * Math.pow(Math.sin(((s / 0.1) * Math.PI) / 2), 0.7);
+        if (s < 0.28) return 0.075 + 0.005 * smoothstep(0.1, 0.28, s);
+        if (s < 0.55) return 0.022 + 0.058 * Math.pow(1 - (s - 0.28) / 0.27, 1.1);
         const k = (s - 0.55) / 0.45;
         return 0.022 * (1 - k * k) + 0.012 * Math.sin(k * Math.PI);
       },
-      pectoral: [0.12, 0.3, 0.36, 0.19],
+      // anatomy: [est. 1] broad, rounded tips: root ~0.12 TL, length ~0.2 TL.
+      pectoral: [0.12, 0.3, 0.36, 0.26],
       falcate: false,
       pelvic: [0.42, 0.48, 0.51, 0.065],
-      caudal: 0,
       dorsal: [0.36, 0.44],
       secondDorsal: [0.49, 0.53],
+      tail: { kind: "heterocercal", length: 0.35, upper: 0.03, width: 0.012, twist: 0.05 },
       eye: [0.06, 0.09],
       gills: [0.13, 0.2],
       tint: [1.08, 0.97, 0.74],
     },
-    marking: (s, v, L, _across, id) => {
-      // Leopard spots on a jittered grid, so they ride along with the skin.
-      if (s < 0.07) return false;
-      const gu = (s * L) / (L * 0.06);
-      const gv = v / (L * 0.045);
-      const cu = Math.floor(gu);
-      const cv = Math.floor(gv);
-      const jx = hash3(cu, cv, id) * 0.5 + 0.25;
-      const jy = hash3(cu, cv, id + 11) * 0.5 + 0.25;
-      return (gu - cu - jx) ** 2 + (gv - cv - jy) ** 2 < 0.08;
-    },
+    marking: (s, v, L, _across, id) => zebraSpot(s, v, L, id),
     // Pale ridges down the back, between the spots.
-    paleRidge: (s, across) =>
-      s > 0.08 && s < 0.55 && (across < 0.1 || Math.abs(across - 0.6) < 0.08),
+    paleRidge: zebraRidge,
+    coats: { zebra: zebraCoat },
+    defaultCoat: "zebra",
   },
   // Great hammerhead: a broader, nearly straight-edged cephalofoil with a notch at the centre,
   // a towering sickle first dorsal (drawn long and bright from above), and a cooler slate skin.
   greathammer: {
     realLength: 5,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
         if (s < 0.05) return 0.04;
-        if (s < 0.3) return 0.04 + 0.07 * smoothstep(0.05, 0.3, s);
-        return classicHalfWidth(s) * 0.95;
+        if (s < 0.3) return 0.04 + 0.045 * smoothstep(0.05, 0.3, s);
+        return classicHalfWidth(s) * 0.81;
       },
-      head: { span: 0.21, sweep: 0.006, depth: 0.085, notch: 0.014 },
-      pectoral: [0.16, 0.38, 0.49, 0.24],
+      // anatomy: [3][4] full head width 23–27% TL, so the half-span is 0.125.
+      head: { span: 0.125, sweep: 0.006, depth: 0.085, notch: 0.014 },
+      // anatomy: [est. 1] root ~0.16 TL, length ~0.2 TL, falcate.
+      pectoral: [0.16, 0.32, 0.46, 0.3],
       falcate: true,
       pelvic: [0.55, 0.62, 0.67, 0.085],
-      caudal: 0.13,
+      // anatomy: [est. 1] first dorsal origin ~0.24 TL.
       dorsal: [0.24, 0.45],
       secondDorsal: [0.68, 0.74],
+      tail: { kind: "heterocercal", length: 0.22, upper: 0.05, width: 0.012, twist: 0.05 },
       eye: null,
       gills: [0.15, 0.25],
       tint: [0.86, 0.93, 1.02],
     },
+    coats: { greathammer: countershaded(GREATHAMMER_BACK, GREATHAMMER_BELLY) },
+    defaultCoat: "greathammer",
   },
   // Shortfin mako: a long conical snout, a torpedo body that narrows hard to the tail stalk,
   // and a tall crescent tail. Metallic indigo back.
   mako: {
     realLength: 3.5,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
-        if (s < 0.17) return 0.088 * Math.pow(Math.sin(((s / 0.17) * Math.PI) / 2), 1.5);
-        if (s < 0.32) return 0.088 + 0.012 * smoothstep(0.17, 0.32, s);
-        if (s < 0.86) return 0.014 + 0.086 * Math.pow(1 - (s - 0.32) / 0.54, 1.45);
+        // anatomy: [6] long conical snout: the front tapers almost linearly to the full width.
+        if (s < 0.2) return 0.09 * Math.sin(((s / 0.2) * Math.PI) / 2);
+        if (s < 0.32) return 0.09;
+        if (s < 0.86) return 0.014 + 0.076 * Math.pow(1 - (s - 0.32) / 0.54, 1.45);
         const k = (s - 0.86) / 0.14;
         return 0.014 * (1 - k) + 0.01 * Math.sin(k * Math.PI);
       },
-      pectoral: [0.18, 0.4, 0.5, 0.21],
+      // anatomy: [6] pectorals narrow-tipped and shorter than the head: reach ~0.16 TL.
+      pectoral: [0.16, 0.28, 0.42, 0.28],
       falcate: true,
       pelvic: [0.58, 0.64, 0.68, 0.06],
-      caudal: 0.13,
       dorsal: [0.34, 0.45],
       secondDorsal: [0.76, 0.79],
+      tail: { kind: "heterocercal", length: 0.22, upper: 0.06, width: 0.012, twist: 0.05 },
       eye: [0.11, 0.15],
       gills: [0.2, 0.3],
       tint: [0.78, 0.9, 1.2],
     },
+    coats: { mako: countershaded(MAKO_BACK, MAKO_BELLY) },
+    defaultCoat: "mako",
   },
   // Thresher: a compact body over the front half, then the upper tail lobe as a long whip
   // that's as long as the shark itself. Big eyes, long sickle pectorals, bronze-violet skin.
   thresher: {
     realLength: 5,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
         if (s < 0.08) return 0.07 * Math.pow(Math.sin(((s / 0.08) * Math.PI) / 2), 0.75);
@@ -3840,39 +3963,47 @@ export const SHARKS: Record<SharkKind, CreatureDef> = {
         const k = (s - 0.48) / 0.52;
         return 0.012 * (1 - k) + 0.006 * Math.sin(k * Math.PI * 0.9) + 0.002;
       },
-      pectoral: [0.12, 0.27, 0.36, 0.2],
+      // anatomy: [est. 1] long and sickle-shaped: root ~0.12 TL, length 0.2–0.25 TL.
+      pectoral: [0.12, 0.27, 0.36, 0.3],
       falcate: true,
       pelvic: [0.37, 0.41, 0.44, 0.045],
-      caudal: 0,
       dorsal: [0.24, 0.32],
       secondDorsal: [0.45, 0.47],
+      tail: { kind: "heterocercal", length: 0.5, upper: 0.45, width: 0.01, twist: 0.05 },
       eye: [0.05, 0.1],
       gills: [0.11, 0.18],
       tint: [1.0, 0.9, 1.08],
     },
+    coats: { thresher: countershaded(THRESHER_BACK, THRESHER_BELLY) },
+    defaultCoat: "thresher",
   },
   // Nurse shark: a blunt, broad head, a heavy flattened body with both dorsals set far back,
   // rounded paddle pectorals, and a long low tail with no lower lobe. Tawny brown.
   nurse: {
     realLength: 2.8,
+    taxon: "fish",
     shape: {
       halfWidth: (s) => {
         if (s < 0.08) return 0.085 * Math.pow(Math.sin(((s / 0.08) * Math.PI) / 2), 0.4);
-        if (s < 0.3) return 0.085 + 0.02 * smoothstep(0.08, 0.3, s);
-        if (s < 0.72) return 0.022 + 0.083 * Math.pow(1 - (s - 0.3) / 0.42, 1.1);
+        if (s < 0.3) return 0.085 + 0.025 * smoothstep(0.08, 0.3, s);
+        if (s < 0.72) return 0.022 + 0.088 * Math.pow(1 - (s - 0.3) / 0.42, 1.1);
         const k = (s - 0.72) / 0.28;
         return 0.022 * (1 - k * k) + 0.014 * Math.sin(k * Math.PI);
       },
-      pectoral: [0.16, 0.34, 0.4, 0.17],
+      // anatomy: [11] broad, rounded tips: root ~0.16 TL, length ~0.17 TL. Drawn as paddles.
+      pectoral: [0.16, 0.3, 0.36, 0.22],
+      paddle: true,
       falcate: false,
       pelvic: [0.45, 0.52, 0.55, 0.075],
-      caudal: 0,
       dorsal: [0.5, 0.58],
       secondDorsal: [0.63, 0.69],
+      tail: { kind: "heterocercal", length: 0.27, upper: 0.04, width: 0.02, twist: 0.05 },
       eye: [0.05, 0.075],
       gills: [0.14, 0.22],
       tint: [1.1, 0.96, 0.76],
     },
+    coats: { nurse: countershaded(NURSE_BACK, NURSE_BELLY) },
+    defaultCoat: "nurse",
   },
 };
 ```
@@ -3886,8 +4017,8 @@ import type { Coat, CreatureDef, KoiVariety, Oklch, PaintPoint } from "./types";
 // The renderer's cell flags. Importing them from the renderer would make a cycle, so they are repeated here.
 const FLAG_FIN = 3;
 
-const SHIROJI: Oklch = [0.95, 0.015, 90];
-const HI: Oklch = [0.6, 0.19, 35];
+const SHIROJI: Oklch = [0.985, 0.012, 90];
+const HI: Oklch = [0.66, 0.21, 35];
 const SUMI: Oklch = [0.22, 0.01, 260];
 const YAMABUKI: Oklch = [0.8, 0.15, 85];
 const ASAGI: Oklch = [0.6, 0.045, 240];
@@ -3907,11 +4038,13 @@ const coats: Record<KoiVariety, Coat> = {
   // White with red patches; white fins.
   kohaku: {
     regions: [SHIROJI, HI],
+    softInk: true,
     paint: (p) => (p.flag !== FLAG_FIN && kohakuRed(p) ? 1 : 0),
   },
   // Kohaku with small black spots on the white, none on the head.
   sanke: {
     regions: [SHIROJI, HI, SUMI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return 0;
       if (kohakuRed(p)) return 1;
@@ -3930,6 +4063,7 @@ const coats: Record<KoiVariety, Coat> = {
   // Pectoral roots (motoguro) are black; the other fins are white.
   showa: {
     regions: [SUMI, HI, SHIROJI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return p.s < 0.4 && p.across < 0.35 ? 0 : 2;
       // Thresholds tuned so black stays the commonest colour (the noise centres on 0.5).
@@ -3941,6 +4075,7 @@ const coats: Record<KoiVariety, Coat> = {
   // White with one round red spot on the head, centred at 0.075 L and radius 0.045 L.
   tancho: {
     regions: [SHIROJI, HI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return 0;
       const dx = (p.s - 0.075) * p.L;
@@ -3951,12 +4086,14 @@ const coats: Record<KoiVariety, Coat> = {
   // A single metallic gold colour that catches the light.
   ogon: {
     regions: [YAMABUKI],
+    softInk: true,
     glint: true,
     paint: () => 0,
   },
   // Blue-grey back with a lighter scale net; red flanks and pectoral roots; a pale plain head.
   asagi: {
     regions: [ASAGI, ASAGI_NET, HI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return p.s < 0.4 && p.across < 0.35 ? 2 : 1;
       if (p.s < 0.14) return 1;
@@ -3970,6 +4107,7 @@ const coats: Record<KoiVariety, Coat> = {
 /** Thick, deep-bodied spindle with a blunt head, large round pectorals that scull, and a long low dorsal. */
 export const KOI: CreatureDef = {
   realLength: 0.75,
+  taxon: "fish",
   shape: {
     halfWidth: (s) => {
       // Blunt head: fills out fast, then holds its depth through the shoulders.
@@ -3985,7 +4123,6 @@ export const KOI: CreatureDef = {
     paddle: true,
     falcate: false,
     pelvic: [0.44, 0.52, 0.6, 0.12],
-    caudal: 0,
     dorsal: [0.3, 0.62],
     secondDorsal: [0, 0],
     eye: [0.06, 0.09],
@@ -4012,12 +4149,18 @@ const FLAG_FIN = 3;
 const CAPE: Oklch = [0.42, 0.02, 245];
 const FLANK: Oklch = [0.62, 0.015, 240];
 const BEAK: Oklch = [0.52, 0.018, 245];
+// Flippers are a shade darker than the cape, so they read against it; the leading edge is lighter, like the flank.
+const FLIPPER: Oklch = [0.3, 0.02, 245];
+const FLIPPER_EDGE: Oklch = [0.74, 0.012, 240];
 
-/** Dark grey cape over the back, lighter flanks, and a darker beak. Fins take the cape colour. */
+/**
+ * Dark grey cape over the back, lighter flanks, and a darker beak. Flippers are a darker slate with a lighter
+ * leading edge, so they stay visible against the cape and the flank.
+ */
 const bottlenoseCoat: Coat = {
-  regions: [CAPE, FLANK, BEAK],
+  regions: [CAPE, FLANK, BEAK, FLIPPER, FLIPPER_EDGE],
   paint: (p: PaintPoint) => {
-    if (p.flag === FLAG_FIN) return 0;
+    if (p.flag === FLAG_FIN) return p.s < 0.17 ? 4 : 3;
     if (p.s < 0.06) return 2;
     // The cape narrows behind the dorsal, down to across 0.35 toward the tail stock.
     const cape = 0.5 - 0.15 * smoothstep(0.52, 0.7, p.s);
@@ -4028,9 +4171,11 @@ const bottlenoseCoat: Coat = {
 /** Bottlenose dolphin: a short beak, a round melon, a long barely-bending body, pointed flippers, and wide flukes. */
 export const BOTTLENOSE: CreatureDef = {
   realLength: 3,
+  taxon: "mammal",
   shape: {
     halfWidth: (s) => {
       // Short beak, then the melon swells up behind it.
+      // anatomy: [est. 1] short beak, round melon; full width ~0.2 TL.
       if (s < 0.04) return 0.025;
       if (s < 0.12) return 0.025 + 0.06 * smoothstep(0.04, 0.12, s);
       if (s < 0.3) return 0.085 + 0.015 * smoothstep(0.12, 0.3, s);
@@ -4038,16 +4183,18 @@ export const BOTTLENOSE: CreatureDef = {
       if (s < 0.86) return 0.1 - 0.08 * Math.pow((s - 0.3) / 0.56, 1.3);
       return 0.02 - 0.005 * smoothstep(0.86, 1, s);
     },
-    pectoral: [0.2, 0.28, 0.36, 0.18],
+    // anatomy: [est. 1] falcate flipper, root just behind the eye (~0.14 TL), reach ~0.25 TL past the spine.
+    // Stylised: reach 0.30 rather than 0.25 so the flipper clears the body by 3+ cells at the species-tab size.
+    pectoral: [0.14, 0.22, 0.3, 0.3],
     falcate: true,
     pelvic: [0, 0, 0, 0],
-    caudal: 0,
     dorsal: [0.42, 0.52],
     secondDorsal: [0, 0],
     eye: [0.1, 0.12],
     gills: [0, 0],
     tint: [0.95, 0.98, 1.04],
-    tail: { kind: "fluke", span: 0.15, length: 0.18, notch: 0.03 },
+    // anatomy: [est. 1] fluke span ~0.2 TL (half-span 0.11).
+    tail: { kind: "fluke", span: 0.11, length: 0.18, notch: 0.03 },
     undulation: 0.15,
     finFlap: 0.03,
   },
@@ -4067,15 +4214,17 @@ const FLAG_FIN = 3;
 const BLACK: Oklch = [0.17, 0.01, 260];
 const WHITE: Oklch = [0.96, 0.005, 250];
 const SADDLE_GREY: Oklch = [0.6, 0.01, 250];
+// The flipper is black like the body, so its tip rim is a lighter grey to outline it.
+const FIN_RIM: Oklch = [0.5, 0.01, 260];
 
 /**
  * Killer whale, black base. A white eye patch sits behind and above each eye, and a grey saddle
  * patch sits just behind the dorsal fin. Fins are black.
  */
 const orcaCoat: Coat = {
-  regions: [BLACK, WHITE, SADDLE_GREY],
+  regions: [BLACK, WHITE, SADDLE_GREY, FIN_RIM],
   paint: (p: PaintPoint) => {
-    if (p.flag === FLAG_FIN) return 0;
+    if (p.flag === FLAG_FIN) return p.across > 0.8 ? 3 : 0;
     // Eye patch: an oval behind the eye on both flanks, drawn a little larger than life (s 0.11–0.25,
     // across 0.3 to the edge) so it still reads as the orca's mark at a few cells per body width.
     const ds = (p.s - 0.18) / 0.07;
@@ -4092,27 +4241,29 @@ const orcaCoat: Coat = {
 /** Killer whale: a robust torpedo with a blunt head, big paddle flippers, a tall dorsal and a black-and-white coat. */
 export const ORCA: CreatureDef = {
   realLength: 7,
+  taxon: "mammal",
   shape: {
     halfWidth: (s) => {
       // Blunt head: fills out fast, then swells to the broadest point near 0.3 of the length.
       if (s < 0.02) return 0.05 + 0.01 * smoothstep(0, 0.02, s);
       if (s < 0.12) return 0.06 + 0.04 * smoothstep(0.02, 0.12, s);
-      if (s < 0.3) return 0.1 + 0.025 * smoothstep(0.12, 0.3, s);
+      // anatomy: [est. 1] widest near the front at ~0.2 TL full width (the research estimate is ~0.18).
+      if (s < 0.3) return 0.1;
       // Long taper into a slim tail stock, then a thin peduncle to the flukes.
-      if (s < 0.84) return 0.125 - 0.097 * Math.pow((s - 0.3) / 0.54, 1.2);
+      if (s < 0.84) return 0.1 - 0.072 * Math.pow((s - 0.3) / 0.54, 1.2);
       return 0.028 - 0.008 * smoothstep(0.84, 1, s);
     },
-    pectoral: [0.14, 0.24, 0.32, 0.2],
+    pectoral: [0.14, 0.24, 0.32, 0.26],
     paddle: true,
     falcate: false,
     pelvic: [0, 0, 0, 0],
-    caudal: 0,
     dorsal: [0.36, 0.45],
     secondDorsal: [0, 0],
     eye: [0.1, 0.12],
     gills: [0, 0],
     tint: [1, 1, 1],
-    tail: { kind: "fluke", span: 0.14, length: 0.17, notch: 0.03 },
+    // anatomy: [est. 1] fluke span ~0.24 TL (half-span 0.12).
+    tail: { kind: "fluke", span: 0.12, length: 0.17, notch: 0.03 },
     undulation: 0.15,
     finFlap: 0.03,
   },
@@ -4200,6 +4351,7 @@ const humpbackCoat: Coat = {
 /** Humpback whale: a long, robust body with a broad flat head, very long flippers, and a small dorsal hump. */
 export const HUMPBACK: CreatureDef = {
   realLength: 14,
+  taxon: "mammal",
   shape: {
     halfWidth: (s) => {
       // Rostrum, then the broad flat head widens to its full depth by 0.15.
@@ -4215,14 +4367,14 @@ export const HUMPBACK: CreatureDef = {
     paddle: true,
     falcate: false,
     pelvic: [0, 0, 0, 0],
-    caudal: 0,
     // A small hump two-thirds of the way back.
     dorsal: [0.62, 0.66],
     secondDorsal: [0, 0],
     eye: [0.16, 0.18],
     gills: [0, 0],
     tint: [1, 1, 1],
-    tail: { kind: "fluke", span: 0.17, length: 0.15, notch: 0.025 },
+    // anatomy: [est. 1] fluke span 0.25–0.3 TL (half-span 0.14).
+    tail: { kind: "fluke", span: 0.14, length: 0.15, notch: 0.025 },
     undulation: 0.1,
     finFlap: 0.05,
     finFlapRate: 0.35,
@@ -4451,7 +4603,20 @@ import {
 } from "./creatures/behaviour";
 import { CREATURES } from "./creatures";
 import { rosterFromSharks, type RosterEntry } from "./creatures/roster";
+import { TAXA } from "./creatures/taxa";
 import type { CreatureSpecies, OceanScene } from "./creatures/types";
+import {
+  advanceBreath,
+  BLOWHOLE_S,
+  type Blow,
+  BREATH_PROFILES,
+  type Breath,
+  diveDepth,
+  DRIFT_PERIOD,
+  type Drift,
+  driftOffset,
+  startBreath,
+} from "./creatures/vertical";
 import { pickSpecies, SPECIES } from "./species";
 
 export const SPINE_NODES = 20;
@@ -4536,18 +4701,27 @@ export interface Creature {
   depth: number;
   /** Named coat from the species' `coats`, for species that have them. */
   coat?: string;
-  /** Sinking under the surface, 0–1: pond koi bob between the surface and mid-water. 0 for everything else. */
+  /**
+   * How deep the animal reads, 0 at the surface → 1 at depth. Pond koi bob between the two; a mammal dives (1),
+   * rises and blows at the surface (0), then sinks. 0 for everything else.
+   */
   dive: number;
+  /** Mammals in the ocean: the breathing cycle. null for everything else. */
+  breath: Breath | null;
+  /** Fish in the ocean: a slow depth drift. null for everything else. */
+  drift: Drift | null;
+  /** The drift's current offset from `depth` (fish only, within ±DRIFT_AMP); the renderer adds it. 0 otherwise. */
+  depthOffset: number;
   /** Low-passed steering direction (unit-ish vector, x and y): the target the heading turns toward. */
   steerX: number;
   steerY: number;
 }
 
-export interface WorldEvent {
-  kind: "splash";
-  x: number;
-  y: number;
-}
+/** Things that happen in the water this step. The renderer turns them into rings, spray and wakes, then clears them. */
+export type WorldEvent =
+  | { kind: "splash"; x: number; y: number }
+  /** An animal surfaces and blows at (x, y), its blowhole. `drops`, `reach` and `life` are the blow's spray. */
+  | ({ kind: "blow"; x: number; y: number } & Blow);
 
 const FISH_SEPARATION_K = 420;
 const FISH_ALIGN_K = 1.4;
@@ -4575,6 +4749,10 @@ export class World {
   time = 0;
   fish: Fish[] = [];
   creatures: Creature[] = [];
+  /**
+   * Events raised this step (splashes, blows). The renderer drains them on each render and clears the array.
+   * A headless World (tests, the sim without a renderer) must drain it too, or it grows without limit.
+   */
   events: WorldEvent[] = [];
   pointer = { x: 0, y: 0, active: false };
   scene: OceanScene;
@@ -4667,6 +4845,9 @@ export class World {
         depth: entry.depth,
         coat: entry.coat,
         dive: 0,
+        breath: null,
+        drift: null,
+        depthOffset: 0,
         steerX: Math.cos(heading),
         steerY: Math.sin(heading),
       });
@@ -4706,6 +4887,27 @@ export class World {
       }
     }
     this.bucketNext = new Int32Array(this.fish.length);
+
+    // Vertical motion draws come last, so the positions above do not move. Three draws per creature, in the
+    // sorted creature order, whatever its taxon: breath seed, drift period, drift phase.
+    // Pond creatures draw nothing here, so the pond rng stream is the same as before R10.
+    if (this.scene !== "ocean") return;
+    for (const sh of this.creatures) {
+      const seed = Math.floor(this.rng() * 4294967296);
+      const period = rand(this.rng, DRIFT_PERIOD[0], DRIFT_PERIOD[1]);
+      const phase = rand(this.rng, 0, TAU);
+      const def = CREATURES[sh.species];
+      const profile = BREATH_PROFILES[sh.species];
+      if (TAXA[def.taxon].breathes && profile) {
+        sh.breath = startBreath(profile, seed);
+        sh.dive = diveDepth(sh.breath);
+      }
+      if (def.taxon === "fish") {
+        sh.drift = { period, phase };
+        // Start on the drift curve, not at 0, so the first step does not jump.
+        sh.depthOffset = driftOffset(sh.drift, 0);
+      }
+    }
   }
 
   private fishTotal(W: number, H: number): number {
@@ -5185,7 +5387,30 @@ export class World {
         nodes[k * 2 + 1] = py + Math.sin(angle) * seg;
         prevAngle = angle;
       }
+      // After the spine, so a blow lands on this step's centre line.
+      this.stepVertical(sh, dt);
     }
+  }
+
+  /** Breathing and drift: the depth the renderer reads. Only the depth fields change; nothing here moves the body. */
+  private stepVertical(sh: Creature, dt: number) {
+    if (sh.breath) {
+      const blows = advanceBreath(sh.breath, dt);
+      for (let i = 0; i < blows; i++) this.blow(sh, sh.breath.profile.blow);
+      sh.dive = diveDepth(sh.breath);
+    }
+    if (sh.drift) sh.depthOffset = driftOffset(sh.drift, this.time);
+  }
+
+  /** A blow at the blowhole: a point on the spine at BLOWHOLE_S of the body length from the snout. */
+  private blow(sh: Creature, blow: Blow) {
+    const n = sh.nodes;
+    const at = BLOWHOLE_S * (SPINE_NODES - 1);
+    const i = Math.floor(at);
+    const t = at - i;
+    const x = n[2 * i] + (n[2 * i + 2] - n[2 * i]) * t;
+    const y = n[2 * i + 1] + (n[2 * i + 3] - n[2 * i + 1]) * t;
+    this.events.push({ kind: "blow", x, y, drops: blow.drops, reach: blow.reach, life: blow.life });
   }
 
   private respawn() {
@@ -5303,13 +5528,16 @@ export class Effects {
     this.rseed[i] = hash3(this.rcount++, i, 90);
   }
 
-  /** `n` spray droplets thrown outward from (x, y) up to `reach` px. */
-  spray(x: number, y: number, n: number, reach: number, seed: number) {
+  /**
+   * `n` spray droplets thrown outward from (x, y) up to `reach` px. Each droplet lives `life` s at least,
+   * up to 1.67 × `life` (the default 0.6 gives 0.6–1.0 s).
+   */
+  spray(x: number, y: number, n: number, reach: number, seed: number, life = 0.6) {
     for (let k = 0; k < n; k++) {
       const angle = hash3(seed, k, 1) * Math.PI * 2;
       // Under exponential drag the droplet travels v0 / SPRAY_DRAG in total, so v0 sets the reach.
       const v0 = SPRAY_DRAG * reach * (0.4 + 0.6 * hash3(seed, k, 2));
-      const i = this.claim(x, y, 0.6 + 0.4 * hash3(seed, k, 3));
+      const i = this.claim(x, y, life * (1 + (2 / 3) * hash3(seed, k, 3)));
       this.pvx[i] = Math.cos(angle) * v0;
       this.pvy[i] = Math.sin(angle) * v0;
     }
@@ -6562,6 +6790,7 @@ function valueNoise(u: number, lane: number, seed: number) {
  */
 import { clamp, hash3, oklchToRgb, rgbToOklabL, TAU } from "./math";
 import { CREATURE_IDS, CREATURES } from "./creatures";
+import { TAXA } from "./creatures/taxa";
 import type {
   Coat,
   CreatureDef,
@@ -6571,6 +6800,7 @@ import type {
   TailShape,
 } from "./creatures/types";
 import { Effects } from "./effects";
+import { type Habitat, habitatOf, OCEAN, type Rgb } from "./habitats";
 import { PondSurface } from "./pond";
 import { FOAM_GLYPHS, GLINT_TICK, SeaSurface } from "./sea";
 import { type Creature, SPINE_NODES, type World } from "./world";
@@ -6688,18 +6918,6 @@ const SUBSAMPLES = [0.25, 0.3, 0.75, 0.3, 0.25, 0.72, 0.75, 0.72];
 
 // Natural mode only. Five bits per channel for the fillStyle cache.
 const STYLE_CACHE_SIZE = 1 << 15;
-/**
- * Beer-Lambert absorption rate per channel, in 1/m: light fades as exp(-k · z) over the water it crosses.
- * Red goes first and blue survives longest in clear ocean water.
- */
-const WATER_K = [0.9, 0.35, 0.18];
-/**
- * Pond water is tannin-brown and algae-green, so it absorbs blue more than green: r > b > g.
- * Deep pond water reads green-brown rather than blue.
- */
-const POND_WATER_K = [0.75, 0.32, 0.5];
-// Veil: a uniform haze of the page colour over everything at depth, the same for all channels.
-const VEIL_K = 0.35;
 const DEPTH_STEPS = 16;
 
 /** Factor per depth step (depth quantised to 1/16), so no Math.exp per cell. z = (1 - depth) * 2.2. */
@@ -6713,45 +6931,56 @@ function waterTable(k: number) {
 
 type WaterTables = { r: Float32Array; g: Float32Array; b: Float32Array; veil: Float32Array };
 
-/** Per-channel absorb factors (light from the animal loses red first) and the shared veil, for one scene's water. */
-function waterTables(k: readonly number[], veilK: number): WaterTables {
+/** Per-channel absorb factors (light from the animal loses red first) and the haze, for one habitat. */
+function waterTables(absorb: Habitat["absorb"], veilK: number): WaterTables {
   return {
-    r: waterTable(k[0]),
-    g: waterTable(k[1]),
-    b: waterTable(k[2]),
+    r: waterTable(absorb[0]),
+    g: waterTable(absorb[1]),
+    b: waterTable(absorb[2]),
     veil: waterTable(veilK),
   };
 }
 
-const OCEAN_WATER = waterTables(WATER_K, VEIL_K);
-// Garden ponds are shallow: less veil than the open sea, so koi keep their colours at depth.
-const POND_WATER = waterTables(POND_WATER_K, 0.25);
+const habitatTables = new WeakMap<Habitat, WaterTables>();
+/** The water tables of a habitat, built once. */
+function tablesFor(habitat: Habitat) {
+  let tables = habitatTables.get(habitat);
+  if (!tables) {
+    tables = waterTables(habitat.absorb, habitat.veil);
+    habitatTables.set(habitat, tables);
+  }
+  return tables;
+}
 
 function depthIndex(depth: number) {
   return clamp(Math.round(depth * DEPTH_STEPS), 0, DEPTH_STEPS);
 }
 
-/** Absorb the channel, then veil it toward the page background. */
-function attenuateChannel(c: number, bg: number, absorb: number, haze: number) {
-  return clamp(Math.round(bg + (c * absorb - bg) * haze), 0, 255);
+/** Mix two rgb colours: t = 0 is a, t = 1 is b. */
+function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+/** Absorb the channel, then veil it toward the haze target (the habitat's deep water colour). */
+function attenuateChannel(c: number, toward: number, absorb: number, haze: number) {
+  return clamp(Math.round(toward + (c * absorb - toward) * haze), 0, 255);
 }
 
 /**
- * Natural colour as seen through water at depth (0 far, 1 near): absorbed, then veiled toward bg.
- * The scene picks the water; the ocean default is the original behaviour.
+ * Natural colour as seen through water at depth (0 far, 1 near): absorbed, then veiled toward `toward`,
+ * the water's deep colour. The scene picks the habitat; the ocean default is the original behaviour.
  */
-export function attenuate(
-  c: [number, number, number],
-  bg: [number, number, number],
-  depth: number,
-  scene: OceanScene = "ocean",
-): [number, number, number] {
-  const w = scene === "pond" ? POND_WATER : OCEAN_WATER;
+export function attenuate(c: Rgb, toward: Rgb, depth: number, scene: OceanScene = "ocean"): Rgb {
+  const w = tablesFor(habitatOf(scene));
   const zi = depthIndex(depth);
   return [
-    attenuateChannel(c[0], bg[0], w.r[zi], w.veil[zi]),
-    attenuateChannel(c[1], bg[1], w.g[zi], w.veil[zi]),
-    attenuateChannel(c[2], bg[2], w.b[zi], w.veil[zi]),
+    attenuateChannel(c[0], toward[0], w.r[zi], w.veil[zi]),
+    attenuateChannel(c[1], toward[1], w.g[zi], w.veil[zi]),
+    attenuateChannel(c[2], toward[2], w.b[zi], w.veil[zi]),
   ];
 }
 
@@ -6759,6 +6988,9 @@ export function attenuate(
 const COAT_STEPS = 16;
 // Koi fins are translucent: they veil as if one step further off.
 const COAT_FIN_VEIL = 0.15;
+// Glyph ink on a soft-ink coat's light regions: a see-through dark, so the texture shades the skin's
+// own colour instead of dirtying it with near-black.
+const COAT_DARK_INK = "rgba(14,15,19,0.26)";
 // Glyph ink on a coat's dark regions: a light ink, so black patches still show texture.
 const COAT_LIGHT_INK = "rgba(236,238,242,0.55)";
 // Glint glyphs on a coat with `glint`: pale gold or white.
@@ -6797,7 +7029,7 @@ function halfLevel(flag: number, shade: number) {
   return 46 + shade * 160;
 }
 
-/** How far a tail reaches across the body, as a fraction of length: a fluke's span or a caudal fin's widest half-width. */
+/** How far a tail reaches across the body, as a fraction of length: a fluke's span or a blade's widest half-width. */
 function tailSpan(tail: TailShape) {
   return tail.kind === "fluke" ? tail.span : tail.width + tail.twist;
 }
@@ -6841,6 +7073,8 @@ type Oklch = [number, number, number];
 // The seabed, natural mode. It is the deepest layer: colours go through the water at the far depth, then a further veil toward the page.
 const FLOOR_DEPTH = 0;
 const FLOOR_VEIL = 0.45;
+// Natural water: the light patch's peak alpha at the top centre (the surface colour, fading to nothing at its edge).
+const WATER_LIGHT_PATCH = 0.22;
 /** Low-frequency patches are value noise on a coarse lattice of this many columns and rows over the page. */
 const FLOOR_NOISE_COLS = 12;
 const FLOOR_NOISE_ROWS = 8;
@@ -6901,9 +7135,15 @@ export function paintGrid(
   g.stroke();
 }
 
-/** The depth a body is seen at: a diving cetacean (dive 1) reads 45% deeper, dimmer and bluer. Sharks never dive, so theirs is unchanged. */
-function bodyDepthOf(sh: Creature) {
-  return sh.dive === 0 ? sh.depth : sh.depth * (1 - 0.45 * sh.dive);
+/**
+ * The depth a body is seen at. Natural colours: its depth plus a fish's drift, then a diving animal (dive 1)
+ * reads 45% deeper, dimmer and bluer, and a surfaced one (dive 0) reads at its full depth, in full colour.
+ * Theme colours keep the classic cover, so they ignore the drift and the dive and read the base depth only.
+ */
+function bodyDepthOf(sh: Creature, natural: boolean) {
+  if (!natural) return sh.depth;
+  const depth = clamp(sh.depth + sh.depthOffset, 0, 1);
+  return sh.dive === 0 ? depth : depth * (1 - 0.45 * sh.dive);
 }
 
 /** Draw key: the animal's depth. */
@@ -7030,6 +7270,15 @@ export class AsciiRenderer {
   /** Tail-fin beat for the current creature: tailLift is sin(phase), and the beat scales the flukes with it. */
   private tailLift = 0;
   private tailBeat = 1;
+  /** Half-width of the blade where it leaves the peduncle, in px. Set once per animal, not per sample. */
+  private tailW0 = 0;
+  /** Natural mode sways a tail blade side to side; theme mode keeps the cover's classic swell, so its draw calls hold. */
+  private swayTail = false;
+  // The spine's end and the direction past it, for a heterocercal blade (set per creature in rasterize).
+  private tailX = 0;
+  private tailY = 0;
+  private tailDx = 1;
+  private tailDy = 0;
   // Scratch outputs of sampleBody(), to avoid allocating per sample.
   private hitFlag = 0;
   private hitShade = 0;
@@ -7063,7 +7312,13 @@ export class AsciiRenderer {
   private rampCache = new WeakMap<Coat, Uint8Array[]>();
   /** The scene's water and seabed; see setScene. */
   private scene: OceanScene = "ocean";
-  private water: WaterTables = OCEAN_WATER;
+  private habitat: Habitat = OCEAN;
+  private water: WaterTables = tablesFor(OCEAN);
+  /** Natural mode: the colour animals veil toward with depth (the habitat's deep water for this page mode). */
+  private hazeTarget: Rgb = OCEAN.water.dark.deep;
+  /** Natural mode: the water's surface and deep colours over this page, each mixed toward the page. */
+  private waterSurface: Rgb = [0, 0, 0];
+  private waterDeep: Rgb = [0, 0, 0];
   /** Seed for the seabed's patches, rocks, pebbles and leaves. */
   private floorSeed = 0;
 
@@ -7073,6 +7328,7 @@ export class AsciiRenderer {
     if (!ctx) throw new Error("2D canvas unavailable");
     this.ctx = ctx;
     this.bg = document.createElement("canvas");
+    this.updateWater();
     this.buildStyles();
   }
 
@@ -7081,9 +7337,20 @@ export class AsciiRenderer {
     this.palette = p;
     this.bgL = rgbToOklabL(...p.background);
     this.rampCache = new WeakMap();
+    this.updateWater();
     this.buildStyles();
     this.styleCache = new Array(STYLE_CACHE_SIZE);
     if (this.bg.width > 0) this.paintBackground();
+  }
+
+  /** The habitat's water over this page: the haze target, and the surface and deep fill colours. */
+  private updateWater() {
+    const { mode, background } = this.palette;
+    const tone = this.habitat.water[mode];
+    const fill = this.habitat.fill[mode];
+    this.hazeTarget = tone.deep;
+    this.waterSurface = mixRgb(background, tone.surface, fill);
+    this.waterDeep = mixRgb(background, tone.deep, fill);
   }
 
   /** Natural keeps animals in their real colours; theme keeps them greyscale and inverts on light pages. */
@@ -7101,7 +7368,9 @@ export class AsciiRenderer {
    */
   setScene(scene: OceanScene, seed = 0) {
     this.scene = scene;
-    this.water = scene === "pond" ? POND_WATER : OCEAN_WATER;
+    this.habitat = habitatOf(scene);
+    this.water = tablesFor(this.habitat);
+    this.updateWater();
     this.floorSeed = seed;
     // Cached styles hold water-attenuated colours, so they belong to the old water.
     this.rampCache = new WeakMap();
@@ -7220,8 +7489,11 @@ export class AsciiRenderer {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = `rgb(${background.join(",")})`;
     g.fillRect(0, 0, W, H);
-    // Natural colours have a seabed under the grid; theme keeps the flat background.
-    if (this.colors === "natural") this.paintFloor(g);
+    // Natural colours have water and a seabed under the grid; theme keeps the flat background.
+    if (this.colors === "natural") {
+      this.paintWater(g);
+      this.paintFloor(g);
+    }
     paintGrid(
       g,
       W,
@@ -7234,22 +7506,47 @@ export class AsciiRenderer {
   }
 
   /**
+   * The water, painted once into the background and blitted each frame. A vertical gradient from the
+   * surface colour at the top to the deep colour at the bottom, with a broad light patch near the top centre.
+   */
+  private paintWater(g: CanvasRenderingContext2D) {
+    const { width: W, height: H } = this;
+    const [sr, sg, sb] = this.waterSurface;
+    const surface = `${sr},${sg},${sb}`;
+    const down = g.createLinearGradient(0, 0, 0, H);
+    down.addColorStop(0, `rgb(${surface})`);
+    down.addColorStop(1, `rgb(${this.waterDeep.join(",")})`);
+    g.fillStyle = down;
+    g.fillRect(0, 0, W, H);
+    const light = g.createRadialGradient(W / 2, 0, 0, W / 2, 0, Math.max(W, H) * 0.8);
+    light.addColorStop(0, `rgba(${surface},${WATER_LIGHT_PATCH})`);
+    light.addColorStop(1, `rgba(${surface},0)`);
+    g.fillStyle = light;
+    g.fillRect(0, 0, W, H);
+  }
+
+  /**
    * The seabed, painted once into the background. Each cell gets at most one glyph, and the patches
    * are faint fills under them. Every colour is seen through the scene's water at the far depth.
    */
   private paintFloor(g: CanvasRenderingContext2D) {
     const { cols, rows, cw, ch, scene, floorSeed, fontFamily } = this;
-    const bg = this.palette.background;
+    const bed = this.waterDeep;
     const dark = this.palette.mode === "dark";
     const z = (k: number) => FLOOR_SALT + floorSeed * 97 + k * 1009;
     const styles = new Map<string, string>();
-    /** An OKLCH colour at an alpha, through the water and then veiled toward the page. Memoised. */
+    /** An OKLCH colour at an alpha, through the water and then veiled toward the water's bed colour. Memoised. */
     const fill = (c: Oklch, alpha: number) => {
       const key = `${c.join()}|${alpha}`;
       let s = styles.get(key);
       if (s === undefined) {
-        const [r, gn, b] = attenuate(oklchToRgb(c[0], c[1], c[2]), bg, FLOOR_DEPTH, scene);
-        const veiled = (x: number, i: number) => Math.round(x + (bg[i] - x) * FLOOR_VEIL);
+        const [r, gn, b] = attenuate(
+          oklchToRgb(c[0], c[1], c[2]),
+          this.hazeTarget,
+          FLOOR_DEPTH,
+          scene,
+        );
+        const veiled = (x: number, i: number) => Math.round(x + (bed[i] - x) * FLOOR_VEIL);
         s = `rgba(${veiled(r, 0)},${veiled(gn, 1)},${veiled(b, 2)},${alpha.toFixed(3)})`;
         styles.set(key, s);
       }
@@ -7442,6 +7739,11 @@ export class AsciiRenderer {
       if (!Number.isFinite(e.x) || !Number.isFinite(e.y)) continue;
       // Effect randomness: hash3 on this seed, the particle index and the frame, never the world rng.
       const seed = this.frameCount * 1031 + ei;
+      if (e.kind === "blow") {
+        // Natural colours only: theme mode skips the blow and keeps the cover as it was.
+        if (natural) effects.spray(e.x, e.y, e.drops, e.reach, seed, e.life);
+        continue;
+      }
       if (!natural) this.stamp(this.energy, e.x, e.y, 6, 1.4);
       effects.ring(e.x, e.y, 120, 90, 1);
       effects.spray(e.x, e.y, 26, 60, seed);
@@ -7573,14 +7875,23 @@ export class AsciiRenderer {
       }
     }
 
-    // A caudal blade is a fin, so past where it joins the stalk it is tried before the body and wins the cell.
+    // A blade is a fin, so past where it joins the stalk it is tried before the body and wins the cell.
     const tail = shape.tail;
     if (tail?.kind === "caudal" && s > 1 - tail.length + 0.03 && this.tailHit(u, a, L, tail)) {
       this.hitFlag = FLAG_FIN;
       return true;
     }
+    if (tail?.kind === "heterocercal" && this.bladeAt(px, py, L, tail)) {
+      this.hitFlag = FLAG_FIN;
+      return true;
+    }
 
-    if (a <= w) {
+    // Past a fluke's notch there is only water between the lobes, so no body is drawn there.
+    const inNotch = tail?.kind === "fluke" && s > 1 - tail.notch;
+    // A koi's blade takes over from the stalk past its root, so a body cell the blade misses (its rounded
+    // tip, or beside it when it sways) is left as water instead of poking out behind or beside the fin.
+    const inBlade = tail?.kind === "caudal" && s > 1 - tail.length + 0.03;
+    if (a <= w && !inNotch && !inBlade) {
       const across = a / (w || 1);
       // Rounded back lit from the top-left; flanks fall off into shadow.
       const facing = (bestNx * -0.6 + bestNy * -0.8) * across;
@@ -7595,7 +7906,12 @@ export class AsciiRenderer {
       } else if (shape.eye && s > shape.eye[0] && s < shape.eye[1] && across > 0.6) {
         flag = FLAG_EYE;
         shade = 0;
-      } else if (s > shape.gills[0] && s < shape.gills[1] && across > 0.58) {
+      } else if (
+        TAXA[this.def.taxon].gillSlits &&
+        s > shape.gills[0] &&
+        s < shape.gills[1] &&
+        across > 0.58
+      ) {
         // Five gill slits.
         if (Math.floor(((s - shape.gills[0]) / (shape.gills[1] - shape.gills[0])) * 5) % 2 === 0)
           shade *= 0.45;
@@ -7623,7 +7939,7 @@ export class AsciiRenderer {
           // Falcate (sickle) fins get a concave trailing edge.
           !(
             shape.falcate &&
-            inTriangle(u, a, L * p1, 0, L * (p1 + (p2 - p1) * 0.33), tip * 0.55, L * p2, tip)
+            inTriangle(u, a, L * p1, 0, L * (p1 + (p2 - p1) * 0.7), tip * 0.3, L * p2, tip)
           )
     ) {
       this.hitFlag = this.marked(s, a * bestSign, L, 0) ? FLAG_MARK : FLAG_FIN;
@@ -7640,29 +7956,22 @@ export class AsciiRenderer {
       this.hitAcross = clamp(a / (L * vr), 0, 1);
       return true;
     }
-    if (shape.tail) {
-      if (!this.tailHit(u, a, L, shape.tail)) return false;
+    if (tail && tail.kind !== "heterocercal") {
+      if (!this.tailHit(u, a, L, tail)) return false;
       this.hitFlag = FLAG_FIN;
-      return true;
-    }
-    // Forked caudal fin.
-    if (shape.caudal > 0 && inTriangle(u, a, L * 0.86, 0, L * 0.95, 0, L, L * shape.caudal)) {
-      this.hitFlag = FLAG_FIN;
-      this.hitShade = 0.36;
-      this.hitAcross = clamp(a / (L * shape.caudal), 0, 1);
       return true;
     }
     return false;
   }
 
   /**
-   * Whether a point (u along, a across) is on a tail that replaces the forked caudal fin.
+   * Whether a point (u along, a across) is on a fluke or a koi's caudal blade, both of which end at the body tip.
    * Sets hitShade for the fin; the caller sets the flag.
    */
-  private tailHit(u: number, a: number, L: number, tail: TailShape) {
-    const u0 = L * (1 - tail.length);
+  private tailHit(u: number, a: number, L: number, tail: TailShape & { kind: "fluke" | "caudal" }) {
     if (tail.kind === "fluke") {
       // A swept-back wing on each side of the centre line, notched at the middle.
+      const u0 = L * (1 - tail.length);
       const notchU = L * (1 - tail.notch);
       const halfSpan = L * tail.span * this.tailBeat;
       if (!inTriangle(u, a, u0, 0, L, halfSpan, notchU, 0)) return false;
@@ -7670,17 +7979,56 @@ export class AsciiRenderer {
       this.hitAcross = clamp(a / (L * tail.span), 0, 1);
       return true;
     }
-    // Koi caudal fin: a vertical blade seen edge-on from above, a little wider than the stalk.
-    // It starts at the peduncle's half-width and widens to the tip; the beat twists it wider.
-    const k = (u - u0) / (L - u0);
+    return this.bladeHit(u - L, this.hitV, tail, L, L);
+  }
+
+  /**
+   * Whether a heterocercal blade covers a point. The blade lies on the spine's end, extended straight
+   * past the body tip, so the point is measured in the tail's own frame. `L` is the body length.
+   */
+  private bladeAt(px: number, py: number, L: number, tail: TailShape & { kind: "heterocercal" }) {
+    const rx = px - this.tailX;
+    const ry = py - this.tailY;
+    const along = rx * this.tailDx + ry * this.tailDy;
+    const off = rx * -this.tailDy + ry * this.tailDx;
+    return this.bladeHit(along, off, tail, L, L / (1 - tail.upper));
+  }
+
+  /**
+   * A tail blade, seen edge-on from above. `along` is the distance from the body tip (negative toward the
+   * snout) and `v` the signed distance from the axis (the same side convention as hitV). The blade starts
+   * `length` of the body behind the tip and widens to its tip; in natural mode the beat sways it side to
+   * side, the shift growing from nothing at the root to `twist` of the total length at the tip (theme mode
+   * widens it by that much instead). A koi's blade ends at the
+   * tip, a heterocercal one runs `upper` of the total length past it. Sets hitShade and hitAcross; the
+   * caller sets the flag.
+   * `L` is the body length and `total` the length the tail width fractions are taken from.
+   */
+  private bladeHit(
+    along: number,
+    v: number,
+    tail: TailShape & { kind: "caudal" | "heterocercal" },
+    L: number,
+    total: number,
+  ) {
+    const base = -tail.length * L;
+    const tip = tail.kind === "heterocercal" ? tail.upper * total : 0;
+    const k = (along - base) / (tip - base);
     if (k < 0 || k > 1) return false;
-    const w0 = this.def.shape.halfWidth(1 - tail.length);
-    let hw = w0 + (tail.width - w0) * k + tail.twist * Math.abs(this.tailLift) * k;
+    // The blade starts at the peduncle's half-width and widens to the tip.
+    const w0 = this.tailW0;
+    let hw = w0 + (tail.width * total - w0) * k;
+    if (!this.swayTail) hw += tail.twist * total * Math.abs(this.tailLift) * k;
     // The tip is rounded off over its last 12%.
     if (k > 0.88) hw *= Math.sqrt(1 - ((k - 0.88) / 0.12) ** 2);
-    if (a > L * hw) return false;
+    // A heterocercal blade is never thinner than half a cell, so it stays visible from above.
+    if (tail.kind === "heterocercal") hw = Math.max(hw, this.cw * 0.5);
+    // The beat sways the whole blade sideways, trailing the body wave. hitV counts the other way round from
+    // the wave's offset, so the blade's centre sits at minus the lift.
+    const a = this.swayTail ? Math.abs(v + tail.twist * total * this.tailLift * k) : Math.abs(v);
+    if (a > hw) return false;
     this.hitShade = 0.3 + 0.15 * (1 - k);
-    this.hitAcross = clamp(a / (L * (hw || 1)), 0, 1);
+    this.hitAcross = clamp(a / (hw || 1), 0, 1);
     return true;
   }
 
@@ -7720,14 +8068,17 @@ export class AsciiRenderer {
 
     for (let q = 0; q < creatures.length; q++) {
       const sh = creatures[this.order[q]];
-      const L = sh.length;
       const N = SPINE_NODES;
       const n = sh.nodes;
       // A faster swim sweeps the tail wider in natural mode; theme keeps the cover's classic cap.
       const swim = clamp(sh.speed / 60, 0.4, natural ? 1.7 : 1.4);
       this.def = CREATURES[sh.species];
       const shape = this.def.shape;
-      const undulation = shape.undulation ?? 1;
+      // A heterocercal blade counts toward the length, so the body is shortened to leave room for it:
+      // snout to blade tip is sh.length, and L is the body alone.
+      const shrink = shape.tail?.kind === "heterocercal" ? 1 - shape.tail.upper : 1;
+      const L = sh.length * shrink;
+      const undulation = shape.undulation ?? TAXA[this.def.taxon].undulation;
       this.bodyId = sh.id;
       const kindIndex = CREATURE_IDS.indexOf(sh.species);
 
@@ -7743,8 +8094,8 @@ export class AsciiRenderer {
         ty /= tl;
         const amp = L * 0.05 * (0.1 + 0.9 * Math.pow(s, 1.8)) * swim * undulation;
         const off = amp * Math.sin(sh.phase - s * 5.2);
-        spine[k * 2] = n[k * 2] - ty * off;
-        spine[k * 2 + 1] = n[k * 2 + 1] + tx * off;
+        spine[k * 2] = n[0] + (n[k * 2] - n[0]) * shrink - ty * off;
+        spine[k * 2 + 1] = n[1] + (n[k * 2 + 1] - n[1]) * shrink + tx * off;
       }
       arc[0] = 0;
       for (let k = 1; k < N; k++) {
@@ -7753,6 +8104,16 @@ export class AsciiRenderer {
           Math.hypot(spine[k * 2] - spine[(k - 1) * 2], spine[k * 2 + 1] - spine[(k - 1) * 2 + 1]);
       }
       this.arcTotal = arc[N - 1] || 1;
+      // The spine's end and the direction past it: where a heterocercal blade starts.
+      this.tailX = spine[(N - 1) * 2];
+      this.tailY = spine[(N - 1) * 2 + 1];
+      const tdx = this.tailX - spine[(N - 2) * 2];
+      const tdy = this.tailY - spine[(N - 2) * 2 + 1];
+      const tdl = Math.hypot(tdx, tdy) || 1;
+      this.tailDx = tdx / tdl;
+      this.tailDy = tdy / tdl;
+      // How far a heterocercal blade runs past the body tip; 0 for every other tail.
+      const ext = sh.length - L;
 
       // Bank into turns: the inside fin foreshortens, the outside one spreads.
       const bank = clamp(sh.turn * 0.45, -0.35, 0.35);
@@ -7762,6 +8123,8 @@ export class AsciiRenderer {
       this.finTipLeft = L * reachFin * flex * (1 + bank);
       this.tailLift = Math.sin(sh.phase);
       this.tailBeat = 1 + 0.1 * this.tailLift;
+      this.swayTail = natural;
+      this.tailW0 = shape.tail ? shape.halfWidth(1 - shape.tail.length) * L : 0;
 
       let minX = Infinity;
       let minY = Infinity;
@@ -7773,6 +8136,12 @@ export class AsciiRenderer {
         minY = Math.min(minY, spine[k * 2 + 1]);
         maxY = Math.max(maxY, spine[k * 2 + 1]);
       }
+      const tipX = this.tailX + this.tailDx * ext;
+      const tipY = this.tailY + this.tailDy * ext;
+      minX = Math.min(minX, tipX);
+      maxX = Math.max(maxX, tipX);
+      minY = Math.min(minY, tipY);
+      maxY = Math.max(maxY, tipY);
       // Padding that covers the widest fin; sharks keep the classic 0.36.
       // Long-finned species pad for the widest fin tip: reach × flap × the outside fin of a full bank.
       // Sharks (reach ≤ 0.26) keep the original 0.36 so their look stays exactly as it was.
@@ -7783,7 +8152,7 @@ export class AsciiRenderer {
               shape.tail ? tailSpan(shape.tail) : 0,
             )
           : Math.max(shape.pectoral[3], shape.tail ? tailSpan(shape.tail) : 0);
-      const reach = (finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L;
+      const reach = Math.max((finReach > 0.34 ? Math.max(0.36, finReach + 0.02) : 0.36) * L, ext);
       const c0 = Math.max(0, Math.floor((minX - reach) / cw));
       const c1 = Math.min(cols - 1, Math.floor((maxX + reach) / cw));
       const r0 = Math.max(0, Math.floor((minY - reach) / ch));
@@ -7830,7 +8199,7 @@ export class AsciiRenderer {
           const key =
             (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
           bodyKey[i] = key;
-          bodyDepth[i] = bodyDepthOf(sh);
+          bodyDepth[i] = bodyDepthOf(sh, natural);
           bodyKind[i] = kindIndex;
 
           if (centerHit && coverage >= 0.6) {
@@ -7883,7 +8252,7 @@ export class AsciiRenderer {
     } = this;
     const coat = this.bodyCoat[creature];
     const skipBeyond = reach + Math.hypot(cw, ch);
-    const depth = bodyDepthOf(sh);
+    const depth = bodyDepthOf(sh, true);
     const shadowDc = Math.round((L * 0.035 * (0.4 + 1.2 * depth)) / cw) + 1;
     const shadowDr = Math.round((L * 0.02 * (0.4 + 1.2 * depth)) / ch) + 1;
     // Shallow bodies throw a strong shadow, deep ones a faint one.
@@ -7955,7 +8324,7 @@ export class AsciiRenderer {
         // Body-anchored key so each glyph rides along with the skin.
         bodyKey[i] =
           (hash3(Math.round(s * 52), Math.round(v / (cw * 0.9)), sh.id) * 4294967295) >>> 0;
-        bodyDepth[i] = bodyDepthOf(sh);
+        bodyDepth[i] = bodyDepthOf(sh, true);
         bodyKind[i] = kindIndex;
         bodyCreature[i] = creature;
 
@@ -8090,11 +8459,11 @@ export class AsciiRenderer {
   /** An rgb colour (0–255) seen through water at depth, as a cached fillStyle. */
   private attenuatedStyle(r0: number, g0: number, b0: number, depth: number) {
     const zi = depthIndex(depth);
-    const bg = this.palette.background;
+    const target = this.hazeTarget;
     const { r: absR, g: absG, b: absB, veil: haze } = this.water;
-    const r = attenuateChannel(r0, bg[0], absR[zi], haze[zi]);
-    const g = attenuateChannel(g0, bg[1], absG[zi], haze[zi]);
-    const b = attenuateChannel(b0, bg[2], absB[zi], haze[zi]);
+    const r = attenuateChannel(r0, target[0], absR[zi], haze[zi]);
+    const g = attenuateChannel(g0, target[1], absG[zi], haze[zi]);
+    const b = attenuateChannel(b0, target[2], absB[zi], haze[zi]);
     const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
     let style = this.styleCache[key];
     if (style === undefined) {
@@ -8197,7 +8566,7 @@ export class AsciiRenderer {
       else if (coat) {
         if (coat.glint && roll < 0.09) color = COAT_GLINT[key % COAT_GLINT.length];
         else if (coat.regions[topRegion][0] > 0.55) {
-          color = shade > 0.55 ? INK.dark.ink : INK.dark.inkSoft;
+          color = coat.softInk ? COAT_DARK_INK : shade > 0.55 ? INK.dark.ink : INK.dark.inkSoft;
         } else color = COAT_LIGHT_INK;
       } else if (roll < 0.09) color = ACCENTS[key % ACCENTS.length];
       else if (roll < 0.13) color = INK.dark.bright;
