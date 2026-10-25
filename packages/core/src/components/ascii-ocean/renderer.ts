@@ -1104,7 +1104,10 @@ export class AsciiRenderer {
 
     // Past a fluke's notch there is only water between the lobes, so no body is drawn there.
     const inNotch = tail?.kind === "fluke" && s > 1 - tail.notch;
-    if (a <= w && !inNotch) {
+    // A koi's blade takes over from the stalk past its root, so a body cell the blade misses (its rounded
+    // tip, or beside it when it sways) is left as water instead of poking out behind or beside the fin.
+    const inBlade = tail?.kind === "caudal" && s > 1 - tail.length + 0.03;
+    if (a <= w && !inNotch && !inBlade) {
       const across = a / (w || 1);
       // Rounded back lit from the top-left; flanks fall off into shadow.
       const facing = (bestNx * -0.6 + bestNy * -0.8) * across;

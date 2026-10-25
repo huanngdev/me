@@ -108,6 +108,17 @@ function covered(s: ReturnType<typeof koiScene>, phase: number, turn: number) {
   return cells;
 }
 
+/** Every half cell the koi covers, with its flag (1 body, 3 fin). */
+function flagged(s: ReturnType<typeof koiScene>, phase: number) {
+  covered(s, phase, 0);
+  const b = s.renderer as unknown as { halfFlag: Uint8Array; cols: number };
+  const cells: { c: number; flag: number }[] = [];
+  for (let j = 0; j < b.halfFlag.length; j++) {
+    if (b.halfFlag[j]) cells.push({ c: (j >> 1) % b.cols, flag: b.halfFlag[j] });
+  }
+  return cells;
+}
+
 /** Number of 8-connected groups among the given half cells. */
 function components(cells: { c: number; hr: number }[]) {
   const left = new Set(cells.map(({ c, hr }) => `${c},${hr}`));
@@ -181,6 +192,23 @@ describe("koi tail", () => {
       const m = tailMeasures(s, (p / 8) * Math.PI * 2);
       expect(m.tailWidth).toBeLessThanOrEqual(1.6 * peduncle);
     }
+  });
+
+  test("no body cell pokes out behind the blade's root at any phase", () => {
+    const s = koiScene();
+    const cw = (s.renderer as unknown as { cw: number }).cw;
+    const snoutX = CX + L / 2;
+    const stray: string[] = [];
+    for (let p = 0; p < PHASES; p++) {
+      const phase = (p / PHASES) * Math.PI * 2;
+      for (const { c, flag } of flagged(s, phase)) {
+        // The blade takes over at s 0.76 (0.03 past its root); a whole cell of margin for the cell grid.
+        const sPos = (snoutX - (c * cw + cw / 2)) / L;
+        if (sPos > 0.76 + cw / L && flag !== 3)
+          stray.push(`phase ${phase.toFixed(2)} col ${c} flag ${flag}`);
+      }
+    }
+    expect(stray).toEqual([]);
   });
 
   test("the blade sways sideways at the beat's two extremes instead of swelling", () => {
