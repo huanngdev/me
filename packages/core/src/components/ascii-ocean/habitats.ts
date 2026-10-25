@@ -42,18 +42,22 @@ export const OCEAN: Habitat = {
 };
 
 /**
- * Garden pond: algae-green water with a brown tint. Shallow, so less haze than the sea. The absorb k
- * is a suggestion in the same research note; the colours are its pond rows.
+ * Garden pond: clear water with a faint blue-green tint. Shallow, so much less haze than the sea.
+ * This is a deliberate art-direction change from the R11 research (docs/ascii-ocean-anatomy.md), which
+ * gives algae-green and tannin-brown colours and k values; those read as murky and hid the koi. The
+ * tones are pale aqua instead, the absorb k keeps red fastest and green slowest (so depth still leans
+ * blue-green) but is low, since a koi seen from above sits under well under a metre of water, and the
+ * veil and fill are low enough for red and white to read.
  */
 export const POND: Habitat = {
   id: "pond",
-  absorb: [0.75, 0.22, 0.55],
-  veil: 0.25,
+  absorb: [0.12, 0.06, 0.08],
+  veil: 0.06,
   water: {
-    dark: { surface: [74, 90, 42], deep: [28, 58, 42] },
-    light: { surface: [143, 163, 106], deep: [91, 122, 74] },
+    dark: { surface: [46, 100, 112], deep: [20, 56, 70] },
+    light: { surface: [178, 210, 218], deep: [112, 158, 172] },
   },
-  fill: { dark: 0.85, light: 0.6 },
+  fill: { dark: 0.6, light: 0.45 },
 };
 
 /** The habitat a scene lives in. New scenes and habitats are added here. */

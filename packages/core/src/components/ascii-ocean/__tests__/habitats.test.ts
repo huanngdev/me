@@ -58,4 +58,24 @@ describe("habitats", () => {
     const blackAnimal = attenuate([200, 200, 200], [0, 0, 0], 0, "pond");
     expect(deepAnimal[1]).toBeGreaterThan(blackAnimal[1]);
   });
+
+  test("pond water is clear: a koi's red and white keep their colour at koi depth", () => {
+    // Kohaku red and white as lit from above, at the deepest a pond koi swims (about 0.64 of full).
+    const red = attenuate([207, 60, 18], POND.water.dark.deep, 0.64, "pond");
+    const white = attenuate([227, 223, 212], POND.water.dark.deep, 0.64, "pond");
+    expect(red[0]).toBeGreaterThanOrEqual(0.85 * 207);
+    // White stays neutral rather than turning teal: no channel drifts more than 12% from the others.
+    expect(Math.max(...white) - Math.min(...white)).toBeLessThanOrEqual(0.12 * Math.max(...white));
+  });
+
+  test("pond water is clearer than the sea and leans blue-green", () => {
+    expect(POND.veil).toBeLessThan(OCEAN.veil);
+    expect(POND.absorb[0]).toBeLessThan(OCEAN.absorb[0]);
+    for (const mode of ["dark", "light"] as const) {
+      const [r, g, b] = POND.water[mode].surface;
+      expect(r).toBeLessThan(Math.min(g, b));
+      // Blue-green, not green: blue is at least as strong as green.
+      expect(b).toBeGreaterThanOrEqual(g);
+    }
+  });
 });
