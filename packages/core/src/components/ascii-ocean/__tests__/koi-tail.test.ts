@@ -131,7 +131,7 @@ function components(cells: { c: number; hr: number }[]) {
 }
 
 /**
- * Width and area of the tail region at rest (bend 0). Width is the most covered half-rows in one
+ * Width, area and tip position of the tail region (bend 0). Width is the most covered half-rows in one
  * column, in px. The peduncle is the band from s 0.70 to 0.76; the tail is everything past s 0.76.
  */
 function tailMeasures(s: ReturnType<typeof koiScene>, phase: number) {
@@ -149,9 +149,14 @@ function tailMeasures(s: ReturnType<typeof koiScene>, phase: number) {
   }
   const peduncle = Math.max(0, ...peduncleColumns.values());
   const tailCounts = [...tailColumns.values()];
+  // Mean half row of the tail's last cells (s past 0.9), which is where a sway shows most.
+  const tipRows = cells
+    .filter(({ c }) => (snoutX - (c * cw + cw / 2)) / L > 0.9)
+    .map(({ hr }) => hr);
+  const tipRow = tipRows.reduce((sum, hr) => sum + hr, 0) / (tipRows.length || 1);
   const tailWidth = Math.max(0, ...tailCounts);
   const tailArea = tailCounts.reduce((sum, n) => sum + n, 0);
-  return { peduncle: (peduncle * ch) / 2, tailWidth: (tailWidth * ch) / 2, tailArea };
+  return { peduncle: (peduncle * ch) / 2, tailWidth: (tailWidth * ch) / 2, tailArea, tipRow };
 }
 
 describe("koi tail", () => {
@@ -168,17 +173,24 @@ describe("koi tail", () => {
     expect(failures).toEqual([]);
   });
 
-  test("the tail is no wider than about 1.6 times the peduncle at rest", () => {
-    // At the peak of a beat the twist widens the tip to about 1.7 times the peduncle, so only rest is checked.
-    const m = tailMeasures(koiScene(), 0);
-    expect(m.tailWidth).toBeLessThanOrEqual(1.6 * m.peduncle);
+  test("the tail is no wider than about 1.6 times the peduncle at any phase", () => {
+    const s = koiScene();
+    // The body wave tilts the peduncle against the cell grid, so its width is taken at rest.
+    const { peduncle } = tailMeasures(s, 0);
+    for (let p = 0; p < 8; p++) {
+      const m = tailMeasures(s, (p / 8) * Math.PI * 2);
+      expect(m.tailWidth).toBeLessThanOrEqual(1.6 * peduncle);
+    }
   });
 
-  test("the blade is wider at the peak of a beat than at rest", () => {
+  test("the blade sways sideways at the beat's two extremes instead of swelling", () => {
     const s = koiScene();
-    const rest = tailMeasures(s, 0);
-    const peak = tailMeasures(s, Math.PI / 2);
-    expect(peak.tailArea).toBeGreaterThan(rest.tailArea);
+    const left = tailMeasures(s, Math.PI / 2);
+    const right = tailMeasures(s, (3 * Math.PI) / 2);
+    // The tip's centre moves across the axis by at least two half rows between the extremes.
+    expect(Math.abs(left.tipRow - right.tipRow)).toBeGreaterThanOrEqual(2);
+    // Its size stays put: neither extreme has much more blade than the other.
+    expect(Math.abs(left.tailArea - right.tailArea)).toBeLessThanOrEqual(0.2 * right.tailArea);
   });
 });
 

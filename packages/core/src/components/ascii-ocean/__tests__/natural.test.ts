@@ -191,7 +191,8 @@ function naturalSharkHash(seed: number, surface = true) {
 // V3 R10: the seed draws for breath and drift come after the fish, which moves the rng stream for every later step, and sharks drift in depth.
 // R11: habitat water under the animals (gradient, seabed veiled toward the water), depth veil toward the deep water colour.
 // V3 R13: shark pectorals widened (root 0.14 TL, reach 0.32) and the falcate cut made shallower, so the draw calls changed.
-const NATURAL_NO_SURFACE_HASH = 1963944584;
+// Tail blades sway side to side in natural mode instead of swelling, so the draw calls changed.
+const NATURAL_NO_SURFACE_HASH = 3486910729;
 // R21a: animals only swim (no hunting, feeding or shows).
 // Locks the natural-mode shark draw calls for seed 42 at steps 100, 200 and 300, surface on.
 // R9: natural mode gained the water surface (caustics)
@@ -205,7 +206,8 @@ const NATURAL_NO_SURFACE_HASH = 1963944584;
 // V3 R10: rng stream and fish drift, as above.
 // R11: water fill and depth veil, as above.
 // V3 R13: classic shark pectorals widened, so the draw calls changed.
-const NATURAL_SHARK_HASH_SEED_42 = 2505656097;
+// Swaying tail blades, as above.
+const NATURAL_SHARK_HASH_SEED_42 = 2110738530;
 
 describe("natural mode", () => {
   test("bodies split into half-height blocks", () => {

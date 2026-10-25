@@ -59,14 +59,14 @@ export type OceanColors = "natural" | "theme";
 export type TailShape =
   /** Whale/dolphin flukes: a horizontal, swept-back wing. From `1 - length` to the tail tip; the tips reach the end, the centre notch sits `notch` before it. */
   | { kind: "fluke"; span: number; length: number; notch: number }
-  /** A fish's vertical caudal fin seen from above: a narrow blade behind the peduncle. `width` is its half-width at the tip at rest, `twist` the extra half-width at the peak of a beat, both fractions of length. */
+  /** A fish's vertical caudal fin seen from above: a narrow blade behind the peduncle. `width` is its half-width at the tip at rest, `twist` how far the tip sways to each side at the peak of a beat, both fractions of length. */
   | { kind: "caudal"; length: number; width: number; twist: number }
   /**
    * A shark's heterocercal tail: a vertical caudal fin seen edge-on from above, so a narrow blade.
    * It starts `length` (a fraction of the body length) behind the body tip, and its upper lobe runs
    * `upper` (a fraction of the total length) past the tip. The body is shortened so that snout to
-   * blade tip is the full length. `width` is the half-width at rest and `twist` the extra half-width
-   * at the peak of a beat, both fractions of the total length.
+   * blade tip is the full length. `width` is the half-width at rest and `twist` how far the tip sways
+   * to each side at the peak of a beat, both fractions of the total length.
    */
   | { kind: "heterocercal"; length: number; upper: number; width: number; twist: number };
 

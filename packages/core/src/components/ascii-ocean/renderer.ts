@@ -488,6 +488,8 @@ export class AsciiRenderer {
   private tailBeat = 1;
   /** Half-width of the blade where it leaves the peduncle, in px. Set once per animal, not per sample. */
   private tailW0 = 0;
+  /** Natural mode sways a tail blade side to side; theme mode keeps the cover's classic swell, so its draw calls hold. */
+  private swayTail = false;
   // The spine's end and the direction past it, for a heterocercal blade (set per creature in rasterize).
   private tailX = 0;
   private tailY = 0;
@@ -1190,7 +1192,7 @@ export class AsciiRenderer {
       this.hitAcross = clamp(a / (L * tail.span), 0, 1);
       return true;
     }
-    return this.bladeHit(u - L, a, tail, L, L);
+    return this.bladeHit(u - L, this.hitV, tail, L, L);
   }
 
   /**
@@ -1201,20 +1203,23 @@ export class AsciiRenderer {
     const rx = px - this.tailX;
     const ry = py - this.tailY;
     const along = rx * this.tailDx + ry * this.tailDy;
-    const off = Math.abs(rx * -this.tailDy + ry * this.tailDx);
+    const off = rx * -this.tailDy + ry * this.tailDx;
     return this.bladeHit(along, off, tail, L, L / (1 - tail.upper));
   }
 
   /**
    * A tail blade, seen edge-on from above. `along` is the distance from the body tip (negative toward the
-   * snout) and `a` the distance from the axis. The blade starts `length` of the body behind the tip and
-   * widens to its tip; the beat twists it wider. A koi's blade ends at the tip, a heterocercal one runs
-   * `upper` of the total length past it. Sets hitShade and hitAcross; the caller sets the flag.
+   * snout) and `v` the signed distance from the axis (the same side convention as hitV). The blade starts
+   * `length` of the body behind the tip and widens to its tip; in natural mode the beat sways it side to
+   * side, the shift growing from nothing at the root to `twist` of the total length at the tip (theme mode
+   * widens it by that much instead). A koi's blade ends at the
+   * tip, a heterocercal one runs `upper` of the total length past it. Sets hitShade and hitAcross; the
+   * caller sets the flag.
    * `L` is the body length and `total` the length the tail width fractions are taken from.
    */
   private bladeHit(
     along: number,
-    a: number,
+    v: number,
     tail: TailShape & { kind: "caudal" | "heterocercal" },
     L: number,
     total: number,
@@ -1223,13 +1228,17 @@ export class AsciiRenderer {
     const tip = tail.kind === "heterocercal" ? tail.upper * total : 0;
     const k = (along - base) / (tip - base);
     if (k < 0 || k > 1) return false;
-    // The blade starts at the peduncle's half-width and widens to the tip; the beat twists it wider.
+    // The blade starts at the peduncle's half-width and widens to the tip.
     const w0 = this.tailW0;
-    let hw = w0 + (tail.width * total - w0) * k + tail.twist * total * Math.abs(this.tailLift) * k;
+    let hw = w0 + (tail.width * total - w0) * k;
+    if (!this.swayTail) hw += tail.twist * total * Math.abs(this.tailLift) * k;
     // The tip is rounded off over its last 12%.
     if (k > 0.88) hw *= Math.sqrt(1 - ((k - 0.88) / 0.12) ** 2);
     // A heterocercal blade is never thinner than half a cell, so it stays visible from above.
     if (tail.kind === "heterocercal") hw = Math.max(hw, this.cw * 0.5);
+    // The beat sways the whole blade sideways, trailing the body wave. hitV counts the other way round from
+    // the wave's offset, so the blade's centre sits at minus the lift.
+    const a = this.swayTail ? Math.abs(v + tail.twist * total * this.tailLift * k) : Math.abs(v);
     if (a > hw) return false;
     this.hitShade = 0.3 + 0.15 * (1 - k);
     this.hitAcross = clamp(a / (hw || 1), 0, 1);
@@ -1327,6 +1336,7 @@ export class AsciiRenderer {
       this.finTipLeft = L * reachFin * flex * (1 + bank);
       this.tailLift = Math.sin(sh.phase);
       this.tailBeat = 1 + 0.1 * this.tailLift;
+      this.swayTail = natural;
       this.tailW0 = shape.tail ? shape.halfWidth(1 - shape.tail.length) * L : 0;
 
       let minX = Infinity;
