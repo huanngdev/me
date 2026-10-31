@@ -7,11 +7,12 @@ import { FixedBackButton, type FixedBackButtonProps } from "../fixed-back-button
 import { Safari } from "../safari";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../tabs";
 import { ThemeToggle } from "../theme-toggle";
-import { BlockFileExplorer, type BlockExplorerFile } from "./block-file-explorer";
+import { BlockFileExplorer, type BlockFile } from "./block-file-explorer";
 
 type BlockPreviewTabsProps = {
   preview: ReactNode;
-  files: readonly BlockExplorerFile[];
+  files: readonly BlockFile[];
+  slug: string;
   rootName: string;
   url: string;
   backButton?: FixedBackButtonProps | false;
@@ -22,6 +23,7 @@ type BlockPreviewTabsProps = {
 export function BlockPreviewTabs({
   preview,
   files,
+  slug,
   rootName,
   url,
   backButton,
@@ -70,7 +72,7 @@ export function BlockPreviewTabs({
       >
         <Safari url={url} className="w-[min(92vw,130vh)] drop-shadow-xl">
           {files.length > 0 ? (
-            <BlockFileExplorer files={files} rootName={rootName} />
+            <BlockFileExplorer files={files} slug={slug} rootName={rootName} />
           ) : (
             <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
               No source files available for this block.

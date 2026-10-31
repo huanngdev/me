@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { hotkeysCoreFeature, selectionFeature, syncDataLoaderFeature } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
 import {
@@ -15,17 +17,16 @@ import {
 import { CopyButton } from "../copy-button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../resizable";
 import { Tree, TreeItem, TreeItemLabel } from "../reui/tree";
+import { highlightCode, languageForPath } from "./highlight-code-client";
 
-export type BlockExplorerFile = {
+export type BlockFile = {
   path: string;
-  name: string;
-  language: string;
-  html: string;
-  code: string;
+  code?: string;
 };
 
 type BlockFileExplorerProps = {
-  files: readonly BlockExplorerFile[];
+  files: readonly BlockFile[];
+  slug: string;
   rootName: string;
 };
 
@@ -35,13 +36,13 @@ type FileItem = {
   name: string;
   type: FileNodeType;
   children?: string[];
-  file?: BlockExplorerFile;
+  file?: BlockFile;
 };
 
 const ROOT_ID = "root";
 const INDENT = 16;
 
-export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
+export function BlockFileExplorer({ files, slug, rootName }: BlockFileExplorerProps) {
   "use no memo";
 
   const { items, folders, firstFileId } = buildItems(files, rootName);
@@ -64,6 +65,62 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
 
   const selectedId = tree.getState().selectedItems.find((id) => items[id]?.file);
   const active = items[selectedId ?? firstFileId ?? ""]?.file;
+  const activePath = active?.path ?? "";
+  const [registryCode, setRegistryCode] = useState<Record<string, string> | null>(null);
+  const [highlighted, setHighlighted] = useState<{ path: string; html: string } | null>(null);
+  const needsRegistry = files.some((file) => file.code === undefined);
+  const [loadingSource, setLoadingSource] = useState(needsRegistry);
+  const activeCode = active?.code ?? (activePath ? registryCode?.[activePath] : undefined) ?? "";
+
+  useEffect(() => {
+    if (!needsRegistry) return;
+
+    let cancelled = false;
+    const prefix = `registry/default/${slug}/`;
+
+    void fetch(`/r/${slug}.json`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { files?: { path?: string; content?: string }[] } | null) => {
+        if (cancelled) return;
+
+        const sources: Record<string, string> = {};
+        for (const file of data?.files ?? []) {
+          if (
+            typeof file.path === "string" &&
+            file.path.startsWith(prefix) &&
+            typeof file.content === "string"
+          ) {
+            sources[file.path.slice(prefix.length)] = file.content;
+          }
+        }
+        setRegistryCode(sources);
+        setLoadingSource(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRegistryCode({});
+          setLoadingSource(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [needsRegistry, slug]);
+
+  useEffect(() => {
+    if (!activePath || !activeCode) return;
+
+    let cancelled = false;
+
+    void highlightCode(activeCode, languageForPath(activePath)).then((html) => {
+      if (!cancelled) setHighlighted({ path: activePath, html });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePath, activeCode]);
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
@@ -99,13 +156,23 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
           <span className="text-muted-foreground truncate font-mono text-xs">
             {active?.path ?? "Select a file"}
           </span>
-          {active && <CopyButton text={active.code} size="icon-sm" />}
+          {active && activeCode ? <CopyButton text={activeCode} size="icon-sm" /> : null}
         </header>
         {active ? (
-          <div
-            className="code-block-shiki min-h-0 flex-1 overflow-auto text-xs leading-[20px] [&_pre]:!bg-transparent [&_pre]:p-4"
-            dangerouslySetInnerHTML={{ __html: active.html }}
-          />
+          highlighted?.path === active.path ? (
+            <div
+              className="code-block-shiki min-h-0 flex-1 overflow-auto text-xs leading-[20px] [&_pre]:!bg-transparent [&_pre]:p-4"
+              dangerouslySetInnerHTML={{ __html: highlighted.html }}
+            />
+          ) : activeCode ? (
+            <pre className="code-block-shiki min-h-0 flex-1 overflow-auto p-4 font-mono text-xs leading-[20px]">
+              {activeCode}
+            </pre>
+          ) : (
+            <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
+              {loadingSource ? "Loading source…" : "Source unavailable"}
+            </div>
+          )
         ) : (
           <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
             No file selected
@@ -116,7 +183,7 @@ export function BlockFileExplorer({ files, rootName }: BlockFileExplorerProps) {
   );
 }
 
-function buildItems(files: readonly BlockExplorerFile[], rootName: string) {
+function buildItems(files: readonly BlockFile[], rootName: string) {
   const items: Record<string, FileItem> = {
     [ROOT_ID]: { name: rootName, type: "folder", children: [] },
   };

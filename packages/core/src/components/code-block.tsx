@@ -1,6 +1,9 @@
-import { codeToHtml, type BundledLanguage } from "shiki";
+"use client";
+
+import { useEffect, useState } from "react";
 
 import { CodeBlockShell } from "./code-block-shell";
+import { highlightCode } from "./layouts/highlight-code-client";
 
 const SUPPORTED: ReadonlySet<string> = new Set([
   "tsx",
@@ -25,7 +28,7 @@ export type CodeBlockProps = {
   className?: string;
 };
 
-export async function CodeBlock({
+export function CodeBlock({
   code,
   language,
   maxLines = 12,
@@ -35,12 +38,19 @@ export async function CodeBlock({
   const detected = language ?? detectLanguage(code);
   const lang = SUPPORTED.has(detected) ? detected : "text";
   const lineCount = code.split("\n").length;
+  const [html, setHtml] = useState<string | null>(null);
 
-  const html = await codeToHtml(code, {
-    lang: lang as BundledLanguage,
-    themes: { light: "github-light-default", dark: "github-dark-default" },
-    defaultColor: false,
-  });
+  useEffect(() => {
+    let cancelled = false;
+
+    void highlightCode(code, lang).then((result) => {
+      if (!cancelled) setHtml(result);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, lang]);
 
   return (
     <CodeBlockShell

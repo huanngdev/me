@@ -10,7 +10,7 @@ import { cn } from "../lib/utils";
 export type CodeBlockShellProps = {
   code: string;
   language: string;
-  html: string;
+  html: string | null;
   lineCount: number;
   maxLines: number;
   showLanguage: boolean;
@@ -55,10 +55,14 @@ export function CodeBlockShell({
         style={collapsed ? { maxHeight: collapsedHeight } : undefined}
         className={cn("overflow-auto", collapsed && "overflow-hidden")}
       >
-        <div
-          className="code-block-shiki text-xs leading-[20px] [&_pre]:!bg-transparent [&_pre]:p-4"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        {html === null ? (
+          <pre className="code-block-shiki p-4 font-mono text-xs leading-[20px]">{code}</pre>
+        ) : (
+          <div
+            className="code-block-shiki text-xs leading-[20px] [&_pre]:!bg-transparent [&_pre]:p-4"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        )}
       </div>
       {collapsed && (
         <div

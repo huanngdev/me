@@ -1,14 +1,48 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { ReactNode } from "react";
 
 import { PUBLIC_PORTFOLIO_URL } from "../../constants";
 import { type FixedBackButtonProps } from "../fixed-back-button";
+import { type BlockFile } from "./block-file-explorer";
 import { BlockPreviewTabs } from "./block-preview-tabs";
 import { BlockUrlProvider, SafariPreview } from "./block-url";
-import { highlightFiles, type BlockFile } from "./highlight-source";
 
-export type { BlockFile } from "./highlight-source";
+export type { BlockFile };
 
 const DEFAULT_PREVIEW_URL = PUBLIC_PORTFOLIO_URL.replace(/^https?:\/\//, "");
+
+const registryPathCache = new Map<string, Set<string>>();
+
+/**
+ * Source files already published in `public/r/<name>.json` are not serialized into the page
+ * payload; the Code tab loads them from that file on demand. This keeps demo pages small while
+ * the registry JSON (which the install flow needs anyway) stays the single source of truth.
+ */
+function registrySourcePaths(name: string): Set<string> {
+  const cached = registryPathCache.get(name);
+  if (cached) return cached;
+
+  const sources = new Set<string>();
+  const prefix = `registry/default/${name}/`;
+
+  try {
+    const registry = JSON.parse(
+      readFileSync(path.join(process.cwd(), "public", "r", `${name}.json`), "utf8"),
+    ) as { files?: { path?: string }[] };
+
+    for (const file of registry.files ?? []) {
+      if (typeof file.path === "string" && file.path.startsWith(prefix)) {
+        sources.add(file.path.slice(prefix.length));
+      }
+    }
+  } catch {
+    // No registry entry for this page: keep every file inline so the Code tab still works.
+  }
+
+  registryPathCache.set(name, sources);
+  return sources;
+}
 
 export type BlockPreviewFrameProps = {
   children: ReactNode;
@@ -29,7 +63,10 @@ export async function BlockPreviewFrame({
   install,
   docs,
 }: BlockPreviewFrameProps) {
-  const explorerFiles = await highlightFiles(files ?? []);
+  const registrySources = registrySourcePaths(name);
+  const explorerFiles = (files ?? []).map((file) =>
+    registrySources.has(file.path) ? { path: file.path } : file,
+  );
 
   const preview = (
     <div className="flex flex-col items-center gap-3">
@@ -50,6 +87,7 @@ export async function BlockPreviewFrame({
         <BlockPreviewTabs
           preview={preview}
           files={explorerFiles}
+          slug={name}
           rootName={name}
           url={url}
           backButton={backButton}
