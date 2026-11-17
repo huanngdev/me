@@ -39,6 +39,7 @@ export function AwardsSection() {
         <StaggerList>
           {AWARDS.map((award, index) => {
             const podium = isPodium(award.result);
+            const announcement = "url" in award ? award.url : undefined;
             return (
               <StaggerListItem
                 key={`${award.event}-${award.date}`}
@@ -91,6 +92,19 @@ export function AwardsSection() {
                   </div>
                   <p className="text-muted-foreground mt-1 text-sm">
                     Project <span className="text-foreground font-medium">{award.project}</span>
+                    {announcement && (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        <a
+                          href={announcement}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-foreground underline-offset-4 hover:underline"
+                        >
+                          Announcement
+                        </a>
+                      </>
+                    )}
                   </p>
                 </div>
               </StaggerListItem>

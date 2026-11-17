@@ -1,29 +1,29 @@
 ---
 title: Awards & hackathons
-updated: 2026-05-19
+updated: 2026-11-03
 ---
 
 # Awards & hackathons
 
-Three hackathons participated in (reverse-chronological). For 0-1 yr engineers, a single podium is among the strongest signals on the page — Ngô Gia Huấn has one Top 1 and one Top 2 on consecutive months. That's a velocity story worth surfacing.
+Three hackathons, three podiums (reverse-chronological). For 0-1 yr engineers, a single podium is among the strongest signals on the page — Ngô Gia Huấn has a Top 2 in Walrus Session 8, a Top 1 in Walrus Session 2, and a Top 2 in his first hackathon. That's a consistency story, not a lucky break.
 
-## 1. Walrus Session 2 — Form Tooling track
+## 1. Walrus Session 8 — App Track
+
+- **Event:** Walrus Session 8 (App Track)
+- **Date:** 30 October 2026
+- **Project:** **hippo** — chat assistant with user-owned memory, working across web, Telegram, Discord, and the terminal. Memory lives in a Walrus account the user owns and can revoke access to at any time.
+- **Result:** **🥈 Top 2**
+- **Evidence link:** https://x.com/WalrusProtocol/status/2116192923364847932
+
+## 2. Walrus Session 2 — Form Tooling track
 
 - **Event:** Walrus Session 2 (Form Tooling)
-- **Date:** _(add)_
+- **Date:** May 2026
 - **Project:** **WalForm** — on-chain form builder on Sui (Walrus + Sui), live on Sui mainnet.
 - **Result:** **🥇 Top 1**
-- **Evidence link:** _(add)_
+- **Evidence link:** https://x.com/WalrusProtocol/status/2060146561674609002
 
-## 2. CommandOSS HackerHouse
-
-- **Event:** CommandOSS HackerHouse
-- **Date:** 17 April 2026
-- **Project:** **Sui Stream** — YouTube, on-chain (Walrus + Sui smart contracts).
-- **Result:** _(add when results announced)_
-- **Evidence link:** _(add)_
-
-## 3. First Mover Hackathon — 🥈 Top 2
+## 3. First Mover Hackathon
 
 - **Event:** First Mover
 - **Date:** 3 February 2026
@@ -31,14 +31,14 @@ Three hackathons participated in (reverse-chronological). For 0-1 yr engineers, 
 - **Result:** **🥈 Top 2** — first hackathon, first podium.
 - **Evidence link:** _(add)_
 
-The "first hackathon → Top 2 → three hackathons in three months" framing is the strongest story on the page for an early-career portfolio.
+The "first hackathon → Top 2 → two Walrus podiums" framing is the strongest story on the page for an early-career portfolio.
 
 ---
 
 ## Display rules
 
-- **Show all three hackathons.** Three is still curatable; padding past five erodes signal.
-- **Lead with the badge** (Top 2 / Winner / Finalist) on the card, not the date.
+- **Show all three podiums.** Three is still curatable; padding past five erodes signal.
+- **Lead with the badge** (Top 1 / Top 2 / Winner / Finalist) on the card, not the date.
 - **Link to evidence** — a tweet, leaderboard, organizer page. A claim without a link is just a claim.
 - **Format the dates as the event start date** for consistency.
 

@@ -17,7 +17,7 @@ Single source of truth for everything personal about Ngô Gia Huấn that appear
 - [education.md](./education.md) — FPT University.
 - [experience.md](./experience.md) — EVN SPCIT (current, Oracle ERP), freelance, Formo, FPT Software internship.
 - [projects.md](./projects.md) — WalForm, hackathon projects, this portfolio.
-- [awards.md](./awards.md) — First Mover (Top 2), CommandOSS HackerHouse.
+- [awards.md](./awards.md) — Walrus Session 8 (Top 2, hippo), Walrus Session 2 (Top 1, WalForm), First Mover (Top 2).
 
 ## Open TODOs across all files
 

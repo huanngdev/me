@@ -115,7 +115,10 @@ export function buildProfileMarkdown(): string {
   if (AWARDS.length) {
     lines.push("## Awards");
     for (const a of AWARDS) {
-      lines.push(`- **${a.event}** (${a.date}) — ${a.project}, ${a.result}`);
+      const url = "url" in a ? a.url : undefined;
+      lines.push(
+        `- **${a.event}** (${a.date}) — ${a.project}, ${a.result}${url ? ` — ${url}` : ""}`,
+      );
     }
     lines.push("");
   }

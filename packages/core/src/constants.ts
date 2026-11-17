@@ -565,7 +565,6 @@ export const PROJECTS = [
     },
     stack: ["Sui", "Move", "Walrus", "TypeScript", "Next.js"],
     status: "demo",
-    hackathon: "CommandOSS HackerHouse",
     links: { live: "https://sui-stream-web.vercel.app/" },
   },
   {
@@ -695,20 +694,24 @@ export interface AwardEntry {
   date: string;
   project: string;
   result: string;
+  /** Public announcement or leaderboard proving the result. */
+  url?: string;
 }
 
 export const AWARDS = [
   {
-    event: "Walrus Session 2 — Form Tooling",
-    date: "2026",
-    project: "WalForm",
-    result: "Top 1",
+    event: "Walrus Session 8 — App Track",
+    date: "2026-10",
+    project: "hippo",
+    result: "Top 2",
+    url: "https://x.com/WalrusProtocol/status/2116192923364847932",
   },
   {
-    event: "CommandOSS HackerHouse",
-    date: "2026-04-17",
-    project: "Sui Stream",
-    result: "Participated",
+    event: "Walrus Session 2 — Form Tooling",
+    date: "2026-05",
+    project: "WalForm",
+    result: "Top 1",
+    url: "https://x.com/WalrusProtocol/status/2060146561674609002",
   },
   {
     event: "First Mover",

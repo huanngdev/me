@@ -76,7 +76,6 @@ Ordered for the public page: **richcn first, then hackathon work, then everythin
 
 - **One-liner:** On-chain short-video platform powered by Walrus storage and Sui contracts.
 - **Role:** Solo Frontend and Smart Contract Developer
-- **Hackathon:** CommandOSS HackerHouse, 17 April 2026
 - **Stack:** Sui, Move, Walrus, TypeScript, Next.js
 - **Status:** Complete working demo.
 - **Links:**
