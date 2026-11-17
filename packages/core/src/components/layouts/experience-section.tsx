@@ -5,6 +5,7 @@ import { StaggerList, StaggerListItem } from "../reveal";
 import { TechBadgeList } from "./coding/tech-stack";
 
 const COMPANY_LOGOS: Record<string, string> = {
+  "EVN SPCIT": "/images/evn-spcit-logo.svg",
   Formo: "/images/formo-logo.svg",
   "FPT Software": "/images/fpt-logo.svg",
 };
