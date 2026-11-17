@@ -15,7 +15,7 @@ Single source of truth for everything personal about Ngô Gia Huấn that appear
 - [about.md](./about.md) — narrative anchor + draft bio.
 - [skills.md](./skills.md) — tech stack for the icon grid.
 - [education.md](./education.md) — FPT University.
-- [experience.md](./experience.md) — current freelance work, Formo, FPT Software internship.
+- [experience.md](./experience.md) — EVN SPCIT (current, Oracle ERP), freelance, Formo, FPT Software internship.
 - [projects.md](./projects.md) — WalForm, hackathon projects, this portfolio.
 - [awards.md](./awards.md) — First Mover (Top 2), CommandOSS HackerHouse.
 

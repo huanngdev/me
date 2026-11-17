@@ -32,9 +32,9 @@ Lead with **Fullstack Engineer** in the hero tagline; the others surface in the 
 
 ## Availability
 
-Currently freelancing and open to full-time roles or additional freelance work. Suggested hero microcopy:
+Full-time at EVN SPCIT since November 16, 2026, working on the Oracle ERP system. Suggested hero microcopy:
 
-> Currently freelancing and open to full-time opportunities.
+> Currently working full-time on Oracle ERP at EVN SPCIT.
 
 ## Date of birth
 

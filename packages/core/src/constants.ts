@@ -190,7 +190,7 @@ export const IDENTITY = {
     "Fullstack developer in Ho Chi Minh City. I build web apps with Next.js and TypeScript, and sometimes work with Sui.",
   description:
     "Hi there. I'm a self-taught fullstack developer building web apps with Next.js and TypeScript. I enjoy working on UI details and joining hackathons from time to time.",
-  availability: "Currently freelancing and open to full-time opportunities.",
+  availability: "Currently working full-time on Oracle ERP at EVN SPCIT.",
 } as const satisfies Identity;
 
 // ---------- Contact & social ----------
@@ -350,11 +350,20 @@ export interface ExperienceEntry {
 
 export const EXPERIENCE = [
   {
+    company: "EVN SPCIT",
+    role: "Oracle ERP Developer",
+    employmentType: "full-time",
+    start: "2026-11",
+    end: null,
+    location: "Ho Chi Minh City, Vietnam",
+    about: "Software Technology Department, working on the Oracle ERP system.",
+  },
+  {
     company: "Freelance",
     role: "Fullstack Developer",
     employmentType: "freelance",
     start: "2026-06",
-    end: null,
+    end: "2026-11",
     location: "Ho Chi Minh City, Vietnam · Remote",
     about: "Independent fullstack development.",
   },

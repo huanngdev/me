@@ -66,7 +66,7 @@ const profileJsonLd = {
         caption: IDENTITY.fullName,
       },
       description: IDENTITY.description,
-      jobTitle: "Freelance Fullstack Developer",
+      jobTitle: "Oracle ERP Developer",
       email: `mailto:${PUBLIC_EMAIL}`,
       homeLocation: {
         "@type": "Place",

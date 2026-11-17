@@ -1,6 +1,6 @@
 ---
 title: Experience
-updated: 2026-05-19
+updated: 2026-11-17
 ---
 
 # Experience
@@ -11,11 +11,23 @@ For 0-1 year out, the goal is **specificity over volume**: every bullet should n
 
 ---
 
+## EVN SPCIT
+
+- **Role:** Oracle ERP Developer
+- **Employment type:** Full-time
+- **Department:** Software Technology Department (Phòng Công nghệ Phần mềm)
+- **Period:** Nov 16, 2026 – Present
+- **Location:** Ho Chi Minh City, Vietnam
+
+Works on the Oracle ERP system. Highlights and tech stack are added once there is concrete shipped work to name.
+
+---
+
 ## Freelance
 
 - **Role:** Fullstack Developer
 - **Employment type:** Freelance
-- **Period:** Jun 2026 – Present
+- **Period:** Jun 2026 – Nov 2026
 - **Location:** Ho Chi Minh City, Vietnam — Remote
 
 No public client details, highlights, or tech stack are listed until they are confirmed.
@@ -67,9 +79,9 @@ Web team — Next.js / React stack. FAMS was a student management application de
 
 ## Current status
 
-Freelancing since June 2026. Open to full-time opportunities and additional freelance work, remote-friendly, based in Ho Chi Minh City.
+Full-time at EVN SPCIT (Software Technology Department, Oracle ERP) since November 16, 2026, after freelancing from June to November 2026.
 
-The Experience section should show Freelance as the current role. Availability details belong in the Hero CTA rather than as a separate experience entry.
+The Experience section should show EVN SPCIT as the current role. Availability details belong in the Hero CTA rather than as a separate experience entry.
 
 ---
 
