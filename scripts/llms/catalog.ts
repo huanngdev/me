@@ -288,7 +288,7 @@ export const LLMS_CATALOG: readonly LlmsCatalogEntry[] = [
     slug: "ascii-ocean",
     name: "ASCII Ocean",
     description:
-      "A canvas ocean with sharks, koi, dolphins, orcas and humpbacks: click to feed them, each with its own feeding moves, in natural colours with depth and a water surface.",
+      "A canvas ocean of swimming animals: sharks and koi (fish, with vertical tails), and dolphins, orcas and humpbacks (mammals that surface to breathe and blow). Natural colours with a habitat water colour that shifts with depth, a water surface, and click splashes.",
     registryPath: "/r/ascii-ocean.json",
     docsPath: "/components/ascii-ocean",
     files: [

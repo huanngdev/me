@@ -5,8 +5,8 @@ import type { Coat, CreatureDef, KoiVariety, Oklch, PaintPoint } from "./types";
 // The renderer's cell flags. Importing them from the renderer would make a cycle, so they are repeated here.
 const FLAG_FIN = 3;
 
-const SHIROJI: Oklch = [0.95, 0.015, 90];
-const HI: Oklch = [0.6, 0.19, 35];
+const SHIROJI: Oklch = [0.985, 0.012, 90];
+const HI: Oklch = [0.66, 0.21, 35];
 const SUMI: Oklch = [0.22, 0.01, 260];
 const YAMABUKI: Oklch = [0.8, 0.15, 85];
 const ASAGI: Oklch = [0.6, 0.045, 240];
@@ -26,11 +26,13 @@ const coats: Record<KoiVariety, Coat> = {
   // White with red patches; white fins.
   kohaku: {
     regions: [SHIROJI, HI],
+    softInk: true,
     paint: (p) => (p.flag !== FLAG_FIN && kohakuRed(p) ? 1 : 0),
   },
   // Kohaku with small black spots on the white, none on the head.
   sanke: {
     regions: [SHIROJI, HI, SUMI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return 0;
       if (kohakuRed(p)) return 1;
@@ -49,6 +51,7 @@ const coats: Record<KoiVariety, Coat> = {
   // Pectoral roots (motoguro) are black; the other fins are white.
   showa: {
     regions: [SUMI, HI, SHIROJI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return p.s < 0.4 && p.across < 0.35 ? 0 : 2;
       // Thresholds tuned so black stays the commonest colour (the noise centres on 0.5).
@@ -60,6 +63,7 @@ const coats: Record<KoiVariety, Coat> = {
   // White with one round red spot on the head, centred at 0.075 L and radius 0.045 L.
   tancho: {
     regions: [SHIROJI, HI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return 0;
       const dx = (p.s - 0.075) * p.L;
@@ -70,12 +74,14 @@ const coats: Record<KoiVariety, Coat> = {
   // A single metallic gold colour that catches the light.
   ogon: {
     regions: [YAMABUKI],
+    softInk: true,
     glint: true,
     paint: () => 0,
   },
   // Blue-grey back with a lighter scale net; red flanks and pectoral roots; a pale plain head.
   asagi: {
     regions: [ASAGI, ASAGI_NET, HI],
+    softInk: true,
     paint: (p) => {
       if (p.flag === FLAG_FIN) return p.s < 0.4 && p.across < 0.35 ? 2 : 1;
       if (p.s < 0.14) return 1;
@@ -89,6 +95,7 @@ const coats: Record<KoiVariety, Coat> = {
 /** Thick, deep-bodied spindle with a blunt head, large round pectorals that scull, and a long low dorsal. */
 export const KOI: CreatureDef = {
   realLength: 0.75,
+  taxon: "fish",
   shape: {
     halfWidth: (s) => {
       // Blunt head: fills out fast, then holds its depth through the shoulders.
@@ -104,7 +111,6 @@ export const KOI: CreatureDef = {
     paddle: true,
     falcate: false,
     pelvic: [0.44, 0.52, 0.6, 0.12],
-    caudal: 0,
     dorsal: [0.3, 0.62],
     secondDorsal: [0, 0],
     eye: [0.06, 0.09],

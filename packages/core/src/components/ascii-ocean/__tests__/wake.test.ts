@@ -46,6 +46,12 @@ function stage(colors: OceanColors, roster: RosterEntry[]) {
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },

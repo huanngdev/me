@@ -75,6 +75,7 @@ const humpbackCoat: Coat = {
 /** Humpback whale: a long, robust body with a broad flat head, very long flippers, and a small dorsal hump. */
 export const HUMPBACK: CreatureDef = {
   realLength: 14,
+  taxon: "mammal",
   shape: {
     halfWidth: (s) => {
       // Rostrum, then the broad flat head widens to its full depth by 0.15.
@@ -90,14 +91,14 @@ export const HUMPBACK: CreatureDef = {
     paddle: true,
     falcate: false,
     pelvic: [0, 0, 0, 0],
-    caudal: 0,
     // A small hump two-thirds of the way back.
     dorsal: [0.62, 0.66],
     secondDorsal: [0, 0],
     eye: [0.16, 0.18],
     gills: [0, 0],
     tint: [1, 1, 1],
-    tail: { kind: "fluke", span: 0.17, length: 0.15, notch: 0.025 },
+    // anatomy: [est. 1] fluke span 0.25–0.3 TL (half-span 0.14).
+    tail: { kind: "fluke", span: 0.14, length: 0.15, notch: 0.025 },
     undulation: 0.1,
     finFlap: 0.05,
     finFlapRate: 0.35,

@@ -139,7 +139,7 @@ function renderRects(world: World): string[] {
       fillStyle = value;
     },
     fillRect() {
-      styles.push(fillStyle);
+      if (typeof fillStyle === "string") styles.push(fillStyle);
     },
     fillText() {},
     drawImage() {},
@@ -149,6 +149,12 @@ function renderRects(world: World): string[] {
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },

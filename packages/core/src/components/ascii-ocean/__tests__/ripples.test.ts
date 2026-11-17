@@ -45,6 +45,12 @@ function stage(world: World, colors: OceanColors = "natural") {
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },

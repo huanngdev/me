@@ -51,6 +51,12 @@ function scene(colors: OceanColors, surface = true, seed = 42) {
     lineTo() {},
     stroke() {},
     clearRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     getImageData() {
       return null;
     },

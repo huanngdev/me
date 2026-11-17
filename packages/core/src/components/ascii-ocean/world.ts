@@ -21,7 +21,20 @@ import {
 } from "./creatures/behaviour";
 import { CREATURES } from "./creatures";
 import { rosterFromSharks, type RosterEntry } from "./creatures/roster";
+import { TAXA } from "./creatures/taxa";
 import type { CreatureSpecies, OceanScene } from "./creatures/types";
+import {
+  advanceBreath,
+  BLOWHOLE_S,
+  type Blow,
+  BREATH_PROFILES,
+  type Breath,
+  diveDepth,
+  DRIFT_PERIOD,
+  type Drift,
+  driftOffset,
+  startBreath,
+} from "./creatures/vertical";
 import { pickSpecies, SPECIES } from "./species";
 
 export const SPINE_NODES = 20;
@@ -106,18 +119,27 @@ export interface Creature {
   depth: number;
   /** Named coat from the species' `coats`, for species that have them. */
   coat?: string;
-  /** Sinking under the surface, 0–1: pond koi bob between the surface and mid-water. 0 for everything else. */
+  /**
+   * How deep the animal reads, 0 at the surface → 1 at depth. Pond koi bob between the two; a mammal dives (1),
+   * rises and blows at the surface (0), then sinks. 0 for everything else.
+   */
   dive: number;
+  /** Mammals in the ocean: the breathing cycle. null for everything else. */
+  breath: Breath | null;
+  /** Fish in the ocean: a slow depth drift. null for everything else. */
+  drift: Drift | null;
+  /** The drift's current offset from `depth` (fish only, within ±DRIFT_AMP); the renderer adds it. 0 otherwise. */
+  depthOffset: number;
   /** Low-passed steering direction (unit-ish vector, x and y): the target the heading turns toward. */
   steerX: number;
   steerY: number;
 }
 
-export interface WorldEvent {
-  kind: "splash";
-  x: number;
-  y: number;
-}
+/** Things that happen in the water this step. The renderer turns them into rings, spray and wakes, then clears them. */
+export type WorldEvent =
+  | { kind: "splash"; x: number; y: number }
+  /** An animal surfaces and blows at (x, y), its blowhole. `drops`, `reach` and `life` are the blow's spray. */
+  | ({ kind: "blow"; x: number; y: number } & Blow);
 
 const FISH_SEPARATION_K = 420;
 const FISH_ALIGN_K = 1.4;
@@ -145,6 +167,10 @@ export class World {
   time = 0;
   fish: Fish[] = [];
   creatures: Creature[] = [];
+  /**
+   * Events raised this step (splashes, blows). The renderer drains them on each render and clears the array.
+   * A headless World (tests, the sim without a renderer) must drain it too, or it grows without limit.
+   */
   events: WorldEvent[] = [];
   pointer = { x: 0, y: 0, active: false };
   scene: OceanScene;
@@ -237,6 +263,9 @@ export class World {
         depth: entry.depth,
         coat: entry.coat,
         dive: 0,
+        breath: null,
+        drift: null,
+        depthOffset: 0,
         steerX: Math.cos(heading),
         steerY: Math.sin(heading),
       });
@@ -276,6 +305,27 @@ export class World {
       }
     }
     this.bucketNext = new Int32Array(this.fish.length);
+
+    // Vertical motion draws come last, so the positions above do not move. Three draws per creature, in the
+    // sorted creature order, whatever its taxon: breath seed, drift period, drift phase.
+    // Pond creatures draw nothing here, so the pond rng stream is the same as before R10.
+    if (this.scene !== "ocean") return;
+    for (const sh of this.creatures) {
+      const seed = Math.floor(this.rng() * 4294967296);
+      const period = rand(this.rng, DRIFT_PERIOD[0], DRIFT_PERIOD[1]);
+      const phase = rand(this.rng, 0, TAU);
+      const def = CREATURES[sh.species];
+      const profile = BREATH_PROFILES[sh.species];
+      if (TAXA[def.taxon].breathes && profile) {
+        sh.breath = startBreath(profile, seed);
+        sh.dive = diveDepth(sh.breath);
+      }
+      if (def.taxon === "fish") {
+        sh.drift = { period, phase };
+        // Start on the drift curve, not at 0, so the first step does not jump.
+        sh.depthOffset = driftOffset(sh.drift, 0);
+      }
+    }
   }
 
   private fishTotal(W: number, H: number): number {
@@ -755,7 +805,30 @@ export class World {
         nodes[k * 2 + 1] = py + Math.sin(angle) * seg;
         prevAngle = angle;
       }
+      // After the spine, so a blow lands on this step's centre line.
+      this.stepVertical(sh, dt);
     }
+  }
+
+  /** Breathing and drift: the depth the renderer reads. Only the depth fields change; nothing here moves the body. */
+  private stepVertical(sh: Creature, dt: number) {
+    if (sh.breath) {
+      const blows = advanceBreath(sh.breath, dt);
+      for (let i = 0; i < blows; i++) this.blow(sh, sh.breath.profile.blow);
+      sh.dive = diveDepth(sh.breath);
+    }
+    if (sh.drift) sh.depthOffset = driftOffset(sh.drift, this.time);
+  }
+
+  /** A blow at the blowhole: a point on the spine at BLOWHOLE_S of the body length from the snout. */
+  private blow(sh: Creature, blow: Blow) {
+    const n = sh.nodes;
+    const at = BLOWHOLE_S * (SPINE_NODES - 1);
+    const i = Math.floor(at);
+    const t = at - i;
+    const x = n[2 * i] + (n[2 * i + 2] - n[2 * i]) * t;
+    const y = n[2 * i + 1] + (n[2 * i + 3] - n[2 * i + 1]) * t;
+    this.events.push({ kind: "blow", x, y, drops: blow.drops, reach: blow.reach, life: blow.life });
   }
 
   private respawn() {

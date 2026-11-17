@@ -79,13 +79,16 @@ export class Effects {
     this.rseed[i] = hash3(this.rcount++, i, 90);
   }
 
-  /** `n` spray droplets thrown outward from (x, y) up to `reach` px. */
-  spray(x: number, y: number, n: number, reach: number, seed: number) {
+  /**
+   * `n` spray droplets thrown outward from (x, y) up to `reach` px. Each droplet lives `life` s at least,
+   * up to 1.67 × `life` (the default 0.6 gives 0.6–1.0 s).
+   */
+  spray(x: number, y: number, n: number, reach: number, seed: number, life = 0.6) {
     for (let k = 0; k < n; k++) {
       const angle = hash3(seed, k, 1) * Math.PI * 2;
       // Under exponential drag the droplet travels v0 / SPRAY_DRAG in total, so v0 sets the reach.
       const v0 = SPRAY_DRAG * reach * (0.4 + 0.6 * hash3(seed, k, 2));
-      const i = this.claim(x, y, 0.6 + 0.4 * hash3(seed, k, 3));
+      const i = this.claim(x, y, life * (1 + (2 / 3) * hash3(seed, k, 3)));
       this.pvx[i] = Math.cos(angle) * v0;
       this.pvy[i] = Math.sin(angle) * v0;
     }
